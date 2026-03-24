@@ -16,6 +16,52 @@ export interface ItemCarrito {
     precio_real: number;
 }
 
+export interface Lote {
+    id_lote: string;
+    producto: string;
+    costo: number;
+    precio_venta: number;
+    stock_lote: number;
+    fecha_entrada: string;
+    estado: string;
+}
+
+export interface NuevoProducto {
+    producto: string;
+    descripcion: string;
+    costo: number;
+    precio_venta: number;
+    stock: number;
+    imagen?: string;
+}
+
+export interface Restock {
+    producto: string;
+    costo: number;
+    precio_venta: number;
+    stock: number;
+}
+
+export interface Venta {
+    id: number;
+    fecha: string;
+    producto: string;
+    cantidad: number;
+    precio_lista: number;
+    precio_real: number;
+    costo_unitario: number;
+    total_venta: number;
+    ganancia_bruta: number;
+}
+
+export interface Gasto {
+    id: number;
+    fecha: string;
+    categoria: string;
+    descripcion: string;
+    monto: number;
+}
+
 async function request(path: string, options: RequestInit = {}) {
     const res = await fetch(`${BASE_URL}${path}`, {
         ...options,
