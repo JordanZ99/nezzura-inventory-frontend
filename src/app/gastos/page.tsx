@@ -26,7 +26,12 @@ export default function Gastos() {
         const monto = parseFloat(form.monto)
         if (!form.descripcion || isNaN(monto)) return
         try {
-            await api.crearGasto({ descripcion: form.descripcion, monto })
+            await api.crearGasto({ 
+                fecha: new Date().toISOString(),
+                categoria: "General",
+                descripcion: form.descripcion, 
+                monto 
+            })
             mostrarMsg(true, `✅ Gasto registrado: $${monto.toFixed(2)}`)
             setForm({ descripcion: "", monto: "" })
             recargar()
@@ -112,12 +117,12 @@ export default function Gastos() {
                                 </thead>
                                 <tbody>
                                     {gastos.map(g => (
-                                        <tr key={g.id_gasto} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-pink-50/20">
+                                        <tr key={g.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-pink-50/20">
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{new Date(g.fecha).toLocaleDateString()}</td>
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>{g.descripcion}</td>
                                             <td style={{ padding: "12px 16px", fontWeight: 800, color: "#b71c1c" }}>-${g.monto.toFixed(2)}</td>
                                             <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                                                <button onClick={() => eliminar(g.id_gasto)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.3 }}>🗑️</button>
+                                                <button onClick={() => eliminar(g.id)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.3 }}>🗑️</button>
                                             </td>
                                         </tr>
                                     ))}

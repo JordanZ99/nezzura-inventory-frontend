@@ -114,41 +114,40 @@ export default function Estadisticas() {
                             </thead>
                             <tbody>
                                 {ventas.map(v => (
-                                    <tr key={v.id_venta} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-pink-50/30">
-                                        <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.id_venta}</td>
-                                        <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{new Date(v.fecha_venta).toLocaleDateString()}</td>
+                                    <tr key={v.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-pink-50/30">
+                                        <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.id}</td>
+                                        <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{new Date(v.fecha).toLocaleDateString()}</td>
                                         <td style={{ padding: "12px 16px" }}>
                                             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                                                {v.detalles?.map((d, i) => (
-                                                    <Pill key={i} color="gray">{d.cantidad}x {d.producto}</Pill>
-                                                )) || v.producto}
+                                                {/* Detalle de productos simulado, asumiendo estructura de un solo producto por ahora para Venta */}
+                                                <Pill color="gray">{v.cantidad}x {v.producto}</Pill>
                                             </div>
                                         </td>
                                         <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--pink-dark)" }}>
-                                            {editando === v.id_venta ? (
+                                            {editando === v.id ? (
                                                 <input type="number" step="0.01" value={editVal.total_venta}
                                                     onChange={e => setEditVal(p => ({ ...p, total_venta: +e.target.value }))}
                                                     className="input-pink" style={{ width: 80, padding: 4 }} />
                                             ) : `$${v.total_venta.toFixed(2)}`}
                                         </td>
                                         <td style={{ padding: "12px 16px" }}>
-                                            {editando === v.id_venta ? (
+                                            {editando === v.id ? (
                                                 <input type="number" step="0.01" value={editVal.ganancia_bruta}
                                                     onChange={e => setEditVal(p => ({ ...p, ganancia_bruta: +e.target.value }))}
                                                     className="input-pink" style={{ width: 80, padding: 4 }} />
                                             ) : <Pill color="green">${v.ganancia_bruta.toFixed(2)}</Pill>}
                                         </td>
                                         <td style={{ padding: "12px 16px" }}>
-                                            {editando === v.id_venta ? (
+                                            {editando === v.id ? (
                                                 <div style={{ display: "flex", gap: 8 }}>
                                                     <button onClick={guardarEdicion} style={{ color: "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>💾</button>
                                                     <button onClick={() => setEditando(null)} style={{ color: "#b71c1c", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>✕</button>
                                                 </div>
                                             ) : (
                                                 <div style={{ display: "flex", gap: 12 }}>
-                                                    <button onClick={() => { setEditando(v.id_venta); setEditVal({ total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta }) }}
+                                                    <button onClick={() => { setEditando(v.id); setEditVal({ total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta }) }}
                                                         style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
-                                                    <button onClick={() => eliminarVenta(v.id_venta)}
+                                                    <button onClick={() => eliminarVenta(v.id)}
                                                         style={{ color: "#ffcdd2", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>🗑️</button>
                                                 </div>
                                             )}
