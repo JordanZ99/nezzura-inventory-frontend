@@ -117,7 +117,7 @@ export default function Inventario() {
 
     if (cargando) return <div className="p-8 text-center text-gray-500">Cargando inventario...</div>
 
-    const productos = [...new Set(lotes.map(l => l.producto))].sort()
+    const productos = Array.from(new Set(lotes.map(l => l.producto))).sort()
 
     return (
         <div className="p-6 max-w-5xl">

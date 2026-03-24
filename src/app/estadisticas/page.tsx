@@ -115,10 +115,10 @@ export default function Estadisticas() {
     }, [vFilt])
 
     // Días disponibles para filtro de edición
-    const diasDisponibles = [...new Set(vFilt.map(v => v.fecha.slice(0, 10)))].sort().reverse()
+    const diasDisponibles = Array.from(new Set(vFilt.map(v => v.fecha.slice(0, 10)))).sort().reverse()
     const ventasDia = vFilt.filter(v => v.fecha.startsWith(filtroDia))
     const ventasFiltradas = filtroProd === "Todos" ? ventasDia : ventasDia.filter(v => v.producto === filtroProd)
-    const productosDelDia = ["Todos", ...new Set(ventasDia.map(v => v.producto))]
+    const productosDelDia = ["Todos"].concat(Array.from(new Set(ventasDia.map(v => v.producto))))
 
     async function guardarEdicion() {
         if (!editando) return
