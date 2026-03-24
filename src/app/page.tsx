@@ -1,8 +1,6 @@
 "use client"
 // ==============================================================================
-// src/app/page.tsx
-// Punto de Venta — página principal.
-// Catálogo de productos + carrito de compras en tiempo real.
+// src/app/page.tsx  —  Punto de Venta (rediseño Argon pink)
 // ==============================================================================
 
 import { useState, useEffect } from "react"
@@ -10,12 +8,13 @@ import { api, Producto, ItemCarrito } from "@/lib/api"
 
 export default function PuntoDeVenta() {
     const [productos, setProductos] = useState<Producto[]>([])
-    const [carrito, setCarrito] = useState<ItemCarrito[]>([])
-    const [precios, setPrecios] = useState<Record<string, string>>({})
-    const [busqueda, setBusqueda] = useState("")
-    const [cargando, setCargando] = useState(true)
-    const [cobrando, setCobrando] = useState(false)
-    const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error", texto: string } | null>(null)
+    const [carrito, setCarrito]     = useState<ItemCarrito[]>([])
+    const [precios, setPrecios]     = useState<Record<string, string>>({})
+    const [busqueda, setBusqueda]   = useState("")
+    const [cargando, setCargando]   = useState(true)
+    const [cobrando, setCobrando]   = useState(false)
+    const [carritoAbierto, setCarritoAbierto] = useState(false)
+    const [mensaje, setMensaje]     = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
 
     useEffect(() => {
         api.getInventario()
@@ -41,10 +40,6 @@ export default function PuntoDeVenta() {
         })
     }
 
-    function quitarDelCarrito(producto: string) {
-        setCarrito(prev => prev.filter(i => i.producto !== producto))
-    }
-
     function cambiarCantidad(producto: string, cantidad: number) {
         setCarrito(prev => prev.map(i => i.producto === producto ? { ...i, cantidad } : i))
     }
@@ -52,155 +47,275 @@ export default function PuntoDeVenta() {
     function cambiarPrecio(producto: string, texto: string) {
         setPrecios(prev => ({ ...prev, [producto]: texto }))
         const num = parseFloat(texto.replace(",", "."))
-        if (!isNaN(num) && num > 0) {
+        if (!isNaN(num) && num > 0)
             setCarrito(prev => prev.map(i => i.producto === producto ? { ...i, precio_real: num } : i))
-        }
+    }
+
+    function quitarDelCarrito(producto: string) {
+        setCarrito(prev => prev.filter(i => i.producto !== producto))
     }
 
     async function cobrar() {
         if (carrito.length === 0) return
-        setCobrando(true)
-        setMensaje(null)
+        setCobrando(true); setMensaje(null)
         try {
             const res = await api.cobrarCarrito(carrito)
             setMensaje({ tipo: "ok", texto: `✅ Venta registrada — $${res.total_cobrado.toFixed(2)}` })
-            setCarrito([])
-            setPrecios({})
-            // Recargar inventario para actualizar stock
+            setCarrito([]); setPrecios({}); setCarritoAbierto(false)
             const data = await api.getInventario()
             setProductos(data.filter(p => p.stock_total > 0))
         } catch (e: unknown) {
             setMensaje({ tipo: "error", texto: `❌ ${e instanceof Error ? e.message : "Error"}` })
-        } finally {
-            setCobrando(false)
-        }
+        } finally { setCobrando(false) }
     }
 
     const totalCarrito = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_real, 0)
-
-    if (cargando) return <div className="p-8 text-center text-gray-500">Cargando productos...</div>
+    const totalItems   = carrito.reduce((acc, i) => acc + i.cantidad, 0)
 
     return (
-        <div className="flex gap-4 p-4 h-screen">
+        <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
 
-            {/* ── Catálogo ── */}
-            <div className="flex-1 overflow-y-auto">
-                <h1 className="text-2xl font-bold text-pink-600 mb-4">🛍️ Punto de Venta</h1>
+            {/* ── Hero card ── */}
+            <div className="hero-gradient" style={{ padding: "32px 24px 80px" }}>
+                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
+                    BIENVENIDA
+                </p>
+                <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px" }}>
+                    🛍️ Punto de Venta
+                </h1>
+                <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.875rem", margin: 0 }}>
+                    {productos.length} productos disponibles hoy
+                </p>
+            </div>
 
-                <input
-                    type="text"
-                    placeholder="Buscar producto o código..."
-                    value={busqueda}
-                    onChange={e => setBusqueda(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                />
+            {/* ── Contenido sobre el hero ── */}
+            <div style={{ padding: "0 16px", marginTop: -48 }}>
 
+                {/* Mensaje de resultado */}
                 {mensaje && (
-                    <div className={`mb-4 p-3 rounded-xl text-sm font-medium ${mensaje.tipo === "ok" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                        }`}>
+                    <div className="fade-up card" style={{
+                        padding: "12px 16px", marginBottom: 12,
+                        borderLeft: `4px solid ${mensaje.tipo === "ok" ? "#4caf50" : "#f44336"}`,
+                        color: mensaje.tipo === "ok" ? "#2e7d32" : "#b71c1c",
+                        fontSize: "0.875rem", fontWeight: 600,
+                    }}>
                         {mensaje.texto}
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {productosFiltrados.map(prod => (
-                        <div key={prod.producto}
-                            className="border border-gray-100 rounded-2xl p-3 hover:border-pink-300 hover:shadow-sm transition-all">
+                {/* Layout desktop: catálogo + carrito lateral */}
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
 
-                            {/* Foto */}
-                            <div className="aspect-square rounded-xl overflow-hidden bg-pink-50 mb-2">
-                                {prod.imagen && prod.imagen !== "No hay foto" ? (
-                                    <img src={`http://localhost:8000/${prod.imagen}`}
-                                        alt={prod.producto}
-                                        className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-3xl">🛍️</div>
+                    {/* ── Catálogo ── */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Buscador */}
+                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+                            <span style={{ fontSize: "1.1rem" }}>🔍</span>
+                            <input
+                                className="input-pink"
+                                style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
+                                placeholder="Buscar producto o código..."
+                                value={busqueda}
+                                onChange={e => setBusqueda(e.target.value)}
+                            />
+                        </div>
+
+                        {cargando ? (
+                            <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
+                                <div style={{ fontSize: "2rem", marginBottom: 8 }}>🐱</div>
+                                Cargando productos...
+                            </div>
+                        ) : (
+                            <div style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                                gap: 12,
+                            }}>
+                                {productosFiltrados.map(prod => (
+                                    <div key={prod.producto} className="card fade-up" style={{
+                                        padding: 12,
+                                        cursor: "pointer",
+                                        transition: "transform 0.15s, box-shadow 0.15s",
+                                    }}
+                                    onClick={() => agregarAlCarrito(prod)}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.transform = "translateY(-3px)"
+                                        e.currentTarget.style.boxShadow = "0 8px 30px rgba(200,50,120,0.18)"
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.transform = ""
+                                        e.currentTarget.style.boxShadow = ""
+                                    }}>
+                                        <div style={{
+                                            aspectRatio: "1", borderRadius: 12,
+                                            background: "linear-gradient(135deg, #fce4ec, #f8bbd0)",
+                                            marginBottom: 10, overflow: "hidden",
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                        }}>
+                                            {prod.imagen && prod.imagen !== "No hay foto" ? (
+                                                <img src={`https://goyangi-backend.onrender.com/${prod.imagen}`}
+                                                    alt={prod.producto}
+                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            ) : (
+                                                <span style={{ fontSize: "2rem" }}>🛍️</span>
+                                            )}
+                                        </div>
+                                        <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                            {prod.producto}
+                                        </p>
+                                        <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--pink-mid)", margin: 0 }}>
+                                            ${prod.precio_venta.toFixed(2)}
+                                        </p>
+                                        <span style={{ fontSize: "0.65rem", fontWeight: 600, color: prod.stock_total <= 3 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 3 ? "#ffeef0" : "#e8f5e9", borderRadius: 20, padding: "2px 8px", marginTop: 4, display: "inline-block" }}>
+                                            Stock: {prod.stock_total}
+                                        </span>
+                                    </div>
+                                ))}
+                                {productosFiltrados.length === 0 && !cargando && (
+                                    <p style={{ gridColumn: "1/-1", textAlign: "center", color: "var(--text-muted)", padding: 32 }}>
+                                        No se encontraron productos
+                                    </p>
                                 )}
                             </div>
+                        )}
+                    </div>
 
-                            <p className="font-semibold text-sm text-gray-800 truncate">{prod.producto}</p>
-                            <p className="text-pink-600 font-bold text-lg">${prod.precio_venta.toFixed(2)}</p>
-                            <p className="text-xs text-gray-400 mb-2">Stock: {prod.stock_total}</p>
-
-                            <button
-                                onClick={() => agregarAlCarrito(prod)}
-                                className="w-full bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium py-1.5 rounded-xl transition-colors">
-                                ＋ Agregar
-                            </button>
+                    {/* ── Carrito desktop ── */}
+                    <div className="card hidden md:flex" style={{
+                        width: 280, flexDirection: "column",
+                        position: "sticky", top: 16, maxHeight: "calc(100vh - 80px)",
+                    }}>
+                        <div style={{ padding: "16px 20px", borderBottom: "1px solid #fce4ec" }}>
+                            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--text-main)" }}>
+                                🛒 Carrito
+                                {totalItems > 0 && (
+                                    <span style={{
+                                        marginLeft: 8, background: "var(--pink-mid)", color: "#fff",
+                                        borderRadius: "50%", padding: "2px 7px", fontSize: "0.72rem", fontWeight: 700,
+                                    }}>{totalItems}</span>
+                                )}
+                            </h2>
                         </div>
-                    ))}
+
+                        <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+                            {carrito.length === 0 ? (
+                                <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem", padding: "24px 0" }}>
+                                    Agrega productos 🛍️
+                                </p>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                    {carrito.map(item => {
+                                        const prod = productos.find(p => p.producto === item.producto)
+                                        return (
+                                            <div key={item.producto} style={{ padding: 10, background: "#fdf6f9", borderRadius: 12, border: "1px solid #fce4ec" }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                                                    <p style={{ margin: 0, fontWeight: 600, fontSize: "0.8rem", color: "var(--text-main)", flex: 1, marginRight: 6 }}>
+                                                        {item.producto}
+                                                    </p>
+                                                    <button onClick={() => quitarDelCarrito(item.producto)}
+                                                        style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: "0.9rem", padding: 0, lineHeight: 1 }}>✕</button>
+                                                </div>
+                                                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", borderRadius: 8, border: "1px solid #fce4ec", padding: "2px 4px" }}>
+                                                        <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))}
+                                                            style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--pink-mid)", width: 22, height: 22 }}>−</button>
+                                                        <span style={{ fontSize: "0.8rem", fontWeight: 700, minWidth: 20, textAlign: "center" }}>{item.cantidad}</span>
+                                                        <button onClick={() => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, item.cantidad + 1))}
+                                                            style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--pink-mid)", width: 22, height: 22 }}>+</button>
+                                                    </div>
+                                                    <input
+                                                        type="text" inputMode="decimal"
+                                                        value={precios[item.producto] ?? item.precio_real.toString()}
+                                                        onChange={e => cambiarPrecio(item.producto, e.target.value)}
+                                                        style={{ flex: 1, border: "1px solid #fce4ec", borderRadius: 8, padding: "4px 8px", fontSize: "0.8rem", textAlign: "right", outline: "none", background: "#fff" }}
+                                                    />
+                                                </div>
+                                                <p style={{ margin: "6px 0 0", textAlign: "right", fontSize: "0.78rem", color: "var(--pink-dark)", fontWeight: 700 }}>
+                                                    ${(item.cantidad * item.precio_real).toFixed(2)}
+                                                </p>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {carrito.length > 0 && (
+                            <div style={{ padding: "12px 16px", borderTop: "1px solid #fce4ec" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1rem", color: "var(--text-main)", marginBottom: 12 }}>
+                                    <span>Total</span>
+                                    <span style={{ color: "var(--pink-dark)" }}>${totalCarrito.toFixed(2)}</span>
+                                </div>
+                                <button className="btn-pink" style={{ width: "100%", marginBottom: 8 }} onClick={cobrar} disabled={cobrando}>
+                                    {cobrando ? "Procesando..." : "✅ Cobrar"}
+                                </button>
+                                <button className="btn-ghost" style={{ width: "100%" }}
+                                    onClick={() => { setCarrito([]); setPrecios({}) }}>
+                                    Vaciar carrito
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* ── Carrito ── */}
-            <div className="w-72 flex flex-col border-l border-gray-100 pl-4">
-                <h2 className="text-lg font-bold text-gray-700 mb-3">🛒 Carrito</h2>
+            {/* ── Botón flotante carrito (móvil) ── */}
+            {carrito.length > 0 && (
+                <button className="flex md:hidden btn-pink" style={{
+                    position: "fixed", bottom: 76, right: 16,
+                    borderRadius: "50px", gap: 8, zIndex: 150,
+                    padding: "12px 20px", fontSize: "0.9rem",
+                    boxShadow: "0 6px 25px rgba(233,30,140,0.45)",
+                }} onClick={() => setCarritoAbierto(true)}>
+                    🛒 {totalItems} · ${totalCarrito.toFixed(2)}
+                </button>
+            )}
 
-                {carrito.length === 0 ? (
-                    <p className="text-sm text-gray-400">Agrega productos con ＋</p>
-                ) : (
-                    <>
-                        <div className="flex-1 overflow-y-auto space-y-3">
-                            {carrito.map((item) => {
-                                const prod = productos.find(p => p.producto === item.producto)
-                                return (
-                                    <div key={item.producto} className="border border-gray-100 rounded-xl p-2">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <p className="font-medium text-sm text-gray-800 flex-1 mr-1">{item.producto}</p>
-                                            <button onClick={() => quitarDelCarrito(item.producto)}
-                                                className="text-gray-300 hover:text-red-400 text-xs">✕</button>
-                                        </div>
-
-                                        <div className="flex gap-2 items-center">
-                                            {/* Cantidad */}
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))}
-                                                    className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold">−</button>
-                                                <span className="text-sm w-5 text-center">{item.cantidad}</span>
-                                                <button onClick={() => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, item.cantidad + 1))}
-                                                    className="w-6 h-6 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-bold">+</button>
-                                            </div>
-
-                                            {/* Precio editable */}
-                                            <input
-                                                type="text"
-                                                inputMode="decimal"
-                                                value={precios[item.producto] ?? item.precio_real.toString()}
-                                                onChange={e => cambiarPrecio(item.producto, e.target.value)}
-                                                className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-pink-300"
-                                            />
-                                        </div>
-
-                                        <p className="text-right text-xs text-gray-500 mt-1">
-                                            ${(item.cantidad * item.precio_real).toFixed(2)}
-                                        </p>
+            {/* ── Drawer carrito móvil ── */}
+            {carritoAbierto && (
+                <div className="flex md:hidden" style={{
+                    position: "fixed", inset: 0, zIndex: 300,
+                    flexDirection: "column", justifyContent: "flex-end",
+                }}>
+                    <div style={{ flex: 1, background: "rgba(0,0,0,0.4)" }} onClick={() => setCarritoAbierto(false)} />
+                    <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: 20, maxHeight: "80vh", overflowY: "auto" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                            <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>🛒 Tu Carrito ({totalItems})</h2>
+                            <button style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }} onClick={() => setCarritoAbierto(false)}>✕</button>
+                        </div>
+                        {carrito.map(item => (
+                            <div key={item.producto} style={{ padding: "10px 0", borderBottom: "1px solid #fce4ec" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                                    <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{item.producto}</span>
+                                    <button onClick={() => quitarDelCarrito(item.producto)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc" }}>✕</button>
+                                </div>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fdf6f9", borderRadius: 8, padding: "4px 10px" }}>
+                                        <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>−</button>
+                                        <span style={{ fontWeight: 700, minWidth: 24, textAlign: "center" }}>{item.cantidad}</span>
+                                        <button onClick={() => cambiarCantidad(item.producto, item.cantidad + 1)} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>+</button>
                                     </div>
-                                )
-                            })}
-                        </div>
-
-                        <div className="border-t border-gray-100 pt-3 mt-3 space-y-2">
-                            <div className="flex justify-between font-bold text-gray-800">
-                                <span>Total</span>
-                                <span>${totalCarrito.toFixed(2)}</span>
+                                    <input type="text" inputMode="decimal"
+                                        value={precios[item.producto] ?? item.precio_real.toString()}
+                                        onChange={e => cambiarPrecio(item.producto, e.target.value)}
+                                        style={{ flex: 1, border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none" }}
+                                    />
+                                </div>
                             </div>
-
-                            <button
-                                onClick={cobrar}
-                                disabled={cobrando}
-                                className="w-full bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors">
-                                {cobrando ? "Procesando..." : "✅ Cobrar"}
-                            </button>
-
-                            <button
-                                onClick={() => { setCarrito([]); setPrecios({}) }}
-                                className="w-full text-gray-400 hover:text-gray-600 text-sm py-1">
-                                Vaciar carrito
-                            </button>
+                        ))}
+                        <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.1rem", marginBottom: 16 }}>
+                            <span>Total</span>
+                            <span style={{ color: "var(--pink-dark)" }}>${totalCarrito.toFixed(2)}</span>
                         </div>
-                    </>
-                )}
-            </div>
+                        <button className="btn-pink" style={{ width: "100%", marginBottom: 10 }} onClick={cobrar} disabled={cobrando}>
+                            {cobrando ? "Procesando..." : "✅ Cobrar"}
+                        </button>
+                        <button className="btn-ghost" style={{ width: "100%" }} onClick={() => { setCarrito([]); setPrecios({}); setCarritoAbierto(false) }}>
+                            Vaciar carrito
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
