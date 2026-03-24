@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="es">
             <body className={jakarta.className} style={{ margin: 0 }}>
-                <div style={{ display: "flex", minHeight: "100vh" }}>
+                <div style={{ display: "flex", minHeight: "100vh", maxWidth: "100vw", overflowX: "hidden" }}>
 
 
                     {/* ── Sidebar desktop ── */}
@@ -152,6 +152,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     {/* ── Contenido principal ── */}
                     <main className="md:ml-[240px]" style={{
                         flex: 1,
+                        minWidth: 0,
                         paddingBottom: 72,
                         minHeight: "100vh",
                         background: "var(--bg-app)",
