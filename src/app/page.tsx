@@ -69,8 +69,8 @@ export default function PuntoDeVenta() {
             // Recargar inventario para actualizar stock
             const data = await api.getInventario()
             setProductos(data.filter(p => p.stock_total > 0))
-        } catch (e: any) {
-            setMensaje({ tipo: "error", texto: `❌ ${e.message}` })
+        } catch (e: unknown) {
+            setMensaje({ tipo: "error", texto: `❌ ${e instanceof Error ? e.message : "Error"}` })
         } finally {
             setCobrando(false)
         }

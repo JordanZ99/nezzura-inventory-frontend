@@ -81,7 +81,7 @@ export default function Inventario() {
             setForm({ producto: "", descripcion: "", costo: 0, precio_venta: 0, stock: 1 })
             setTab("catalogo")
             recargar()
-        } catch (e: any) { mostrarMsg(false, `❌ ${e.message}`) }
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function guardarRestock() {
@@ -92,7 +92,7 @@ export default function Inventario() {
             mostrarMsg(true, `✅ +${restock.stock} a ${restock.producto}`)
             setTab("catalogo")
             recargar()
-        } catch (e: any) { mostrarMsg(false, `❌ ${e.message}`) }
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function guardarLote() {
@@ -102,7 +102,7 @@ export default function Inventario() {
             mostrarMsg(true, "✅ Lote actualizado")
             setLoteEditar(null)
             recargar()
-        } catch (e: any) { mostrarMsg(false, `❌ ${e.message}`) }
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function darDeBaja(producto: string) {
@@ -112,7 +112,7 @@ export default function Inventario() {
             await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo" })
             mostrarMsg(true, `✅ ${producto} dado de baja`)
             recargar()
-        } catch (e: any) { mostrarMsg(false, `❌ ${e.message}`) }
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     if (cargando) return <div className="p-8 text-center text-gray-500">Cargando inventario...</div>

@@ -45,7 +45,7 @@ export default function Gastos() {
             mostrarMsg(true, `✅ $${monto.toFixed(2)} registrado`)
             setForm(f => ({ ...f, descripcion: "", monto: "" }))
             recargar()
-        } catch (e: any) { mostrarMsg(false, `❌ ${e.message}`) }
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function eliminar(id: number) {
@@ -54,7 +54,7 @@ export default function Gastos() {
             await api.eliminarGasto(id)
             mostrarMsg(true, "✅ Eliminado")
             recargar()
-        } catch (e: any) { mostrarMsg(false, `❌ ${e.message}`) }
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     const total = gastos.reduce((a, g) => a + g.monto, 0)

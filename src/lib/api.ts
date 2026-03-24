@@ -62,7 +62,7 @@ export interface Gasto {
     monto: number;
 }
 
-async function request(path: string, options: RequestInit = {}) {
+async function request<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(`${BASE_URL}${path}`, {
         ...options,
         headers: {
@@ -75,7 +75,7 @@ async function request(path: string, options: RequestInit = {}) {
         try {
             const err = await res.json();
             errStr = err.detail || JSON.stringify(err);
-        } catch (e) {
+        } catch {
             // ignore
         }
         throw new Error(errStr);
@@ -85,13 +85,13 @@ async function request(path: string, options: RequestInit = {}) {
 
 export const api = {
     // Inventario
-    getInventario: () => request("/inventario/"),
-    getLotes: () => request("/inventario/lotes/"),
-    crearProducto: (data: any) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
-    restockear: (data: any) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: any) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
-    editarLote: (id: string, data: any) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-    subirFoto: async (producto: string, file: File) => {
+    getInventario: () => request<Producto[]>("/inventario/"),
+    getLotes: () => request<Lote[]>("/inventario/lotes/"),
+    crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
+    restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarLote: (id: string, data: { costo: number; precio_venta: number }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    subirFoto: async (producto: string, file: File): Promise<{ ruta: string }> => {
         const formData = new FormData();
         formData.append("foto", file);
         const res = await fetch(`${BASE_URL}/inventario/foto/${producto}`, {
@@ -103,13 +103,14 @@ export const api = {
     },
 
     // Ventas
-    getVentas: () => request("/ventas/"),
-    cobrarCarrito: (items: ItemCarrito[]) => request("/ventas/cobrar", { method: "POST", body: JSON.stringify({ items }) }),
-    actualizarVenta: (id: number, data: any) => request(`/ventas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    getVentas: () => request<Venta[]>("/ventas/"),
+    cobrarCarrito: (items: ItemCarrito[]) => request<{ total_cobrado: number }>("/ventas/cobrar", { method: "POST", body: JSON.stringify({ items }) }),
+    actualizarVenta: (id: number, data: { precio_real?: number; cantidad?: number; total_venta?: number; ganancia_bruta?: number }) => request(`/ventas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarVenta: (id: number) => request(`/ventas/${id}`, { method: "DELETE" }),
 
     // Gastos
-    getGastos: () => request("/gastos/"),
-    crearGasto: (data: any) => request("/gastos/", { method: "POST", body: JSON.stringify(data) }),
+    getGastos: () => request<Gasto[]>("/gastos/"),
+    crearGasto: (data: { fecha: string; categoria: string; descripcion: string; monto: number }) => request("/gastos/", { method: "POST", body: JSON.stringify(data) }),
     eliminarGasto: (id: number) => request(`/gastos/${id}`, { method: "DELETE" }),
 }
+

@@ -130,7 +130,7 @@ export default function Estadisticas() {
             setEditando(null)
             const v = await api.getVentas()
             setVentas(v)
-        } catch (e: any) { mostrarMsg(false, `❌ ${e.message}`) }
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function eliminarVenta(id: number) {
@@ -141,7 +141,7 @@ export default function Estadisticas() {
             const v = await api.getVentas()
             setVentas(v)
             setEditando(null)
-        } catch (e: any) { mostrarMsg(false, `❌ ${e.message}`) }
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     if (cargando) return <div className="p-8 text-center text-gray-500">Cargando estadísticas...</div>
