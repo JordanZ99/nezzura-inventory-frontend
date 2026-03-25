@@ -32,10 +32,10 @@ export default function Inventario() {
     const [cargando, setCargando] = useState(true)
     const [tab, setTab]           = useState<Tab>("catalogo")
     const [loteEditar, setLoteEditar] = useState<Lote | null>(null)
-    const [editLote, setEditLote] = useState({ costo: 0, precio_venta: 0 })
+    const [editLote, setEditLote] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const [msg, setMsg]           = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm]         = useState<NuevoProducto>({ producto: "", descripcion: "", costo: 0, precio_venta: 0, stock: 1 })
-    const [restock, setRestock]   = useState<Restock>({ producto: "", costo: 0, precio_venta: 0, stock: 1 })
+    const [form, setForm]         = useState({ producto: "", descripcion: "", costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
+    const [restock, setRestock]   = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const fotoRef = useRef<HTMLInputElement>(null)
 
     const [prodEditar, setProdEditar]     = useState<string>("")
@@ -84,9 +84,9 @@ export default function Inventario() {
                 const r = await api.subirFoto(form.producto, fotoRef.current.files[0])
                 imagen = r.ruta
             }
-            await api.crearProducto({ ...form, imagen })
+            await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen })
             mostrarMsg(true, `✅ ${form.producto} registrado`)
-            setForm({ producto: "", descripcion: "", costo: 0, precio_venta: 0, stock: 1 })
+            setForm({ producto: "", descripcion: "", costo: "", precio_venta: "", stock: "" })
             setTab("catalogo"); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
@@ -94,17 +94,18 @@ export default function Inventario() {
     async function guardarRestock() {
         try {
             const prodActual = inv.find(p => p.producto === restock.producto)
-            const precio = restock.precio_venta || prodActual?.precio_venta || 0
-            await api.restockear({ ...restock, precio_venta: precio })
-            mostrarMsg(true, `✅ +${restock.stock} a ${restock.producto}`)
+            const precio = restock.precio_venta === "" ? (prodActual?.precio_venta || 0) : Number(restock.precio_venta)
+            await api.restockear({ ...restock, costo: Number(restock.costo), stock: Number(restock.stock), precio_venta: precio })
+            mostrarMsg(true, `✅ +${Number(restock.stock)} a ${restock.producto}`)
             setTab("catalogo"); recargar()
+            setRestock({ producto: "", costo: "", precio_venta: "", stock: "" })
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function guardarLote() {
         if (!loteEditar) return
         try {
-            await api.editarLote(loteEditar.id_lote, editLote)
+            await api.editarLote(loteEditar.id_lote, { costo: Number(editLote.costo), precio_venta: Number(editLote.precio_venta), stock: Number(editLote.stock) })
             mostrarMsg(true, "✅ Lote actualizado")
             setLoteEditar(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
@@ -229,15 +230,19 @@ export default function Inventario() {
                                                         onMouseLeave={e => (e.currentTarget.style.background = "")}>
                                                         <td style={{ padding: "10px 16px" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <input type="number" min={0} step="0.01" value={editLote.costo} onChange={e => setEditLote(l => ({ ...l, costo: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                                <input type="number" min={0} step="0.01" value={editLote.costo} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, costo: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-pink" style={{ width: 80, padding: 4 }} />
                                                             ) : `$${g.costo.toFixed(2)}`}
                                                         </td>
                                                         <td style={{ padding: "10px 16px", fontWeight: 700, color: "var(--pink-mid)" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <input type="number" min={0} step="0.01" value={editLote.precio_venta} onChange={e => setEditLote(l => ({ ...l, precio_venta: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                                <input type="number" min={0} step="0.01" value={editLote.precio_venta} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-pink" style={{ width: 80, padding: 4 }} />
                                                             ) : `$${g.precio.toFixed(2)}`}
                                                         </td>
-                                                        <td style={{ padding: "10px 16px" }}>{g.stock}</td>
+                                                        <td style={{ padding: "10px 16px" }}>
+                                                            {loteEditar?.id_lote === g.lote.id_lote ? (
+                                                                <input type="number" min={0} value={editLote.stock} placeholder="0" onChange={e => setEditLote(l => ({ ...l, stock: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                            ) : g.stock}
+                                                        </td>
                                                         <td style={{ padding: "10px 16px" }}>
                                                             <Pill color={g.precio > g.costo ? "green" : "red"}>
                                                                 {g.precio > 0 ? `${(((g.precio - g.costo) / g.precio) * 100).toFixed(0)}%` : "—"}
@@ -250,7 +255,7 @@ export default function Inventario() {
                                                                     <button onClick={() => setLoteEditar(null)} style={{ color: "#b71c1c", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>✕</button>
                                                                 </div>
                                                             ) : (
-                                                                <button onClick={() => { setLoteEditar(g.lote); setEditLote({ costo: g.costo, precio_venta: g.precio }) }}
+                                                                <button onClick={() => { setLoteEditar(g.lote); setEditLote({ costo: g.costo, precio_venta: g.precio, stock: g.stock }) }}
                                                                     style={{ background: "none", border: "none", color: "var(--pink-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
                                                                     Editar lote
                                                                 </button>
@@ -280,11 +285,11 @@ export default function Inventario() {
                             <input type="file" accept="image/*" ref={fotoRef} style={{ fontSize: "0.85rem" }} />
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                            <Input label="Cantidad" type="number" min={1} value={form.stock} onChange={e => setForm(p => ({ ...p, stock: +e.target.value }))} />
-                            <Input label="Costo" type="number" min={0} step="0.01" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: +e.target.value }))} />
-                            <Input label="Precio" type="number" min={0} step="0.01" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: +e.target.value }))} />
+                            <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
-                        <button className="btn-pink" onClick={guardarNuevo} disabled={!form.producto || form.precio_venta === 0}>✅ Dar de Alta</button>
+                        <button className="btn-pink" onClick={guardarNuevo} disabled={!form.producto || form.precio_venta === "" || form.precio_venta === 0}>✅ Dar de Alta</button>
                     </div>
                 )}
 
@@ -305,9 +310,9 @@ export default function Inventario() {
                         </div>
                         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>Costo y precio prellenados del último lote. Cámbialos si el nuevo lote es diferente.</p>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                            <Input label="Cantidad" type="number" min={1} value={restock.stock} onChange={e => setRestock(r => ({ ...r, stock: +e.target.value }))} />
-                            <Input label="Costo" type="number" min={0} step="0.01" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: +e.target.value }))} />
-                            <Input label="Precio" type="number" min={0} step="0.01" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: +e.target.value }))} />
+                            <Input label="Cantidad" type="number" min={1} placeholder="1" value={restock.stock} onChange={e => setRestock(r => ({ ...r, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
                         <button className="btn-pink" onClick={guardarRestock} disabled={!restock.producto}>➕ Añadir Stock</button>
                     </div>

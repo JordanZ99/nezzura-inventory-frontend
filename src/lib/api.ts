@@ -93,7 +93,7 @@ export const api = {
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
     editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
-    editarLote: (id: string, data: { costo: number; precio_venta: number }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     subirFoto: async (producto: string, file: File): Promise<{ ruta: string }> => {
         const formData = new FormData();
         formData.append("foto", file);
