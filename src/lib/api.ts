@@ -101,7 +101,14 @@ export const api = {
             method: "POST",
             body: formData,
         });
-        if (!res.ok) throw new Error("Error al subir foto");
+        if (!res.ok) {
+            let detail = "Error al subir foto";
+            try {
+                const err = await res.json();
+                detail = err.detail || detail;
+            } catch {}
+            throw new Error(detail);
+        }
         return res.json();
     },
 
