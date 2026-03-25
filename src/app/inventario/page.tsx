@@ -34,8 +34,8 @@ export default function Inventario() {
     const [loteEditar, setLoteEditar] = useState<Lote | null>(null)
     const [editLote, setEditLote] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const [msg, setMsg]           = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm]         = useState({ producto: "", descripcion: "", costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
-    const [restock, setRestock]   = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
+    const [form, setForm]         = useState({ producto: "", descripcion: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
+    const [restock, setRestock]   = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const fotoRef = useRef<HTMLInputElement>(null)
 
     const [prodEditar, setProdEditar]     = useState<string>("")
@@ -86,7 +86,7 @@ export default function Inventario() {
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen })
             mostrarMsg(true, `✅ ${form.producto} registrado`)
-            setForm({ producto: "", descripcion: "", costo: "", precio_venta: "", stock: "" })
+            setForm({ producto: "", descripcion: "", costo: "", precio_venta: "", stock: 1 })
             setTab("catalogo"); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
@@ -98,7 +98,7 @@ export default function Inventario() {
             await api.restockear({ ...restock, costo: Number(restock.costo), stock: Number(restock.stock), precio_venta: precio })
             mostrarMsg(true, `✅ +${Number(restock.stock)} a ${restock.producto}`)
             setTab("catalogo"); recargar()
-            setRestock({ producto: "", costo: "", precio_venta: "", stock: "" })
+            setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
@@ -252,7 +252,6 @@ export default function Inventario() {
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
                                                                 <div style={{ display: "flex", gap: 8 }}>
                                                                     <button onClick={guardarLote} style={{ color: "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>💾</button>
-                                                                    <button onClick={() => setLoteEditar(null)} style={{ color: "#b71c1c", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>✕</button>
                                                                 </div>
                                                             ) : (
                                                                 <button onClick={() => { setLoteEditar(g.lote); setEditLote({ costo: g.costo, precio_venta: g.precio, stock: g.stock }) }}
@@ -314,7 +313,7 @@ export default function Inventario() {
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
-                        <button className="btn-pink" onClick={guardarRestock} disabled={!restock.producto}>➕ Añadir Stock</button>
+                        <button className="btn-pink" onClick={guardarRestock} disabled={!restock.producto || !restock.stock || Number(restock.stock) <= 0}>➕ Añadir Stock</button>
                     </div>
                 )}
 

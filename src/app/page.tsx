@@ -90,8 +90,9 @@ export default function PuntoDeVenta() {
                 <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
                     BIENVENIDA
                 </p>
-                <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px" }}>
-                    🛍️ Punto de Venta
+                <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", display: "flex", alignItems: "center", gap: 10 }}>
+                    <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "contain", background: "white", padding: 2 }} />
+                    Punto de Venta
                 </h1>
                 <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.875rem", margin: 0 }}>
                     {productos.length} productos disponibles hoy
