@@ -84,7 +84,14 @@ export default function Estadisticas() {
 
     // --- Transformación de datos para Gráficas Tremor ---
     
-    // Pastel: Top 5 + Otros
+    // Pie: Costo Total vs Ganancia Bruta
+    const costoTotalGlobal = totalVendido - gananciaBruta
+    const globalCostProfit = [
+        { name: "Costo de Productos", value: costoTotalGlobal },
+        { name: "Ganancia Bruta", value: gananciaBruta }
+    ]
+
+    // Dona: Top 5 + Otros
     const productSales = ventasFiltradas.reduce((acc, v) => {
         acc[v.producto] = (acc[v.producto] || 0) + v.total_venta
         return acc
@@ -115,15 +122,18 @@ export default function Estadisticas() {
     // --- Exportar a PDF ---
     async function exportarPDF() {
         setGenerandoPDF(true)
+        await new Promise(r => setTimeout(r, 200)) // Dale tiempo a React de aplicar clases de PDF (mostrar logo, etc.)
         try {
             const el = document.getElementById("report-container")
             if (!el) return
             const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff" })
             const imgData = canvas.toDataURL("image/png")
-            const pdf = new jsPDF("p", "mm", "a4")
+            const pdf = new jsPDF("p", "mm", "letter") // Tamaño carta
             const pdfWidth = pdf.internal.pageSize.getWidth()
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight)
+            const margin = 12 // 12mm de margen impreso real (más cerrado)
+            const printWidth = pdfWidth - (margin * 2)
+            const printHeight = (canvas.height * printWidth) / canvas.width
+            pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight)
             pdf.save(`Goyangi_Reporte_${new Date().toISOString().substring(0,10)}.pdf`)
             mostrarMsg(true, "✅ Reporte descargado")
         } catch(e) {
@@ -147,9 +157,9 @@ export default function Estadisticas() {
                     </div>
                     
                     <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                        <div style={{ minWidth: 280 }}>
+                        <div style={{ minWidth: 280, maxWidth: "100%" }}>
                             <DateRangePicker 
-                                className="mx-auto max-w-md"
+                                className="mx-auto max-w-md w-full"
                                 value={dates}
                                 onValueChange={setDates}
                                 selectPlaceholder="Seleccionar fechas"
@@ -173,12 +183,13 @@ export default function Estadisticas() {
                 {/* ── CONTENEDOR PARA EL PDF (Métricas + Gráficas Tremor) ── */}
                 <div id="report-container" style={{ padding: 16, background: "var(--bg-app)", borderRadius: 12 }}>
                     
-                    {/* Header para PDF (Solo visible obvio en el PDF o como estética arriba) */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-                        <img src="/logo.png" alt="Goyangi" style={{ width: 40, height: 40, borderRadius: "50%", background: "#fff", padding: 2, border: "1px solid #fce4ec" }} />
+                    {/* Header para PDF (Visible en PDF o teléfono, oculto en Desktop normal para no repetir) */}
+                    <div className={generandoPDF ? "flex" : "flex md:hidden"} style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
+                        <img src="/logo.png" alt="Goyangi" style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
                         <div>
-                            <h2 style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: "var(--text-main)" }}>Reporte de Rendimiento - Goyangi Store</h2>
-                            <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                            <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.6rem", color: "var(--pink-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.95rem", color: "var(--text-main)", fontWeight: 600 }}>Goyangi Store</p>
+                            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-muted)" }}>
                                 Período: {dates.from ? dates.from.toLocaleDateString() : "Inicio de los tiempos"} 
                                 {" - "} 
                                 {dates.to ? dates.to.toLocaleDateString() : new Date().toLocaleDateString()}
@@ -193,14 +204,16 @@ export default function Estadisticas() {
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: "var(--text-main)" }}>${totalVendido.toFixed(2)}</p>
                         </div>
                         <div className="card" style={{ padding: "20px 24px", borderLeft: "4px solid #66bb6a" }}>
-                            <p style={{ margin: "0 0 6px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Ganancia Bruta</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: "var(--text-main)" }}>${gananciaBruta.toFixed(2)}</p>
+                            <p style={{ margin: "0 0 6px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Margen Bruto (%)</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: "var(--text-main)" }}>
+                                {totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%
+                            </p>
                         </div>
                         <div className="card" style={{ padding: "20px 24px", borderLeft: "4px solid #ef5350" }}>
                             <p style={{ margin: "0 0 6px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: "var(--text-main)" }}>${totalGastos.toFixed(2)}</p>
                         </div>
-                        <div className="card" style={{ padding: "20px 24px", borderLeft: "4px solid #42a5f5", background: "linear-gradient(135deg, #fdf6f9, #fff)" }}>
+                        <div className="card" style={{ padding: "20px 24px", borderLeft: "4px solid #ce93d8", background: "linear-gradient(135deg, #fdf6f9, #fff)" }}>
                             <p style={{ margin: "0 0 6px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Ganancia Neta (Libre)</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.8rem", color: gananciaNeta >= 0 ? "#2e7d32" : "#b71c1c" }}>
                                 ${gananciaNeta.toFixed(2)}
@@ -213,7 +226,7 @@ export default function Estadisticas() {
                     {cargando ? (
                         <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>Recabando datos para gráficas...</p>
                     ) : (
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 16 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
                             
                             {/* Pastel - Top Productos */}
                             <div className="card" style={{ padding: 20 }}>
@@ -227,6 +240,26 @@ export default function Estadisticas() {
                                             valueFormatter={valFormatter}
                                             colors={["pink", "rose", "fuchsia", "purple", "violet", "gray"]}
                                             className="h-60"
+                                            showAnimation={false}
+                                        />
+                                    </div>
+                                ) : <p style={{ textAlign: "center", color: "var(--text-muted)", marginTop: 40 }}>No hay ventas en este rango.</p>}
+                            </div>
+
+                            {/* Nueva Pie Chart - Costo vs Ganancia */}
+                            <div className="card" style={{ padding: 20 }}>
+                                <h3 style={{ margin: "0 0 16px", fontWeight: 700, fontSize: "1rem" }}>Costo vs Ganancia Total</h3>
+                                {totalVendido > 0 ? (
+                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 250 }}>
+                                        <DonutChart
+                                            variant="pie"
+                                            data={globalCostProfit}
+                                            category="value"
+                                            index="name"
+                                            valueFormatter={valFormatter}
+                                            colors={["palepink", "rose"]}
+                                            className="h-60"
+                                            showAnimation={false}
                                         />
                                     </div>
                                 ) : <p style={{ textAlign: "center", color: "var(--text-muted)", marginTop: 40 }}>No hay ventas en este rango.</p>}
@@ -237,14 +270,14 @@ export default function Estadisticas() {
                                 <h3 style={{ margin: "0 0 16px", fontWeight: 700, fontSize: "1rem" }}>Evolución de Ventas </h3>
                                 {chartDataLine.length > 0 ? (
                                     <LineChart
-                                        className="h-60"
+                                        className="h-60 mt-4"
                                         data={chartDataLine}
                                         index="date"
                                         categories={["Ventas"]}
-                                        colors={["pink"]}
+                                        colors={["lila"]}
                                         valueFormatter={valFormatter}
                                         yAxisWidth={60}
-                                        showAnimation
+                                        showAnimation={false}
                                     />
                                 ) : <p style={{ textAlign: "center", color: "var(--text-muted)", marginTop: 40 }}>No hay ventas en este rango.</p>}
                             </div>
@@ -253,20 +286,18 @@ export default function Estadisticas() {
                             <div className="card" style={{ padding: 20, gridColumn: "1/-1" }}>
                                 <h3 style={{ margin: "0 0 16px", fontWeight: 700, fontSize: "1rem" }}>Contribución Marginal por Producto</h3>
                                 {chartDataBar.length > 0 ? (
-                                    <div style={{ overflowX: "auto" }}>
-                                        <div style={{ minWidth: 600 }}>
-                                            <BarChart
-                                                className="h-72"
-                                                data={chartDataBar}
-                                                index="name"
-                                                categories={["Costo Lotes", "Ganancia Bruta"]}
-                                                colors={["gray", "emerald"]}
-                                                valueFormatter={valFormatter}
-                                                stack={true}
-                                                yAxisWidth={60}
-                                                showAnimation
-                                            />
-                                        </div>
+                                    <div style={{ width: "100%", overflowX: "hidden" }}>
+                                        <BarChart
+                                            className="h-72 mt-4"
+                                            data={chartDataBar}
+                                            index="name"
+                                            categories={["Costo Lotes", "Ganancia Bruta"]}
+                                            colors={["palepink", "pink"]}
+                                            valueFormatter={valFormatter}
+                                            stack={true}
+                                            yAxisWidth={60}
+                                            showAnimation={false}
+                                        />
                                     </div>
                                 ) : <p style={{ textAlign: "center", color: "var(--text-muted)" }}>No hay datos suficientes.</p>}
                             </div>
