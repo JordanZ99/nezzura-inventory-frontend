@@ -118,7 +118,8 @@ export default function Inventario() {
                 const r = await api.subirFoto(prodEditar, editFotoRef.current.files[0])
                 imagen = r.ruta
             }
-            await api.editarProducto(prodEditar, { ...editProdVal, imagen })
+            const p = inv.find(x => x.producto === prodEditar)
+            await api.editarProducto(prodEditar, { ...editProdVal, imagen: imagen ?? p?.imagen ?? "No hay foto" })
             mostrarMsg(true, "✅ Producto actualizado")
             setProdEditar(""); if(editFotoRef.current) editFotoRef.current.value = ""; recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
