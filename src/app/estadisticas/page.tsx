@@ -160,7 +160,7 @@ export default function Estadisticas() {
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     {/* 🔧 CONFIGURA EL EFECTO AQUÍ — Cambia count, particleSize, color, etc. */}
                     <Antigravity
-                        count={200}
+                        count={800}
                         magnetRadius={12}
                         ringRadius={8}
                         waveSpeed={0.5}

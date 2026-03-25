@@ -5,6 +5,9 @@
 
 import { useState, useEffect, useRef } from "react"
 import { api, Producto, Lote, NuevoProducto, Restock } from "@/lib/api"
+import dynamic from "next/dynamic"
+
+const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
 type Tab = "catalogo" | "nuevo" | "restock" | "editar"
 
@@ -149,10 +152,31 @@ export default function Inventario() {
 
     return (
         <div style={{ minHeight: "100vh" }}>
-            {/* Hero */}
-            <div className="hero-gradient" style={{ padding: "32px 24px 90px" }}>
-                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
-                <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📦 Inventario</h1>
+            {/* ── Hero con Antigravity ── */}
+            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #b841d2 0%, #d867e3 100%)", padding: "32px 24px 90px" }}>
+                <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
+                    <Antigravity
+                        count={400}
+                        magnetRadius={12}
+                        ringRadius={8}
+                        waveSpeed={0.5}
+                        waveAmplitude={1.2}
+                        particleSize={1.5}
+                        lerpSpeed={0.08}
+                        color="#ffffff"
+                        autoAnimate={true}
+                        particleVariance={0.8}
+                        rotationSpeed={0.3}
+                        depthFactor={0.5}
+                        pulseSpeed={2}
+                        particleShape="capsule"
+                        fieldStrength={8}
+                    />
+                </div>
+                <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
+                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
+                    <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📦 Inventario</h1>
+                </div>
             </div>
 
             <div style={{ padding: "0 16px", marginTop: -60 }}>
