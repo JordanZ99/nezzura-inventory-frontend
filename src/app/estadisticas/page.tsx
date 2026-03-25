@@ -1,13 +1,17 @@
 "use client"
 // ==============================================================================
-// src/app/estadisticas/page.tsx — Rediseño Tremor + PDF
+// src/app/estadisticas/page.tsx — Rediseño Tremor + Antigravity Hero + PDF
 // ==============================================================================
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { api, Venta, Gasto } from "@/lib/api"
 import { DateRangePicker, DateRangePickerValue, DonutChart, LineChart, BarChart } from "@tremor/react"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
+
+// Dynamic import to avoid SSR issues with Three.js
+const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
 function Pill({ children, color = "pink" }: { children: React.ReactNode; color?: "pink" | "green" | "red" | "gray" }) {
     const map = { pink: "stat-pill-pink", green: "stat-pill-green", red: "stat-pill-red", gray: "stat-pill-gray" }
@@ -65,7 +69,7 @@ export default function Estadisticas() {
     const ventasFiltradas = ventas.filter(v => {
         const f = new Date(v.fecha)
         if (dates.from && f < dates.from) return false
-        if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false // incluye todo el día final
+        if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
         return true
     })
 
@@ -81,11 +85,11 @@ export default function Estadisticas() {
     const gananciaBruta = ventasFiltradas.reduce((a, v) => a + v.ganancia_bruta, 0)
     const totalGastos = gastosFiltrados.reduce((a, g) => a + g.monto, 0)
     const gananciaNeta = gananciaBruta - totalGastos
-
-    // --- Transformación de datos para Gráficas Tremor ---
-    
-    // Pie: Costo Total vs Ganancia Bruta
     const costoTotalGlobal = totalVendido - gananciaBruta
+
+    // --- Transformación de datos para Gráficas ---
+
+    // Pie: Costo Total vs Ganancia Bruta
     const globalCostProfit = [
         { name: "Costo de Productos", value: costoTotalGlobal },
         { name: "Ganancia Bruta", value: gananciaBruta }
@@ -109,34 +113,36 @@ export default function Estadisticas() {
     }, {} as Record<string, number>)
     const chartDataLine = Object.entries(salesByDate).sort((a,b) => a[0].localeCompare(b[0])).map(d => ({ date: d[0], "Ventas": d[1] }))
 
-    // Barras Apiladas: Productos vs (Costo + Ganancia)
+    // Barras Apiladas
     const productCostProfit = ventasFiltradas.reduce((acc, v) => {
-        if (!acc[v.producto]) acc[v.producto] = { name: v.producto, "Costo Lotes": 0, "Ganancia Bruta": 0, total: 0 }
+        if (!acc[v.producto]) acc[v.producto] = { name: v.producto, "Costo Lotes": 0, "Ganancia": 0, total: 0 }
         acc[v.producto]["Costo Lotes"] += (v.total_venta - v.ganancia_bruta)
-        acc[v.producto]["Ganancia Bruta"] += v.ganancia_bruta
+        acc[v.producto]["Ganancia"] += v.ganancia_bruta
         acc[v.producto].total += v.total_venta
         return acc
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }, {} as Record<string, any>)
     const chartDataBar = Object.values(productCostProfit).sort((a,b) => b.total - a.total)
 
     // --- Exportar a PDF ---
     async function exportarPDF() {
         setGenerandoPDF(true)
-        await new Promise(r => setTimeout(r, 200)) // Dale tiempo a React de aplicar clases de PDF (mostrar logo, etc.)
+        await new Promise(r => setTimeout(r, 300))
         try {
             const el = document.getElementById("report-container")
             if (!el) return
             const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff" })
             const imgData = canvas.toDataURL("image/png")
-            const pdf = new jsPDF("p", "mm", "letter") // Tamaño carta
+            const pdf = new jsPDF("p", "mm", "letter")
             const pdfWidth = pdf.internal.pageSize.getWidth()
-            const margin = 12 // 12mm de margen impreso real (más cerrado)
+            const margin = 10
             const printWidth = pdfWidth - (margin * 2)
             const printHeight = (canvas.height * printWidth) / canvas.width
             pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight)
             pdf.save(`Goyangi_Reporte_${new Date().toISOString().substring(0,10)}.pdf`)
             mostrarMsg(true, "✅ Reporte descargado")
         } catch(e) {
+            console.error(e)
             mostrarMsg(false, "❌ Error generando PDF")
         } finally {
             setGenerandoPDF(false)
@@ -148,165 +154,189 @@ export default function Estadisticas() {
     return (
         <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
             
-            {/* Header / Configuración */}
-            <div style={{ padding: "32px 24px", background: "#fff", borderBottom: "1px solid #fce4ec", marginBottom: 20 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-                    <div>
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, margin: "0 0 4px", textTransform: "uppercase" }}>RENDIMIENTO EXPERTO</p>
-                        <h1 style={{ color: "var(--text-main)", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📊 Panel Estadístico</h1>
-                    </div>
-                    
-                    <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                        <div style={{ minWidth: 280, maxWidth: "100%" }}>
-                            <DateRangePicker 
-                                className="mx-auto max-w-md w-full"
+            {/* ── Hero con Antigravity ── */}
+            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #b841d2 0%, #d867e3 100%)", padding: "32px 24px 90px" }}>
+                {/* Antigravity particles behind text */}
+                <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
+                    {/* 🔧 CONFIGURA EL EFECTO AQUÍ — Cambia count, particleSize, color, etc. */}
+                    <Antigravity
+                        count={200}
+                        magnetRadius={12}
+                        ringRadius={8}
+                        waveSpeed={0.5}
+                        waveAmplitude={1.2}
+                        particleSize={1.5}
+                        lerpSpeed={0.08}
+                        color="#ffffff"
+                        autoAnimate={true}
+                        particleVariance={0.8}
+                        rotationSpeed={0.3}
+                        depthFactor={0.5}
+                        pulseSpeed={2}
+                        particleShape="capsule"
+                        fieldStrength={8}
+                    />
+                </div>
+
+                {/* Content on top */}
+                <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
+                    <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4, textTransform: "uppercase" }}>RENDIMIENTO EXPERTO</p>
+                    <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📊 Panel Estadístico</h1>
+                </div>
+            </div>
+
+            {/* ── Controls: Date Picker + PDF Button ── */}
+            <div style={{ padding: "0 24px", marginTop: -60 }}>
+                <div className="card fade-up" style={{ padding: "20px 24px", marginBottom: 20 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                        <div style={{ flex: 1, minWidth: 220, maxWidth: 360 }}>
+                            <DateRangePicker
+                                className="w-full"
                                 value={dates}
                                 onValueChange={setDates}
-                                selectPlaceholder="Seleccionar fechas"
+                                selectPlaceholder="Filtrar por período"
                             />
                         </div>
-                        <button className="btn-pink" onClick={exportarPDF} disabled={generandoPDF || cargando}>
+                        <button className="btn-pink" onClick={exportarPDF} disabled={generandoPDF || cargando} style={{ whiteSpace: "nowrap" }}>
                             {generandoPDF ? "Procesando..." : "📄 Descargar Reporte PDF"}
                         </button>
                     </div>
                 </div>
-                
+
                 {msg && (
-                    <div className="card fade-up mt-4" style={{ padding: "12px 16px", borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#f44336"}`, color: msg.ok ? "#2e7d32" : "#b71c1c", fontSize: "0.875rem", fontWeight: 700 }}>
+                    <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 12, borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#f44336"}`, color: msg.ok ? "#2e7d32" : "#b71c1c", fontSize: "0.875rem", fontWeight: 700 }}>
                         {msg.texto}
                     </div>
                 )}
-            </div>
 
-            <div style={{ padding: "0 24px" }}>
-                
-                {/* ── CONTENEDOR PARA EL PDF (Métricas + Gráficas Tremor) ── */}
-                <div id="report-container" style={{ padding: 16, background: "var(--bg-app)", borderRadius: 12 }}>
+                {/* ── CONTENEDOR PARA EL PDF ── */}
+                <div id="report-container" style={{ padding: 16, background: "#fff", borderRadius: 12 }}>
                     
-                    {/* Header para PDF (Visible en PDF o teléfono, oculto en Desktop normal para no repetir) */}
+                    {/* Header para PDF (Visible en PDF y teléfono, oculto en Desktop) */}
                     <div className={generandoPDF ? "flex" : "flex md:hidden"} style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
                         <img src="/logo.png" alt="Goyangi" style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
                         <div>
-                            <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.6rem", color: "var(--pink-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
+                            <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.4rem", color: "var(--pink-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
                             <p style={{ margin: "0 0 4px", fontSize: "0.95rem", color: "var(--text-main)", fontWeight: 600 }}>Goyangi Store</p>
-                            <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                                Período: {dates.from ? dates.from.toLocaleDateString() : "Inicio de los tiempos"} 
-                                {" - "} 
+                            <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                                Período: {dates.from ? dates.from.toLocaleDateString() : "Inicio"} 
+                                {" — "} 
                                 {dates.to ? dates.to.toLocaleDateString() : new Date().toLocaleDateString()}
                             </p>
                         </div>
                     </div>
 
                     {/* KPIs */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
-                        <div className="card" style={{ padding: "20px 24px", borderLeft: "4px solid #f48fb1" }}>
-                            <p style={{ margin: "0 0 6px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Vendido</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: "var(--text-main)" }}>${totalVendido.toFixed(2)}</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #f48fb1", borderRadius: 12, background: "#fdf2f8" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Total Vendido</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "#333" }}>${totalVendido.toFixed(2)}</p>
                         </div>
-                        <div className="card" style={{ padding: "20px 24px", borderLeft: "4px solid #66bb6a" }}>
-                            <p style={{ margin: "0 0 6px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Margen Bruto (%)</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: "var(--text-main)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #f06292", borderRadius: 12, background: "#fce4ec" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Margen Bruto (%)</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "#333" }}>
                                 {totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%
                             </p>
                         </div>
-                        <div className="card" style={{ padding: "20px 24px", borderLeft: "4px solid #ef5350" }}>
-                            <p style={{ margin: "0 0 6px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: "var(--text-main)" }}>${totalGastos.toFixed(2)}</p>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #e91e63", borderRadius: 12, background: "#fce4ec" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "#333" }}>${totalGastos.toFixed(2)}</p>
                         </div>
-                        <div className="card" style={{ padding: "20px 24px", borderLeft: "4px solid #ce93d8", background: "linear-gradient(135deg, #fdf6f9, #fff)" }}>
-                            <p style={{ margin: "0 0 6px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Ganancia Neta (Libre)</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.8rem", color: gananciaNeta >= 0 ? "#2e7d32" : "#b71c1c" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #ce93d8", borderRadius: 12, background: "linear-gradient(135deg, #fdf2f8, #f3e5f5)" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Ganancia Neta</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: gananciaNeta >= 0 ? "#2e7d32" : "#b71c1c" }}>
                                 ${gananciaNeta.toFixed(2)}
                             </p>
                             {gananciaBruta > 0 && <Pill color={gananciaNeta >= 0 ? "green" : "red"}>{((gananciaNeta / gananciaBruta) * 100).toFixed(1)}% margen neto</Pill>}
                         </div>
                     </div>
 
-                    {/* Tremor Charts Grid */}
+                    {/* Charts */}
                     {cargando ? (
-                        <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>Recabando datos para gráficas...</p>
+                        <p style={{ textAlign: "center", color: "#999", padding: 40 }}>Recabando datos para gráficas...</p>
                     ) : (
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-                            
-                            {/* Pastel - Top Productos */}
-                            <div className="card" style={{ padding: 20 }}>
-                                <h3 style={{ margin: "0 0 16px", fontWeight: 700, fontSize: "1rem" }}>Top Ventas por Producto</h3>
-                                {top5.length > 0 ? (
-                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 250 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
+
+                            {/* Row 1: Dona + Pie + Líneas */}
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+                                
+                                {/* Dona - Top Productos */}
+                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
+                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>🍩 Top Ventas por Producto</h3>
+                                    {top5.length > 0 ? (
                                         <DonutChart
                                             data={top5}
                                             category="value"
                                             index="name"
                                             valueFormatter={valFormatter}
-                                            colors={["pink", "rose", "fuchsia", "purple", "violet", "gray"]}
-                                            className="h-60"
+                                            colors={["rose", "pink", "fuchsia", "violet", "purple", "slate"]}
+                                            className="h-52"
                                             showAnimation={false}
                                         />
-                                    </div>
-                                ) : <p style={{ textAlign: "center", color: "var(--text-muted)", marginTop: 40 }}>No hay ventas en este rango.</p>}
-                            </div>
+                                    ) : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                </div>
 
-                            {/* Nueva Pie Chart - Costo vs Ganancia */}
-                            <div className="card" style={{ padding: 20 }}>
-                                <h3 style={{ margin: "0 0 16px", fontWeight: 700, fontSize: "1rem" }}>Costo vs Ganancia Total</h3>
-                                {totalVendido > 0 ? (
-                                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 250 }}>
+                                {/* Pie - Costo vs Ganancia */}
+                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
+                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>🥧 Costo vs Ganancia</h3>
+                                    {totalVendido > 0 ? (
                                         <DonutChart
                                             variant="pie"
                                             data={globalCostProfit}
                                             category="value"
                                             index="name"
                                             valueFormatter={valFormatter}
-                                            colors={["palepink", "rose"]}
-                                            className="h-60"
+                                            colors={["pink", "rose"]}
+                                            className="h-52"
                                             showAnimation={false}
                                         />
-                                    </div>
-                                ) : <p style={{ textAlign: "center", color: "var(--text-muted)", marginTop: 40 }}>No hay ventas en este rango.</p>}
-                            </div>
+                                    ) : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                </div>
 
-                            {/* Temporal - Líneas */}
-                            <div className="card" style={{ padding: 20 }}>
-                                <h3 style={{ margin: "0 0 16px", fontWeight: 700, fontSize: "1rem" }}>Evolución de Ventas </h3>
-                                {chartDataLine.length > 0 ? (
-                                    <LineChart
-                                        className="h-60 mt-4"
-                                        data={chartDataLine}
-                                        index="date"
-                                        categories={["Ventas"]}
-                                        colors={["lila"]}
-                                        valueFormatter={valFormatter}
-                                        yAxisWidth={60}
-                                        showAnimation={false}
-                                    />
-                                ) : <p style={{ textAlign: "center", color: "var(--text-muted)", marginTop: 40 }}>No hay ventas en este rango.</p>}
-                            </div>
-
-                            {/* Barras Apiladas - Costo vs Ganancia */}
-                            <div className="card" style={{ padding: 20, gridColumn: "1/-1" }}>
-                                <h3 style={{ margin: "0 0 16px", fontWeight: 700, fontSize: "1rem" }}>Contribución Marginal por Producto</h3>
-                                {chartDataBar.length > 0 ? (
-                                    <div style={{ width: "100%", overflowX: "hidden" }}>
-                                        <BarChart
-                                            className="h-72 mt-4"
-                                            data={chartDataBar}
-                                            index="name"
-                                            categories={["Costo Lotes", "Ganancia Bruta"]}
-                                            colors={["palepink", "pink"]}
+                                {/* Líneas - Evolución */}
+                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
+                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>📈 Evolución de Ventas</h3>
+                                    {chartDataLine.length > 0 ? (
+                                        <LineChart
+                                            className="h-52"
+                                            data={chartDataLine}
+                                            index="date"
+                                            categories={["Ventas"]}
+                                            colors={["rose"]}
                                             valueFormatter={valFormatter}
-                                            stack={true}
-                                            yAxisWidth={60}
+                                            yAxisWidth={50}
                                             showAnimation={false}
                                         />
-                                    </div>
-                                ) : <p style={{ textAlign: "center", color: "var(--text-muted)" }}>No hay datos suficientes.</p>}
+                                    ) : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                </div>
                             </div>
 
+                            {/* Row 2: Barras Apiladas (scrollable) */}
+                            <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
+                                <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>📊 Contribución Marginal por Producto</h3>
+                                {chartDataBar.length > 0 ? (
+                                    <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 8 }}>
+                                        <div style={{ minWidth: Math.max(400, chartDataBar.length * 120) }}>
+                                            <BarChart
+                                                className="h-72"
+                                                data={chartDataBar}
+                                                index="name"
+                                                categories={["Costo Lotes", "Ganancia"]}
+                                                colors={["pink", "rose"]}
+                                                valueFormatter={valFormatter}
+                                                stack={true}
+                                                yAxisWidth={50}
+                                                showAnimation={false}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : <p style={{ textAlign: "center", color: "#999" }}>No hay datos suficientes.</p>}
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* ── Tabla del Historial de Ventas (fuera del PDF) ── */}
+                {/* ── Tabla del Historial de Ventas ── */}
                 <div style={{ marginTop: 32 }}>
                     <div className="card fade-up" style={{ overflow: "hidden" }}>
                         <div style={{ padding: "16px 20px", borderBottom: "1px solid #fce4ec", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
