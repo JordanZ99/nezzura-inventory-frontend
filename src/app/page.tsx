@@ -11,13 +11,13 @@ const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: fal
 
 export default function PuntoDeVenta() {
     const [productos, setProductos] = useState<Producto[]>([])
-    const [carrito, setCarrito]     = useState<ItemCarrito[]>([])
-    const [precios, setPrecios]     = useState<Record<string, string>>({})
-    const [busqueda, setBusqueda]   = useState("")
-    const [cargando, setCargando]   = useState(true)
-    const [cobrando, setCobrando]   = useState(false)
+    const [carrito, setCarrito] = useState<ItemCarrito[]>([])
+    const [precios, setPrecios] = useState<Record<string, string>>({})
+    const [busqueda, setBusqueda] = useState("")
+    const [cargando, setCargando] = useState(true)
+    const [cobrando, setCobrando] = useState(false)
     const [carritoAbierto, setCarritoAbierto] = useState(false)
-    const [mensaje, setMensaje]     = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
+    const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
 
     useEffect(() => {
         api.getInventario()
@@ -83,13 +83,13 @@ export default function PuntoDeVenta() {
     }
 
     const totalCarrito = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_real, 0)
-    const totalItems   = carrito.reduce((acc, i) => acc + i.cantidad, 0)
+    const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0)
 
     return (
         <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
 
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #b841d2 0%, #d867e3 100%)", padding: "32px 24px 80px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #d2418cff 0%, #e367ccff 100%)", padding: "32px 24px 80px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}
@@ -113,12 +113,12 @@ export default function PuntoDeVenta() {
                     <p className="hidden md:block" style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
                         BIENVENIDA
                     </p>
-                    
+
                     {/* Desktop Title */}
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         🛍️ Punto de Venta
                     </h1>
-                    
+
                     {/* Mobile Title */}
                     <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>
                         <img src="/logo.png" alt="Logo" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "contain", background: "white", padding: 3 }} />
@@ -179,15 +179,15 @@ export default function PuntoDeVenta() {
                                         cursor: "pointer",
                                         transition: "transform 0.15s, box-shadow 0.15s",
                                     }}
-                                    onClick={() => agregarAlCarrito(prod)}
-                                    onMouseEnter={e => {
-                                        e.currentTarget.style.transform = "translateY(-3px)"
-                                        e.currentTarget.style.boxShadow = "0 8px 30px rgba(200,50,120,0.18)"
-                                    }}
-                                    onMouseLeave={e => {
-                                        e.currentTarget.style.transform = ""
-                                        e.currentTarget.style.boxShadow = ""
-                                    }}>
+                                        onClick={() => agregarAlCarrito(prod)}
+                                        onMouseEnter={e => {
+                                            e.currentTarget.style.transform = "translateY(-3px)"
+                                            e.currentTarget.style.boxShadow = "0 8px 30px rgba(200,50,120,0.18)"
+                                        }}
+                                        onMouseLeave={e => {
+                                            e.currentTarget.style.transform = ""
+                                            e.currentTarget.style.boxShadow = ""
+                                        }}>
                                         <div style={{
                                             aspectRatio: "1", borderRadius: 12,
                                             background: "linear-gradient(135deg, #fce4ec, #f8bbd0)",
@@ -275,7 +275,7 @@ export default function PuntoDeVenta() {
                                                         type="text" inputMode="decimal"
                                                         value={precios[item.producto] ?? item.precio_real.toString()}
                                                         onChange={e => cambiarPrecio(item.producto, e.target.value)}
-                                                        style={{ flex: 1, border: "1px solid #fce4ec", borderRadius: 8, padding: "4px 8px", fontSize: "0.8rem", textAlign: "right", outline: "none", background: "#fff" }}
+                                                        style={{ flex: 1, minWidth: 0, border: "1px solid #fce4ec", borderRadius: 8, padding: "4px 8px", fontSize: "0.8rem", textAlign: "right", outline: "none", background: "#fff" }}
                                                     />
                                                 </div>
                                                 <p style={{ margin: "6px 0 0", textAlign: "right", fontSize: "0.78rem", color: "var(--pink-dark)", fontWeight: 700 }}>
@@ -346,7 +346,7 @@ export default function PuntoDeVenta() {
                                     <input type="text" inputMode="decimal"
                                         value={precios[item.producto] ?? item.precio_real.toString()}
                                         onChange={e => cambiarPrecio(item.producto, e.target.value)}
-                                        style={{ flex: 1, border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none" }}
+                                        style={{ flex: 1, minWidth: 0, border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none" }}
                                     />
                                 </div>
                             </div>
