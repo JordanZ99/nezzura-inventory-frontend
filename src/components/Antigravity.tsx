@@ -83,6 +83,15 @@ const AntigravityInner = ({
   fieldStrength = 10
 }: AntigravityProps) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
+  
+  // Ensure color is valid for Three.js (handle 8-digit hex #RRGGBBAA)
+  const safeColor = useMemo(() => {
+    if (color && color.startsWith('#') && color.length === 9) {
+      return color.substring(0, 7);
+    }
+    return color;
+  }, [color]);
+
   const { viewport } = useThree();
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
@@ -214,7 +223,7 @@ const AntigravityInner = ({
       {particleShape === 'sphere' && <sphereGeometry args={[0.2, 16, 16]} />}
       {particleShape === 'box' && <boxGeometry args={[0.3, 0.3, 0.3]} />}
       {particleShape === 'tetrahedron' && <tetrahedronGeometry args={[0.3]} />}
-      <meshBasicMaterial color={color} />
+      <meshBasicMaterial color={safeColor} />
     </instancedMesh>
   );
 };
