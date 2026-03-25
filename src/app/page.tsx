@@ -19,6 +19,9 @@ export default function PuntoDeVenta() {
     useEffect(() => {
         api.getInventario()
             .then(data => setProductos(data.filter(p => p.stock_total > 0)))
+            .catch(err => {
+                console.error("Error al cargar inventario:", err);
+            })
             .finally(() => setCargando(false))
     }, [])
 
@@ -172,9 +175,15 @@ export default function PuntoDeVenta() {
                                     </div>
                                 ))}
                                 {productosFiltrados.length === 0 && !cargando && (
-                                    <p style={{ gridColumn: "1/-1", textAlign: "center", color: "var(--text-muted)", padding: 32 }}>
-                                        No se encontraron productos
-                                    </p>
+                                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "rgba(255,255,255,0.6)", borderRadius: 16, border: "2px dashed #f8bbd0", marginTop: 20 }}>
+                                        <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
+                                        <h2 style={{ fontSize: "1.8rem", color: "var(--pink-dark)", fontWeight: 800, margin: "0 0 12px", lineHeight: 1.2, textTransform: "uppercase" }}>
+                                            No hay productos
+                                        </h2>
+                                        <p style={{ fontSize: "1.2rem", color: "var(--text-main)", fontWeight: 600, margin: 0 }}>
+                                            Agrega nuevos en <span style={{ color: "var(--pink-mid)", fontWeight: 800 }}>INVENTARIO</span>
+                                        </p>
+                                    </div>
                                 )}
                             </div>
                         )}
