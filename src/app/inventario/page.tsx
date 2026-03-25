@@ -30,20 +30,20 @@ function Pill({ children, color = "pink" }: { children: React.ReactNode; color?:
 }
 
 export default function Inventario() {
-    const [lotes, setLotes]       = useState<Lote[]>([])
-    const [inv, setInv]           = useState<Producto[]>([])
+    const [lotes, setLotes] = useState<Lote[]>([])
+    const [inv, setInv] = useState<Producto[]>([])
     const [cargando, setCargando] = useState(true)
-    const [tab, setTab]           = useState<Tab>("catalogo")
+    const [tab, setTab] = useState<Tab>("catalogo")
     const [loteEditar, setLoteEditar] = useState<Lote | null>(null)
     const [editLote, setEditLote] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
-    const [msg, setMsg]           = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm]         = useState({ producto: "", descripcion: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
-    const [restock, setRestock]   = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
+    const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+    const [form, setForm] = useState({ producto: "", descripcion: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
+    const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const fotoRef = useRef<HTMLInputElement>(null)
 
-    const [prodEditar, setProdEditar]     = useState<string>("")
-    const [editProdVal, setEditProdVal]   = useState({ descripcion: "", estado: "Activo" })
-    const editFotoRef                     = useRef<HTMLInputElement>(null)
+    const [prodEditar, setProdEditar] = useState<string>("")
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo" })
+    const editFotoRef = useRef<HTMLInputElement>(null)
 
 
     async function recargar() {
@@ -125,7 +125,7 @@ export default function Inventario() {
             const p = inv.find(x => x.producto === prodEditar)
             await api.editarProducto(prodEditar, { ...editProdVal, imagen: imagen ?? p?.imagen ?? "No hay foto" })
             mostrarMsg(true, "✅ Producto actualizado")
-            setProdEditar(""); if(editFotoRef.current) editFotoRef.current.value = ""; recargar()
+            setProdEditar(""); if (editFotoRef.current) editFotoRef.current.value = ""; recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
@@ -139,21 +139,21 @@ export default function Inventario() {
     }
 
     const TABS: { id: Tab; label: string; icon: string }[] = [
-        { id: "catalogo", label: "Catálogo",   icon: "📋" },
-        { id: "nuevo",    label: "Nuevo",       icon: "✨" },
-        { id: "restock",  label: "Restock",     icon: "📦" },
-        { id: "editar",   label: "Editar Prod.", icon: "✏️" },
+        { id: "catalogo", label: "Catálogo", icon: "📋" },
+        { id: "nuevo", label: "Nuevo", icon: "✨" },
+        { id: "restock", label: "Restock", icon: "📦" },
+        { id: "editar", label: "Editar Prod.", icon: "✏️" },
     ]
 
     const totalActivos = inv.filter(p => p.stock_total > 0).length
-    const valorInv     = inv.reduce((a, p) => a + p.stock_total * p.precio_venta, 0)
+    const valorInv = inv.reduce((a, p) => a + p.stock_total * p.precio_venta, 0)
     const ganPotencial = inv.reduce((a, p) => a + p.stock_total * (p.precio_venta - p.costo_promedio), 0)
-    const stockBajo    = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
+    const stockBajo = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
 
     return (
         <div style={{ minHeight: "100vh" }}>
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #b841d2 0%, #d867e3 100%)", padding: "32px 24px 90px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #f7a4b9ff 0%, #ffd0e4ff 100%)", padding: "32px 24px 90px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}
@@ -163,7 +163,7 @@ export default function Inventario() {
                         waveAmplitude={1.2}
                         particleSize={1.5}
                         lerpSpeed={0.08}
-                        color="#ffffff"
+                        color="#fc79b4ff"
                         autoAnimate={true}
                         particleVariance={0.8}
                         rotationSpeed={0.3}
@@ -174,8 +174,8 @@ export default function Inventario() {
                     />
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
-                    <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📦 Inventario</h1>
+                    <p style={{ color: "rgba(169, 128, 128, 0.72)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
+                    <h1 style={{ color: "#b92752ff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📦 Inventario</h1>
                 </div>
             </div>
 
@@ -183,10 +183,10 @@ export default function Inventario() {
                 {/* Stat cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-4">
                     {[
-                        { label: "Productos activos",    valor: totalActivos,               icon: "📦" },
-                        { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`,  icon: "💰" },
-                        { label: "Ganancia potencial",   valor: `$${ganPotencial.toFixed(0)}`, icon: "📈" },
-                        { label: "Stock bajo (≤3)",      valor: stockBajo,                  icon: "⚠️" },
+                        { label: "Productos activos", valor: totalActivos, icon: "📦" },
+                        { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "💰" },
+                        { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "📈" },
+                        { label: "Stock bajo (≤3)", valor: stockBajo, icon: "⚠️" },
                     ].map(m => (
                         <div key={m.label} className="card fade-up" style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                             <div style={{ background: "linear-gradient(135deg,#e91e8c,#f06292)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
@@ -345,14 +345,14 @@ export default function Inventario() {
                 {tab === "editar" && (
                     <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
                         <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>✏️ Editar Producto</h2>
-                        
+
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Seleccionar Producto</label>
                             <select className="input-pink" value={prodEditar}
                                 onChange={e => {
                                     const p = inv.find(x => x.producto === e.target.value)
                                     setProdEditar(e.target.value)
-                                    if(p) setEditProdVal({ descripcion: p.descripcion ?? "", estado: p.estado ?? "Activo" })
+                                    if (p) setEditProdVal({ descripcion: p.descripcion ?? "", estado: p.estado ?? "Activo" })
                                 }}>
                                 <option value="">— Selecciona —</option>
                                 {productos.map(p => <option key={p} value={p}>{p}</option>)}
@@ -362,7 +362,7 @@ export default function Inventario() {
                         {prodEditar && (
                             <>
                                 <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
-                                
+
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                     <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Actualizar Foto (Opcional)</label>
                                     <input type="file" accept="image/*" ref={editFotoRef} style={{ fontSize: "0.85rem" }} />

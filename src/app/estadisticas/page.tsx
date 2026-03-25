@@ -27,7 +27,7 @@ export default function Estadisticas() {
     const [gastos, setGastos] = useState<Gasto[]>([])
     const [cargando, setCargando] = useState(true)
     const [editando, setEditando] = useState<number | null>(null)
-    const [editVal, setEditVal] = useState({ total_venta: 0, ganancia_bruta: 0 })
+    const [editVal, setEditVal] = useState({ fecha: "", cantidad: 0, total_venta: 0, ganancia_bruta: 0 })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [dates, setDates] = useState<DateRangePickerValue>({ from: undefined, to: undefined })
     const [generandoPDF, setGenerandoPDF] = useState(false)
@@ -100,7 +100,7 @@ export default function Estadisticas() {
         acc[v.producto] = (acc[v.producto] || 0) + v.total_venta
         return acc
     }, {} as Record<string, number>)
-    const sortedProducts = Object.entries(productSales).sort((a,b) => b[1] - a[1])
+    const sortedProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1])
     const top5 = sortedProducts.slice(0, 5).map(p => ({ name: p[0], value: p[1] }))
     const otros = sortedProducts.slice(5).reduce((a, p) => a + p[1], 0)
     if (otros > 0) top5.push({ name: "Otros", value: otros })
@@ -111,7 +111,7 @@ export default function Estadisticas() {
         acc[d] = (acc[d] || 0) + v.total_venta
         return acc
     }, {} as Record<string, number>)
-    const chartDataLine = Object.entries(salesByDate).sort((a,b) => a[0].localeCompare(b[0])).map(d => ({ date: d[0], "Ventas": d[1] }))
+    const chartDataLine = Object.entries(salesByDate).sort((a, b) => a[0].localeCompare(b[0])).map(d => ({ date: d[0], "Ventas": d[1] }))
 
     // Barras Apiladas
     const productCostProfit = ventasFiltradas.reduce((acc, v) => {
@@ -120,9 +120,9 @@ export default function Estadisticas() {
         acc[v.producto]["Ganancia"] += v.ganancia_bruta
         acc[v.producto].total += v.total_venta
         return acc
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }, {} as Record<string, any>)
-    const chartDataBar = Object.values(productCostProfit).sort((a,b) => b.total - a.total)
+    const chartDataBar = Object.values(productCostProfit).sort((a, b) => b.total - a.total)
 
     // --- Exportar a PDF ---
     async function exportarPDF() {
@@ -139,9 +139,9 @@ export default function Estadisticas() {
             const printWidth = pdfWidth - (margin * 2)
             const printHeight = (canvas.height * printWidth) / canvas.width
             pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight)
-            pdf.save(`Goyangi_Reporte_${new Date().toISOString().substring(0,10)}.pdf`)
+            pdf.save(`Goyangi_Reporte_${new Date().toISOString().substring(0, 10)}.pdf`)
             mostrarMsg(true, "✅ Reporte descargado")
-        } catch(e) {
+        } catch (e) {
             console.error(e)
             mostrarMsg(false, "❌ Error generando PDF")
         } finally {
@@ -153,7 +153,7 @@ export default function Estadisticas() {
 
     return (
         <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
-            
+
             {/* ── Hero con Antigravity ── */}
             <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #b841d2 0%, #d867e3 100%)", padding: "32px 24px 90px" }}>
                 {/* Antigravity particles behind text */}
@@ -211,7 +211,7 @@ export default function Estadisticas() {
 
                 {/* ── CONTENEDOR PARA EL PDF ── */}
                 <div id="report-container" style={{ padding: 16, background: "#fff", borderRadius: 12 }}>
-                    
+
                     {/* Header para PDF (Visible en PDF y teléfono, oculto en Desktop) */}
                     <div className={generandoPDF ? "flex" : "flex md:hidden"} style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
                         <img src="/logo.png" alt="Goyangi" style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
@@ -219,8 +219,8 @@ export default function Estadisticas() {
                             <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.4rem", color: "var(--pink-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
                             <p style={{ margin: "0 0 4px", fontSize: "0.95rem", color: "var(--text-main)", fontWeight: 600 }}>Goyangi Store</p>
                             <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                                Período: {dates.from ? dates.from.toLocaleDateString() : "Inicio"} 
-                                {" — "} 
+                                Período: {dates.from ? dates.from.toLocaleDateString() : "Inicio"}
+                                {" — "}
                                 {dates.to ? dates.to.toLocaleDateString() : new Date().toLocaleDateString()}
                             </p>
                         </div>
@@ -238,11 +238,11 @@ export default function Estadisticas() {
                                 {totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%
                             </p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #e91e63", borderRadius: 12, background: "#fce4ec" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #ce93d8", borderRadius: 12, background: "#fce4ec" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "#333" }}>${totalGastos.toFixed(2)}</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #ce93d8", borderRadius: 12, background: "linear-gradient(135deg, #fdf2f8, #f3e5f5)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #99e793ff", borderRadius: 12, background: "linear-gradient(135deg, #fdf2f8, #f3e5f5)" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Ganancia Neta</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: gananciaNeta >= 0 ? "#2e7d32" : "#b71c1c" }}>
                                 ${gananciaNeta.toFixed(2)}
@@ -259,7 +259,7 @@ export default function Estadisticas() {
 
                             {/* Row 1: Dona + Pie + Líneas */}
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-                                
+
                                 {/* Dona - Top Productos */}
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>🍩 Top Ventas por Producto</h3>
@@ -342,7 +342,7 @@ export default function Estadisticas() {
                         <div style={{ padding: "16px 20px", borderBottom: "1px solid #fce4ec", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>Historial Completo de Ventas</h2>
                         </div>
-                        
+
                         <div style={{ overflowX: "auto" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
@@ -356,11 +356,26 @@ export default function Estadisticas() {
                                     {ventasFiltradas.map(v => (
                                         <tr key={v.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-pink-50/30">
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.id}</td>
-                                            <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{new Date(v.fecha).toLocaleDateString()}</td>
+                                            <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>
+                                                {editando === v.id ? (
+                                                    <input type="date" value={editVal.fecha.substring(0, 10)}
+                                                        onChange={e => setEditVal(p => ({ ...p, fecha: e.target.value + "T12:00:00.000Z" }))}
+                                                        className="input-pink" style={{ width: 120, padding: 4 }} />
+                                                ) : new Date(v.fecha).toLocaleDateString()}
+                                            </td>
                                             <td style={{ padding: "12px 16px" }}>
-                                                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                                                    <Pill color="gray">{v.cantidad}x {v.producto}</Pill>
-                                                </div>
+                                                {editando === v.id ? (
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                                        <input type="number" min="1" value={editVal.cantidad}
+                                                            onChange={e => setEditVal(p => ({ ...p, cantidad: +e.target.value }))}
+                                                            className="input-pink" style={{ width: 60, padding: 4 }} />
+                                                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>x {v.producto}</span>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                                        <Pill color="gray">{v.cantidad}x {v.producto}</Pill>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--pink-dark)" }}>
                                                 {editando === v.id ? (
@@ -384,7 +399,7 @@ export default function Estadisticas() {
                                                     </div>
                                                 ) : (
                                                     <div style={{ display: "flex", gap: 12 }}>
-                                                        <button onClick={() => { setEditando(v.id); setEditVal({ total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta }) }}
+                                                        <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta }) }}
                                                             style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
                                                         <button onClick={() => eliminarVenta(v.id)}
                                                             style={{ color: "#ffcdd2", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>🗑️</button>

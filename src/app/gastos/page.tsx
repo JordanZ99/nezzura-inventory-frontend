@@ -10,10 +10,17 @@ import dynamic from "next/dynamic"
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
 export default function Gastos() {
-    const [gastos, setGastos]     = useState<Gasto[]>([])
+    const [gastos, setGastos] = useState<Gasto[]>([])
     const [cargando, setCargando] = useState(true)
-    const [form, setForm]         = useState({ descripcion: "", monto: "" })
-    const [msg, setMsg]           = useState<{ ok: boolean; texto: string } | null>(null)
+    const [form, setForm] = useState({
+        fecha: new Date().toISOString().substring(0, 10),
+        categoria: "Otros",
+        descripcion: "",
+        monto: ""
+    })
+    const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+
+    const CATEGORIAS = ["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"]
 
     async function recargar() {
         const g = await api.getGastos()
@@ -29,14 +36,14 @@ export default function Gastos() {
         const monto = parseFloat(form.monto)
         if (!form.descripcion || isNaN(monto)) return
         try {
-            await api.crearGasto({ 
-                fecha: new Date().toISOString(),
-                categoria: "General",
-                descripcion: form.descripcion, 
-                monto 
+            await api.crearGasto({
+                fecha: form.fecha + "T12:00:00.000Z", // add time to ensure it posts correctly in UTC/local timezone logic
+                categoria: form.categoria,
+                descripcion: form.descripcion,
+                monto
             })
             mostrarMsg(true, `✅ Gasto registrado: $${monto.toFixed(2)}`)
-            setForm({ descripcion: "", monto: "" })
+            setForm(f => ({ ...f, descripcion: "", monto: "" }))
             recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
@@ -56,7 +63,7 @@ export default function Gastos() {
     return (
         <div style={{ minHeight: "100vh" }}>
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #b841d2 0%, #d867e3 100%)", padding: "32px 24px 80px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #6841d2ff 0%, #e36792ff 100%)", padding: "32px 24px 80px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}
@@ -106,11 +113,21 @@ export default function Gastos() {
                 )}
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
-                    
+
                     {/* Formulario */}
                     <div className="card fade-up" style={{ padding: 20, flex: "1 1 300px", maxWidth: 400 }}>
                         <h2 style={{ margin: "0 0 16px", fontSize: "1rem", fontWeight: 800 }}>✨ Registrar Gasto</h2>
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Fecha</label>
+                                <input type="date" className="input-pink" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Categoría</label>
+                                <select className="input-pink" value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
+                                    {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Descripción</label>
                                 <input className="input-pink" placeholder="Ej: Pago de luz, comida..." value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
@@ -119,7 +136,7 @@ export default function Gastos() {
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Monto ($)</label>
                                 <input type="number" step="0.01" className="input-pink" placeholder="0.00" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
                             </div>
-                            <button className="btn-pink" style={{ marginTop: 8 }} onClick={agregar} disabled={!form.descripcion || !form.monto}>
+                            <button className="btn-pink" style={{ marginTop: 8 }} onClick={agregar} disabled={!form.descripcion || !form.monto || !form.fecha}>
                                 ✅ Añadir Gasto
                             </button>
                         </div>
@@ -134,7 +151,7 @@ export default function Gastos() {
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
                                     <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid #fce4ec" }}>
-                                        {["Fecha", "Gasto", "Monto", ""].map(h => (
+                                        {["Fecha", "Categoría", "Gasto", "Monto", ""].map(h => (
                                             <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
                                         ))}
                                     </tr>
@@ -142,7 +159,12 @@ export default function Gastos() {
                                 <tbody>
                                     {gastos.map(g => (
                                         <tr key={g.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-pink-50/20">
-                                            <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{new Date(g.fecha).toLocaleDateString()}</td>
+                                            <td style={{ padding: "12px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{new Date(g.fecha).toLocaleDateString()}</td>
+                                            <td style={{ padding: "12px 16px" }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--pink-dark)", padding: "3px 8px", borderRadius: 12 }}>
+                                                    {g.categoria}
+                                                </span>
+                                            </td>
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>{g.descripcion}</td>
                                             <td style={{ padding: "12px 16px", fontWeight: 800, color: "#b71c1c" }}>-${g.monto.toFixed(2)}</td>
                                             <td style={{ padding: "12px 16px", textAlign: "right" }}>
