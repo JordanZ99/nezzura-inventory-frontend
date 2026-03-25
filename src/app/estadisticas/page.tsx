@@ -210,7 +210,7 @@ export default function Estadisticas() {
                 )}
 
                 {/* ── CONTENEDOR PARA EL PDF ── */}
-                <div id="report-container" style={{ padding: 16, background: "#fff", borderRadius: 12 }}>
+                <div id="report-container" style={{ padding: 16, background: "#fff", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
 
                     {/* Header para PDF (Visible en PDF y teléfono, oculto en Desktop) */}
                     <div className={generandoPDF ? "flex" : "flex md:hidden"} style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
@@ -261,7 +261,7 @@ export default function Estadisticas() {
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
 
                                 {/* Dona - Top Productos */}
-                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))", gap: 16 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>🍩 Top Ventas por Producto</h3>
                                     {top5.length > 0 ? (
                                         <DonutChart
@@ -277,7 +277,7 @@ export default function Estadisticas() {
                                 </div>
 
                                 {/* Pie - Costo vs Ganancia */}
-                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
+                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>🥧 Costo vs Ganancia</h3>
                                     {totalVendido > 0 ? (
                                         <DonutChart
@@ -312,7 +312,7 @@ export default function Estadisticas() {
                             </div>
 
                             {/* Row 2: Barras Apiladas (scrollable) */}
-                            <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
+                            <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                 <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>📊 Contribución Marginal por Producto</h3>
                                 {chartDataBar.length > 0 ? (
                                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 8 }}>
