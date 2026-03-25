@@ -87,11 +87,18 @@ export default function PuntoDeVenta() {
 
             {/* ── Hero card ── */}
             <div className="hero-gradient" style={{ padding: "32px 24px 80px" }}>
-                <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
+                <p className="hidden md:block" style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
                     BIENVENIDA
                 </p>
-                <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", display: "flex", alignItems: "center", gap: 10 }}>
-                    <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "contain", background: "white", padding: 2 }} />
+                
+                {/* Desktop Title */}
+                <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
+                    🛍️ Punto de Venta
+                </h1>
+                
+                {/* Mobile Title */}
+                <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>
+                    <img src="/logo.png" alt="Logo" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "contain", background: "white", padding: 3 }} />
                     Punto de Venta
                 </h1>
                 <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.875rem", margin: 0 }}>
