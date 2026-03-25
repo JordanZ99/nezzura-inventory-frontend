@@ -19,8 +19,15 @@ export default function PuntoDeVenta() {
     useEffect(() => {
         api.getInventario()
             .then(data => setProductos(data.filter(p => p.stock_total > 0)))
-            .catch(err => {
-                console.error("Error al cargar inventario:", err);
+            .catch(async () => {
+                // Tables might not exist — force creation and retry
+                try {
+                    await api.initDB()
+                    const data = await api.getInventario()
+                    setProductos(data.filter(p => p.stock_total > 0))
+                } catch {
+                    // DB is empty, keep empty state
+                }
             })
             .finally(() => setCargando(false))
     }, [])

@@ -38,9 +38,25 @@ export default function Inventario() {
     const [restock, setRestock]   = useState<Restock>({ producto: "", costo: 0, precio_venta: 0, stock: 1 })
     const fotoRef = useRef<HTMLInputElement>(null)
 
+    const [prodEditar, setProdEditar]     = useState<string>("")
+    const [editProdVal, setEditProdVal]   = useState({ descripcion: "", estado: "Activo" })
+    const editFotoRef                     = useRef<HTMLInputElement>(null)
+
+
     async function recargar() {
-        const [l, i] = await Promise.all([api.getLotes(), api.getInventario()])
-        setLotes(l); setInv(i)
+        try {
+            const [l, i] = await Promise.all([api.getLotes(), api.getInventario()])
+            setLotes(l); setInv(i)
+        } catch {
+            // Tables might not exist — force creation and retry
+            try {
+                await api.initDB()
+                const [l, i] = await Promise.all([api.getLotes(), api.getInventario()])
+                setLotes(l); setInv(i)
+            } catch {
+                // DB is empty, keep empty state
+            }
+        }
     }
     useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
 
@@ -61,6 +77,8 @@ export default function Inventario() {
 
     async function guardarNuevo() {
         try {
+            // Ensure tables exist before creating a product
+            await api.initDB()
             let imagen = "No hay foto"
             if (fotoRef.current?.files?.[0]) {
                 const r = await api.subirFoto(form.producto, fotoRef.current.files[0])
@@ -92,6 +110,20 @@ export default function Inventario() {
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
+    async function guardarProducto() {
+        if (!prodEditar) return
+        try {
+            let imagen: string | undefined = undefined
+            if (editFotoRef.current?.files?.[0]) {
+                const r = await api.subirFoto(prodEditar, editFotoRef.current.files[0])
+                imagen = r.ruta
+            }
+            await api.editarProducto(prodEditar, { ...editProdVal, imagen })
+            mostrarMsg(true, "✅ Producto actualizado")
+            setProdEditar(""); if(editFotoRef.current) editFotoRef.current.value = ""; recargar()
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+    }
+
     async function darDeBaja(producto: string) {
         if (!confirm(`¿Dar de baja ${producto}?`)) return
         try {
@@ -105,7 +137,7 @@ export default function Inventario() {
         { id: "catalogo", label: "Catálogo",   icon: "📋" },
         { id: "nuevo",    label: "Nuevo",       icon: "✨" },
         { id: "restock",  label: "Restock",     icon: "📦" },
-        { id: "editar",   label: "Editar lote", icon: "⚙️" },
+        { id: "editar",   label: "Editar Prod.", icon: "✏️" },
     ]
 
     const totalActivos = inv.filter(p => p.stock_total > 0).length
@@ -194,8 +226,16 @@ export default function Inventario() {
                                                     <tr key={i} style={{ borderBottom: "1px solid #fdf6f9" }}
                                                         onMouseEnter={e => (e.currentTarget.style.background = "#fdf6f9")}
                                                         onMouseLeave={e => (e.currentTarget.style.background = "")}>
-                                                        <td style={{ padding: "10px 16px" }}>${g.costo.toFixed(2)}</td>
-                                                        <td style={{ padding: "10px 16px", fontWeight: 700, color: "var(--pink-mid)" }}>${g.precio.toFixed(2)}</td>
+                                                        <td style={{ padding: "10px 16px" }}>
+                                                            {loteEditar?.id_lote === g.lote.id_lote ? (
+                                                                <input type="number" min={0} step="0.01" value={editLote.costo} onChange={e => setEditLote(l => ({ ...l, costo: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                            ) : `$${g.costo.toFixed(2)}`}
+                                                        </td>
+                                                        <td style={{ padding: "10px 16px", fontWeight: 700, color: "var(--pink-mid)" }}>
+                                                            {loteEditar?.id_lote === g.lote.id_lote ? (
+                                                                <input type="number" min={0} step="0.01" value={editLote.precio_venta} onChange={e => setEditLote(l => ({ ...l, precio_venta: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                            ) : `$${g.precio.toFixed(2)}`}
+                                                        </td>
                                                         <td style={{ padding: "10px 16px" }}>{g.stock}</td>
                                                         <td style={{ padding: "10px 16px" }}>
                                                             <Pill color={g.precio > g.costo ? "green" : "red"}>
@@ -203,10 +243,17 @@ export default function Inventario() {
                                                             </Pill>
                                                         </td>
                                                         <td style={{ padding: "10px 16px" }}>
-                                                            <button onClick={() => { setLoteEditar(g.lote); setEditLote({ costo: g.costo, precio_venta: g.precio }); setTab("editar") }}
-                                                                style={{ background: "none", border: "none", color: "var(--pink-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
-                                                                Editar
-                                                            </button>
+                                                            {loteEditar?.id_lote === g.lote.id_lote ? (
+                                                                <div style={{ display: "flex", gap: 8 }}>
+                                                                    <button onClick={guardarLote} style={{ color: "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>💾</button>
+                                                                    <button onClick={() => setLoteEditar(null)} style={{ color: "#b71c1c", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>✕</button>
+                                                                </div>
+                                                            ) : (
+                                                                <button onClick={() => { setLoteEditar(g.lote); setEditLote({ costo: g.costo, precio_venta: g.precio }) }}
+                                                                    style={{ background: "none", border: "none", color: "var(--pink-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
+                                                                    Editar lote
+                                                                </button>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -265,26 +312,42 @@ export default function Inventario() {
                     </div>
                 )}
 
-                {/* Editar lote */}
+                {/* Editar producto */}
                 {tab === "editar" && (
-                    <div className="card fade-up" style={{ padding: 20, maxWidth: 400, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>⚙️ Editar Lote</h2>
-                        {!loteEditar ? (
-                            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>Selecciona un lote desde Catálogo → Editar.</p>
-                        ) : (
+                    <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
+                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>✏️ Editar Producto</h2>
+                        
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Seleccionar Producto</label>
+                            <select className="input-pink" value={prodEditar}
+                                onChange={e => {
+                                    const p = inv.find(x => x.producto === e.target.value)
+                                    setProdEditar(e.target.value)
+                                    if(p) setEditProdVal({ descripcion: p.descripcion ?? "", estado: p.estado ?? "Activo" })
+                                }}>
+                                <option value="">— Selecciona —</option>
+                                {productos.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                        </div>
+
+                        {prodEditar && (
                             <>
-                                <div style={{ background: "#fdf6f9", borderRadius: 12, padding: 12 }}>
-                                    <p style={{ margin: 0, fontWeight: 700 }}>{loteEditar.producto}</p>
-                                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)" }}>ID: {loteEditar.id_lote}</p>
+                                <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
+                                
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Actualizar Foto (Opcional)</label>
+                                    <input type="file" accept="image/*" ref={editFotoRef} style={{ fontSize: "0.85rem" }} />
                                 </div>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                                    <Input label="Costo unitario" type="number" min={0} step="0.01" value={editLote.costo} onChange={e => setEditLote(l => ({ ...l, costo: +e.target.value }))} />
-                                    <Input label="Precio de venta" type="number" min={0} step="0.01" value={editLote.precio_venta} onChange={e => setEditLote(l => ({ ...l, precio_venta: +e.target.value }))} />
+
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
+                                    <select className="input-pink" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
+                                        <option value="Activo">Activo</option>
+                                        <option value="Inactivo">Inactivo</option>
+                                    </select>
                                 </div>
-                                <div style={{ display: "flex", gap: 8 }}>
-                                    <button className="btn-pink" onClick={guardarLote}>💾 Guardar</button>
-                                    <button className="btn-ghost" onClick={() => setLoteEditar(null)}>Cancelar</button>
-                                </div>
+
+                                <button className="btn-pink" onClick={guardarProducto}>💾 Guardar Cambios</button>
                             </>
                         )}
                     </div>

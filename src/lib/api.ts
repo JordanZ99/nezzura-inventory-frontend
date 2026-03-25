@@ -84,6 +84,9 @@ async function request<T = unknown>(path: string, options: RequestInit = {}): Pr
 }
 
 export const api = {
+    // Inicialización — recrea tablas si fueron borradas
+    initDB: () => request<{ ok: boolean; mensaje: string }>("/init-db"),
+
     // Inventario
     getInventario: () => request<Producto[]>("/inventario/"),
     getLotes: () => request<Lote[]>("/inventario/lotes/"),
