@@ -242,7 +242,7 @@ export default function Estadisticas() {
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "#333" }}>${totalGastos.toFixed(2)}</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #99e793ff", borderRadius: 12, background: "linear-gradient(135deg, #fdf2f8, #f3e5f5)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #ff8690ff", borderRadius: 12, background: "#d0edafff" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Ganancia Neta</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: gananciaNeta >= 0 ? "#2e7d32" : "#b71c1c" }}>
                                 ${gananciaNeta.toFixed(2)}

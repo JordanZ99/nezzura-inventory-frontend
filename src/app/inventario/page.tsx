@@ -153,7 +153,7 @@ export default function Inventario() {
     return (
         <div style={{ minHeight: "100vh" }}>
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #f7a4b9ff 0%, #ffd0e4ff 100%)", padding: "32px 24px 90px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #ffb8caff 0%, #ffb5f5ff 100%)", padding: "32px 24px 90px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}
@@ -163,7 +163,7 @@ export default function Inventario() {
                         waveAmplitude={1.2}
                         particleSize={1.5}
                         lerpSpeed={0.08}
-                        color="#fc79b4ff"
+                        color="#ff3a93ff"
                         autoAnimate={true}
                         particleVariance={0.8}
                         rotationSpeed={0.3}
@@ -174,7 +174,7 @@ export default function Inventario() {
                     />
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p style={{ color: "rgba(169, 128, 128, 0.72)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
+                    <p style={{ color: "rgba(152, 82, 111, 0.72)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
                     <h1 style={{ color: "#b92752ff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📦 Inventario</h1>
                 </div>
             </div>
@@ -212,7 +212,7 @@ export default function Inventario() {
                     {TABS.map(t => (
                         <button key={t.id} onClick={() => setTab(t.id)} style={{
                             flex: 1, minWidth: 80, padding: "8px 12px", borderRadius: 10, border: "none",
-                            background: tab === t.id ? "linear-gradient(135deg,#e91e8c,#f06292)" : "transparent",
+                            background: tab === t.id ? "linear-gradient(135deg, #e91e8c, #f06292)" : "transparent",
                             color: tab === t.id ? "#fff" : "var(--text-muted)",
                             fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", transition: "all 0.2s",
                         }}>

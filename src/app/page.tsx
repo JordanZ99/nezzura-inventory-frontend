@@ -341,7 +341,11 @@ export default function PuntoDeVenta() {
                                     <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fdf6f9", borderRadius: 8, padding: "4px 10px" }}>
                                         <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>−</button>
                                         <span style={{ fontWeight: 700, minWidth: 24, textAlign: "center" }}>{item.cantidad}</span>
-                                        <button onClick={() => cambiarCantidad(item.producto, item.cantidad + 1)} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>+</button>
+                                        <button onClick={() => {
+                                            const prodData = productos.find(p => p.producto === item.producto);
+                                            const stockMax = prodData?.stock_total ?? 0;
+                                            cambiarCantidad(item.producto, Math.min(stockMax, item.cantidad + 1));
+                                        }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>+</button>
                                     </div>
                                     <input type="text" inputMode="decimal"
                                         value={precios[item.producto] ?? item.precio_real.toString()}
