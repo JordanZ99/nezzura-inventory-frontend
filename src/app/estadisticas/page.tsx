@@ -199,18 +199,18 @@ export default function Estadisticas() {
                 </div>
 
                 {msg && (
-                    <div className="fade-up" style={{ 
-                        position: "fixed", 
-                        bottom: 24, 
-                        right: 24, 
+                    <div className="fade-up" style={{
+                        position: "fixed",
+                        bottom: 24,
+                        right: 24,
                         zIndex: 9999,
-                        padding: "16px 24px", 
+                        padding: "16px 24px",
                         borderRadius: 12,
                         background: "#fff",
                         boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-                        borderLeft: `6px solid ${msg.ok ? "#4caf50" : "#f44336"}`, 
-                        color: msg.ok ? "#2e7d32" : "#b71c1c", 
-                        fontSize: "0.95rem", 
+                        borderLeft: `6px solid ${msg.ok ? "#4caf50" : "#f44336"}`,
+                        color: msg.ok ? "#2e7d32" : "#b71c1c",
+                        fontSize: "0.95rem",
                         fontWeight: 700,
                         display: "flex",
                         alignItems: "center",
@@ -351,7 +351,7 @@ export default function Estadisticas() {
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
                                     <tr style={{ background: "#f8f9fe", color: "var(--text-muted)", borderBottom: "1px solid #fce4ec" }}>
-                                        {["ID", "Fecha", "Productos", "Total", "Ganancia", "Acciones"].map(h => (
+                                        {["ID", "Fecha", "Productos", "Costo por producto", "Precio Vendido", "Ganancia"].map(h => (
                                             <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>{h}</th>
                                         ))}
                                     </tr>
@@ -370,8 +370,8 @@ export default function Estadisticas() {
                                                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                                         <input type="number" min="1" value={editVal.cantidad} onChange={e => {
                                                             const cant = +e.target.value;
-                                                            setEditVal(p => ({ 
-                                                                ...p, 
+                                                            setEditVal(p => ({
+                                                                ...p,
                                                                 cantidad: cant,
                                                                 total_venta: cant * p.precio_real,
                                                                 ganancia_bruta: (p.precio_real - p.costo_unitario) * cant
@@ -391,8 +391,8 @@ export default function Estadisticas() {
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>PRECIO UNIT.</span>
                                                         <input type="number" step="0.01" value={editVal.precio_real} onChange={e => {
                                                             const prec = +e.target.value;
-                                                            setEditVal(p => ({ 
-                                                                ...p, 
+                                                            setEditVal(p => ({
+                                                                ...p,
                                                                 precio_real: prec,
                                                                 total_venta: prec * p.cantidad,
                                                                 ganancia_bruta: (prec - p.costo_unitario) * p.cantidad
