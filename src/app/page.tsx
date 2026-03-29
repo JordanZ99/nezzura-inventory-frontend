@@ -60,8 +60,21 @@ export default function PuntoDeVenta() {
     function cambiarPrecio(producto: string, texto: string) {
         setPrecios(prev => ({ ...prev, [producto]: texto }))
         const num = parseFloat(texto.replace(",", "."))
-        if (!isNaN(num) && num > 0)
+        if (!isNaN(num) && num >= 0)
             setCarrito(prev => prev.map(i => i.producto === producto ? { ...i, precio_real: num } : i))
+    }
+
+    function cambiarTotal(producto: string, texto: string) {
+        const item = carrito.find(i => i.producto === producto)
+        if (!item || item.cantidad === 0) return
+        
+        const totalNum = parseFloat(texto.replace(",", "."))
+        if (!isNaN(totalNum) && totalNum >= 0) {
+            const nuevoPrecio = totalNum / item.cantidad
+            setCarrito(prev => prev.map(i => i.producto === producto ? { ...i, precio_real: nuevoPrecio } : i))
+            // Actualizamos también el string del precio para que se vea el cambio
+            setPrecios(prev => ({ ...prev, [producto]: nuevoPrecio.toFixed(2) }))
+        }
     }
 
     function quitarDelCarrito(producto: string) {
@@ -267,20 +280,35 @@ export default function PuntoDeVenta() {
                                                     <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", borderRadius: 8, border: "1px solid #fce4ec", padding: "2px 4px" }}>
                                                         <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--pink-mid)", width: 22, height: 22 }}>−</button>
-                                                        <span style={{ fontSize: "0.8rem", fontWeight: 700, minWidth: 20, textAlign: "center" }}>{item.cantidad}</span>
+                                                        <input 
+                                                            type="number" min="1" 
+                                                            value={item.cantidad} 
+                                                            onChange={e => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, Math.max(1, +e.target.value)))}
+                                                            style={{ width: 35, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
+                                                        />
                                                         <button onClick={() => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, item.cantidad + 1))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--pink-mid)", width: 22, height: 22 }}>+</button>
                                                     </div>
+                                                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>UNIT.</span>
+                                                        <input
+                                                            type="text" inputMode="decimal"
+                                                            value={precios[item.producto] ?? item.precio_real.toString()}
+                                                            onChange={e => cambiarPrecio(item.producto, e.target.value)}
+                                                            style={{ width: "100%", border: "1px solid #fce4ec", borderRadius: 8, padding: "4px 8px", fontSize: "0.8rem", textAlign: "right", outline: "none", background: "#fff" }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+                                                    <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700, textAlign: "right" }}>SUBTOTAL</span>
                                                     <input
                                                         type="text" inputMode="decimal"
-                                                        value={precios[item.producto] ?? item.precio_real.toString()}
-                                                        onChange={e => cambiarPrecio(item.producto, e.target.value)}
-                                                        style={{ flex: 1, minWidth: 0, border: "1px solid #fce4ec", borderRadius: 8, padding: "4px 8px", fontSize: "0.8rem", textAlign: "right", outline: "none", background: "#fff" }}
+                                                        defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
+                                                        onBlur={e => cambiarTotal(item.producto, e.target.value)}
+                                                        onKeyDown={e => e.key === "Enter" && cambiarTotal(item.producto, (e.target as HTMLInputElement).value)}
+                                                        style={{ width: "100%", border: "1px solid #fce4ec", borderRadius: 8, padding: "4px 8px", fontSize: "0.85rem", textAlign: "right", outline: "none", background: "#fdf2f8", fontWeight: 800, color: "var(--pink-dark)" }}
                                                     />
                                                 </div>
-                                                <p style={{ margin: "6px 0 0", textAlign: "right", fontSize: "0.78rem", color: "var(--pink-dark)", fontWeight: 700 }}>
-                                                    ${(item.cantidad * item.precio_real).toFixed(2)}
-                                                </p>
                                             </div>
                                         )
                                     })}
@@ -337,10 +365,19 @@ export default function PuntoDeVenta() {
                                     <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{item.producto}</span>
                                     <button onClick={() => quitarDelCarrito(item.producto)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc" }}>✕</button>
                                 </div>
-                                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "center" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fdf6f9", borderRadius: 8, padding: "4px 10px" }}>
                                         <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>−</button>
-                                        <span style={{ fontWeight: 700, minWidth: 24, textAlign: "center" }}>{item.cantidad}</span>
+                                        <input 
+                                            type="number" min="1" 
+                                            value={item.cantidad} 
+                                            onChange={e => {
+                                                const prodData = productos.find(p => p.producto === item.producto);
+                                                const stockMax = prodData?.stock_total ?? 99;
+                                                cambiarCantidad(item.producto, Math.min(stockMax, Math.max(1, +e.target.value)));
+                                            }}
+                                            style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent" }}
+                                        />
                                         <button onClick={() => {
                                             const prodData = productos.find(p => p.producto === item.producto);
                                             const stockMax = prodData?.stock_total ?? 0;
@@ -350,7 +387,16 @@ export default function PuntoDeVenta() {
                                     <input type="text" inputMode="decimal"
                                         value={precios[item.producto] ?? item.precio_real.toString()}
                                         onChange={e => cambiarPrecio(item.producto, e.target.value)}
-                                        style={{ flex: 1, minWidth: 0, border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none" }}
+                                        style={{ width: "100%", border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none" }}
+                                    />
+                                </div>
+                                <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <span style={{ fontSize: "0.7rem", color: "#999", fontWeight: 700 }}>EDITAR TOTAL:</span>
+                                    <input
+                                        type="text" inputMode="decimal"
+                                        defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
+                                        onBlur={e => cambiarTotal(item.producto, e.target.value)}
+                                        style={{ width: "100px", border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "#fdf2f8", fontWeight: 800, color: "var(--pink-dark)" }}
                                     />
                                 </div>
                             </div>

@@ -351,7 +351,7 @@ export default function Estadisticas() {
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
                                     <tr style={{ background: "#f8f9fe", color: "var(--text-muted)", borderBottom: "1px solid #fce4ec" }}>
-                                        {["ID", "Fecha", "Productos", "Costo por producto", "Precio Vendido", "Ganancia"].map(h => (
+                                        {["ID", "Fecha", "Productos", "Precio unitario", "Precio Total", "Ganancia"].map(h => (
                                             <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>{h}</th>
                                         ))}
                                     </tr>
