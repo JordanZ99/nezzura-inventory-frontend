@@ -18,6 +18,7 @@ export default function PuntoDeVenta() {
     const [cobrando, setCobrando] = useState(false)
     const [carritoAbierto, setCarritoAbierto] = useState(false)
     const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
+    const [modoDescuento, setModoDescuento] = useState(false)
 
     useEffect(() => {
         api.getInventario()
@@ -246,7 +247,7 @@ export default function PuntoDeVenta() {
                         width: 280, flexDirection: "column",
                         position: "sticky", top: 16, maxHeight: "calc(100vh - 80px)",
                     }}>
-                        <div style={{ padding: "16px 20px", borderBottom: "1px solid #fce4ec" }}>
+                        <div style={{ padding: "16px 20px", borderBottom: "1px solid #fce4ec", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--text-main)" }}>
                                 🛒 Carrito
                                 {totalItems > 0 && (
@@ -256,6 +257,17 @@ export default function PuntoDeVenta() {
                                     }}>{totalItems}</span>
                                 )}
                             </h2>
+                            <button 
+                                onClick={() => setModoDescuento(!modoDescuento)}
+                                style={{ 
+                                    fontSize: "0.65rem", fontWeight: 800, padding: "4px 8px", borderRadius: 8, border: "none", cursor: "pointer",
+                                    background: modoDescuento ? "var(--pink-mid)" : "#eee",
+                                    color: modoDescuento ? "#fff" : "#999",
+                                    transition: "all 0.2s"
+                                }}
+                            >
+                                {modoDescuento ? "✨ DESC. ON" : "🏷️ DESC"}
+                            </button>
                         </div>
 
                         <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
@@ -301,13 +313,19 @@ export default function PuntoDeVenta() {
                                                 </div>
                                                 <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
                                                     <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700, textAlign: "right" }}>SUBTOTAL</span>
-                                                    <input
-                                                        type="text" inputMode="decimal"
-                                                        defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
-                                                        onBlur={e => cambiarTotal(item.producto, e.target.value)}
-                                                        onKeyDown={e => e.key === "Enter" && cambiarTotal(item.producto, (e.target as HTMLInputElement).value)}
-                                                        style={{ width: "100%", border: "1px solid #fce4ec", borderRadius: 8, padding: "4px 8px", fontSize: "0.85rem", textAlign: "right", outline: "none", background: "#fdf2f8", fontWeight: 800, color: "var(--pink-dark)" }}
-                                                    />
+                                                    {modoDescuento ? (
+                                                        <input
+                                                            type="text" inputMode="decimal"
+                                                            defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
+                                                            onBlur={e => cambiarTotal(item.producto, e.target.value)}
+                                                            onKeyDown={e => e.key === "Enter" && cambiarTotal(item.producto, (e.target as HTMLInputElement).value)}
+                                                            style={{ width: "100%", border: "1px solid var(--pink-mid)", borderRadius: 8, padding: "4px 8px", fontSize: "0.85rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--pink-dark)" }}
+                                                        />
+                                                    ) : (
+                                                        <p style={{ margin: 0, textAlign: "right", fontSize: "0.85rem", color: "var(--pink-dark)", fontWeight: 800 }}>
+                                                            ${(item.cantidad * item.precio_real).toFixed(2)}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                         )
@@ -357,7 +375,19 @@ export default function PuntoDeVenta() {
                     <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: 20, maxHeight: "80vh", overflowY: "auto" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                             <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>🛒 Tu Carrito ({totalItems})</h2>
-                            <button style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }} onClick={() => setCarritoAbierto(false)}>✕</button>
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                <button 
+                                    onClick={() => setModoDescuento(!modoDescuento)}
+                                    style={{ 
+                                        fontSize: "0.7rem", fontWeight: 800, padding: "5px 10px", borderRadius: 10, border: "none",
+                                        background: modoDescuento ? "var(--pink-mid)" : "#eee",
+                                        color: modoDescuento ? "#fff" : "#999"
+                                    }}
+                                >
+                                    {modoDescuento ? "✨ DESC. ON" : "🏷️ DESC"}
+                                </button>
+                                <button style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }} onClick={() => setCarritoAbierto(false)}>✕</button>
+                            </div>
                         </div>
                         {carrito.map(item => (
                             <div key={item.producto} style={{ padding: "10px 0", borderBottom: "1px solid #fce4ec" }}>
@@ -391,13 +421,19 @@ export default function PuntoDeVenta() {
                                     />
                                 </div>
                                 <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <span style={{ fontSize: "0.7rem", color: "#999", fontWeight: 700 }}>EDITAR TOTAL:</span>
-                                    <input
-                                        type="text" inputMode="decimal"
-                                        defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
-                                        onBlur={e => cambiarTotal(item.producto, e.target.value)}
-                                        style={{ width: "100px", border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "#fdf2f8", fontWeight: 800, color: "var(--pink-dark)" }}
-                                    />
+                                    <span style={{ fontSize: "0.7rem", color: "#999", fontWeight: 700 }}>{modoDescuento ? "EDITAR TOTAL:" : "SUBTOTAL:"}</span>
+                                    {modoDescuento ? (
+                                        <input
+                                            type="text" inputMode="decimal"
+                                            defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
+                                            onBlur={e => cambiarTotal(item.producto, e.target.value)}
+                                            style={{ width: "100px", border: "1px solid var(--pink-mid)", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--pink-dark)" }}
+                                        />
+                                    ) : (
+                                        <span style={{ fontSize: "1rem", color: "var(--pink-dark)", fontWeight: 800 }}>
+                                            ${(item.cantidad * item.precio_real).toFixed(2)}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         ))}
