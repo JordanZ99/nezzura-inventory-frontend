@@ -27,7 +27,7 @@ export default function Estadisticas() {
     const [gastos, setGastos] = useState<Gasto[]>([])
     const [cargando, setCargando] = useState(true)
     const [editando, setEditando] = useState<number | null>(null)
-    const [editVal, setEditVal] = useState({ fecha: "", cantidad: 0, total_venta: 0, ganancia_bruta: 0 })
+    const [editVal, setEditVal] = useState({ fecha: "", cantidad: 0, precio_real: 0, total_venta: 0, ganancia_bruta: 0 })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [dates, setDates] = useState<DateRangePickerValue>({ from: undefined, to: undefined })
     const [generandoPDF, setGenerandoPDF] = useState(false)
@@ -359,7 +359,18 @@ export default function Estadisticas() {
                                             </td>
                                             <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--pink-dark)" }}>
                                                 {editando === v.id ? (
-                                                    <input type="number" step="0.01" value={editVal.total_venta} onChange={e => setEditVal(p => ({ ...p, total_venta: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>PRECIO UNIT.</span>
+                                                        <input type="number" step="0.01" value={editVal.precio_real} onChange={e => setEditVal(p => ({ ...p, precio_real: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                    </div>
+                                                ) : `$${v.precio_real.toFixed(2)}`}
+                                            </td>
+                                            <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--pink-dark)" }}>
+                                                {editando === v.id ? (
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>TOTAL</span>
+                                                        <input type="number" step="0.01" value={editVal.total_venta} onChange={e => setEditVal(p => ({ ...p, total_venta: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                    </div>
                                                 ) : `$${v.total_venta.toFixed(2)}`}
                                             </td>
                                             <td style={{ padding: "12px 16px" }}>
@@ -375,7 +386,7 @@ export default function Estadisticas() {
                                                     </div>
                                                 ) : (
                                                     <div style={{ display: "flex", gap: 12 }}>
-                                                        <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta }) }} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
+                                                        <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, precio_real: v.precio_real, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta }) }} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
                                                         <button onClick={() => eliminarVenta(v.id)} style={{ color: "#ffcdd2", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>🗑️</button>
                                                     </div>
                                                 )}

@@ -1,6 +1,6 @@
 "use client"
 // ==============================================================================
-// src/app/inventario/page.tsx  —  Rediseño Argon pink
+// src/app/inventario/page.tsx  —  Rediseño Argon pink -Prueba botón de guardado
 // ==============================================================================
 
 import { useState, useEffect, useRef } from "react"
