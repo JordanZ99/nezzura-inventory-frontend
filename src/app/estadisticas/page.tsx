@@ -196,7 +196,24 @@ export default function Estadisticas() {
                 </div>
 
                 {msg && (
-                    <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 12, borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#f44336"}`, color: msg.ok ? "#2e7d32" : "#b71c1c", fontSize: "0.875rem", fontWeight: 700 }}>
+                    <div className="fade-up" style={{ 
+                        position: "fixed", 
+                        bottom: 24, 
+                        right: 24, 
+                        zIndex: 9999,
+                        padding: "16px 24px", 
+                        borderRadius: 12,
+                        background: "#fff",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+                        borderLeft: `6px solid ${msg.ok ? "#4caf50" : "#f44336"}`, 
+                        color: msg.ok ? "#2e7d32" : "#b71c1c", 
+                        fontSize: "0.95rem", 
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12
+                    }}>
+                        <span style={{ fontSize: "1.2rem" }}>{msg.ok ? "✅" : "⚠️"}</span>
                         {msg.texto}
                     </div>
                 )}
