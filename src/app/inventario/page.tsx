@@ -45,6 +45,7 @@ export default function Inventario() {
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo" })
     const editFotoRef = useRef<HTMLInputElement>(null)
+    const [guardando, setGuardando] = useState(false)
 
 
     async function recargar() {
@@ -80,6 +81,8 @@ export default function Inventario() {
     const productos = Array.from(new Set(lotes.map(l => l.producto))).sort()
 
     async function guardarNuevo() {
+        if (guardando) return
+        setGuardando(true)
         try {
             // Ensure tables exist before creating a product
             await api.initDB()
@@ -96,9 +99,12 @@ export default function Inventario() {
             setForm({ producto: "", descripcion: "", costo: "", precio_venta: "", stock: 1 })
             setTab("catalogo"); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
     }
 
     async function guardarRestock() {
+        if (guardando) return
+        setGuardando(true)
         try {
             const prodActual = inv.find(p => p.producto === restock.producto)
             const precio = restock.precio_venta === "" ? (prodActual?.precio_venta || 0) : Number(restock.precio_venta)
@@ -107,19 +113,23 @@ export default function Inventario() {
             setTab("catalogo"); recargar()
             setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
     }
 
     async function guardarLote() {
-        if (!loteEditar) return
+        if (!loteEditar || guardando) return
+        setGuardando(true)
         try {
             await api.editarLote(loteEditar.id_lote, { costo: Number(editLote.costo), precio_venta: Number(editLote.precio_venta), stock: Number(editLote.stock) })
             mostrarMsg(true, "✅ Lote actualizado")
             setLoteEditar(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
     }
 
     async function guardarProducto() {
-        if (!prodEditar) return
+        if (!prodEditar || guardando) return
+        setGuardando(true)
         try {
             let imagen: string | undefined = undefined
             if (editFotoRef.current?.files?.[0]) {
@@ -134,15 +144,18 @@ export default function Inventario() {
             mostrarMsg(true, "✅ Producto actualizado")
             setProdEditar(""); if (editFotoRef.current) editFotoRef.current.value = ""; recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
     }
 
     async function darDeBaja(producto: string) {
-        if (!confirm(`¿Dar de baja ${producto}?`)) return
+        if (!confirm(`¿Dar de baja ${producto}?`) || guardando) return
+        setGuardando(true)
         try {
             const p = inv.find(x => x.producto === producto)
             await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo" })
             mostrarMsg(true, `✅ ${producto} dado de baja`); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
     }
 
     const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -241,8 +254,8 @@ export default function Inventario() {
                                             <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
                                             <Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill>
                                         </div>
-                                        <button onClick={() => darDeBaja(producto)} style={{ background: "#ffeef0", color: "#b71c1c", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer" }}>
-                                            Dar de baja
+                                        <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ffeef0", color: guardando ? "#999" : "#b71c1c", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
+                                            {guardando ? "⏳" : "Dar de baja"}
                                         </button>
                                     </div>
                                     <div style={{ overflowX: "auto" }}>
@@ -282,7 +295,9 @@ export default function Inventario() {
                                                         <td style={{ padding: "10px 16px" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
                                                                 <div style={{ display: "flex", gap: 8 }}>
-                                                                    <button onClick={guardarLote} style={{ color: "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>💾</button>
+                                                                    <button onClick={guardarLote} disabled={guardando} style={{ color: guardando ? "#999" : "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer" }}>
+                                                                        {guardando ? "⏳" : "💾"}
+                                                                    </button>
                                                                 </div>
                                                             ) : (
                                                                 <button onClick={() => { setLoteEditar(g.lote); setEditLote({ costo: g.costo, precio_venta: g.precio, stock: g.stock }) }}
@@ -319,7 +334,9 @@ export default function Inventario() {
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
-                        <button className="btn-pink" onClick={guardarNuevo} disabled={!form.producto || form.precio_venta === "" || form.precio_venta === 0}>✅ Dar de Alta</button>
+                        <button className="btn-pink" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
+                            {guardando ? "⏳ Procesando..." : "✅ Dar de Alta"}
+                        </button>
                     </div>
                 )}
 
@@ -344,7 +361,9 @@ export default function Inventario() {
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
-                        <button className="btn-pink" onClick={guardarRestock} disabled={!restock.producto || !restock.stock || Number(restock.stock) <= 0}>➕ Añadir Stock</button>
+                        <button className="btn-pink" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0}>
+                            {guardando ? "⏳ Procesando..." : "➕ Añadir Stock"}
+                        </button>
                     </div>
                 )}
 
@@ -383,7 +402,9 @@ export default function Inventario() {
                                     </select>
                                 </div>
 
-                                <button className="btn-pink" onClick={guardarProducto}>💾 Guardar Cambios</button>
+                                <button className="btn-pink" onClick={guardarProducto} disabled={guardando}>
+                                    {guardando ? "⏳ Procesando..." : "💾 Guardar Cambios"}
+                                </button>
                             </>
                         )}
                     </div>
