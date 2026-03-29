@@ -20,6 +20,18 @@ export default function PuntoDeVenta() {
     const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
     const [modoDescuento, setModoDescuento] = useState(false)
 
+    function manejarToggleDescuento() {
+        if (modoDescuento) {
+            // Si lo estamos apagando, reseteamos todos los precios al original de lista
+            setCarrito(prev => prev.map(item => {
+                const prod = productos.find(p => p.producto === item.producto)
+                return { ...item, precio_real: prod ? prod.precio_venta : item.precio_real }
+            }))
+            setPrecios({})
+        }
+        setModoDescuento(!modoDescuento)
+    }
+
     useEffect(() => {
         api.getInventario()
             .then(data => setProductos(data.filter(p => p.stock_total > 0)))
@@ -258,7 +270,7 @@ export default function PuntoDeVenta() {
                                 )}
                             </h2>
                             <button 
-                                onClick={() => setModoDescuento(!modoDescuento)}
+                                onClick={manejarToggleDescuento}
                                 style={{ 
                                     fontSize: "0.65rem", fontWeight: 800, padding: "4px 8px", borderRadius: 8, border: "none", cursor: "pointer",
                                     background: modoDescuento ? "var(--pink-mid)" : "#eee",
@@ -377,7 +389,7 @@ export default function PuntoDeVenta() {
                             <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>🛒 Tu Carrito ({totalItems})</h2>
                             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                 <button 
-                                    onClick={() => setModoDescuento(!modoDescuento)}
+                                    onClick={manejarToggleDescuento}
                                     style={{ 
                                         fontSize: "0.7rem", fontWeight: 800, padding: "5px 10px", borderRadius: 10, border: "none",
                                         background: modoDescuento ? "var(--pink-mid)" : "#eee",

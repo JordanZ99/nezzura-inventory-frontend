@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { api, Producto, Lote, NuevoProducto, Restock } from "@/lib/api"
+import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
@@ -84,7 +85,10 @@ export default function Inventario() {
             await api.initDB()
             let imagen = "No hay foto"
             if (fotoRef.current?.files?.[0]) {
-                const r = await api.subirFoto(form.producto, fotoRef.current.files[0])
+                const originalFile = fotoRef.current.files[0]
+                // Comprimir antes de subir
+                const compressedFile = await comprimirImagen(originalFile)
+                const r = await api.subirFoto(form.producto, compressedFile)
                 imagen = r.ruta
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen })
@@ -119,7 +123,10 @@ export default function Inventario() {
         try {
             let imagen: string | undefined = undefined
             if (editFotoRef.current?.files?.[0]) {
-                const r = await api.subirFoto(prodEditar, editFotoRef.current.files[0])
+                const originalFile = editFotoRef.current.files[0]
+                // Comprimir antes de subir
+                const compressedFile = await comprimirImagen(originalFile)
+                const r = await api.subirFoto(prodEditar, compressedFile)
                 imagen = r.ruta
             }
             const p = inv.find(x => x.producto === prodEditar)
