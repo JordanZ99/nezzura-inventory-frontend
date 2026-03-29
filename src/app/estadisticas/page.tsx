@@ -165,6 +165,10 @@ export default function Estadisticas() {
                     gap: 20px !important;
                 }
 
+                .pdf-mode .no-pdf {
+                    display: none !important;
+                }
+
             `}</style>
 
             {/* ── Hero con Antigravity ── */}
