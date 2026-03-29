@@ -164,6 +164,10 @@ export default function Estadisticas() {
                     grid-template-columns: 1fr 1fr 1fr !important;
                     gap: 20px !important;
                 }
+                    
+                .pdf-mode .no-pdf {
+                    display: none !important;
+                }
             `}</style>
 
             {/* ── Hero con Antigravity ── */}
