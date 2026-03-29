@@ -27,7 +27,7 @@ export default function Estadisticas() {
     const [gastos, setGastos] = useState<Gasto[]>([])
     const [cargando, setCargando] = useState(true)
     const [editando, setEditando] = useState<number | null>(null)
-    const [editVal, setEditVal] = useState({ fecha: "", cantidad: 0, precio_real: 0, total_venta: 0, ganancia_bruta: 0 })
+    const [editVal, setEditVal] = useState({ fecha: "", cantidad: 0, precio_real: 0, total_venta: 0, ganancia_bruta: 0, costo_unitario: 0 })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [dates, setDates] = useState<DateRangePickerValue>({ from: undefined, to: undefined })
     const [generandoPDF, setGenerandoPDF] = useState(false)
@@ -365,7 +365,15 @@ export default function Estadisticas() {
                                             <td style={{ padding: "12px 16px" }}>
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                                        <input type="number" min="1" value={editVal.cantidad} onChange={e => setEditVal(p => ({ ...p, cantidad: +e.target.value }))} className="input-pink" style={{ width: 60, padding: 4 }} />
+                                                        <input type="number" min="1" value={editVal.cantidad} onChange={e => {
+                                                            const cant = +e.target.value;
+                                                            setEditVal(p => ({ 
+                                                                ...p, 
+                                                                cantidad: cant,
+                                                                total_venta: cant * p.precio_real,
+                                                                ganancia_bruta: (p.precio_real - p.costo_unitario) * cant
+                                                            }))
+                                                        }} className="input-pink" style={{ width: 60, padding: 4 }} />
                                                         <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>x {v.producto}</span>
                                                     </div>
                                                 ) : (
@@ -378,7 +386,15 @@ export default function Estadisticas() {
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>PRECIO UNIT.</span>
-                                                        <input type="number" step="0.01" value={editVal.precio_real} onChange={e => setEditVal(p => ({ ...p, precio_real: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                        <input type="number" step="0.01" value={editVal.precio_real} onChange={e => {
+                                                            const prec = +e.target.value;
+                                                            setEditVal(p => ({ 
+                                                                ...p, 
+                                                                precio_real: prec,
+                                                                total_venta: prec * p.cantidad,
+                                                                ganancia_bruta: (prec - p.costo_unitario) * p.cantidad
+                                                            }))
+                                                        }} className="input-pink" style={{ width: 80, padding: 4 }} />
                                                     </div>
                                                 ) : `$${v.precio_real.toFixed(2)}`}
                                             </td>
@@ -403,7 +419,7 @@ export default function Estadisticas() {
                                                     </div>
                                                 ) : (
                                                     <div style={{ display: "flex", gap: 12 }}>
-                                                        <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, precio_real: v.precio_real, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta }) }} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
+                                                        <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, precio_real: v.precio_real, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta, costo_unitario: v.costo_unitario }) }} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
                                                         <button onClick={() => eliminarVenta(v.id)} style={{ color: "#ffcdd2", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>🗑️</button>
                                                     </div>
                                                 )}
