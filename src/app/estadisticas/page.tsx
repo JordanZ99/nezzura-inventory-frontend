@@ -31,6 +31,7 @@ export default function Estadisticas() {
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [dates, setDates] = useState<DateRangePickerValue>({ from: undefined, to: undefined })
     const [generandoPDF, setGenerandoPDF] = useState(false)
+    const [guardando, setGuardando] = useState(false)
 
     async function recargar() {
         try {
@@ -48,12 +49,14 @@ export default function Estadisticas() {
     }
 
     async function guardarEdicion() {
-        if (editando === null) return
+        if (editando === null || guardando) return
+        setGuardando(true)
         try {
             await api.actualizarVenta(editando, editVal)
             mostrarMsg(true, "✅ Venta actualizada")
             setEditando(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
     }
 
     async function eliminarVenta(id: number) {
@@ -414,13 +417,15 @@ export default function Estadisticas() {
                                             <td style={{ padding: "12px 16px" }}>
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", gap: 8 }}>
-                                                        <button onClick={guardarEdicion} style={{ color: "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>💾</button>
+                                                        <button onClick={guardarEdicion} disabled={guardando} style={{ color: guardando ? "#999" : "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer" }}>
+                                                            {guardando ? "⏳" : "💾"}
+                                                        </button>
                                                         <button onClick={() => setEditando(null)} style={{ color: "#b71c1c", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>✕</button>
                                                     </div>
                                                 ) : (
                                                     <div style={{ display: "flex", gap: 12 }}>
                                                         <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, precio_real: v.precio_real, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta, costo_unitario: v.costo_unitario }) }} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
-                                                        <button onClick={() => eliminarVenta(v.id)} style={{ color: "#ffcdd2", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>🗑️</button>
+                                                        <button onClick={() => eliminarVenta(v.id)} disabled={guardando} style={{ color: guardando ? "#eee" : "#ffcdd2", background: "none", border: "none", cursor: guardando ? "not-allowed" : "pointer", fontSize: "0.9rem" }}>🗑️</button>
                                                     </div>
                                                 )}
                                             </td>
