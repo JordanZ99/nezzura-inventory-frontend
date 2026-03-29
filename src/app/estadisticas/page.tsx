@@ -59,11 +59,11 @@ export default function Estadisticas() {
         finally { setGuardando(false) }
     }
 
-    async function eliminarVenta(id: number) {
-        if (!confirm("¿Eliminar esta venta permanentemente?")) return
+    async function anularVenta(id: number) {
+        if (!confirm("¿Anular esta venta permanentemente? El stock será devuelto al inventario y dejará de contar en las estadísticas.")) return
         try {
             await api.eliminarVenta(id)
-            mostrarMsg(true, "🗑️ Venta eliminada")
+            mostrarMsg(true, "🚫 Venta anulada")
             setEditando(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
@@ -84,8 +84,10 @@ export default function Estadisticas() {
     })
 
     // --- KPIs ---
-    const totalVendido = ventasFiltradas.reduce((a, v) => a + v.total_venta, 0)
-    const gananciaBruta = ventasFiltradas.reduce((a, v) => a + v.ganancia_bruta, 0)
+    const ventasActivas = ventasFiltradas.filter(v => v.estado !== "Inactivo")
+    
+    const totalVendido = ventasActivas.reduce((a, v) => a + v.total_venta, 0)
+    const gananciaBruta = ventasActivas.reduce((a, v) => a + v.ganancia_bruta, 0)
     const totalGastos = gastosFiltrados.reduce((a, g) => a + g.monto, 0)
     const gananciaNeta = gananciaBruta - totalGastos
     const costoTotalGlobal = totalVendido - gananciaBruta
@@ -96,7 +98,7 @@ export default function Estadisticas() {
         { name: "Ganancia Bruta", value: gananciaBruta }
     ]
 
-    const productSales = ventasFiltradas.reduce((acc, v) => {
+    const productSales = ventasActivas.reduce((acc, v) => {
         acc[v.producto] = (acc[v.producto] || 0) + v.total_venta
         return acc
     }, {} as Record<string, number>)
@@ -105,14 +107,14 @@ export default function Estadisticas() {
     const otros = sortedProducts.slice(5).reduce((a, p) => a + p[1], 0)
     if (otros > 0) top5.push({ name: "Otros", value: otros })
 
-    const salesByDate = ventasFiltradas.reduce((acc, v) => {
+    const salesByDate = ventasActivas.reduce((acc, v) => {
         const d = v.fecha.substring(0, 10)
         acc[d] = (acc[d] || 0) + v.total_venta
         return acc
     }, {} as Record<string, number>)
     const chartDataLine = Object.entries(salesByDate).sort((a, b) => a[0].localeCompare(b[0])).map(d => ({ date: d[0], "Ventas": d[1] }))
 
-    const productCostProfit = ventasFiltradas.reduce((acc, v) => {
+    const productCostProfit = ventasActivas.reduce((acc, v) => {
         if (!acc[v.producto]) acc[v.producto] = { name: v.producto, "Costo Lotes": 0, "Ganancia": 0, total: 0 }
         acc[v.producto]["Costo Lotes"] += (v.total_venta - v.ganancia_bruta)
         acc[v.producto]["Ganancia"] += v.ganancia_bruta
@@ -358,7 +360,7 @@ export default function Estadisticas() {
                                 </thead>
                                 <tbody>
                                     {ventasFiltradas.map(v => (
-                                        <tr key={v.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-pink-50/30">
+                                        <tr key={v.id} style={{ borderBottom: "1px solid #fdf6f9", opacity: v.estado === "Inactivo" ? 0.6 : 1, textDecoration: v.estado === "Inactivo" ? "line-through" : "none" }} className="hover:bg-pink-50/30">
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.id}</td>
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>
                                                 {editando === v.id ? (
@@ -415,7 +417,9 @@ export default function Estadisticas() {
                                                 ) : <Pill color="green">${v.ganancia_bruta.toFixed(2)}</Pill>}
                                             </td>
                                             <td style={{ padding: "12px 16px" }}>
-                                                {editando === v.id ? (
+                                                {v.estado === "Inactivo" ? (
+                                                    <Pill color="red">Anulada</Pill>
+                                                ) : editando === v.id ? (
                                                     <div style={{ display: "flex", gap: 8 }}>
                                                         <button onClick={guardarEdicion} disabled={guardando} style={{ color: guardando ? "#999" : "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer" }}>
                                                             {guardando ? "⏳" : "💾"}
@@ -425,7 +429,7 @@ export default function Estadisticas() {
                                                 ) : (
                                                     <div style={{ display: "flex", gap: 12 }}>
                                                         <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, precio_real: v.precio_real, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta, costo_unitario: v.costo_unitario }) }} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
-                                                        <button onClick={() => eliminarVenta(v.id)} disabled={guardando} style={{ color: guardando ? "#eee" : "#ffcdd2", background: "none", border: "none", cursor: guardando ? "not-allowed" : "pointer", fontSize: "0.9rem" }}>🗑️</button>
+                                                        <button onClick={() => anularVenta(v.id)} disabled={guardando} style={{ color: guardando ? "#eee" : "#ffcdd2", background: "none", border: "none", cursor: guardando ? "not-allowed" : "pointer", fontSize: "0.9rem" }}>🚫</button>
                                                     </div>
                                                 )}
                                             </td>

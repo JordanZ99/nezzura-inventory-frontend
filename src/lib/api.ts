@@ -52,6 +52,7 @@ export interface Venta {
     costo_unitario: number;
     total_venta: number;
     ganancia_bruta: number;
+    estado: string;
 }
 
 export interface Gasto {
