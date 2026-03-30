@@ -124,37 +124,150 @@ export default function Estadisticas() {
     }, {} as Record<string, any>)
     const chartDataBar = Object.values(productCostProfit).sort((a, b) => b.total - a.total)
 
-    // --- Exportar a PDF ---
+    // --- Exportar a PDF Profesional (Nativo + selectivo) ---
     async function exportarPDF() {
         setGenerandoPDF(true)
-        await new Promise(r => setTimeout(r, 300))
+        await new Promise(r => setTimeout(r, 500)) // Esperar a que el layout de PDF se asiente
+        
         try {
-            const el = document.getElementById("report-container")
-            if (!el) return
-
-            // Capturamos el elemento con opciones que fuerzan el diseño de escritorio
-            const canvas = await html2canvas(el, { 
-                scale: 2, 
-                backgroundColor: "#ffffff",
-                windowWidth: 1200, 
-                windowHeight: 1600,
-                scrollX: 0,
-                scrollY: 0,
-                useCORS: true,
-                allowTaint: true
-            })
-            const imgData = canvas.toDataURL("image/png")
             const pdf = new jsPDF("p", "mm", "letter")
             const pdfWidth = pdf.internal.pageSize.getWidth()
-            const margin = 10
-            const printWidth = pdfWidth - (margin * 2)
-            const printHeight = (canvas.height * printWidth) / canvas.width
-            pdf.addImage(imgData, "PNG", margin, margin, printWidth, printHeight)
+            const margin = 15
+            let currentY = 20
+
+            // 1. Cabecera (Diseño Nativo)
+            pdf.setFont("helvetica", "bold")
+            pdf.setFontSize(22)
+            pdf.setTextColor(194, 24, 91) // Rosa oscuro de Goyangi
+            pdf.text("GOYANGI STORE", margin, currentY)
+            
+            pdf.setFontSize(14)
+            pdf.text("Reporte Operativo de Ventas", margin, currentY + 8)
+            
+            pdf.setFont("helvetica", "normal")
+            pdf.setFontSize(10)
+            pdf.setTextColor(100, 100, 100)
+            const fechaStr = `Período: ${dates.from ? dates.from.toLocaleDateString() : "Inicio"} — ${dates.to ? dates.to.toLocaleDateString() : new Date().toLocaleDateString()}`
+            pdf.text(fechaStr, margin, currentY + 14)
+            pdf.text(`Generado: ${new Date().toLocaleString()}`, margin, currentY + 19)
+            
+            currentY += 30
+
+            // 2. KPIs (Cuadros Nativos)
+            const kpiWidth = (pdfWidth - (margin * 2) - 15) / 4
+            const kpis = [
+                { label: "TOTAL VENDIDO", val: `$${totalVendido.toFixed(2)}`, color: [253, 242, 248] },
+                { label: "MARGEN BRUTO", val: `${totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%`, color: [252, 228, 236] },
+                { label: "GASTOS", val: `$${totalGastos.toFixed(2)}`, color: [252, 228, 236] },
+                { label: "GANANCIA NETA", val: `$${gananciaNeta.toFixed(2)}`, color: gananciaNeta >= 0 ? [237, 255, 217] : [255, 235, 238] }
+            ]
+
+            kpis.forEach((k, i) => {
+                const x = margin + (i * (kpiWidth + 5))
+                pdf.setDrawColor(240, 240, 240)
+                pdf.setFillColor(k.color[0], k.color[1], k.color[2])
+                pdf.roundedRect(x, currentY, kpiWidth, 20, 2, 2, "FD")
+                
+                pdf.setFontSize(7)
+                pdf.setTextColor(150, 150, 150)
+                pdf.setFont("helvetica", "bold")
+                pdf.text(k.label, x + 5, currentY + 7)
+                
+                pdf.setFontSize(11)
+                pdf.setTextColor(51, 51, 51)
+                pdf.text(k.val, x + 5, currentY + 15)
+            })
+
+            currentY += 35
+
+            // 3. Gráficas (Captura Selectiva de Alta Resolución)
+            const chartElements = document.querySelectorAll(".charts-row > div")
+            if (chartElements.length > 0) {
+                pdf.setFontSize(10)
+                pdf.setTextColor(51, 51, 51)
+                pdf.text("Análisis Visual de Rendimiento", margin, currentY - 5)
+                
+                // Capturamos las 3 gráficas principales
+                const chartWidth = (pdfWidth - (margin * 2) - 10) / 3
+                for (let i = 0; i < Math.min(chartElements.length, 3); i++) {
+                    const canvas = await html2canvas(chartElements[i] as HTMLElement, { scale: 3 })
+                    const imgData = canvas.toDataURL("image/png")
+                    pdf.addImage(imgData, "PNG", margin + (i * (chartWidth + 5)), currentY, chartWidth, 40)
+                }
+                currentY += 50
+            }
+
+            // 4. Tabla de Desglose (Renderizado Nativo de Texto)
+            pdf.setFont("helvetica", "bold")
+            pdf.setFontSize(12)
+            pdf.text("Desglose Operativo por Producto", margin, currentY)
+            currentY += 8
+
+            // Encabezado de tabla
+            pdf.setFillColor(248, 249, 250)
+            pdf.rect(margin, currentY, pdfWidth - (margin * 2), 7, "F")
+            pdf.setFontSize(8)
+            pdf.setTextColor(100, 100, 100)
+            pdf.text("PRODUCTO", margin + 2, currentY + 5)
+            pdf.text("UNIDADES", margin + 60, currentY + 5)
+            pdf.text("TOTAL VENTAS", margin + 90, currentY + 5)
+            pdf.text("GANANCIA", margin + 125, currentY + 5)
+            pdf.text("MARGEN", margin + 155, currentY + 5)
+            
+            pdf.setDrawColor(238, 238, 238)
+            pdf.line(margin, currentY + 7, pdfWidth - margin, currentY + 7)
+            currentY += 7
+
+            // Filas de la tabla
+            pdf.setFont("helvetica", "normal")
+            pdf.setTextColor(51, 51, 51)
+            
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            chartDataBar.forEach((item: any) => {
+                if (currentY > 250) { pdf.addPage(); currentY = 20 }
+                
+                pdf.setFont("helvetica", "bold")
+                pdf.text(item.name.substring(0, 25), margin + 2, currentY + 5)
+                pdf.setFont("helvetica", "normal")
+                
+                const unidades = ventasFiltradas.filter(v => v.producto === item.name).reduce((a, b) => a + b.cantidad, 0)
+                pdf.text(unidades.toString(), margin + 60, currentY + 5)
+                pdf.text(`$${item.total.toFixed(2)}`, margin + 90, currentY + 5)
+                pdf.text(`$${item.Ganancia.toFixed(2)}`, margin + 125, currentY + 5)
+                pdf.text(`${((item.Ganancia / item.total) * 100).toFixed(1)}%`, margin + 155, currentY + 5)
+                
+                pdf.line(margin, currentY + 7, pdfWidth - margin, currentY + 7)
+                currentY += 7
+            })
+
+            currentY += 15
+
+            // 5. Análisis IA (Texto Real)
+            pdf.setFillColor(240, 247, 255)
+            pdf.setDrawColor(208, 227, 255)
+            pdf.roundedRect(margin, currentY, pdfWidth - (margin * 2), 25, 2, 2, "FD")
+            
+            pdf.setFont("helvetica", "bold")
+            pdf.setFontSize(9)
+            pdf.setTextColor(0, 86, 179)
+            pdf.text("ANALISIS ESTRATEGICO (IA):", margin + 5, currentY + 7)
+            
+            pdf.setFont("helvetica", "normal")
+            pdf.setFontSize(8)
+            pdf.setTextColor(68, 68, 68)
+            const cleanText = `Periodo con rentabilidad global del ${totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%. El producto lider es ${top5[0]?.name || "N/A"}. Los gastos operativos ascienden a $${totalGastos.toFixed(2)}, factor critico para el margen neto.`
+            pdf.text(pdf.splitTextToSize(cleanText, pdfWidth - (margin * 2) - 10), margin + 5, currentY + 13)
+
+            // 6. Footer
+            pdf.setFontSize(7)
+            pdf.setTextColor(170, 170, 170)
+            pdf.text(`Goyangi v1.0 • Documento Confidencial • Pagina 1`, pdfWidth / 2, 270, { align: "center" })
+
             pdf.save(`Goyangi_Reporte_${new Date().toISOString().substring(0, 10)}.pdf`)
-            mostrarMsg(true, "✅ Reporte descargado")
+            mostrarMsg(true, "✅ Reporte profesional generado")
         } catch (e) {
             console.error(e)
-            mostrarMsg(false, "❌ Error generando PDF")
+            mostrarMsg(false, "❌ Error generando PDF nativo")
         } finally {
             setGenerandoPDF(false)
         }
