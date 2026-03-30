@@ -221,7 +221,7 @@ export default function PuntoDeVenta() {
                                             display: "flex", alignItems: "center", justifyContent: "center",
                                         }}>
                                             {prod.imagen && prod.imagen !== "No hay foto" ? (
-                                                <img src={prod.imagen.startsWith("http") ? prod.imagen : `https://goyangi-backend.onrender.com/${prod.imagen}`}
+                                                <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
                                                     alt={prod.producto}
                                                     style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                             ) : (
