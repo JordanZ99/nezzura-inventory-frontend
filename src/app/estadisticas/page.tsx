@@ -180,17 +180,36 @@ export default function Estadisticas() {
 
             currentY += 35
 
-            // 3. Gráficas (Captura Selectiva de Alta Resolución)
+            // 3. Gráficas (Captura Selectiva y Forzado de Diseño)
             const chartElements = document.querySelectorAll(".charts-row > div")
             if (chartElements.length > 0) {
                 pdf.setFontSize(10)
                 pdf.setTextColor(51, 51, 51)
                 pdf.text("Análisis Visual de Rendimiento", margin, currentY - 5)
                 
-                // Capturamos las 3 gráficas principales
                 const chartWidth = (pdfWidth - (margin * 2) - 10) / 3
                 for (let i = 0; i < Math.min(chartElements.length, 3); i++) {
-                    const canvas = await html2canvas(chartElements[i] as HTMLElement, { scale: 3 })
+                    const el = chartElements[i] as HTMLElement;
+                    
+                    // Forzamos que la gráfica se renderice en "modo escritorio" para la foto
+                    const canvas = await html2canvas(el, { 
+                        scale: 3, 
+                        useCORS: true,
+                        logging: false,
+                        width: 500,  // Forzamos ancho de escritorio en la captura
+                        height: 350, // Forzamos alto consistente
+                        windowWidth: 1200,
+                        onclone: (clonedDoc) => {
+                            // Buscamos el elemento correspondiente en el documento clonado
+                            const clonedEl = clonedDoc.querySelector(`.charts-row > div:nth-child(${i+1})`) as HTMLElement;
+                            if (clonedEl) {
+                                clonedEl.style.width = "500px";
+                                clonedEl.style.height = "350px";
+                                clonedEl.style.maxWidth = "none";
+                                clonedEl.style.overflow = "visible";
+                            }
+                        }
+                    })
                     const imgData = canvas.toDataURL("image/png")
                     pdf.addImage(imgData, "PNG", margin + (i * (chartWidth + 5)), currentY, chartWidth, 40)
                 }
