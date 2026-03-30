@@ -80,7 +80,7 @@ export default function PuntoDeVenta() {
     function cambiarTotal(producto: string, texto: string) {
         const item = carrito.find(i => i.producto === producto)
         if (!item || item.cantidad === 0) return
-        
+
         const totalNum = parseFloat(texto.replace(",", "."))
         if (!isNaN(totalNum) && totalNum >= 0) {
             const nuevoPrecio = totalNum / item.cantidad
@@ -269,9 +269,9 @@ export default function PuntoDeVenta() {
                                     }}>{totalItems}</span>
                                 )}
                             </h2>
-                            <button 
+                            <button
                                 onClick={manejarToggleDescuento}
-                                style={{ 
+                                style={{
                                     fontSize: "0.65rem", fontWeight: 800, padding: "4px 8px", borderRadius: 8, border: "none", cursor: "pointer",
                                     background: modoDescuento ? "var(--pink-mid)" : "#eee",
                                     color: modoDescuento ? "#fff" : "#999",
@@ -304,9 +304,9 @@ export default function PuntoDeVenta() {
                                                     <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", borderRadius: 8, border: "1px solid #fce4ec", padding: "2px 4px" }}>
                                                         <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--pink-mid)", width: 22, height: 22 }}>−</button>
-                                                        <input 
-                                                            type="number" min="1" 
-                                                            value={item.cantidad} 
+                                                        <input
+                                                            type="number" min="1"
+                                                            value={item.cantidad}
                                                             onChange={e => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, Math.max(1, +e.target.value)))}
                                                             style={{ width: 35, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                                         />
@@ -388,15 +388,15 @@ export default function PuntoDeVenta() {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                             <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>🛒 Tu Carrito ({totalItems})</h2>
                             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                <button 
+                                <button
                                     onClick={manejarToggleDescuento}
-                                    style={{ 
+                                    style={{
                                         fontSize: "0.7rem", fontWeight: 800, padding: "5px 10px", borderRadius: 10, border: "none",
                                         background: modoDescuento ? "var(--pink-mid)" : "#eee",
                                         color: modoDescuento ? "#fff" : "#999"
                                     }}
                                 >
-                                    {modoDescuento ? "✨ DESC. ON" : "🏷️ DESC"}
+                                    {modoDescuento ? "✨ DESC. ON" : "🏷️ DESCUENTO"}
                                 </button>
                                 <button style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }} onClick={() => setCarritoAbierto(false)}>✕</button>
                             </div>
@@ -410,9 +410,9 @@ export default function PuntoDeVenta() {
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "center" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fdf6f9", borderRadius: 8, padding: "4px 10px" }}>
                                         <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>−</button>
-                                        <input 
-                                            type="number" min="1" 
-                                            value={item.cantidad} 
+                                        <input
+                                            type="number" min="1"
+                                            value={item.cantidad}
                                             onChange={e => {
                                                 const prodData = productos.find(p => p.producto === item.producto);
                                                 const stockMax = prodData?.stock_total ?? 99;

@@ -43,7 +43,7 @@ export default function Inventario() {
     const fotoRef = useRef<HTMLInputElement>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo" })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto" })
     const editFotoRef = useRef<HTMLInputElement>(null)
     const [guardando, setGuardando] = useState(false)
 
@@ -131,16 +131,21 @@ export default function Inventario() {
         if (!prodEditar || guardando) return
         setGuardando(true)
         try {
-            let imagen: string | undefined = undefined
+            let nuevaImagen: string | undefined = undefined
             if (editFotoRef.current?.files?.[0]) {
                 const originalFile = editFotoRef.current.files[0]
                 // Comprimir antes de subir
                 const compressedFile = await comprimirImagen(originalFile)
                 const r = await api.subirFoto(prodEditar, compressedFile)
-                imagen = r.ruta
+                nuevaImagen = r.ruta
             }
-            const p = inv.find(x => x.producto === prodEditar)
-            await api.editarProducto(prodEditar, { ...editProdVal, imagen: imagen ?? p?.imagen ?? "No hay foto" })
+            
+            // Usar la nueva imagen si existe, de lo contrario mantener la del estado
+            await api.editarProducto(prodEditar, { 
+                ...editProdVal, 
+                imagen: nuevaImagen || editProdVal.imagen 
+            })
+            
             mostrarMsg(true, "✅ Producto actualizado")
             setProdEditar(""); if (editFotoRef.current) editFotoRef.current.value = ""; recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
@@ -378,7 +383,11 @@ export default function Inventario() {
                                 onChange={e => {
                                     const p = inv.find(x => x.producto === e.target.value)
                                     setProdEditar(e.target.value)
-                                    if (p) setEditProdVal({ descripcion: p.descripcion ?? "", estado: p.estado ?? "Activo" })
+                                    if (p) setEditProdVal({ 
+                                        descripcion: p.descripcion ?? "", 
+                                        estado: p.estado ?? "Activo",
+                                        imagen: p.imagen ?? "No hay foto"
+                                    })
                                 }}>
                                 <option value="">— Selecciona —</option>
                                 {productos.map(p => <option key={p} value={p}>{p}</option>)}
