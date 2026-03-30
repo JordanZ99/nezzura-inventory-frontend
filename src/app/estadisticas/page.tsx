@@ -407,14 +407,17 @@ export default function Estadisticas() {
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>TOTAL</span>
-                                                        <input type="number" step="0.01" value={editVal.total_venta} onChange={e => setEditVal(p => ({ ...p, total_venta: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                        <input type="number" step="0.01" value={editVal.total_venta} disabled className="input-pink" style={{ width: 80, padding: 4, background: "#f5f5f5", cursor: "not-allowed" }} />
                                                     </div>
-                                                ) : `$${v.total_venta.toFixed(2)}`}
+                                                ) : `$${(v.total_venta || 0).toFixed(2)}`}
                                             </td>
                                             <td style={{ padding: "12px 16px" }}>
                                                 {editando === v.id ? (
-                                                    <input type="number" step="0.01" value={editVal.ganancia_bruta} onChange={e => setEditVal(p => ({ ...p, ganancia_bruta: +e.target.value }))} className="input-pink" style={{ width: 80, padding: 4 }} />
-                                                ) : <Pill color="green">${v.ganancia_bruta.toFixed(2)}</Pill>}
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>GANANCIA</span>
+                                                        <input type="number" step="0.01" value={editVal.ganancia_bruta} disabled className="input-pink" style={{ width: 80, padding: 4, background: "#f5f5f5", cursor: "not-allowed" }} />
+                                                    </div>
+                                                ) : <Pill color="green">${(v.ganancia_bruta || 0).toFixed(2)}</Pill>}
                                             </td>
                                             <td style={{ padding: "12px 16px" }}>
                                                 {v.estado === "Inactivo" ? (
