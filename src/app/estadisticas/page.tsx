@@ -131,7 +131,18 @@ export default function Estadisticas() {
         try {
             const el = document.getElementById("report-container")
             if (!el) return
-            const canvas = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff" })
+
+            // Capturamos el elemento con opciones que fuerzan el diseño de escritorio
+            const canvas = await html2canvas(el, { 
+                scale: 2, 
+                backgroundColor: "#ffffff",
+                windowWidth: 1200, 
+                windowHeight: 1600,
+                scrollX: 0,
+                scrollY: 0,
+                useCORS: true,
+                allowTaint: true
+            })
             const imgData = canvas.toDataURL("image/png")
             const pdf = new jsPDF("p", "mm", "letter")
             const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -158,6 +169,7 @@ export default function Estadisticas() {
                 .pdf-mode {
                     width: 1000px !important; 
                     padding: 40px !important;
+                    background: #ffffff !important;
                 }
                 .pdf-mode .kpi-grid {
                     display: grid !important;
@@ -168,12 +180,15 @@ export default function Estadisticas() {
                     display: grid !important;
                     grid-template-columns: 1fr 1fr 1fr !important;
                     gap: 20px !important;
+                    width: 100% !important;
                 }
-
+                .pdf-mode table {
+                    width: 100% !important;
+                    border: 1px solid #eee !important;
+                }
                 .pdf-mode .no-pdf {
                     display: none !important;
                 }
-
             `}</style>
 
             {/* ── Hero con Antigravity ── */}
