@@ -174,6 +174,7 @@ export default function Inventario() {
     const valorInv = inv.reduce((a, p) => a + p.stock_total * p.precio_venta, 0)
     const ganPotencial = inv.reduce((a, p) => a + p.stock_total * (p.precio_venta - p.costo_promedio), 0)
     const stockBajo = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
+    const categoriasExistentes = Array.from(new Set(inv.map(p => p.categoria || "General"))).sort()
 
     return (
         <div style={{ minHeight: "100vh" }}>
@@ -331,7 +332,20 @@ export default function Inventario() {
                         <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>✨ Dar de alta producto</h2>
                         <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                         <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
-                        <Input label="Categoría" value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
+                        <div>
+                            <Input label="Categoría" value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                                {categoriasExistentes.map(cat => (
+                                    <button 
+                                        key={cat} 
+                                        onClick={() => setForm(f => ({ ...f, categoria: cat }))}
+                                        style={{ background: "#fce4ec", color: "var(--pink-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Foto</label>
                             <input type="file" accept="image/*" ref={fotoRef} style={{ fontSize: "0.85rem" }} />
@@ -399,7 +413,20 @@ export default function Inventario() {
 
                         {prodEditar && (
                             <>
-                                <Input label="Categoría" value={editProdVal.categoria} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
+                                <div>
+                                    <Input label="Categoría" value={editProdVal.categoria} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
+                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                                        {categoriasExistentes.map(cat => (
+                                            <button 
+                                                key={cat} 
+                                                onClick={() => setEditProdVal(p => ({ ...p, categoria: cat }))}
+                                                style={{ background: "#fce4ec", color: "var(--pink-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                                 <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

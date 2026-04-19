@@ -256,9 +256,20 @@ export default function PuntoDeVenta() {
                                         <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--pink-mid)", margin: 0 }}>
                                             ${prod.precio_venta.toFixed(2)}
                                         </p>
-                                        <span style={{ fontSize: "0.65rem", fontWeight: 600, color: prod.stock_total <= 3 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 3 ? "#ffeef0" : "#e8f5e9", borderRadius: 20, padding: "2px 8px", marginTop: 4, display: "inline-block" }}>
-                                            Stock: {prod.stock_total}
-                                        </span>
+                                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6, alignItems: "center" }}>
+                                            <span 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCategoriaSeleccionada(prod.categoria || "General");
+                                                }}
+                                                style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--pink-dark)", background: "#fce4ec", borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}
+                                            >
+                                                {prod.categoria || "General"}
+                                            </span>
+                                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 3 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 3 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>
+                                                Stock: {prod.stock_total}
+                                            </span>
+                                        </div>
                                     </div>
                                 ))}
                                 {productosFiltrados.length === 0 && !cargando && (
