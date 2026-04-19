@@ -8,6 +8,7 @@ export interface Producto {
     stock_total: number;
     precio_venta: number;
     costo_promedio: number;
+    categoria: string;
 }
 
 export interface ItemCarrito {
@@ -33,6 +34,7 @@ export interface NuevoProducto {
     precio_venta: number;
     stock: number;
     imagen?: string;
+    categoria?: string;
 }
 
 export interface Restock {
@@ -93,7 +95,7 @@ export const api = {
     getLotes: () => request<Lote[]>("/inventario/lotes/"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
     editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     subirFoto: async (producto: string, file: File): Promise<{ ruta: string }> => {
         const formData = new FormData();

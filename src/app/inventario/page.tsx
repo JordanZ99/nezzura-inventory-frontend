@@ -38,12 +38,12 @@ export default function Inventario() {
     const [loteEditar, setLoteEditar] = useState<Lote | null>(null)
     const [editLote, setEditLote] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: "General", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const fotoRef = useRef<HTMLInputElement>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto" })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: "General" })
     const editFotoRef = useRef<HTMLInputElement>(null)
     const [guardando, setGuardando] = useState(false)
 
@@ -96,7 +96,7 @@ export default function Inventario() {
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen })
             mostrarMsg(true, `✅ ${form.producto} registrado`)
-            setForm({ producto: "", descripcion: "", costo: "", precio_venta: "", stock: 1 })
+            setForm({ producto: "", descripcion: "", categoria: "General", costo: "", precio_venta: "", stock: 1 })
             setTab("catalogo"); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -157,7 +157,7 @@ export default function Inventario() {
         setGuardando(true)
         try {
             const p = inv.find(x => x.producto === producto)
-            await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo" })
+            await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo", categoria: p?.categoria ?? "General" })
             mostrarMsg(true, `✅ ${producto} dado de baja`); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -257,6 +257,7 @@ export default function Inventario() {
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "#fdf6f9", borderBottom: "1px solid #fce4ec" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
+                                            <Pill color="gray">{inv.find(p => p.producto === producto)?.categoria || "General"}</Pill>
                                             <Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill>
                                         </div>
                                         <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ffeef0", color: guardando ? "#999" : "#b71c1c", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
@@ -330,6 +331,7 @@ export default function Inventario() {
                         <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>✨ Dar de alta producto</h2>
                         <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                         <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
+                        <Input label="Categoría" value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Foto</label>
                             <input type="file" accept="image/*" ref={fotoRef} style={{ fontSize: "0.85rem" }} />
@@ -386,7 +388,8 @@ export default function Inventario() {
                                     if (p) setEditProdVal({ 
                                         descripcion: p.descripcion ?? "", 
                                         estado: p.estado ?? "Activo",
-                                        imagen: p.imagen ?? "No hay foto"
+                                        imagen: p.imagen ?? "No hay foto",
+                                        categoria: p.categoria ?? "General"
                                     })
                                 }}>
                                 <option value="">— Selecciona —</option>
@@ -396,6 +399,7 @@ export default function Inventario() {
 
                         {prodEditar && (
                             <>
+                                <Input label="Categoría" value={editProdVal.categoria} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
                                 <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

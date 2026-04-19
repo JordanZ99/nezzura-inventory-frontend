@@ -19,6 +19,7 @@ export default function PuntoDeVenta() {
     const [carritoAbierto, setCarritoAbierto] = useState(false)
     const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
     const [modoDescuento, setModoDescuento] = useState(false)
+    const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("Todas")
 
     function manejarToggleDescuento() {
         if (modoDescuento) {
@@ -48,10 +49,13 @@ export default function PuntoDeVenta() {
             .finally(() => setCargando(false))
     }, [])
 
-    const productosFiltrados = productos.filter(p =>
-        p.producto.toLowerCase().includes(busqueda.toLowerCase()) ||
-        p.descripcion?.toLowerCase().includes(busqueda.toLowerCase())
-    )
+    const categorias = ["Todas", ...Array.from(new Set(productos.map(p => p.categoria || "General"))).sort()]
+
+    const productosFiltrados = productos.filter(p => {
+        const porBusqueda = p.producto.toLowerCase().includes(busqueda.toLowerCase()) || p.descripcion?.toLowerCase().includes(busqueda.toLowerCase())
+        const porCategoria = categoriaSeleccionada === "Todas" || (p.categoria || "General") === categoriaSeleccionada
+        return porBusqueda && porCategoria
+    })
 
     function agregarAlCarrito(prod: Producto) {
         setCarrito(prev => {
@@ -176,6 +180,24 @@ export default function PuntoDeVenta() {
 
                     {/* ── Catálogo ── */}
                     <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Categorías */}
+                        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16, scrollbarWidth: "none" }}>
+                            {categorias.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setCategoriaSeleccionada(cat)}
+                                    style={{
+                                        padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
+                                        background: categoriaSeleccionada === cat ? "var(--pink-mid)" : "#fce4ec",
+                                        color: categoriaSeleccionada === cat ? "#fff" : "var(--pink-dark)",
+                                        boxShadow: categoriaSeleccionada === cat ? "0 4px 10px rgba(233,30,140,0.3)" : "none"
+                                    }}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+
                         {/* Buscador */}
                         <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
                             <span style={{ fontSize: "1.1rem" }}>🔍</span>
