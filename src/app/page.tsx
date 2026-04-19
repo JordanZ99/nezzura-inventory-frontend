@@ -52,7 +52,11 @@ export default function PuntoDeVenta() {
     const categorias = ["Todas", ...Array.from(new Set(productos.map(p => p.categoria || "General"))).sort()]
 
     const productosFiltrados = productos.filter(p => {
-        const porBusqueda = p.producto.toLowerCase().includes(busqueda.toLowerCase()) || p.descripcion?.toLowerCase().includes(busqueda.toLowerCase())
+        const busquedaBase = busqueda.toLowerCase()
+        const porBusqueda = p.producto.toLowerCase().includes(busquedaBase) || 
+                          p.descripcion?.toLowerCase().includes(busquedaBase) ||
+                          (p.categoria || "General").toLowerCase().includes(busquedaBase)
+        
         const porCategoria = categoriaSeleccionada === "Todas" || (p.categoria || "General") === categoriaSeleccionada
         return porBusqueda && porCategoria
     })
@@ -198,16 +202,28 @@ export default function PuntoDeVenta() {
                             ))}
                         </div>
 
-                        {/* Buscador */}
-                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
-                            <span style={{ fontSize: "1.1rem" }}>🔍</span>
-                            <input
-                                className="input-pink"
-                                style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
-                                placeholder="Buscar producto o código..."
-                                value={busqueda}
-                                onChange={e => setBusqueda(e.target.value)}
-                            />
+                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, minWidth: 200 }}>
+                                <span style={{ fontSize: "1.1rem" }}>🔍</span>
+                                <input
+                                    className="input-pink"
+                                    style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
+                                    placeholder="Buscar producto, código o categoría..."
+                                    value={busqueda}
+                                    onChange={e => setBusqueda(e.target.value)}
+                                />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid #fce4ec", paddingLeft: 12 }}>
+                                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>📂</span>
+                                <select 
+                                    className="input-pink" 
+                                    style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--pink-dark)" }}
+                                    value={categoriaSeleccionada}
+                                    onChange={e => setCategoriaSeleccionada(e.target.value)}
+                                >
+                                    {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
+                            </div>
                         </div>
 
                         {cargando ? (
