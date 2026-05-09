@@ -34,32 +34,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Escala completa para que Tremor funcione correctamente
+        // Escala completa con HEX para que Tremor (SVG fill/stroke) funcione.
+        // Si cambias de tema, actualiza estos valores junto con globals.css.
         primary: {
-          50: "var(--primary-soft)",
-          100: "var(--primary-pale)",
-          200: "var(--primary-light)",
-          300: "var(--primary-light)",
-          400: "var(--primary-mid)",
-          500: "var(--primary-mid)",
-          600: "var(--primary-mid)",
-          700: "var(--primary-dark)",
-          800: "var(--primary-dark)",
-          900: "var(--primary-dark)",
-          950: "var(--primary-dark)",
-          dark: "var(--primary-dark)",
-          mid: "var(--primary-mid)",
-          light: "var(--primary-light)",
-          pale: "var(--primary-pale)",
-          soft: "var(--primary-soft)",
+          50:  "#fdf6f9",
+          100: "#ffaec3",
+          200: "#ff9494",
+          300: "#f06292",
+          400: "#e91e8c",
+          500: "#e91e8c",
+          600: "#d81884",
+          700: "#c2185b",
+          800: "#ad1457",
+          900: "#880e4f",
+          950: "#6d0a3e",
         },
         tremor: {
           brand: {
-            faint: "var(--primary-soft)",
-            muted: "var(--primary-light)",
-            subtle: "var(--primary-mid)",
-            DEFAULT: "var(--primary-mid)",
-            emphasis: "var(--primary-dark)",
+            faint: "#fdf6f9",
+            muted: "#ff9494",
+            subtle: "#e91e8c",
+            DEFAULT: "#e91e8c",
+            emphasis: "#c2185b",
             inverted: "#ffffff",
           },
           background: {
