@@ -10,25 +10,25 @@ const config: Config = {
   ],
   safelist: [
     {
-      pattern: /^(bg-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(bg-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|primary|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
       variants: ["hover", "ui-selected"],
     },
     {
-      pattern: /^(text-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(text-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|primary|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
       variants: ["hover", "ui-selected"],
     },
     {
-      pattern: /^(border-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(border-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|primary|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
       variants: ["hover", "ui-selected"],
     },
     {
-      pattern: /^(ring-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(ring-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|primary|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
     },
     {
-      pattern: /^(stroke-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(stroke-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|primary|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
     },
     {
-      pattern: /^(fill-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
+      pattern: /^(fill-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|primary|rose|palepink|lila)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
     },
   ],
   theme: {
@@ -36,6 +36,15 @@ const config: Config = {
     current: "currentColor",
     extend: {
       colors: {
+        primary: {
+          dark: "#c2185b",
+          DEFAULT: "#e91e8c",
+          mid: "#e91e8c",
+          light: "#f48fb1",
+          pale: "#fce4ec",
+          soft: "#fdf6f9",
+          50: "#fdf2f8",
+        },
         palepink: {
           500: "#fbcfe8",
           600: "#fbcfe8"

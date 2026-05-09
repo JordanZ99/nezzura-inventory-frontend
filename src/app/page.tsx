@@ -1,11 +1,12 @@
 "use client"
 // ==============================================================================
-// src/app/page.tsx  —  Punto de Venta (rediseño Argon pink)
+// src/app/page.tsx  —  Punto de Venta (rediseño Argon primary)
 // ==============================================================================
 
 import { useState, useEffect } from "react"
 import { api, Producto, ItemCarrito } from "@/lib/api"
 import dynamic from "next/dynamic"
+import Icon from "@/components/ui/Icon"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -53,10 +54,10 @@ export default function PuntoDeVenta() {
 
     const productosFiltrados = productos.filter(p => {
         const busquedaBase = busqueda.toLowerCase()
-        const porBusqueda = p.producto.toLowerCase().includes(busquedaBase) || 
-                          p.descripcion?.toLowerCase().includes(busquedaBase) ||
-                          (p.categoria || "General").toLowerCase().includes(busquedaBase)
-        
+        const porBusqueda = p.producto.toLowerCase().includes(busquedaBase) ||
+            p.descripcion?.toLowerCase().includes(busquedaBase) ||
+            (p.categoria || "General").toLowerCase().includes(busquedaBase)
+
         const porCategoria = categoriaSeleccionada === "Todas" || (p.categoria || "General") === categoriaSeleccionada
         return porBusqueda && porCategoria
     })
@@ -150,7 +151,8 @@ export default function PuntoDeVenta() {
 
                     {/* Desktop Title */}
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
-                        🛍️ Punto de Venta
+                        <Icon name="ShoppingCart" size={32} color="#fff" />
+                        Punto de Venta
                     </h1>
 
                     {/* Mobile Title */}
@@ -192,8 +194,8 @@ export default function PuntoDeVenta() {
                                     onClick={() => setCategoriaSeleccionada(cat)}
                                     style={{
                                         padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
-                                        background: categoriaSeleccionada === cat ? "var(--pink-mid)" : "#fce4ec",
-                                        color: categoriaSeleccionada === cat ? "#fff" : "var(--pink-dark)",
+                                        background: categoriaSeleccionada === cat ? "var(--primary-mid)" : "#fce4ec",
+                                        color: categoriaSeleccionada === cat ? "#fff" : "var(--primary-dark)",
                                         boxShadow: categoriaSeleccionada === cat ? "0 4px 10px rgba(233,30,140,0.3)" : "none"
                                     }}
                                 >
@@ -206,7 +208,7 @@ export default function PuntoDeVenta() {
                             <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, minWidth: 200 }}>
                                 <span style={{ fontSize: "1.1rem" }}>🔍</span>
                                 <input
-                                    className="input-pink"
+                                    className="input-primary"
                                     style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
                                     placeholder="Buscar producto, código o categoría..."
                                     value={busqueda}
@@ -215,9 +217,9 @@ export default function PuntoDeVenta() {
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid #fce4ec", paddingLeft: 12 }}>
                                 <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>📂</span>
-                                <select 
-                                    className="input-pink" 
-                                    style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--pink-dark)" }}
+                                <select
+                                    className="input-primary"
+                                    style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--primary-dark)" }}
                                     value={categoriaSeleccionada}
                                     onChange={e => setCategoriaSeleccionada(e.target.value)}
                                 >
@@ -269,16 +271,16 @@ export default function PuntoDeVenta() {
                                         <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                             {prod.producto}
                                         </p>
-                                        <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--pink-mid)", margin: 0 }}>
+                                        <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-mid)", margin: 0 }}>
                                             ${prod.precio_venta.toFixed(2)}
                                         </p>
                                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6, alignItems: "center" }}>
-                                            <span 
+                                            <span
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setCategoriaSeleccionada(prod.categoria || "General");
                                                 }}
-                                                style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--pink-dark)", background: "#fce4ec", borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}
+                                                style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "#fce4ec", borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}
                                             >
                                                 {prod.categoria || "General"}
                                             </span>
@@ -291,11 +293,11 @@ export default function PuntoDeVenta() {
                                 {productosFiltrados.length === 0 && !cargando && (
                                     <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "rgba(255,255,255,0.6)", borderRadius: 16, border: "2px dashed #f8bbd0", marginTop: 20 }}>
                                         <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
-                                        <h2 style={{ fontSize: "1.8rem", color: "var(--pink-dark)", fontWeight: 800, margin: "0 0 12px", lineHeight: 1.2, textTransform: "uppercase" }}>
+                                        <h2 style={{ fontSize: "1.8rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 12px", lineHeight: 1.2, textTransform: "uppercase" }}>
                                             No hay productos
                                         </h2>
                                         <p style={{ fontSize: "1.2rem", color: "var(--text-main)", fontWeight: 600, margin: 0 }}>
-                                            Agrega nuevos en <span style={{ color: "var(--pink-mid)", fontWeight: 800 }}>INVENTARIO</span>
+                                            Agrega nuevos en <span style={{ color: "var(--primary-mid)", fontWeight: 800 }}>INVENTARIO</span>
                                         </p>
                                     </div>
                                 )}
@@ -313,7 +315,7 @@ export default function PuntoDeVenta() {
                                 🛒 Carrito
                                 {totalItems > 0 && (
                                     <span style={{
-                                        marginLeft: 8, background: "var(--pink-mid)", color: "#fff",
+                                        marginLeft: 8, background: "var(--primary-mid)", color: "#fff",
                                         borderRadius: "50%", padding: "2px 7px", fontSize: "0.72rem", fontWeight: 700,
                                     }}>{totalItems}</span>
                                 )}
@@ -322,7 +324,7 @@ export default function PuntoDeVenta() {
                                 onClick={manejarToggleDescuento}
                                 style={{
                                     fontSize: "0.65rem", fontWeight: 800, padding: "4px 8px", borderRadius: 8, border: "none", cursor: "pointer",
-                                    background: modoDescuento ? "var(--pink-mid)" : "#eee",
+                                    background: modoDescuento ? "var(--primary-mid)" : "#eee",
                                     color: modoDescuento ? "#fff" : "#999",
                                     transition: "all 0.2s"
                                 }}
@@ -334,7 +336,7 @@ export default function PuntoDeVenta() {
                         <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
                             {carrito.length === 0 ? (
                                 <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem", padding: "24px 0" }}>
-                                    Agrega productos 🛍️
+                                    Agrega productos
                                 </p>
                             ) : (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -352,7 +354,7 @@ export default function PuntoDeVenta() {
                                                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", borderRadius: 8, border: "1px solid #fce4ec", padding: "2px 4px" }}>
                                                         <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))}
-                                                            style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--pink-mid)", width: 22, height: 22 }}>−</button>
+                                                            style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>−</button>
                                                         <input
                                                             type="number" min="1"
                                                             value={item.cantidad}
@@ -360,7 +362,7 @@ export default function PuntoDeVenta() {
                                                             style={{ width: 35, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                                         />
                                                         <button onClick={() => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, item.cantidad + 1))}
-                                                            style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--pink-mid)", width: 22, height: 22 }}>+</button>
+                                                            style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>+</button>
                                                     </div>
                                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>UNIT.</span>
@@ -380,10 +382,10 @@ export default function PuntoDeVenta() {
                                                             defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
                                                             onBlur={e => cambiarTotal(item.producto, e.target.value)}
                                                             onKeyDown={e => e.key === "Enter" && cambiarTotal(item.producto, (e.target as HTMLInputElement).value)}
-                                                            style={{ width: "100%", border: "1px solid var(--pink-mid)", borderRadius: 8, padding: "4px 8px", fontSize: "0.85rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--pink-dark)" }}
+                                                            style={{ width: "100%", border: "1px solid var(--primary-mid)", borderRadius: 8, padding: "4px 8px", fontSize: "0.85rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--primary-dark)" }}
                                                         />
                                                     ) : (
-                                                        <p style={{ margin: 0, textAlign: "right", fontSize: "0.85rem", color: "var(--pink-dark)", fontWeight: 800 }}>
+                                                        <p style={{ margin: 0, textAlign: "right", fontSize: "0.85rem", color: "var(--primary-dark)", fontWeight: 800 }}>
                                                             ${(item.cantidad * item.precio_real).toFixed(2)}
                                                         </p>
                                                     )}
@@ -399,9 +401,9 @@ export default function PuntoDeVenta() {
                             <div style={{ padding: "12px 16px", borderTop: "1px solid #fce4ec" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1rem", color: "var(--text-main)", marginBottom: 12 }}>
                                     <span>Total</span>
-                                    <span style={{ color: "var(--pink-dark)" }}>${totalCarrito.toFixed(2)}</span>
+                                    <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
                                 </div>
-                                <button className="btn-pink" style={{ width: "100%", marginBottom: 8 }} onClick={cobrar} disabled={cobrando}>
+                                <button className="btn-primary" style={{ width: "100%", marginBottom: 8 }} onClick={cobrar} disabled={cobrando}>
                                     {cobrando ? "Procesando..." : "✅ Cobrar"}
                                 </button>
                                 <button className="btn-ghost" style={{ width: "100%" }}
@@ -416,7 +418,7 @@ export default function PuntoDeVenta() {
 
             {/* ── Botón flotante carrito (móvil) ── */}
             {carrito.length > 0 && (
-                <button className="flex md:hidden btn-pink" style={{
+                <button className="flex md:hidden btn-primary" style={{
                     position: "fixed", bottom: 76, right: 16,
                     borderRadius: "50px", gap: 8, zIndex: 150,
                     padding: "12px 20px", fontSize: "0.9rem",
@@ -441,7 +443,7 @@ export default function PuntoDeVenta() {
                                     onClick={manejarToggleDescuento}
                                     style={{
                                         fontSize: "0.7rem", fontWeight: 800, padding: "5px 10px", borderRadius: 10, border: "none",
-                                        background: modoDescuento ? "var(--pink-mid)" : "#eee",
+                                        background: modoDescuento ? "var(--primary-mid)" : "#eee",
                                         color: modoDescuento ? "#fff" : "#999"
                                     }}
                                 >
@@ -458,7 +460,7 @@ export default function PuntoDeVenta() {
                                 </div>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "center" }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fdf6f9", borderRadius: 8, padding: "4px 10px" }}>
-                                        <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>−</button>
+                                        <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
                                         <input
                                             type="number" min="1"
                                             value={item.cantidad}
@@ -473,7 +475,7 @@ export default function PuntoDeVenta() {
                                             const prodData = productos.find(p => p.producto === item.producto);
                                             const stockMax = prodData?.stock_total ?? 0;
                                             cambiarCantidad(item.producto, Math.min(stockMax, item.cantidad + 1));
-                                        }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--pink-mid)", fontSize: "1rem" }}>+</button>
+                                        }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>+</button>
                                     </div>
                                     <input type="text" inputMode="decimal"
                                         value={precios[item.producto] ?? item.precio_real.toString()}
@@ -488,10 +490,10 @@ export default function PuntoDeVenta() {
                                             type="text" inputMode="decimal"
                                             defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
                                             onBlur={e => cambiarTotal(item.producto, e.target.value)}
-                                            style={{ width: "100px", border: "1px solid var(--pink-mid)", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--pink-dark)" }}
+                                            style={{ width: "100px", border: "1px solid var(--primary-mid)", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--primary-dark)" }}
                                         />
                                     ) : (
-                                        <span style={{ fontSize: "1rem", color: "var(--pink-dark)", fontWeight: 800 }}>
+                                        <span style={{ fontSize: "1rem", color: "var(--primary-dark)", fontWeight: 800 }}>
                                             ${(item.cantidad * item.precio_real).toFixed(2)}
                                         </span>
                                     )}
@@ -500,9 +502,9 @@ export default function PuntoDeVenta() {
                         ))}
                         <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.1rem", marginBottom: 16 }}>
                             <span>Total</span>
-                            <span style={{ color: "var(--pink-dark)" }}>${totalCarrito.toFixed(2)}</span>
+                            <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
                         </div>
-                        <button className="btn-pink" style={{ width: "100%", marginBottom: 10 }} onClick={cobrar} disabled={cobrando}>
+                        <button className="btn-primary" style={{ width: "100%", marginBottom: 10 }} onClick={cobrar} disabled={cobrando}>
                             {cobrando ? "Procesando..." : "✅ Cobrar"}
                         </button>
                         <button className="btn-ghost" style={{ width: "100%" }} onClick={() => { setCarrito([]); setPrecios({}); setCarritoAbierto(false) }}>

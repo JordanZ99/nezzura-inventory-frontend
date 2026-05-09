@@ -1,6 +1,6 @@
 "use client"
 // ==============================================================================
-// src/app/gastos/page.tsx — Rediseño Argon pink
+// src/app/gastos/page.tsx — Rediseño Argon primary
 // ==============================================================================
 
 import { useState, useEffect } from "react"
@@ -96,7 +96,7 @@ export default function Gastos() {
                         <div style={{ background: "linear-gradient(135deg,#e91e8c,#f06292)", borderRadius: 12, width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>💰</div>
                         <div>
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Gastado</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--pink-dark)" }}>${total.toFixed(0)}</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-dark)" }}>${total.toFixed(0)}</p>
                         </div>
                     </div>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -120,23 +120,23 @@ export default function Gastos() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Fecha</label>
-                                <input type="date" className="input-pink" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
+                                <input type="date" className="input-primary" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Categoría</label>
-                                <select className="input-pink" value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
+                                <select className="input-primary" value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
                                     {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Descripción</label>
-                                <input className="input-pink" placeholder="Ej: Pago de luz, comida..." value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
+                                <input className="input-primary" placeholder="Ej: Pago de luz, comida..." value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Monto ($)</label>
-                                <input type="number" step="0.01" className="input-pink" placeholder="0.00" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
+                                <input type="number" step="0.01" className="input-primary" placeholder="0.00" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
                             </div>
-                            <button className="btn-pink" style={{ marginTop: 8 }} onClick={agregar} disabled={!form.descripcion || !form.monto || !form.fecha}>
+                            <button className="btn-primary" style={{ marginTop: 8 }} onClick={agregar} disabled={!form.descripcion || !form.monto || !form.fecha}>
                                 ✅ Añadir Gasto
                             </button>
                         </div>
@@ -158,10 +158,10 @@ export default function Gastos() {
                                 </thead>
                                 <tbody>
                                     {gastos.map(g => (
-                                        <tr key={g.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-pink-50/20">
+                                        <tr key={g.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-primary-50/20">
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{new Date(g.fecha).toLocaleDateString()}</td>
                                             <td style={{ padding: "12px 16px" }}>
-                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--pink-dark)", padding: "3px 8px", borderRadius: 12 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
                                                     {g.categoria}
                                                 </span>
                                             </td>

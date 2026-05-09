@@ -1,6 +1,6 @@
 "use client"
 // ==============================================================================
-// src/app/inventario/page.tsx  —  Rediseño Argon pink -Prueba botón de guardado
+// src/app/inventario/page.tsx  —  Rediseño Argon primary -Prueba botón de guardado
 // ==============================================================================
 
 import { useState, useEffect, useRef } from "react"
@@ -16,13 +16,13 @@ function Input({ label, ...props }: { label: string } & React.InputHTMLAttribute
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>{label}</label>
-            <input {...props} className="input-pink" />
+            <input {...props} className="input-primary" />
         </div>
     )
 }
 
-function Pill({ children, color = "pink" }: { children: React.ReactNode; color?: "pink" | "green" | "red" | "gray" }) {
-    const map = { pink: "stat-pill-pink", green: "stat-pill-green", red: "stat-pill-red", gray: "stat-pill-gray" }
+function Pill({ children, color = "primary" }: { children: React.ReactNode; color?: "primary" | "green" | "red" | "gray" }) {
+    const map = { primary: "stat-pill-primary", green: "stat-pill-green", red: "stat-pill-red", gray: "stat-pill-gray" }
     return (
         <span className={map[color]} style={{ fontSize: "0.7rem", fontWeight: 700, borderRadius: 20, padding: "3px 10px", display: "inline-block" }}>
             {children}
@@ -281,17 +281,17 @@ export default function Inventario() {
                                                         onMouseLeave={e => (e.currentTarget.style.background = "")}>
                                                         <td style={{ padding: "10px 16px" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <input type="number" min={0} step="0.01" value={editLote.costo} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, costo: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                                <input type="number" min={0} step="0.01" value={editLote.costo} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, costo: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                             ) : `$${g.costo.toFixed(2)}`}
                                                         </td>
-                                                        <td style={{ padding: "10px 16px", fontWeight: 700, color: "var(--pink-mid)" }}>
+                                                        <td style={{ padding: "10px 16px", fontWeight: 700, color: "var(--primary-mid)" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <input type="number" min={0} step="0.01" value={editLote.precio_venta} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                                <input type="number" min={0} step="0.01" value={editLote.precio_venta} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                             ) : `$${g.precio.toFixed(2)}`}
                                                         </td>
                                                         <td style={{ padding: "10px 16px" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <input type="number" min={0} value={editLote.stock} placeholder="0" onChange={e => setEditLote(l => ({ ...l, stock: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                                <input type="number" min={0} value={editLote.stock} placeholder="0" onChange={e => setEditLote(l => ({ ...l, stock: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                             ) : g.stock}
                                                         </td>
                                                         <td style={{ padding: "10px 16px" }}>
@@ -308,7 +308,7 @@ export default function Inventario() {
                                                                 </div>
                                                             ) : (
                                                                 <button onClick={() => { setLoteEditar(g.lote); setEditLote({ costo: g.costo, precio_venta: g.precio, stock: g.stock }) }}
-                                                                    style={{ background: "none", border: "none", color: "var(--pink-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
+                                                                    style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
                                                                     Editar lote
                                                                 </button>
                                                             )}
@@ -339,7 +339,7 @@ export default function Inventario() {
                                     <button 
                                         key={cat} 
                                         onClick={() => setForm(f => ({ ...f, categoria: cat }))}
-                                        style={{ background: "#fce4ec", color: "var(--pink-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
+                                        style={{ background: "#fce4ec", color: "var(--primary-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
                                     >
                                         {cat}
                                     </button>
@@ -355,7 +355,7 @@ export default function Inventario() {
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
-                        <button className="btn-pink" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
+                        <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
                             {guardando ? "⏳ Procesando..." : "✅ Dar de Alta"}
                         </button>
                     </div>
@@ -367,7 +367,7 @@ export default function Inventario() {
                         <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>📦 Añadir Stock</h2>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Producto</label>
-                            <select className="input-pink" value={restock.producto}
+                            <select className="input-primary" value={restock.producto}
                                 onChange={e => {
                                     const p = inv.find(x => x.producto === e.target.value)
                                     setRestock(r => ({ ...r, producto: e.target.value, costo: p?.costo_promedio ?? 0, precio_venta: p?.precio_venta ?? 0 }))
@@ -382,7 +382,7 @@ export default function Inventario() {
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
-                        <button className="btn-pink" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0}>
+                        <button className="btn-primary" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0}>
                             {guardando ? "⏳ Procesando..." : "➕ Añadir Stock"}
                         </button>
                     </div>
@@ -395,7 +395,7 @@ export default function Inventario() {
 
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Seleccionar Producto</label>
-                            <select className="input-pink" value={prodEditar}
+                            <select className="input-primary" value={prodEditar}
                                 onChange={e => {
                                     const p = inv.find(x => x.producto === e.target.value)
                                     setProdEditar(e.target.value)
@@ -420,7 +420,7 @@ export default function Inventario() {
                                             <button 
                                                 key={cat} 
                                                 onClick={() => setEditProdVal(p => ({ ...p, categoria: cat }))}
-                                                style={{ background: "#fce4ec", color: "var(--pink-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
+                                                style={{ background: "#fce4ec", color: "var(--primary-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
                                             >
                                                 {cat}
                                             </button>
@@ -436,13 +436,13 @@ export default function Inventario() {
 
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                     <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
-                                    <select className="input-pink" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
+                                    <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
                                         <option value="Activo">Activo</option>
                                         <option value="Inactivo">Inactivo</option>
                                     </select>
                                 </div>
 
-                                <button className="btn-pink" onClick={guardarProducto} disabled={guardando}>
+                                <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
                                     {guardando ? "⏳ Procesando..." : "💾 Guardar Cambios"}
                                 </button>
                             </>

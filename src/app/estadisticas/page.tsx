@@ -13,8 +13,8 @@ import html2canvas from "html2canvas"
 // Dynamic import to avoid SSR issues with Three.js
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
-function Pill({ children, color = "pink" }: { children: React.ReactNode; color?: "pink" | "green" | "red" | "gray" }) {
-    const map = { pink: "stat-pill-pink", green: "stat-pill-green", red: "stat-pill-red", gray: "stat-pill-gray" }
+function Pill({ children, color = "primary" }: { children: React.ReactNode; color?: "primary" | "green" | "red" | "gray" }) {
+    const map = { primary: "stat-pill-primary", green: "stat-pill-green", red: "stat-pill-red", gray: "stat-pill-gray" }
     return (
         <span className={map[color]} style={{ fontSize: "0.7rem", fontWeight: 700, borderRadius: 20, padding: "3px 10px", display: "inline-block" }}>
             {children}
@@ -341,7 +341,7 @@ export default function Estadisticas() {
                         <div style={{ flex: 1, minWidth: 220, maxWidth: 360 }}>
                             <DateRangePicker className="w-full" value={dates} onValueChange={setDates} selectPlaceholder="Filtrar por período" />
                         </div>
-                        <button className="btn-pink" onClick={exportarPDF} disabled={generandoPDF || cargando} style={{ whiteSpace: "nowrap" }}>
+                        <button className="btn-primary" onClick={exportarPDF} disabled={generandoPDF || cargando} style={{ whiteSpace: "nowrap" }}>
                             {generandoPDF ? "Procesando..." : "📄 Descargar Reporte PDF"}
                         </button>
                     </div>
@@ -376,7 +376,7 @@ export default function Estadisticas() {
                     <div className={generandoPDF ? "flex" : "flex md:hidden"} style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
                         <img src="/logo.png" alt="Goyangi" style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
                         <div>
-                            <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.4rem", color: "var(--pink-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
+                            <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.4rem", color: "var(--primary-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
                             <p style={{ margin: "0 0 4px", fontSize: "0.95rem", color: "var(--text-main)", fontWeight: 600 }}>Goyangi Store</p>
                             <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
                                 Período: {dates.from ? dates.from.toLocaleDateString() : "Inicio"} {" — "} {dates.to ? dates.to.toLocaleDateString() : new Date().toLocaleDateString()}
@@ -414,11 +414,11 @@ export default function Estadisticas() {
                             <div className="charts-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Top Ventas por Producto</h3>
-                                    {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={["rose", "pink", "fuchsia", "violet", "purple", "slate"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={["rose", "primary", "fuchsia", "violet", "purple", "slate"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Costo vs Ganancia</h3>
-                                    {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={["pink", "rose"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={["primary", "rose"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Evolución de Ventas</h3>
@@ -431,7 +431,7 @@ export default function Estadisticas() {
                                 {chartDataBar.length > 0 ? (
                                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 8 }}>
                                         <div style={{ minWidth: Math.max(400, chartDataBar.length * 120) }}>
-                                            <BarChart className="h-72" data={chartDataBar} index="name" categories={["Costo Lotes", "Ganancia"]} colors={["pink", "rose"]} valueFormatter={valFormatter} stack={true} yAxisWidth={50} showAnimation={false} />
+                                            <BarChart className="h-72" data={chartDataBar} index="name" categories={["Costo Lotes", "Ganancia"]} colors={["primary", "rose"]} valueFormatter={valFormatter} stack={true} yAxisWidth={50} showAnimation={false} />
                                         </div>
                                     </div>
                                 ) : <p style={{ textAlign: "center", color: "#999" }}>No hay datos suficientes.</p>}
@@ -507,11 +507,11 @@ export default function Estadisticas() {
                                 </thead>
                                 <tbody>
                                     {ventasFiltradas.map(v => (
-                                        <tr key={v.id} style={{ borderBottom: "1px solid #fdf6f9", opacity: v.estado === "Inactivo" ? 0.6 : 1, textDecoration: v.estado === "Inactivo" ? "line-through" : "none" }} className="hover:bg-pink-50/30">
+                                        <tr key={v.id} style={{ borderBottom: "1px solid #fdf6f9", opacity: v.estado === "Inactivo" ? 0.6 : 1, textDecoration: v.estado === "Inactivo" ? "line-through" : "none" }} className="hover:bg-primary-50/30">
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.id}</td>
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>
                                                 {editando === v.id ? (
-                                                    <input type="date" value={editVal.fecha.substring(0, 10)} onChange={e => setEditVal(p => ({ ...p, fecha: e.target.value + "T12:00:00.000Z" }))} className="input-pink" style={{ width: 120, padding: 4 }} />
+                                                    <input type="date" value={editVal.fecha.substring(0, 10)} onChange={e => setEditVal(p => ({ ...p, fecha: e.target.value + "T12:00:00.000Z" }))} className="input-primary" style={{ width: 120, padding: 4 }} />
                                                 ) : new Date(v.fecha).toLocaleDateString()}
                                             </td>
                                             <td style={{ padding: "12px 16px" }}>
@@ -525,7 +525,7 @@ export default function Estadisticas() {
                                                                 total_venta: cant * p.precio_real,
                                                                 ganancia_bruta: (p.precio_real - p.costo_unitario) * cant
                                                             }))
-                                                        }} className="input-pink" style={{ width: 60, padding: 4 }} />
+                                                        }} className="input-primary" style={{ width: 60, padding: 4 }} />
                                                         <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>x {v.producto}</span>
                                                     </div>
                                                 ) : (
@@ -534,7 +534,7 @@ export default function Estadisticas() {
                                                     </div>
                                                 )}
                                             </td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--pink-dark)" }}>
+                                            <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>PRECIO UNIT.</span>
@@ -546,15 +546,15 @@ export default function Estadisticas() {
                                                                 total_venta: prec * p.cantidad,
                                                                 ganancia_bruta: (prec - p.costo_unitario) * p.cantidad
                                                             }))
-                                                        }} className="input-pink" style={{ width: 80, padding: 4 }} />
+                                                        }} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                     </div>
                                                 ) : `$${v.precio_real.toFixed(2)}`}
                                             </td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--pink-dark)" }}>
+                                            <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>TOTAL</span>
-                                                        <input type="number" step="0.01" value={editVal.total_venta} disabled className="input-pink" style={{ width: 80, padding: 4, background: "#f5f5f5", cursor: "not-allowed" }} />
+                                                        <input type="number" step="0.01" value={editVal.total_venta} disabled className="input-primary" style={{ width: 80, padding: 4, background: "#f5f5f5", cursor: "not-allowed" }} />
                                                     </div>
                                                 ) : `$${(v.total_venta || 0).toFixed(2)}`}
                                             </td>
@@ -562,7 +562,7 @@ export default function Estadisticas() {
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>GANANCIA</span>
-                                                        <input type="number" step="0.01" value={editVal.ganancia_bruta} disabled className="input-pink" style={{ width: 80, padding: 4, background: "#f5f5f5", cursor: "not-allowed" }} />
+                                                        <input type="number" step="0.01" value={editVal.ganancia_bruta} disabled className="input-primary" style={{ width: 80, padding: 4, background: "#f5f5f5", cursor: "not-allowed" }} />
                                                     </div>
                                                 ) : <Pill color="green">${(v.ganancia_bruta || 0).toFixed(2)}</Pill>}
                                             </td>
