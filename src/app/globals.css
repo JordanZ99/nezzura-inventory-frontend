@@ -6,8 +6,8 @@
   /* --- BRAND COLORS (Tu paleta rosa actual) --- */
   --primary-dark: #c2185b;
   --primary-mid: #e91e8c;
-  --primary-light: #f48fb1;
-  --primary-pale: #fce4ec;
+  --primary-light: #ff9494;
+  --primary-pale: #ffaec3;
   --primary-soft: #fdf6f9;
   /* El fondo rosado muy sutil de las tarjetas */
 
@@ -41,6 +41,13 @@
   --card-shadow: 0 4px 24px 0 rgba(200, 50, 120, 0.10);
   --btn-shadow: 0 4px 15px rgba(233, 30, 140, 0.35);
   --primary-glow: 0 0 0 3px rgba(233, 30, 140, 0.12);
+
+  /* --- Degradados --- */
+  --gradient-1: linear-gradient(135deg, rgb(224, 51, 141) 0%, #f06292 100%);
+  --gradient-2: linear-gradient(135deg, #ff9fb9 0%, #f8bbe0 100%);
+  --gradient-3: linear-gradient(135deg, #ff84ce 0%, #dd8fff 100%);
+  --gradient-4: linear-gradient(135deg, #6841d2ff 0%, #e36792ff 100%);
+
   /* Para el focus de los inputs */
 
   /* --- LAYOUT --- */

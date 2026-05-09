@@ -139,13 +139,13 @@ export default function Inventario() {
                 const r = await api.subirFoto(prodEditar, compressedFile)
                 nuevaImagen = r.ruta
             }
-            
+
             // Usar la nueva imagen si existe, de lo contrario mantener la del estado
-            await api.editarProducto(prodEditar, { 
-                ...editProdVal, 
-                imagen: nuevaImagen || editProdVal.imagen 
+            await api.editarProducto(prodEditar, {
+                ...editProdVal,
+                imagen: nuevaImagen || editProdVal.imagen
             })
-            
+
             mostrarMsg(true, "✅ Producto actualizado")
             setProdEditar(""); if (editFotoRef.current) editFotoRef.current.value = ""; recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
@@ -179,7 +179,7 @@ export default function Inventario() {
     return (
         <div style={{ minHeight: "100vh" }}>
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #ffb8caff 0%, #ffb5f5ff 100%)", padding: "32px 24px 90px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-2)", padding: "32px 24px 90px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}
@@ -238,7 +238,7 @@ export default function Inventario() {
                     {TABS.map(t => (
                         <button key={t.id} onClick={() => setTab(t.id)} style={{
                             flex: 1, minWidth: 80, padding: "8px 12px", borderRadius: 10, border: "none",
-                            background: tab === t.id ? "linear-gradient(135deg, #e91e8c, #f06292)" : "transparent",
+                            background: tab === t.id ? "var(--gradient-1)" : "transparent",
                             color: tab === t.id ? "#fff" : "var(--text-muted)",
                             fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", transition: "all 0.2s",
                         }}>
@@ -336,8 +336,8 @@ export default function Inventario() {
                             <Input label="Categoría" value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                                 {categoriasExistentes.map(cat => (
-                                    <button 
-                                        key={cat} 
+                                    <button
+                                        key={cat}
                                         onClick={() => setForm(f => ({ ...f, categoria: cat }))}
                                         style={{ background: "#fce4ec", color: "var(--primary-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
                                     >
@@ -399,8 +399,8 @@ export default function Inventario() {
                                 onChange={e => {
                                     const p = inv.find(x => x.producto === e.target.value)
                                     setProdEditar(e.target.value)
-                                    if (p) setEditProdVal({ 
-                                        descripcion: p.descripcion ?? "", 
+                                    if (p) setEditProdVal({
+                                        descripcion: p.descripcion ?? "",
                                         estado: p.estado ?? "Activo",
                                         imagen: p.imagen ?? "No hay foto",
                                         categoria: p.categoria ?? "General"
@@ -417,8 +417,8 @@ export default function Inventario() {
                                     <Input label="Categoría" value={editProdVal.categoria} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
                                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                                         {categoriasExistentes.map(cat => (
-                                            <button 
-                                                key={cat} 
+                                            <button
+                                                key={cat}
                                                 onClick={() => setEditProdVal(p => ({ ...p, categoria: cat }))}
                                                 style={{ background: "#fce4ec", color: "var(--primary-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
                                             >

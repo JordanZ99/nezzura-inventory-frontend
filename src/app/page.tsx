@@ -124,7 +124,7 @@ export default function PuntoDeVenta() {
         <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
 
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #d2418cff 0%, #e367ccff 100%)", padding: "32px 24px 80px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-1)", padding: "32px 24px 80px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}

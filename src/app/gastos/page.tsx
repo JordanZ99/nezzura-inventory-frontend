@@ -63,7 +63,7 @@ export default function Gastos() {
     return (
         <div style={{ minHeight: "100vh" }}>
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #6841d2ff 0%, #e36792ff 100%)", padding: "32px 24px 80px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-4)", padding: "32px 24px 80px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}

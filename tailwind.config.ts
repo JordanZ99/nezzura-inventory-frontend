@@ -32,57 +32,32 @@ const config: Config = {
     },
   ],
   theme: {
-    transparent: "transparent",
-    current: "currentColor",
     extend: {
       colors: {
         primary: {
-          dark: "#c2185b",
-          DEFAULT: "#e91e8c",
-          mid: "#e91e8c",
-          light: "#f48fb1",
-          pale: "#fce4ec",
-          soft: "#fdf6f9",
-          50: "#fdf2f8",
+          dark: "var(--primary-dark)",
+          mid: "var(--primary-mid)",
+          DEFAULT: "var(--primary-mid)", // Esto es clave
+          500: "var(--primary-mid)",     // Tremor necesita explícitamente el 500
+          light: "var(--primary-light)",
+          pale: "var(--primary-pale)",
+          soft: "var(--primary-soft)",
+          50: "var(--primary-soft)",
         },
-        palepink: {
-          500: "#fbcfe8",
-          600: "#fbcfe8"
-        },
-        lila: {
-          500: "#d8b4fe",
-          600: "#d8b4fe"
-        },
+        // Actualiza la marca de Tremor para que use tu color primario en lugar de blue
         tremor: {
           brand: {
-            faint: colors.blue[50],
-            muted: colors.blue[200],
-            subtle: colors.blue[400],
-            DEFAULT: colors.blue[500],
-            emphasis: colors.blue[700],
-            inverted: colors.white,
+            faint: "var(--primary-soft)",
+            muted: "var(--primary-light)",
+            subtle: "var(--primary-mid)",
+            DEFAULT: "var(--primary-mid)",
+            emphasis: "var(--primary-dark)",
+            inverted: "#ffffff",
           },
-          background: {
-            muted: colors.gray[50],
-            subtle: colors.gray[100],
-            DEFAULT: colors.white,
-            emphasis: colors.gray[700],
-          },
-          border: {
-            DEFAULT: colors.gray[200],
-          },
-          ring: {
-            DEFAULT: colors.gray[200],
-          },
-          content: {
-            subtle: colors.gray[400],
-            DEFAULT: colors.gray[500],
-            emphasis: colors.gray[700],
-            strong: colors.gray[900],
-            inverted: colors.white,
-          },
+          // ... el resto de background, border, etc., déjalos como están
         },
       },
+
       boxShadow: {
         "tremor-input": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
         "tremor-card": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",

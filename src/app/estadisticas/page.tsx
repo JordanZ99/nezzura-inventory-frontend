@@ -85,7 +85,7 @@ export default function Estadisticas() {
 
     // --- KPIs ---
     const ventasActivas = ventasFiltradas.filter(v => v.estado !== "Inactivo")
-    
+
     const totalVendido = ventasActivas.reduce((a, v) => a + v.total_venta, 0)
     const gananciaBruta = ventasActivas.reduce((a, v) => a + v.ganancia_bruta, 0)
     const totalGastos = gastosFiltrados.reduce((a, g) => a + g.monto, 0)
@@ -128,7 +128,7 @@ export default function Estadisticas() {
     async function exportarPDF() {
         setGenerandoPDF(true)
         await new Promise(r => setTimeout(r, 500)) // Esperar a que el layout de PDF se asiente
-        
+
         try {
             const pdf = new jsPDF("p", "mm", "letter")
             const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -140,17 +140,17 @@ export default function Estadisticas() {
             pdf.setFontSize(22)
             pdf.setTextColor(194, 24, 91) // Rosa oscuro de Goyangi
             pdf.text("GOYANGI STORE", margin, currentY)
-            
+
             pdf.setFontSize(14)
             pdf.text("Reporte Operativo de Ventas", margin, currentY + 8)
-            
+
             pdf.setFont("helvetica", "normal")
             pdf.setFontSize(10)
             pdf.setTextColor(100, 100, 100)
             const fechaStr = `Período: ${dates.from ? dates.from.toLocaleDateString() : "Inicio"} — ${dates.to ? dates.to.toLocaleDateString() : new Date().toLocaleDateString()}`
             pdf.text(fechaStr, margin, currentY + 14)
             pdf.text(`Generado: ${new Date().toLocaleString()}`, margin, currentY + 19)
-            
+
             currentY += 30
 
             // 2. KPIs (Cuadros Nativos)
@@ -167,12 +167,12 @@ export default function Estadisticas() {
                 pdf.setDrawColor(240, 240, 240)
                 pdf.setFillColor(k.color[0], k.color[1], k.color[2])
                 pdf.roundedRect(x, currentY, kpiWidth, 20, 2, 2, "FD")
-                
+
                 pdf.setFontSize(7)
                 pdf.setTextColor(150, 150, 150)
                 pdf.setFont("helvetica", "bold")
                 pdf.text(k.label, x + 5, currentY + 7)
-                
+
                 pdf.setFontSize(11)
                 pdf.setTextColor(51, 51, 51)
                 pdf.text(k.val, x + 5, currentY + 15)
@@ -186,14 +186,14 @@ export default function Estadisticas() {
                 pdf.setFontSize(10)
                 pdf.setTextColor(51, 51, 51)
                 pdf.text("Análisis Visual de Rendimiento", margin, currentY - 5)
-                
+
                 const chartWidth = (pdfWidth - (margin * 2) - 10) / 3
                 for (let i = 0; i < Math.min(chartElements.length, 3); i++) {
                     const el = chartElements[i] as HTMLElement;
-                    
+
                     // Forzamos que la gráfica se renderice en "modo escritorio" para la foto
-                    const canvas = await html2canvas(el, { 
-                        scale: 3, 
+                    const canvas = await html2canvas(el, {
+                        scale: 3,
                         useCORS: true,
                         logging: false,
                         width: 500,  // Forzamos ancho de escritorio en la captura
@@ -201,7 +201,7 @@ export default function Estadisticas() {
                         windowWidth: 1200,
                         onclone: (clonedDoc) => {
                             // Buscamos el elemento correspondiente en el documento clonado
-                            const clonedEl = clonedDoc.querySelector(`.charts-row > div:nth-child(${i+1})`) as HTMLElement;
+                            const clonedEl = clonedDoc.querySelector(`.charts-row > div:nth-child(${i + 1})`) as HTMLElement;
                             if (clonedEl) {
                                 clonedEl.style.width = "500px";
                                 clonedEl.style.height = "350px";
@@ -232,7 +232,7 @@ export default function Estadisticas() {
             pdf.text("TOTAL VENTAS", margin + 90, currentY + 5)
             pdf.text("GANANCIA", margin + 125, currentY + 5)
             pdf.text("MARGEN", margin + 155, currentY + 5)
-            
+
             pdf.setDrawColor(238, 238, 238)
             pdf.line(margin, currentY + 7, pdfWidth - margin, currentY + 7)
             currentY += 7
@@ -240,21 +240,21 @@ export default function Estadisticas() {
             // Filas de la tabla
             pdf.setFont("helvetica", "normal")
             pdf.setTextColor(51, 51, 51)
-            
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             chartDataBar.forEach((item: any) => {
                 if (currentY > 250) { pdf.addPage(); currentY = 20 }
-                
+
                 pdf.setFont("helvetica", "bold")
                 pdf.text(item.name.substring(0, 25), margin + 2, currentY + 5)
                 pdf.setFont("helvetica", "normal")
-                
+
                 const unidades = ventasFiltradas.filter(v => v.producto === item.name).reduce((a, b) => a + b.cantidad, 0)
                 pdf.text(unidades.toString(), margin + 60, currentY + 5)
                 pdf.text(`$${item.total.toFixed(2)}`, margin + 90, currentY + 5)
                 pdf.text(`$${item.Ganancia.toFixed(2)}`, margin + 125, currentY + 5)
                 pdf.text(`${((item.Ganancia / item.total) * 100).toFixed(1)}%`, margin + 155, currentY + 5)
-                
+
                 pdf.line(margin, currentY + 7, pdfWidth - margin, currentY + 7)
                 currentY += 7
             })
@@ -265,12 +265,12 @@ export default function Estadisticas() {
             pdf.setFillColor(240, 247, 255)
             pdf.setDrawColor(208, 227, 255)
             pdf.roundedRect(margin, currentY, pdfWidth - (margin * 2), 25, 2, 2, "FD")
-            
+
             pdf.setFont("helvetica", "bold")
             pdf.setFontSize(9)
             pdf.setTextColor(0, 86, 179)
             pdf.text("ANALISIS ESTRATEGICO (IA):", margin + 5, currentY + 7)
-            
+
             pdf.setFont("helvetica", "normal")
             pdf.setFontSize(8)
             pdf.setTextColor(68, 68, 68)
@@ -324,7 +324,7 @@ export default function Estadisticas() {
             `}</style>
 
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #b841d2 0%, #d867e3 100%)", padding: "32px 24px 90px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-3)", padding: "32px 24px 90px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity count={800} magnetRadius={12} ringRadius={8} waveSpeed={0.5} waveAmplitude={1.2} particleSize={1.5} lerpSpeed={0.08} color="#ffffff" autoAnimate={true} particleVariance={0.8} rotationSpeed={0.3} depthFactor={0.5} pulseSpeed={2} particleShape="capsule" fieldStrength={8} />
                 </div>
