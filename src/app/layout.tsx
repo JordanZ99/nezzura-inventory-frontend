@@ -6,6 +6,7 @@
 import type { Metadata } from "next"
 import { Plus_Jakarta_Sans } from "next/font/google"
 import Link from "next/link"
+import Icon from "@/components/ui/Icon"
 import "./globals.css"
 
 const jakarta = Plus_Jakarta_Sans({
@@ -24,10 +25,10 @@ export const metadata: Metadata = {
 }
 
 const NAV = [
-    { href: "/", icon: "🛍️", label: "Punto de Venta" },
-    { href: "/inventario", icon: "📦", label: "Inventario" },
-    { href: "/estadisticas", icon: "📊", label: "Estadísticas" },
-    { href: "/gastos", icon: "💸", label: "Gastos" },
+    { href: "/", icon: "ShoppingCart", label: "Punto de Venta" },
+    { href: "/inventario", icon: "Package", label: "Inventario" },
+    { href: "/estadisticas", icon: "ChartPie", label: "Estadísticas" },
+    { href: "/gastos", icon: "DollarSign", label: "Gastos" },
 ]
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -99,7 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
                         {/* Etiqueta sección */}
                         <div style={{
-                            padding: "0 20px 10px",
+                            padding: "0 59px 10px",
                             color: "#f48fb1",
                             fontSize: "0.62rem",
                             fontWeight: 700,
@@ -133,7 +134,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                     }}
                                     className="nav-link"
                                 >
-                                    <span style={{ fontSize: "1.05rem", lineHeight: 1 }}>{item.icon}</span>
+                                    <Icon name={item.icon as any} size={20} />
                                     {item.label}
                                 </Link>
                             ))}
@@ -187,7 +188,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                 flex: 1,
                                 padding: "8px 0",
                             }}>
-                                <span style={{ fontSize: "1.3rem", lineHeight: 1 }}>{item.icon}</span>
+                                <Icon name={item.icon as any} size={22} />
                                 <span style={{
                                     fontSize: "0.6rem",
                                     fontWeight: 700,

@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react"
 import { api, Producto, Lote, NuevoProducto, Restock } from "@/lib/api"
 import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
+import Icon from "@/components/ui/Icon"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -200,8 +201,11 @@ export default function Inventario() {
                     />
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p style={{ color: "rgba(152, 82, 111, 0.72)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
-                    <h1 style={{ color: "#b92752ff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📦 Inventario</h1>
+                    <p style={{ color: "var(--primary-darkGray)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
+                    <h1 style={{ color: "var(--primary-dark)", fontSize: "1.7rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "12px" }}>
+                        <Icon name="Package" size={32} color="var(--primary-dark)" />
+                        <span>Inventario</span>
+                    </h1>
                 </div>
             </div>
 

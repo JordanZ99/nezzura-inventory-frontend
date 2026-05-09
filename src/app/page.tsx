@@ -206,7 +206,7 @@ export default function PuntoDeVenta() {
 
                         <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                             <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, minWidth: 200 }}>
-                                <span style={{ fontSize: "1.1rem" }}>🔍</span>
+                                <Icon name="Search" size={20} color="var(--text-muted)" />
                                 <input
                                     className="input-primary"
                                     style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
@@ -216,7 +216,7 @@ export default function PuntoDeVenta() {
                                 />
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid #fce4ec", paddingLeft: 12 }}>
-                                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)" }}>📂</span>
+                                <Icon name="Folders" size={20} />
                                 <select
                                     className="input-primary"
                                     style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--primary-dark)" }}
@@ -311,13 +311,30 @@ export default function PuntoDeVenta() {
                         position: "sticky", top: 16, maxHeight: "calc(100vh - 80px)",
                     }}>
                         <div style={{ padding: "16px 20px", borderBottom: "1px solid #fce4ec", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--text-main)" }}>
-                                🛒 Carrito
+                            <h2 style={{
+                                margin: 0,
+                                fontSize: "1rem",
+                                fontWeight: 700,
+                                color: "var(--text-main)",
+                                display: "flex",          // Activa Flexbox
+                                alignItems: "center",     // Alinea verticalmente al centro
+                                gap: "8px"                // Separa el icono, el texto y la burbuja uniformemente
+                            }}>
+                                <Icon name="ShoppingCart" size={18} /> Carrito
                                 {totalItems > 0 && (
                                     <span style={{
-                                        marginLeft: 8, background: "var(--primary-mid)", color: "#fff",
-                                        borderRadius: "50%", padding: "2px 7px", fontSize: "0.72rem", fontWeight: 700,
-                                    }}>{totalItems}</span>
+                                        background: "var(--primary-mid)",
+                                        color: "#fff",
+                                        borderRadius: "50%",
+                                        padding: "2px 7px",
+                                        fontSize: "0.72rem",
+                                        fontWeight: 700,
+                                        display: "inline-flex",   // Asegura que el número también se centre en su burbuja
+                                        alignItems: "center",
+                                        justifyContent: "center"
+                                    }}>
+                                        {totalItems}
+                                    </span>
                                 )}
                             </h2>
                             <button
