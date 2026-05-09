@@ -34,17 +34,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Escala completa para que Tremor funcione correctamente
         primary: {
+          50: "var(--primary-soft)",
+          100: "var(--primary-pale)",
+          200: "var(--primary-light)",
+          300: "var(--primary-light)",
+          400: "var(--primary-mid)",
+          500: "var(--primary-mid)",
+          600: "var(--primary-mid)",
+          700: "var(--primary-dark)",
+          800: "var(--primary-dark)",
+          900: "var(--primary-dark)",
+          950: "var(--primary-dark)",
           dark: "var(--primary-dark)",
           mid: "var(--primary-mid)",
-          DEFAULT: "var(--primary-mid)", // Esto es clave
-          500: "var(--primary-mid)",     // Tremor necesita explícitamente el 500
           light: "var(--primary-light)",
           pale: "var(--primary-pale)",
           soft: "var(--primary-soft)",
-          50: "var(--primary-soft)",
         },
-        // Actualiza la marca de Tremor para que use tu color primario en lugar de blue
         tremor: {
           brand: {
             faint: "var(--primary-soft)",
@@ -54,10 +62,27 @@ const config: Config = {
             emphasis: "var(--primary-dark)",
             inverted: "#ffffff",
           },
-          // ... el resto de background, border, etc., déjalos como están
+          background: {
+            muted: colors.gray[50],
+            subtle: colors.gray[100],
+            DEFAULT: colors.white,
+            emphasis: colors.gray[700],
+          },
+          border: {
+            DEFAULT: colors.gray[200],
+          },
+          ring: {
+            DEFAULT: colors.gray[200],
+          },
+          content: {
+            subtle: colors.gray[400],
+            DEFAULT: colors.gray[500],
+            emphasis: colors.gray[700],
+            strong: colors.gray[900],
+            inverted: colors.white,
+          },
         },
       },
-
       boxShadow: {
         "tremor-input": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
         "tremor-card": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
@@ -78,4 +103,5 @@ const config: Config = {
   },
   plugins: [],
 };
+
 export default config;
