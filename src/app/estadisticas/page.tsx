@@ -414,11 +414,11 @@ export default function Estadisticas() {
                             <div className="charts-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Top Ventas por Producto</h3>
-                                    {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={["rose", "primary", "fuchsia", "violet", "purple", "slate"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={["rose", "pink", "fuchsia", "violet", "purple", "slate"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Costo vs Ganancia</h3>
-                                    {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={["primary", "rose"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={["pink", "rose"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Evolución de Ventas</h3>
@@ -431,7 +431,7 @@ export default function Estadisticas() {
                                 {chartDataBar.length > 0 ? (
                                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 8 }}>
                                         <div style={{ minWidth: Math.max(400, chartDataBar.length * 120) }}>
-                                            <BarChart className="h-72" data={chartDataBar} index="name" categories={["Costo Lotes", "Ganancia"]} colors={["primary", "rose"]} valueFormatter={valFormatter} stack={true} yAxisWidth={50} showAnimation={false} />
+                                            <BarChart className="h-72" data={chartDataBar} index="name" categories={["Costo Lotes", "Ganancia"]} colors={["pink", "rose"]} valueFormatter={valFormatter} stack={true} yAxisWidth={50} showAnimation={false} />
                                         </div>
                                     </div>
                                 ) : <p style={{ textAlign: "center", color: "#999" }}>No hay datos suficientes.</p>}

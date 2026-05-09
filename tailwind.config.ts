@@ -34,14 +34,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Escala completa con HEX para que Tremor (SVG fill/stroke) funcione.
-        // Si cambias de tema, actualiza estos valores junto con globals.css.
-        primary: {
+        // Tremor SOLO reconoce colores estándar de Tailwind (pink, rose, etc.)
+        // Sobreescribimos "pink" con tu paleta de marca.
+        // Cuando cambies de tema, actualiza estos hex junto con globals.css.
+        pink: {
           50:  "#fdf6f9",
-          100: "#ffaec3",
-          200: "#ff9494",
-          300: "#f06292",
-          400: "#e91e8c",
+          100: "#fce4ec",
+          200: "#ffaec3",
+          300: "#ff9494",
+          400: "#f06292",
           500: "#e91e8c",
           600: "#d81884",
           700: "#c2185b",
