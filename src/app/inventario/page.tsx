@@ -220,7 +220,7 @@ export default function Inventario() {
                     ].map(m => (
                         <div key={m.label} className="card fade-up" style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                             <div style={{ background: "linear-gradient(135deg,#e91e8c,#f06292)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
-                                <Icon name={m.icon} size={24} color="var(--primary-soft)" />
+                                <Icon name={m.icon as any} size={24} color="var(--primary-soft)" />
                             </div>
                             <div>
                                 <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{m.label}</p>
