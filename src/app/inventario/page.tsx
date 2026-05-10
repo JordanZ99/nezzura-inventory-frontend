@@ -165,10 +165,10 @@ export default function Inventario() {
     }
 
     const TABS: { id: Tab; label: string; icon: string }[] = [
-        { id: "catalogo", label: "Catálogo", icon: "📋" },
-        { id: "nuevo", label: "Nuevo", icon: "✨" },
-        { id: "restock", label: "Restock", icon: "📦" },
-        { id: "editar", label: "Editar Prod.", icon: "✏️" },
+        { id: "catalogo", label: "Catálogo", icon: "ClipboardList" },
+        { id: "nuevo", label: "Nuevo", icon: "ClipboardPlus" },
+        { id: "restock", label: "Restock", icon: "PackagePlus" },
+        { id: "editar", label: "Editar Prod.", icon: "Pencil" },
     ]
 
     const totalActivos = inv.filter(p => p.stock_total > 0).length
@@ -241,12 +241,13 @@ export default function Inventario() {
                 <div className="card" style={{ display: "flex", padding: 6, gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
                     {TABS.map(t => (
                         <button key={t.id} onClick={() => setTab(t.id)} style={{
-                            flex: 1, minWidth: 80, padding: "8px 12px", borderRadius: 10, border: "none",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flex: 1, minWidth: 80, padding: "8px 12px", gap: 8, borderRadius: 10, border: "none",
                             background: tab === t.id ? "var(--gradient-1)" : "transparent",
                             color: tab === t.id ? "#fff" : "var(--text-muted)",
                             fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", transition: "all 0.2s",
                         }}>
-                            {t.icon} {t.label}
+                            <Icon name={t.icon as any} size={22} color={tab === t.id ? "#fff" : "var(--text-muted)"} /> {t.label}
                         </button>
                     ))}
                 </div>
@@ -336,7 +337,7 @@ export default function Inventario() {
                 {/* Nuevo producto */}
                 {tab === "nuevo" && (
                     <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>✨ Dar de alta producto</h2>
+                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
                         <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                         <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
                         <div>
@@ -363,7 +364,7 @@ export default function Inventario() {
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
                         <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
-                            {guardando ? "⏳ Procesando..." : "✅ Dar de Alta"}
+                            {guardando ? "⏳ Procesando..." : " Dar de Alta"}
                         </button>
                     </div>
                 )}
@@ -371,7 +372,7 @@ export default function Inventario() {
                 {/* Restock */}
                 {tab === "restock" && (
                     <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>📦 Añadir Stock</h2>
+                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}> Añadir stock</h2>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Producto</label>
                             <select className="input-primary" value={restock.producto}
@@ -398,7 +399,7 @@ export default function Inventario() {
                 {/* Editar producto */}
                 {tab === "editar" && (
                     <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>✏️ Editar Producto</h2>
+                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Editar Producto</h2>
 
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Seleccionar Producto</label>

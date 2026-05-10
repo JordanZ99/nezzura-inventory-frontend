@@ -143,7 +143,7 @@ export default function Gastos() {
                                 <input type="number" step="0.01" className="input-primary" placeholder="0.00" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
                             </div>
                             <button className="btn-primary" style={{ marginTop: 8 }} onClick={agregar} disabled={!form.descripcion || !form.monto || !form.fecha}>
-                                ✅ Añadir Gasto
+                                Añadir Gasto
                             </button>
                         </div>
                     </div>
