@@ -9,6 +9,7 @@ import { api, Venta, Gasto } from "@/lib/api"
 import { DateRangePicker, DateRangePickerValue, DonutChart, LineChart, BarChart } from "@tremor/react"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
+import Icon from "@/components/ui/Icon"
 
 // Dynamic import to avoid SSR issues with Three.js
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
@@ -330,7 +331,12 @@ export default function Estadisticas() {
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
                     <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4, textTransform: "uppercase" }}>RENDIMIENTO EXPERTO</p>
-                    <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>📊 Panel Estadístico</h1>
+
+                    {/*Panel Estadístico*/}
+                    <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
+                        <Icon name="ChartPie" size={32} color="var(--primary-soft)" />
+                        Panel Estadístico
+                    </h1>
                 </div>
             </div>
 

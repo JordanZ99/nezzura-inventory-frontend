@@ -149,13 +149,11 @@ export default function PuntoDeVenta() {
                         BIENVENIDA
                     </p>
 
-                    {/* Desktop Title */}
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <Icon name="ShoppingCart" size={32} color="#fff" />
                         Punto de Venta
                     </h1>
 
-                    {/* Mobile Title */}
                     <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>
                         <img src="/logo.png" alt="Logo" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "contain", background: "white", padding: 3 }} />
                         Punto de Venta

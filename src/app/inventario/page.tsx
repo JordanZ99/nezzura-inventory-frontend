@@ -213,14 +213,14 @@ export default function Inventario() {
                 {/* Stat cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-4">
                     {[
-                        { label: "Productos activos", valor: totalActivos, icon: "📦" },
-                        { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "💰" },
-                        { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "📈" },
-                        { label: "Stock bajo (≤3)", valor: stockBajo, icon: "⚠️" },
+                        { label: "Productos activos", valor: totalActivos, icon: "PackagePlus" },
+                        { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "PiggyBank" },
+                        { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "Banknote" },
+                        { label: "Stock bajo (≤3)", valor: stockBajo, icon: "Megaphone" },
                     ].map(m => (
                         <div key={m.label} className="card fade-up" style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                             <div style={{ background: "linear-gradient(135deg,#e91e8c,#f06292)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
-                                {m.icon}
+                                <Icon name={m.icon} size={24} color="var(--primary-soft)" />
                             </div>
                             <div>
                                 <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{m.label}</p>

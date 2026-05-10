@@ -7,9 +7,10 @@
   --primary-dark: #c2185b;
   --primary-darkGray: #a75a76;
   --primary-mid: #e91e8c;
-  --primary-light: #ff9494;
+  --primary-light: #ff7171;
   --primary-pale: #ffaec3;
   --primary-soft: #fdf6f9;
+  --primary-alter: #6841d2ff;
   /* El fondo rosado muy sutil de las tarjetas */
 
   /* --- SEMANTIC STATES (Éxito, Error, Alertas) --- */

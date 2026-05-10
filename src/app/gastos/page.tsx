@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react"
 import { api, Gasto } from "@/lib/api"
 import dynamic from "next/dynamic"
+import Icon from "@/components/ui/Icon"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -85,7 +86,12 @@ export default function Gastos() {
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
                     <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>EGRESOS</p>
-                    <h1 style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: 0 }}>💸 Gastos</h1>
+                    {/*Aquí va el titulo de la pagina*/}
+                    <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
+                        <div style={{ marginLeft: "-5px" }}>
+                            <Icon name="DollarSign" size={32} color="var(--primary-soft)" />
+                        </div>
+                        Gastos</h1>
                 </div>
             </div>
 
@@ -93,17 +99,17 @@ export default function Gastos() {
                 {/* Stats cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ background: "linear-gradient(135deg,#e91e8c,#f06292)", borderRadius: 12, width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>💰</div>
+                        <Icon name="BanknoteArrowDown" size={32} color="var(--primary-alter)" />
                         <div>
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Gastado</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-dark)" }}>${total.toFixed(0)}</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-alter)" }}>${total.toFixed(0)}</p>
                         </div>
                     </div>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ background: "#f8f9fe", borderRadius: 12, width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", border: "1px solid #e9ecef" }}>🧾</div>
                         <div>
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Operaciones</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--text-main)" }}>{numGastos}</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-light)" }}>{numGastos}</p>
                         </div>
                     </div>
                 </div>
@@ -116,7 +122,7 @@ export default function Gastos() {
 
                     {/* Formulario */}
                     <div className="card fade-up" style={{ padding: 20, flex: "1 1 300px", maxWidth: 400 }}>
-                        <h2 style={{ margin: "0 0 16px", fontSize: "1rem", fontWeight: 800 }}>✨ Registrar Gasto</h2>
+                        <h2 style={{ margin: "0 0 16px", fontSize: "1rem", fontWeight: 800 }}> Registrar Gasto</h2>
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Fecha</label>
