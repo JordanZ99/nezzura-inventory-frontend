@@ -106,7 +106,7 @@ export default function Gastos() {
                         </div>
                     </div>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ background: "#f8f9fe", borderRadius: 12, width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", border: "1px solid #e9ecef" }}>🧾</div>
+                        <Icon name="ClipboardList" size={32} color="var(--primary-light)" />
                         <div>
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Operaciones</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-light)" }}>{numGastos}</p>

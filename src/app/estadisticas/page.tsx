@@ -7,8 +7,6 @@ import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { api, Venta, Gasto } from "@/lib/api"
 import { DateRangePicker, DateRangePickerValue, DonutChart, LineChart, BarChart } from "@tremor/react"
-import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
 import Icon from "@/components/ui/Icon"
 
 // Dynamic import to avoid SSR issues with Three.js
@@ -31,7 +29,7 @@ export default function Estadisticas() {
     const [editVal, setEditVal] = useState({ fecha: "", cantidad: 0, precio_real: 0, total_venta: 0, ganancia_bruta: 0, costo_unitario: 0 })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [dates, setDates] = useState<DateRangePickerValue>({ from: undefined, to: undefined })
-    const [generandoPDF, setGenerandoPDF] = useState(false)
+
     const [guardando, setGuardando] = useState(false)
 
     async function recargar() {
@@ -125,204 +123,13 @@ export default function Estadisticas() {
     }, {} as Record<string, any>)
     const chartDataBar = Object.values(productCostProfit).sort((a, b) => b.total - a.total)
 
-    // --- Exportar a PDF Profesional (Nativo + selectivo) ---
-    async function exportarPDF() {
-        setGenerandoPDF(true)
-        await new Promise(r => setTimeout(r, 500)) // Esperar a que el layout de PDF se asiente
 
-        try {
-            const pdf = new jsPDF("p", "mm", "letter")
-            const pdfWidth = pdf.internal.pageSize.getWidth()
-            const margin = 15
-            let currentY = 20
-
-            // 1. Cabecera (Diseño Nativo)
-            pdf.setFont("helvetica", "bold")
-            pdf.setFontSize(22)
-            pdf.setTextColor(194, 24, 91) // Rosa oscuro de Goyangi
-            pdf.text("GOYANGI STORE", margin, currentY)
-
-            pdf.setFontSize(14)
-            pdf.text("Reporte Operativo de Ventas", margin, currentY + 8)
-
-            pdf.setFont("helvetica", "normal")
-            pdf.setFontSize(10)
-            pdf.setTextColor(100, 100, 100)
-            const fechaStr = `Período: ${dates.from ? dates.from.toLocaleDateString() : "Inicio"} — ${dates.to ? dates.to.toLocaleDateString() : new Date().toLocaleDateString()}`
-            pdf.text(fechaStr, margin, currentY + 14)
-            pdf.text(`Generado: ${new Date().toLocaleString()}`, margin, currentY + 19)
-
-            currentY += 30
-
-            // 2. KPIs (Cuadros Nativos)
-            const kpiWidth = (pdfWidth - (margin * 2) - 15) / 4
-            const kpis = [
-                { label: "TOTAL VENDIDO", val: `$${totalVendido.toFixed(2)}`, color: [253, 242, 248] },
-                { label: "MARGEN BRUTO", val: `${totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%`, color: [252, 228, 236] },
-                { label: "GASTOS", val: `$${totalGastos.toFixed(2)}`, color: [252, 228, 236] },
-                { label: "GANANCIA NETA", val: `$${gananciaNeta.toFixed(2)}`, color: gananciaNeta >= 0 ? [237, 255, 217] : [255, 235, 238] }
-            ]
-
-            kpis.forEach((k, i) => {
-                const x = margin + (i * (kpiWidth + 5))
-                pdf.setDrawColor(240, 240, 240)
-                pdf.setFillColor(k.color[0], k.color[1], k.color[2])
-                pdf.roundedRect(x, currentY, kpiWidth, 20, 2, 2, "FD")
-
-                pdf.setFontSize(7)
-                pdf.setTextColor(150, 150, 150)
-                pdf.setFont("helvetica", "bold")
-                pdf.text(k.label, x + 5, currentY + 7)
-
-                pdf.setFontSize(11)
-                pdf.setTextColor(51, 51, 51)
-                pdf.text(k.val, x + 5, currentY + 15)
-            })
-
-            currentY += 35
-
-            // 3. Gráficas (Captura Selectiva y Forzado de Diseño)
-            const chartElements = document.querySelectorAll(".charts-row > div")
-            if (chartElements.length > 0) {
-                pdf.setFontSize(10)
-                pdf.setTextColor(51, 51, 51)
-                pdf.text("Análisis Visual de Rendimiento", margin, currentY - 5)
-
-                const chartWidth = (pdfWidth - (margin * 2) - 10) / 3
-                for (let i = 0; i < Math.min(chartElements.length, 3); i++) {
-                    const el = chartElements[i] as HTMLElement;
-
-                    // Forzamos que la gráfica se renderice en "modo escritorio" para la foto
-                    const canvas = await html2canvas(el, {
-                        scale: 3,
-                        useCORS: true,
-                        logging: false,
-                        width: 500,  // Forzamos ancho de escritorio en la captura
-                        height: 350, // Forzamos alto consistente
-                        windowWidth: 1200,
-                        onclone: (clonedDoc) => {
-                            // Buscamos el elemento correspondiente en el documento clonado
-                            const clonedEl = clonedDoc.querySelector(`.charts-row > div:nth-child(${i + 1})`) as HTMLElement;
-                            if (clonedEl) {
-                                clonedEl.style.width = "500px";
-                                clonedEl.style.height = "350px";
-                                clonedEl.style.maxWidth = "none";
-                                clonedEl.style.overflow = "visible";
-                            }
-                        }
-                    })
-                    const imgData = canvas.toDataURL("image/png")
-                    pdf.addImage(imgData, "PNG", margin + (i * (chartWidth + 5)), currentY, chartWidth, 40)
-                }
-                currentY += 50
-            }
-
-            // 4. Tabla de Desglose (Renderizado Nativo de Texto)
-            pdf.setFont("helvetica", "bold")
-            pdf.setFontSize(12)
-            pdf.text("Desglose Operativo por Producto", margin, currentY)
-            currentY += 8
-
-            // Encabezado de tabla
-            pdf.setFillColor(248, 249, 250)
-            pdf.rect(margin, currentY, pdfWidth - (margin * 2), 7, "F")
-            pdf.setFontSize(8)
-            pdf.setTextColor(100, 100, 100)
-            pdf.text("PRODUCTO", margin + 2, currentY + 5)
-            pdf.text("UNIDADES", margin + 60, currentY + 5)
-            pdf.text("TOTAL VENTAS", margin + 90, currentY + 5)
-            pdf.text("GANANCIA", margin + 125, currentY + 5)
-            pdf.text("MARGEN", margin + 155, currentY + 5)
-
-            pdf.setDrawColor(238, 238, 238)
-            pdf.line(margin, currentY + 7, pdfWidth - margin, currentY + 7)
-            currentY += 7
-
-            // Filas de la tabla
-            pdf.setFont("helvetica", "normal")
-            pdf.setTextColor(51, 51, 51)
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            chartDataBar.forEach((item: any) => {
-                if (currentY > 250) { pdf.addPage(); currentY = 20 }
-
-                pdf.setFont("helvetica", "bold")
-                pdf.text(item.name.substring(0, 25), margin + 2, currentY + 5)
-                pdf.setFont("helvetica", "normal")
-
-                const unidades = ventasFiltradas.filter(v => v.producto === item.name).reduce((a, b) => a + b.cantidad, 0)
-                pdf.text(unidades.toString(), margin + 60, currentY + 5)
-                pdf.text(`$${item.total.toFixed(2)}`, margin + 90, currentY + 5)
-                pdf.text(`$${item.Ganancia.toFixed(2)}`, margin + 125, currentY + 5)
-                pdf.text(`${((item.Ganancia / item.total) * 100).toFixed(1)}%`, margin + 155, currentY + 5)
-
-                pdf.line(margin, currentY + 7, pdfWidth - margin, currentY + 7)
-                currentY += 7
-            })
-
-            currentY += 15
-
-            // 5. Análisis IA (Texto Real)
-            pdf.setFillColor(240, 247, 255)
-            pdf.setDrawColor(208, 227, 255)
-            pdf.roundedRect(margin, currentY, pdfWidth - (margin * 2), 25, 2, 2, "FD")
-
-            pdf.setFont("helvetica", "bold")
-            pdf.setFontSize(9)
-            pdf.setTextColor(0, 86, 179)
-            pdf.text("ANALISIS ESTRATEGICO (IA):", margin + 5, currentY + 7)
-
-            pdf.setFont("helvetica", "normal")
-            pdf.setFontSize(8)
-            pdf.setTextColor(68, 68, 68)
-            const cleanText = `Periodo con rentabilidad global del ${totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%. El producto lider es ${top5[0]?.name || "N/A"}. Los gastos operativos ascienden a $${totalGastos.toFixed(2)}, factor critico para el margen neto.`
-            pdf.text(pdf.splitTextToSize(cleanText, pdfWidth - (margin * 2) - 10), margin + 5, currentY + 13)
-
-            // 6. Footer
-            pdf.setFontSize(7)
-            pdf.setTextColor(170, 170, 170)
-            pdf.text(`Goyangi v1.0 • Documento Confidencial • Pagina 1`, pdfWidth / 2, 270, { align: "center" })
-
-            pdf.save(`Goyangi_Reporte_${new Date().toISOString().substring(0, 10)}.pdf`)
-            mostrarMsg(true, "✅ Reporte profesional generado")
-        } catch (e) {
-            console.error(e)
-            mostrarMsg(false, "❌ Error generando PDF nativo")
-        } finally {
-            setGenerandoPDF(false)
-        }
-    }
 
     const valFormatter = (number: number) => `$${Intl.NumberFormat("us").format(number).toString()}`
 
     return (
         <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
-            {/* CSS DINÁMICO PARA PDF */}
-            <style>{`
-                .pdf-mode {
-                    width: 1000px !important; 
-                    padding: 40px !important;
-                    background: #ffffff !important;
-                }
-                .pdf-mode .kpi-grid {
-                    display: grid !important;
-                    grid-template-columns: repeat(4, 1fr) !important;
-                    gap: 15px !important;
-                }
-                .pdf-mode .charts-row {
-                    display: grid !important;
-                    grid-template-columns: 1fr 1fr 1fr !important;
-                    gap: 20px !important;
-                    width: 100% !important;
-                }
-                .pdf-mode table {
-                    width: 100% !important;
-                    border: 1px solid #eee !important;
-                }
-                .pdf-mode .no-pdf {
-                    display: none !important;
-                }
-            `}</style>
+
 
             {/* ── Hero con Antigravity ── */}
             <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-3)", padding: "32px 24px 90px" }}>
@@ -347,9 +154,6 @@ export default function Estadisticas() {
                         <div style={{ flex: 1, minWidth: 220, maxWidth: 360 }}>
                             <DateRangePicker className="w-full" value={dates} onValueChange={setDates} selectPlaceholder="Filtrar por período" />
                         </div>
-                        <button className="btn-primary" onClick={exportarPDF} disabled={generandoPDF || cargando} style={{ whiteSpace: "nowrap" }}>
-                            {generandoPDF ? "Procesando..." : "📄 Descargar Reporte PDF"}
-                        </button>
                     </div>
                 </div>
 
@@ -377,9 +181,9 @@ export default function Estadisticas() {
                 )}
 
                 {/* ── CONTENEDOR PARA EL PDF ── */}
-                <div id="report-container" className={generandoPDF ? "pdf-mode" : ""} style={{ padding: 16, background: "#fff", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
+                <div id="report-container" style={{ padding: 16, background: "#fff", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
 
-                    <div className={generandoPDF ? "flex" : "flex md:hidden"} style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
+                    <div className="flex md:hidden" style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
                         <img src="/logo.png" alt="Goyangi" style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
                         <div>
                             <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.4rem", color: "var(--primary-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
@@ -432,8 +236,8 @@ export default function Estadisticas() {
                                 </div>
                             </div>
 
-                            <div className="no-pdf" style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
-                                <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>📊 Contribución Marginal por Producto</h3>
+                            <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
+                                <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Contribución Marginal por Producto</h3>
                                 {chartDataBar.length > 0 ? (
                                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 8 }}>
                                         <div style={{ minWidth: Math.max(400, chartDataBar.length * 120) }}>
@@ -445,54 +249,7 @@ export default function Estadisticas() {
                         </div>
                     )}
 
-                    {/* --- SECCIÓN EXCLUSIVA PARA PDF (TABLA + IA) --- */}
-                    {generandoPDF && (
-                        <div style={{ marginTop: 32, borderTop: "1px solid #eee", paddingTop: 20 }}>
-                            <h3 style={{ fontSize: "1.1rem", fontWeight: 800, marginBottom: 16, color: "#333" }}>Desglose Operativo por Producto</h3>
-                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
-                                <thead>
-                                    <tr style={{ background: "#f8f9fa" }}>
-                                        <th style={{ border: "1px solid #eee", padding: "8px", textAlign: "left" }}>Producto</th>
-                                        <th style={{ border: "1px solid #eee", padding: "8px", textAlign: "center" }}>Unidades</th>
-                                        <th style={{ border: "1px solid #eee", padding: "8px", textAlign: "left" }}>Total Ventas</th>
-                                        <th style={{ border: "1px solid #eee", padding: "8px", textAlign: "left" }}>Ganancia Neta</th>
-                                        <th style={{ border: "1px solid #eee", padding: "8px", textAlign: "left" }}>Margen Contribuido</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                    {chartDataBar.map((item: any) => (
-                                        <tr key={item.name}>
-                                            <td style={{ border: "1px solid #eee", padding: "8px", fontWeight: 700 }}>{item.name}</td>
-                                            <td style={{ border: "1px solid #eee", padding: "8px", textAlign: "center" }}>
-                                                {ventasFiltradas.filter(v => v.producto === item.name).reduce((a, b) => a + b.cantidad, 0)}
-                                            </td>
-                                            <td style={{ border: "1px solid #eee", padding: "8px" }}>${item.total.toFixed(2)}</td>
-                                            <td style={{ border: "1px solid #eee", padding: "8px", color: "#2e7d32" }}>${item.Ganancia.toFixed(2)}</td>
-                                            <td style={{ border: "1px solid #eee", padding: "8px" }}>{((item.Ganancia / item.total) * 100).toFixed(1)}%</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
 
-                            {/* ANÁLISIS IA (GEMINI) */}
-                            <div style={{ marginTop: 25, padding: 15, borderRadius: 10, background: "#f0f7ff", border: "1px solid #d0e3ff" }}>
-                                <p style={{ margin: 0, fontSize: "11px", color: "#0056b3", fontWeight: 700 }}>💡 ANÁLISIS ESTRATÉGICO DE DATOS:</p>
-                                <p style={{ margin: "5px 0 0", fontSize: "11px", color: "#444", lineHeight: 1.4 }}>
-                                    Durante este periodo, la rentabilidad global se mantiene en un <strong>{totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%</strong>.
-                                    El producto con mayor volumen de venta es <strong>{top5[0]?.name || "N/A"}</strong>.
-                                    Se recomienda monitorear los gastos operativos, que actualmente representan <strong>${totalGastos.toFixed(2)}</strong>, para no comprometer el margen neto final.
-                                </p>
-                            </div>
-
-                            {/* FOOTER DEL PDF */}
-                            <div style={{ marginTop: 40, textAlign: "center", borderTop: "1px solid #eee", paddingTop: 10 }}>
-                                <p style={{ fontSize: "9px", color: "#aaa" }}>
-                                    Este documento es confidencial y propiedad de Goyangi Store. Generado por Goyangi v1.0 • {new Date().toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 {/* ── Tabla del Historial de Ventas ── */}
@@ -584,8 +341,12 @@ export default function Estadisticas() {
                                                     </div>
                                                 ) : (
                                                     <div style={{ display: "flex", gap: 12 }}>
-                                                        <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, precio_real: v.precio_real, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta, costo_unitario: v.costo_unitario }) }} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>✏️</button>
-                                                        <button onClick={() => anularVenta(v.id)} disabled={guardando} style={{ color: guardando ? "#eee" : "#ffcdd2", background: "none", border: "none", cursor: guardando ? "not-allowed" : "pointer", fontSize: "0.9rem" }}>🚫</button>
+                                                        <button onClick={() => { setEditando(v.id); setEditVal({ fecha: v.fecha, cantidad: v.cantidad, precio_real: v.precio_real, total_venta: v.total_venta, ganancia_bruta: v.ganancia_bruta, costo_unitario: v.costo_unitario }) }} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem" }}>
+                                                            <Icon name="Pencil" size={16} color="var(--primary-dark)" />
+                                                        </button>
+                                                        <button onClick={() => anularVenta(v.id)} disabled={guardando} style={{ color: guardando ? "#eee" : "#ffcdd2", background: "none", border: "none", cursor: guardando ? "not-allowed" : "pointer", fontSize: "0.9rem" }}>
+                                                            <Icon name="Trash2" size={16} color="var(--primary-dark)" />
+                                                        </button>
                                                     </div>
                                                 )}
                                             </td>
