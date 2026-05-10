@@ -307,7 +307,10 @@ export default function Inventario() {
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
                                                                 <div style={{ display: "flex", gap: 8 }}>
                                                                     <button onClick={guardarLote} disabled={guardando} style={{ color: guardando ? "#999" : "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer" }}>
-                                                                        {guardando ? "⏳" : "💾"}
+                                                                        {guardando ?
+                                                                            (<Icon name="Hourglass" size={16} color="var(--primary-dark)" />) :
+                                                                            (<Icon name="Save" size={16} color="var(--primary-dark)" />)
+                                                                        }
                                                                     </button>
                                                                 </div>
                                                             ) : (

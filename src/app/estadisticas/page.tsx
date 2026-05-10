@@ -335,9 +335,13 @@ export default function Estadisticas() {
                                                 ) : editando === v.id ? (
                                                     <div style={{ display: "flex", gap: 8 }}>
                                                         <button onClick={guardarEdicion} disabled={guardando} style={{ color: guardando ? "#999" : "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer" }}>
-                                                            {guardando ? "⏳" : "💾"}
+                                                            {guardando ?
+                                                                (<Icon name="Hourglass" size={16} color="var(--primary-dark)" />)
+                                                                :
+                                                                (<Icon name="Save" size={16} color="var(--primary-dark)" />)
+                                                            }
                                                         </button>
-                                                        <button onClick={() => setEditando(null)} style={{ color: "#b71c1c", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}>✕</button>
+                                                        <button onClick={() => setEditando(null)} style={{ color: "#b71c1c", background: "none", border: "none", fontWeight: 800, cursor: "pointer" }}><Icon name="X" size={16} color="var(--primary-dark)" /></button>
                                                     </div>
                                                 ) : (
                                                     <div style={{ display: "flex", gap: 12 }}>
