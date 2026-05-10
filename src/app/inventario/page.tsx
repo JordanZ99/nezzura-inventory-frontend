@@ -391,7 +391,7 @@ export default function Inventario() {
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
                         <button className="btn-primary" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0}>
-                            {guardando ? "⏳ Procesando..." : "➕ Añadir Stock"}
+                            {guardando ? "⏳ Procesando..." : "Añadir Stock"}
                         </button>
                     </div>
                 )}
