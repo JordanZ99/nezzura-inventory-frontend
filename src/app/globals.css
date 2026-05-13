@@ -49,6 +49,7 @@
   --gradient-2: linear-gradient(135deg, #ff9fb9 0%, #f8bbe0 100%);
   --gradient-3: linear-gradient(135deg, #ff84ce 0%, #dd8fff 100%);
   --gradient-4: linear-gradient(135deg, #6841d2ff 0%, #e36792ff 100%);
+  --gradient-login: linear-gradient(135deg, #6841d2ff, #e36792ff);
 
   /* Para el focus de los inputs */
 
