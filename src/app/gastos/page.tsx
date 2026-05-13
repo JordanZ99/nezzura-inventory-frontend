@@ -174,7 +174,7 @@ export default function Gastos() {
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>{g.descripcion}</td>
                                             <td style={{ padding: "12px 16px", fontWeight: 800, color: "#b71c1c" }}>-${g.monto.toFixed(2)}</td>
                                             <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                                                <button onClick={() => eliminar(g.id)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.3 }}>🗑️</button>
+                                                <button onClick={() => eliminar(g.id)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.3 }}><Icon name="Trash2" /></button>
                                             </td>
                                         </tr>
                                     ))}
