@@ -21,12 +21,20 @@ export default function LoginPage() {
     async function handleLogin(e: React.FormEvent) {
         e.preventDefault()
         setLoading(true)
-        setError(null)
+        // Verificación de seguridad de variables
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+            setError("Error técnico: Faltan las variables de entorno de Supabase.")
+            setLoading(false)
+            return
+        }
 
         const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
         if (authError) {
-            setError("Correo o contraseña incorrectos.")
+            // Mostramos el mensaje real de Supabase para saber qué pasa (ej: "Email not confirmed")
+            setError(authError.message === "Invalid login credentials" 
+                ? "Correo o contraseña incorrectos." 
+                : authError.message)
             setLoading(false)
             return
         }
