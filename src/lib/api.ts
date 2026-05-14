@@ -111,7 +111,7 @@ export const api = {
     initDB: () => request<{ ok: boolean; mensaje: string }>("/init-db"),
 
     // Inventario
-    getInventario: () => request<Producto[]>("/inventario"),
+    getInventario: () => request<Producto[]>("/inventario/"),
     getLotes: () => request<Lote[]>("/inventario/lotes"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
@@ -138,13 +138,13 @@ export const api = {
     },
 
     // Ventas
-    getVentas: () => request<Venta[]>("/ventas"),
+    getVentas: () => request<Venta[]>("/ventas/"),
     cobrarCarrito: (items: ItemCarrito[]) => request<{ total_cobrado: number }>("/ventas/cobrar", { method: "POST", body: JSON.stringify({ items }) }),
     actualizarVenta: (id: number, data: { fecha?: string; precio_real?: number; cantidad?: number; total_venta?: number; ganancia_bruta?: number }) => request(`/ventas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarVenta: (id: number) => request(`/ventas/${id}`, { method: "DELETE" }),
 
     // Gastos
-    getGastos: () => request<Gasto[]>("/gastos"),
-    crearGasto: (data: { fecha: string; categoria: string; descripcion: string; monto: number }) => request("/gastos", { method: "POST", body: JSON.stringify(data) }),
+    getGastos: () => request<Gasto[]>("/gastos/"),
+    crearGasto: (data: { fecha: string; categoria: string; descripcion: string; monto: number }) => request("/gastos/", { method: "POST", body: JSON.stringify(data) }),
     eliminarGasto: (id: number) => request(`/gastos/${id}`, { method: "DELETE" }),
 }
