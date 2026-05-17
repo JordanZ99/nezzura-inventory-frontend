@@ -22,23 +22,7 @@ export default function PuntoDeVenta() {
     const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
     const [modoDescuento, setModoDescuento] = useState(false)
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("Todas")
-    const [userId, setUserId] = useState<string>("Cargando...");
 
-    useEffect(() => {
-        const getUsuario = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (user) {
-                setUserId(user.id);
-            }
-
-            else {
-                setUserId("No logueado");
-            }
-        };
-
-        getUsuario();
-    }, []);
 
     function manejarToggleDescuento() {
         if (modoDescuento) {
@@ -169,7 +153,7 @@ export default function PuntoDeVenta() {
 
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <Icon name="ShoppingCart" size={32} color="#fff" />
-                        Tu ID es: {userId}
+                        Punto de Venta
                     </h1>
 
                     <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>

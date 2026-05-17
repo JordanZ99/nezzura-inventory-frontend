@@ -131,11 +131,14 @@ export const api = {
             try {
                 const err = await res.json()
                 detail = err.detail || detail
-            } catch {}
+            } catch { }
             throw new Error(detail)
         }
         return res.json()
     },
+
+    // Perfil
+    getPerfil: () => request<{ tenant_id: string }>("/inventario/me"),
 
     // Ventas
     getVentas: () => request<Venta[]>("/ventas/"),
