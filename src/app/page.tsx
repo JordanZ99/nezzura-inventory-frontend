@@ -22,6 +22,7 @@ export default function PuntoDeVenta() {
     const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
     const [modoDescuento, setModoDescuento] = useState(false)
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("Todas")
+    const [userId, setUserId] = useState<string>("Cargando...");
 
 
     function manejarToggleDescuento() {
@@ -35,6 +36,19 @@ export default function PuntoDeVenta() {
         }
         setModoDescuento(!modoDescuento)
     }
+
+    useEffect(() => {
+        api.getPerfil()
+            .then((data) => {
+                // Guardamos el ID que el backend extrajo del JWT
+                setUserId(data.tenant_id);
+            })
+            .catch((error) => {
+                console.error("Error al validar JWT:", error);
+                setUserId("Sesión Inválida");
+            });
+    }, []);
+
 
     useEffect(() => {
         api.getInventario()
@@ -153,7 +167,7 @@ export default function PuntoDeVenta() {
 
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <Icon name="ShoppingCart" size={32} color="#fff" />
-                        Punto de Venta
+                        TU Tenant ID es: {userId}
                     </h1>
 
                     <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>
