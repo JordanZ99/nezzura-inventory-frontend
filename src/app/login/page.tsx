@@ -52,7 +52,7 @@ export default function LoginPage() {
     return (
         <div style={{
             minHeight: "100vh",
-            background: "var(--text-white)",
+            background: "var(--gradient-bg-login)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -81,7 +81,7 @@ export default function LoginPage() {
             {/* Card de login */}
             <BorderGlow
                 className="w-full max-w-[420px]"
-                glowColor="256 80 120"
+                glowColor="256 80 70"
                 glowIntensity={10}
                 glowRadius={80}
                 backgroundColor="var(--gradient-login)"
