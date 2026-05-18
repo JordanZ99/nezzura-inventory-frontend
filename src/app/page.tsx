@@ -167,7 +167,7 @@ export default function PuntoDeVenta() {
 
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <Icon name="ShoppingCart" size={32} color="#fff" />
-                        TU Tenant ID es: {userId}
+                        Punto de Venta
                     </h1>
 
                     <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>
@@ -244,7 +244,6 @@ export default function PuntoDeVenta() {
 
                         {cargando ? (
                             <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
-                                <div style={{ fontSize: "2rem", marginBottom: 8 }}>🐱</div>
                                 Cargando productos...
                             </div>
                         ) : (

@@ -123,7 +123,7 @@ export default function LoginPage() {
                             color: "#fff",
                             letterSpacing: -0.3,
                         }}>
-                            Bienvenida 🐱
+                            Goyangi Gestor
                         </h1>
                         <p style={{
                             margin: "6px 0 0",
@@ -131,7 +131,7 @@ export default function LoginPage() {
                             color: "rgba(255,255,255,0.75)",
                             fontWeight: 500,
                         }}>
-                            Inicia sesión en Goyangi Store
+                            Inicia sesión para gestionar tu inventario
                         </p>
                     </div>
 
