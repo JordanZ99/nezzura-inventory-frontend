@@ -8,6 +8,7 @@ import dynamic from "next/dynamic"
 import { api, Venta, Gasto } from "@/lib/api"
 import { DateRangePicker, DateRangePickerValue, DonutChart, LineChart, BarChart } from "@tremor/react"
 import Icon from "@/components/ui/Icon"
+import { useChartColors } from "@/components/hooks/useChartColors"
 
 // Dynamic import to avoid SSR issues with Three.js
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
@@ -29,6 +30,7 @@ export default function Estadisticas() {
     const [editVal, setEditVal] = useState({ fecha: "", cantidad: 0, precio_real: 0, total_venta: 0, ganancia_bruta: 0, costo_unitario: 0 })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [dates, setDates] = useState<DateRangePickerValue>({ from: undefined, to: undefined })
+    const chartColors = useChartColors();
 
     const [guardando, setGuardando] = useState(false)
 
@@ -224,11 +226,11 @@ export default function Estadisticas() {
                             <div className="charts-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Top Ventas por Producto</h3>
-                                    {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={["chart1", "chart2", "chart3", "chart4", "chart5", "chart6"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={chartColors} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Costo vs Ganancia</h3>
-                                    {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={["chart1", "chart2"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={chartColors.slice(0, 2)} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Evolución de Ventas</h3>

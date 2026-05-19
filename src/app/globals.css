@@ -63,18 +63,12 @@
   --primary-icons: hsl(334, 79%, 37%);
 
   /* --- COLORES PARA GRÁFICAS --- */
-  --chart-color-1: #fb7185;
-  /* rose-400 */
-  --chart-color-2: #f472b6;
-  /* pink-400 */
-  --chart-color-3: #e879f9;
-  /* fuchsia-400 */
-  --chart-color-4: #a78bfa;
-  /* violet-400 */
-  --chart-color-5: #c084fc;
-  /* purple-400 */
-  --chart-color-6: #94a3b8;
-  /* slate-400 */
+  --chart-color-1: rose;
+  --chart-color-2: pink;
+  --chart-color-3: fuchsia;
+  --chart-color-4: violet;
+  --chart-color-5: purple;
+  --chart-color-6: slate;
 }
 
 [data-theme="cozyYellow"] {
