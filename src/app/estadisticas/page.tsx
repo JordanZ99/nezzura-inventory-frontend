@@ -196,21 +196,21 @@ export default function Estadisticas() {
 
                     {/* KPIs con la clase agregada */}
                     <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #f48fb1", borderRadius: 12, background: "#fdf2f8" }}>
-                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Total Vendido</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "#333" }}>${totalVendido.toFixed(2)}</p>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid var(--chart-1)", borderRadius: 12, background: "var(--bg-card)" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Vendido</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>${totalVendido.toFixed(2)}</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #f06292", borderRadius: 12, background: "#fce4ec" }}>
-                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Margen Bruto (%)</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "#333" }}>{totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%</p>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid var(--chart-2)", borderRadius: 12, background: "var(--bg-card)" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Margen Bruto (%)</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>{totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid #ce93d8", borderRadius: 12, background: "#fce4ec" }}>
-                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "#333" }}>${totalGastos.toFixed(2)}</p>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid var(--chart-3)", borderRadius: 12, background: "var(--bg-card)" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>${totalGastos.toFixed(2)}</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: gananciaNeta >= 0 ? "4px solid #c1fb8fff" : "4px solid #ff8690ff", borderRadius: 12, background: gananciaNeta >= 0 ? "#edffd9ff" : "#ffebee" }}>
-                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "#9e9e9e", fontWeight: 700, textTransform: "uppercase" }}>Ganancia Neta</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: gananciaNeta >= 0 ? "#2e7d32" : "#b71c1c" }}>${gananciaNeta.toFixed(2)}</p>
+                        <div style={{ padding: "16px 20px", borderLeft: gananciaNeta >= 0 ? "4px solid var(--success-main)" : "4px solid var(--error-main)", borderRadius: 12, background: gananciaNeta >= 0 ? "var(--success-bg)" : "var(--error-bg)" }}>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Ganancia Neta</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.5rem", color: gananciaNeta >= 0 ? "var(--success-text)" : "var(--error-text)" }}>${gananciaNeta.toFixed(2)}</p>
                             {gananciaBruta > 0 && <Pill color={gananciaNeta >= 0 ? "green" : "red"}>{((gananciaNeta / gananciaBruta) * 100).toFixed(1)}% margen neto</Pill>}
                         </div>
                     </div>
@@ -224,15 +224,15 @@ export default function Estadisticas() {
                             <div className="charts-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Top Ventas por Producto</h3>
-                                    {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={["rose", "pink", "fuchsia", "violet", "purple", "slate"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={["chart1", "chart2", "chart3", "chart4", "chart5", "chart6"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Costo vs Ganancia</h3>
-                                    {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={["pink", "rose"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={["chart1", "chart2"]} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Evolución de Ventas</h3>
-                                    {chartDataLine.length > 0 ? <LineChart className="h-52" data={chartDataLine} index="date" categories={["Ventas"]} colors={["rose"]} valueFormatter={valFormatter} yAxisWidth={50} showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {chartDataLine.length > 0 ? <LineChart className="h-52" data={chartDataLine} index="date" categories={["Ventas"]} colors={["chart1"]} valueFormatter={valFormatter} yAxisWidth={50} showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                             </div>
 
@@ -241,7 +241,7 @@ export default function Estadisticas() {
                                 {chartDataBar.length > 0 ? (
                                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 8 }}>
                                         <div style={{ minWidth: Math.max(400, chartDataBar.length * 120) }}>
-                                            <BarChart className="h-72" data={chartDataBar} index="name" categories={["Costo Lotes", "Ganancia"]} colors={["pink", "rose"]} valueFormatter={valFormatter} stack={true} yAxisWidth={50} showAnimation={false} />
+                                            <BarChart className="h-72" data={chartDataBar} index="name" categories={["Costo Lotes", "Ganancia"]} colors={["chart1", "chart2"]} valueFormatter={valFormatter} stack={true} yAxisWidth={50} showAnimation={false} />
                                         </div>
                                     </div>
                                 ) : <p style={{ textAlign: "center", color: "#999" }}>No hay datos suficientes.</p>}

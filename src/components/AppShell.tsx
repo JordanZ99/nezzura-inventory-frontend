@@ -15,6 +15,7 @@ const NAV = [
     { href: "/inventario", icon: "Package", label: "Inventario" },
     { href: "/estadisticas", icon: "ChartPie", label: "Estadísticas" },
     { href: "/gastos", icon: "DollarSign", label: "Gastos" },
+    { href: "/personalizacion", icon: "UserRoundPen", label: "Personalización" }
 ]
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -38,7 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {/* ── Sidebar desktop ── */}
             <aside className="hidden md:flex" style={{
                 width: "240px",
-                background: "linear-gradient(180deg, #ffc9dbff 0%, #fdf6f9 60%, #ffffff 100%)",
+                background: "var(--gradient-layout)",
                 flexDirection: "column",
                 padding: "0 0 24px 0",
                 position: "fixed",
@@ -46,7 +47,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 top: 0,
                 left: 0,
                 zIndex: 100,
-                borderRight: "1.5px solid #fce4ec",
                 boxShadow: "4px 0 24px rgba(216, 27, 96, 0.06)",
             }}>
 
@@ -56,11 +56,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     flexDirection: "column",
                     alignItems: "center",
                     padding: "32px 16px 24px",
-                    borderBottom: "1.5px solid #fce4ec",
                     marginBottom: 12,
                 }}>
                     <div style={{
-                        background: "linear-gradient(135deg, #fce4ec, #f8bbd0)",
+                        background: "var(--primary-layout)",
                         borderRadius: "50%",
                         padding: 4,
                         marginBottom: 12,
@@ -76,7 +75,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         />
                     </div>
                     <span style={{
-                        color: "#ad1457",
+                        color: "var(--primary-icons)",
                         fontWeight: 800,
                         fontSize: "1.05rem",
                         letterSpacing: 0.3,
@@ -84,7 +83,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         Goyangi Store
                     </span>
                     <span style={{
-                        color: "#b15b7aff",
+                        color: "var(--primary-darkGray)",
                         fontSize: "0.7rem",
                         fontWeight: 500,
                         marginTop: 3,
@@ -98,7 +97,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {/* Etiqueta sección */}
                 <div style={{
                     padding: "0 59px 10px",
-                    color: "#f48fb1",
+                    color: "var(--primary-light)",
                     fontSize: "0.62rem",
                     fontWeight: 700,
                     letterSpacing: 2,
@@ -122,9 +121,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                                 gap: 10,
                                 padding: "11px 16px",
                                 borderRadius: 12,
-                                color: pathname === item.href ? "#880e4f" : "#ad1457",
+                                color: pathname === item.href ? "var(--primary-dark)" : "var(--primary-icons)",
                                 background: pathname === item.href
-                                    ? "linear-gradient(135deg, #fce4ec, #f8bbd0)"
+                                    ? "var(--primary-layout)"
                                     : "transparent",
                                 textDecoration: "none",
                                 fontSize: "0.875rem",
@@ -144,7 +143,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <div style={{
                     marginTop: "auto",
                     padding: "16px 12px",
-                    borderTop: "1.5px solid #fce4ec",
                     display: "flex",
                     flexDirection: "column",
                     gap: 8,
@@ -159,22 +157,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                             width: "100%",
                             padding: "10px 16px",
                             background: "none",
-                            border: "1.5px solid #fce4ec",
+                            border: "1.5px solid var(--border-primary)",
                             borderRadius: 12,
-                            color: "#ad1457",
+                            color: "var(--primary-icons)",
                             fontSize: "0.8rem",
                             fontWeight: 700,
                             cursor: "pointer",
                             transition: "background 0.15s",
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "#ffeef0")}
+                        onMouseEnter={e => (e.currentTarget.style.background = "var(--primary-soft)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "none")}
                     >
                         <Icon name="LogOut" size={16} />
                         Cerrar sesión
                     </button>
                     <p style={{
-                        color: "#f48fb1",
+                        color: "var(--primary-light)",
                         fontSize: "0.65rem",
                         fontWeight: 500,
                         textAlign: "center",
@@ -201,8 +199,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <nav className="flex md:hidden" style={{
                 position: "fixed",
                 bottom: 0, left: 0, right: 0,
-                background: "#fff",
-                borderTop: "1.5px solid #fce4ec",
+                background: "var(--bg-card)",
+                borderTop: "1.5px solid var(--border-primary)",
                 justifyContent: "space-around",
                 alignItems: "center",
                 height: 64,
@@ -220,12 +218,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         padding: "8px 0",
                     }}>
                         <Icon name={item.icon as any} size={22}
-                            color={pathname === item.href ? "#e91e8c" : "#ad1457"}
+                            color={pathname === item.href ? "var(--primary-mid)" : "var(--primary-icons)"}
                         />
                         <span style={{
                             fontSize: "0.6rem",
                             fontWeight: 700,
-                            color: pathname === item.href ? "#e91e8c" : "#ad1457",
+                            color: pathname === item.href ? "var(--primary-mid)" : "var(--primary-icons)",
                             letterSpacing: 0.3,
                         }}>
                             {item.label.split(" ")[0]}
@@ -247,11 +245,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         padding: "8px 0",
                     }}
                 >
-                    <Icon name="LogOut" size={22} color="#ad1457" />
+                    <Icon name="LogOut" size={22} color="var(--primary-icons)" />
                     <span style={{
                         fontSize: "0.6rem",
                         fontWeight: 700,
-                        color: "#ad1457",
+                        color: "var(--primary-icons)",
                         letterSpacing: 0.3,
                     }}>
                         Salir
@@ -259,12 +257,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
             </nav>
 
-            <style>{`
-                .nav-link:hover {
-                    background: linear-gradient(135deg, #fce4ec, #f8bbd0) !important;
-                    color: #880e4f !important;
-                }
-            `}</style>
         </div>
     )
 }

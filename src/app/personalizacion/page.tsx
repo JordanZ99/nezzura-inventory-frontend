@@ -64,7 +64,7 @@ export default function Gastos() {
     return (
         <div style={{ minHeight: "100vh" }}>
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-4)", padding: "32px 24px 80px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-5)", padding: "32px 24px 80px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}
@@ -89,30 +89,51 @@ export default function Gastos() {
                     {/*Aquí va el titulo de la pagina*/}
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <div style={{ marginLeft: "-5px" }}>
-                            <Icon name="DollarSign" size={32} color="var(--primary-soft)" />
+                            <Icon name="UserRoundPen" size={32} color="var(--primary-soft)" />
                         </div>
-                        Gastos</h1>
+                        Personalización</h1>
                 </div>
             </div>
 
-            <div style={{ padding: "0 16px", marginTop: -60 }}>
+            <div style={{ width: "100%", padding: "0 16px", marginTop: -60 }}>
                 {/* Stats cards */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+                <div style={{ flex: 1, gap: 12, marginBottom: 20 }}>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-                        <Icon name="BanknoteArrowDown" size={32} color="var(--primary-alter)" />
+                        <Icon name="PaintBucket" size={32} color="var(--primary-alter)" />
                         <div>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Gastado</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-alter)" }}>${total.toFixed(0)}</p>
+                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Temas</p>
                         </div>
-                    </div>
-                    <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-                        <Icon name="ClipboardList" size={32} color="var(--primary-pale)" />
-                        <div>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Operaciones</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-pale)" }}>{numGastos}</p>
+                        {/*Contenedor de circulos de temas*/}
+                        <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center" }}>
+                            {/*Círculo Gris*/}
+                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'default')}
+                                style={{
+                                    width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#91a5b3ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+
+                                }}
+                                title="Tema Default"
+                            />
+                            {/*Círculo Rosa*/}
+                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'default')}
+                                style={{
+                                    width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#f33376", boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+
+                                }}
+                                title="Tema Rosa"
+                            />
+                            {/*Círculo Amarillo*/}
+                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'cozyYellow')}
+                                style={{
+                                    width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#ffd779ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+
+                                }}
+                                title="Tema Cozy Yellow"
+                            />
                         </div>
                     </div>
                 </div>
+
+
 
                 {msg && (
                     <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, borderLeft: "4px solid #4caf50", color: "#2e7d32", fontSize: "0.9rem", fontWeight: 700 }}>{msg.texto}</div>

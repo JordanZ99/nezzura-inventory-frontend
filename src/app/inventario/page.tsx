@@ -219,7 +219,7 @@ export default function Inventario() {
                         { label: "Stock bajo (≤3)", valor: stockBajo, icon: "Megaphone" },
                     ].map(m => (
                         <div key={m.label} className="card fade-up" style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-                            <div style={{ background: "linear-gradient(135deg,#e91e8c,#f06292)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
+                            <div style={{ background: "var(--gradient-1)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
                                 <Icon name={m.icon as any} size={24} color="var(--primary-soft)" />
                             </div>
                             <div>
@@ -451,7 +451,7 @@ export default function Inventario() {
                                 </div>
 
                                 <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
-                                    {guardando ? "⏳ Procesando..." : "💾 Guardar Cambios"}
+                                    {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
                                 </button>
                             </>
                         )}

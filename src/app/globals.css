@@ -4,61 +4,141 @@
 
 :root {
   /* --- BRAND COLORS (Tu paleta rosa actual) --- */
-  --primary-dark: #c2185b;
-  --primary-darkGray: #a75a76;
-  --primary-mid: #e91e8c;
-  --primary-light: #ff7171;
-  --primary-pale: #ffaec3;
-  --primary-soft: #fdf6f9;
-  --primary-alter: #6841d2ff;
+  --primary-dark: hsl(336, 78%, 43%);
+  --primary-darkGray: hsl(338, 30%, 50%);
+  --primary-mid: hsl(329, 83%, 52%);
+  --primary-light: hsl(0, 100%, 72%);
+  --primary-pale: hsl(344, 100%, 84%);
+  --primary-soft: hsl(336, 50%, 98%);
+  --primary-alter: hsl(256, 62%, 54%);
   /* El fondo rosado muy sutil de las tarjetas */
 
   /* --- SEMANTIC STATES (Éxito, Error, Alertas) --- */
-  --success-main: #4caf50;
-  --success-text: #2e7d32;
-  --success-bg: #e8f5e9;
+  --success-main: hsl(122, 39%, 49%);
+  --success-text: hsl(123, 46%, 34%);
+  --success-bg: hsl(128, 29%, 94%);
 
   /* Error / Danger */
-  --error-main: #f44336;
-  --error-text: #b71c1c;
-  --error-bg: #ffeef0;
+  --error-main: hsl(4, 90%, 58%);
+  --error-text: hsl(0, 74%, 41%);
+  --error-bg: hsl(353, 100%, 96%);
 
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
-  --white: #ffffff;
-  --bg-app: #f8f9fe;
-  --bg-card: #ffffff;
+  --white: hsl(0, 0%, 100%);
+  --bg-app: hsl(230, 60%, 98%);
+  --bg-card: hsl(0, 0%, 100%);
 
   /* Bordes y Divisores */
-  --border-light: #e9ecef;
+  --border-light: hsl(210, 17%, 93%);
   /* Para inputs y botones ghost */
-  --border-primary: #fce4ec;
+  --border-primary: hsl(343, 77%, 95%);
   /* Para separadores temáticos */
 
   /* Tipografía */
-  --text-main: #32325d;
-  --text-muted: #8898aa;
-  --text-white: #ffffff;
+  --text-main: hsl(240, 30%, 28%);
+  --text-muted: hsl(211, 18%, 60%);
+  --text-white: hsl(0, 0%, 100%);
 
   /* --- EFECTOS & SOMBRAS --- */
-  --card-shadow: 0 4px 24px 0 rgba(200, 50, 120, 0.10);
-  --btn-shadow: 0 4px 15px rgba(233, 30, 140, 0.35);
-  --primary-glow: 0 0 0 3px rgba(233, 30, 140, 0.12);
+  --card-shadow: 0 4px 24px 0 hsl(332 60% 49% / 10%);
+  --btn-shadow: 0 4px 15px hsl(327 83% 54% / 35%);
+  --primary-glow: 0 0 0 3px hsl(327 83% 54% / 12%);
 
   /* --- Degradados --- */
-  --gradient-1: linear-gradient(135deg, rgb(224, 51, 141) 0%, #f06292 100%);
-  --gradient-2: linear-gradient(135deg, #ff9fb9 0%, #f8bbe0 100%);
-  --gradient-3: linear-gradient(135deg, #ff84ce 0%, #dd8fff 100%);
-  --gradient-4: linear-gradient(135deg, #6841d2ff 0%, #e36792ff 100%);
-  --gradient-login: linear-gradient(135deg, #6841d2ff, #e36792ff);
-  --gradient-bg-login: linear-gradient(180deg, rgb(255, 255, 255) 0%, rgb(223, 223, 223) 100%);
+  --gradient-1: linear-gradient(135deg, hsl(329, 74%, 54%) 0%, hsl(339, 81%, 66%) 100%);
+  --gradient-2: linear-gradient(135deg, hsl(344, 100%, 81%) 0%, hsl(323, 76%, 85%) 100%);
+  --gradient-3: linear-gradient(135deg, hsl(324, 100%, 76%) 0%, hsl(281, 100%, 78%) 100%);
+  --gradient-4: linear-gradient(135deg, hsl(256, 62%, 54%) 0%, hsl(339, 70%, 65%) 100%);
+  --gradient-5: linear-gradient(135deg, hsl(319, 99%, 61%) 0%, hsl(0, 100%, 78%) 100%);
+  --gradient-login: linear-gradient(135deg, hsl(256, 62%, 54%), hsl(339, 70%, 65%));
+  --gradient-bg-login: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(0, 0%, 87%) 100%);
 
   /* Para el focus de los inputs */
 
   /* --- LAYOUT --- */
   --sidebar-w: 240px;
-  --overlay-bg: rgba(0, 0, 0, 0.4);
+  --overlay-bg: hsl(0 0% 0% / 40%);
+  --gradient-layout: linear-gradient(180deg, hsl(339, 100%, 89%) 0%, hsl(336, 50%, 98%) 60%, hsl(0, 0%, 100%) 100%);
+  --primary-layout: linear-gradient(135deg, hsl(343, 77%, 95%), hsl(344, 76%, 85%));
+  --primary-icons: hsl(334, 79%, 37%);
+
+  /* --- COLORES PARA GRÁFICAS --- */
+  --chart-1: hsl(336, 78%, 43%);
+  --chart-2: hsl(329, 83%, 52%);
+  --chart-3: hsl(0, 100%, 72%);
+  --chart-4: hsl(344, 100%, 84%);
+  --chart-5: hsl(256, 62%, 54%);
+  --chart-6: hsl(281, 100%, 78%);
 }
 
+[data-theme="cozyYellow"] {
+  /* --- BRAND COLORS (Paleta cálida/amarilla) --- */
+  --primary-dark: hsl(2, 68%, 54%);
+  --primary-darkGray: hsl(22, 52%, 58%);
+  --primary-mid: hsl(45, 90%, 52%);
+  --primary-light: hsl(36, 100%, 99%);
+  --primary-pale: hsl(48, 100%, 71%);
+  --primary-soft: hsl(48, 60%, 97%);
+  --primary-alter: hsl(21, 75%, 54%);
+  /* El fondo rosado muy sutil de las tarjetas */
+
+  /* --- SEMANTIC STATES (Éxito, Error, Alertas) --- */
+  --success-main: hsl(122, 39%, 49%);
+  --success-text: hsl(123, 46%, 34%);
+  --success-bg: hsl(128, 29%, 94%);
+
+  /* Error / Danger */
+  --error-main: hsl(4, 90%, 58%);
+  --error-text: hsl(0, 74%, 41%);
+  --error-bg: hsl(353, 100%, 96%);
+
+  /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
+  --white: hsl(0, 0%, 100%);
+  --bg-app: hsl(48, 40%, 98%);
+  --bg-card: hsl(0, 0%, 100%);
+
+  /* Bordes y Divisores */
+  --border-light: hsl(45, 15%, 92%);
+  /* Para inputs y botones ghost */
+  --border-primary: hsl(44, 100%, 88%);
+  /* Para separadores temáticos */
+
+  /* Tipografía */
+  --text-main: hsl(60, 20%, 25%);
+  --text-muted: hsl(45, 12%, 52%);
+  --text-white: hsl(0, 0%, 100%);
+
+  /* --- EFECTOS & SOMBRAS --- */
+  --card-shadow: 0 4px 24px 0 hsl(45 80% 30% / 8%);
+  --btn-shadow: 0 4px 15px hsl(45 90% 45% / 30%);
+  --primary-glow: 0 0 0 3px hsl(45 90% 52% / 15%);
+
+  /* --- Degradados --- */
+  --gradient-1: linear-gradient(135deg, hsl(6, 83%, 70%) 0%, hsl(0, 57%, 55%) 100%);
+  --gradient-2: linear-gradient(135deg, hsl(48, 100%, 86%) 0%, hsl(24, 100%, 78%) 100%);
+  --gradient-3: linear-gradient(135deg, hsl(89, 68%, 71%) 0%, hsl(75, 82%, 75%) 100%);
+  --gradient-4: linear-gradient(135deg, hsl(21, 75%, 54%) 0%, hsl(45, 90%, 52%) 100%);
+  --gradient-5: linear-gradient(135deg, hsl(205, 97%, 77%) 0%, hsl(185, 70%, 82%) 100%);
+  --gradient-login: linear-gradient(135deg, hsl(21, 100%, 60%), hsl(43, 100%, 53%));
+  --gradient-bg-login: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(48, 30%, 94%) 100%);
+
+  /* Para el focus de los inputs */
+
+  /* --- LAYOUT --- */
+  --sidebar-w: 240px;
+  --overlay-bg: hsl(0 0% 0% / 40%);
+  --gradient-layout: linear-gradient(180deg, hsl(47, 99%, 71%) 0%, hsl(50, 100%, 80%) 60%, hsl(53, 100%, 97%) 100%);
+  --primary-layout: linear-gradient(135deg, hsl(53, 100%, 98%), hsl(40, 100%, 89%));
+  --primary-icons: hsl(14, 58%, 52%);
+
+  /* --- COLORES PARA GRÁFICAS --- */
+  --chart-1: hsl(2, 68%, 54%);
+  --chart-2: hsl(22, 52%, 58%);
+  --chart-3: hsl(45, 90%, 52%);
+  --chart-4: hsl(36, 100%, 99%);
+  --chart-5: hsl(48, 100%, 71%);
+  --chart-6: hsl(48, 100%, 84%);
+}
 
 * {
   box-sizing: border-box;
@@ -99,12 +179,12 @@ body {
 }
 
 .hero-gradient {
-  background: linear-gradient(135deg, #e371d0 0%, #ea9ece 100%);
+  background: var(--gradient-4);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #e91e8c, #f06292);
-  color: #fff;
+  background: linear-gradient(135deg, var(--primary-mid), var(--primary-dark));
+  color: var(--white);
   border: none;
   border-radius: 12px;
   padding: 10px 20px;
@@ -112,7 +192,7 @@ body {
   font-size: 0.85rem;
   cursor: pointer;
   transition: opacity 0.2s, transform 0.1s;
-  box-shadow: 0 4px 15px rgba(233, 30, 140, 0.35);
+  box-shadow: var(--btn-shadow);
 }
 
 .btn-primary:hover {
@@ -129,7 +209,7 @@ body {
 .btn-ghost {
   background: transparent;
   color: var(--text-muted);
-  border: 1.5px solid #e9ecef;
+  border: 1.5px solid var(--border-light);
   border-radius: 12px;
   padding: 10px 20px;
   font-weight: 600;
@@ -144,40 +224,40 @@ body {
 }
 
 .input-primary {
-  border: 1.5px solid #e9ecef;
+  border: 1.5px solid var(--border-light);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 0.875rem;
   color: var(--text-main);
   width: 100%;
-  background: #fff;
+  background: var(--white);
   transition: border-color 0.2s;
   outline: none;
 }
 
 .input-primary:focus {
   border-color: var(--primary-mid);
-  box-shadow: 0 0 0 3px rgba(233, 30, 140, 0.12);
+  box-shadow: var(--primary-glow);
 }
 
 .stat-pill-green {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .stat-pill-red {
-  background: #ffeef0;
-  color: #b71c1c;
+  background: var(--error-bg);
+  color: var(--error-text);
 }
 
 .stat-pill-primary {
-  background: #fce4ec;
+  background: var(--border-primary);
   color: var(--primary-dark);
 }
 
 .stat-pill-gray {
-  background: #f5f5f5;
-  color: #616161;
+  background: var(--border-light);
+  color: var(--text-muted);
 }
 
 /* Animación suave de aparición */
@@ -203,8 +283,8 @@ body {
 }
 
 .nav-link:hover {
-  background: linear-gradient(135deg, #fce4ec, #f8bbd0) !important;
-  color: #880e4f !important;
+  background: var(--border-primary) !important;
+  color: var(--primary-dark) !important;
 }
 
 /* Ocultar flechas (spinners) en inputs de tipo número */
