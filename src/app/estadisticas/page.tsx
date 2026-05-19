@@ -234,7 +234,7 @@ export default function Estadisticas() {
                                 </div>
                                 <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
                                     <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Evolución de Ventas</h3>
-                                    {chartDataLine.length > 0 ? <LineChart className="h-52" data={chartDataLine} index="date" categories={["Ventas"]} colors={["chart1"]} valueFormatter={valFormatter} yAxisWidth={50} showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
+                                    {chartDataLine.length > 0 ? <LineChart className="h-52" data={chartDataLine} index="date" categories={["Ventas"]} colors={[chartColors[0]]} valueFormatter={valFormatter} yAxisWidth={50} showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                             </div>
 
@@ -243,7 +243,7 @@ export default function Estadisticas() {
                                 {chartDataBar.length > 0 ? (
                                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 8 }}>
                                         <div style={{ minWidth: Math.max(400, chartDataBar.length * 120) }}>
-                                            <BarChart className="h-72" data={chartDataBar} index="name" categories={["Costo Lotes", "Ganancia"]} colors={["chart1", "chart2"]} valueFormatter={valFormatter} stack={true} yAxisWidth={50} showAnimation={false} />
+                                            <BarChart className="h-72" data={chartDataBar} index="name" categories={["Costo Lotes", "Ganancia"]} colors={chartColors.slice(0, 2)} valueFormatter={valFormatter} stack={true} yAxisWidth={50} showAnimation={false} />
                                         </div>
                                     </div>
                                 ) : <p style={{ textAlign: "center", color: "#999" }}>No hay datos suficientes.</p>}
