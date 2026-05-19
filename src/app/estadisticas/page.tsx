@@ -196,15 +196,15 @@ export default function Estadisticas() {
 
                     {/* KPIs con la clase agregada */}
                     <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid var(--chart-1)", borderRadius: 12, background: "var(--bg-card)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-1))", borderRadius: 12, background: "var(--bg-card)" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Vendido</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>${totalVendido.toFixed(2)}</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid var(--chart-2)", borderRadius: 12, background: "var(--bg-card)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-2))", borderRadius: 12, background: "var(--bg-card)" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Margen Bruto (%)</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>{totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid var(--chart-3)", borderRadius: 12, background: "var(--bg-card)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-3))", borderRadius: 12, background: "var(--bg-card)" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>${totalGastos.toFixed(2)}</p>
                         </div>

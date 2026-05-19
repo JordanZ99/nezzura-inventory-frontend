@@ -63,12 +63,12 @@
   --primary-icons: hsl(334, 79%, 37%);
 
   /* --- COLORES PARA GRÁFICAS --- */
-  --chart-1: hsl(336, 78%, 43%);
-  --chart-2: hsl(329, 83%, 52%);
-  --chart-3: hsl(0, 100%, 72%);
-  --chart-4: hsl(344, 100%, 84%);
-  --chart-5: hsl(256, 62%, 54%);
-  --chart-6: hsl(281, 100%, 78%);
+  --chart-1: 195 24 93;
+  --chart-2: 234 31 136;
+  --chart-3: 255 112 112;
+  --chart-4: 255 173 195;
+  --chart-5: 104 65 210;
+  --chart-6: 219 143 255;
 }
 
 [data-theme="cozyYellow"] {
@@ -132,12 +132,12 @@
   --primary-icons: hsl(14, 58%, 52%);
 
   /* --- COLORES PARA GRÁFICAS --- */
-  --chart-1: hsl(2, 68%, 54%);
-  --chart-2: hsl(22, 52%, 58%);
-  --chart-3: hsl(45, 90%, 52%);
-  --chart-4: hsl(36, 100%, 99%);
-  --chart-5: hsl(48, 100%, 71%);
-  --chart-6: hsl(48, 100%, 84%);
+  --chart-1: 217 63 58;
+  --chart-2: 204 133 92;
+  --chart-3: 243 188 22;
+  --chart-4: 255 253 250;
+  --chart-5: 255 225 107;
+  --chart-6: 255 239 173;
 }
 
 * {
