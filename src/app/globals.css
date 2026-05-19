@@ -63,12 +63,12 @@
   --primary-icons: hsl(334, 79%, 37%);
 
   /* --- COLORES PARA GRÁFICAS --- */
-  --chart-1: 195 24 93;
-  --chart-2: 234 31 136;
-  --chart-3: 255 112 112;
-  --chart-4: 255 173 195;
-  --chart-5: 104 65 210;
-  --chart-6: 219 143 255;
+  --chart-1: rose;
+  --chart-2: pink;
+  --chart-3: fuchsia;
+  --chart-4: violet;
+  --chart-5: purple;
+  --chart-6: slate;
 }
 
 [data-theme="cozyYellow"] {
