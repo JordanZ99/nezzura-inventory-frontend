@@ -85,7 +85,7 @@ export default function Gastos() {
                     />
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>EGRESOS</p>
+                    <p style={{ color: "rgba(255, 255, 255, 0.91)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>PERSONALIZACIÓN</p>
                     {/*Aquí va el titulo de la pagina*/}
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <div style={{ marginLeft: "-5px" }}>

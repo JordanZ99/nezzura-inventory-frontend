@@ -15,7 +15,7 @@ const NAV = [
     { href: "/inventario", icon: "Package", label: "Inventario" },
     { href: "/estadisticas", icon: "ChartPie", label: "Estadísticas" },
     { href: "/gastos", icon: "DollarSign", label: "Gastos" },
-    { href: "/personalizacion", icon: "UserRoundPen", label: "Personalización" }
+    { href: "/personalizacion", icon: "UserRoundPen", label: "Ajustes" }
 ]
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
