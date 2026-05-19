@@ -34,12 +34,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        chart1: { 500: "var(--chart-1)" },
-        chart2: { 500: "var(--chart-2)" },
-        chart3: { 500: "var(--chart-3)" },
-        chart4: { 500: "var(--chart-4)" },
-        chart5: { 500: "var(--chart-5)" },
-        chart6: { 500: "var(--chart-6)" },
+        chart1: { 500: (() => "var(--chart-1)") as any },
+        chart2: { 500: (() => "var(--chart-2)") as any },
+        chart3: { 500: (() => "var(--chart-3)") as any },
+        chart4: { 500: (() => "var(--chart-4)") as any },
+        chart5: { 500: (() => "var(--chart-5)") as any },
+        chart6: { 500: (() => "var(--chart-6)") as any },
         // Tremor SOLO reconoce colores estándar de Tailwind (pink, rose, etc.)
         // Sobreescribimos "pink" con tu paleta de marca.
         // Cuando cambies de tema, actualiza estos hex junto con globals.css.
