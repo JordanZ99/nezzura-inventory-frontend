@@ -1,65 +1,50 @@
 "use client"
-// ==============================================================================
-// src/app/gastos/page.tsx — Rediseño Argon primary
-// ==============================================================================
 
 import { useState, useEffect } from "react"
-import { api, Gasto } from "@/lib/api"
+import { api, Producto } from "@/lib/api"
+import { supabase } from "@/lib/supabase"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
-export default function Gastos() {
-    const [gastos, setGastos] = useState<Gasto[]>([])
+type Tab = "cuenta" | "catalogo"
+
+export default function Personalizacion() {
     const [cargando, setCargando] = useState(true)
-    const [form, setForm] = useState({
-        fecha: new Date().toISOString().substring(0, 10),
-        categoria: "Otros",
-        descripcion: "",
-        monto: ""
-    })
-    const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+    const [tab, setTab] = useState<Tab>("cuenta")
+    const [userEmail, setUserEmail] = useState<string | null>(null)
+    const [tenantId, setTenantId] = useState<string | null>(null)
+    const [productos, setProductos] = useState<Producto[]>([])
 
-    const CATEGORIAS = ["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"]
+    useEffect(() => {
+        async function loadData() {
+            try {
+                // Obtener datos del usuario
+                const { data } = await supabase.auth.getSession()
+                if (data.session?.user) {
+                    setUserEmail(data.session.user.email ?? "Usuario Goyangi")
+                }
+                const perfil = await api.getPerfil()
+                if (perfil?.tenant_id) {
+                    setTenantId(perfil.tenant_id)
+                }
+                // Obtener catálogo
+                const inv = await api.getInventario()
+                setProductos(inv)
+            } catch (e) {
+                console.error("Error cargando configuración:", e)
+            } finally {
+                setCargando(false)
+            }
+        }
+        loadData()
+    }, [])
 
-    async function recargar() {
-        const g = await api.getGastos()
-        setGastos(g)
-    }
-    useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
-
-    function mostrarMsg(ok: boolean, texto: string) {
-        setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
-    }
-
-    async function agregar() {
-        const monto = parseFloat(form.monto)
-        if (!form.descripcion || isNaN(monto)) return
-        try {
-            await api.crearGasto({
-                fecha: form.fecha + "T12:00:00.000Z", // add time to ensure it posts correctly in UTC/local timezone logic
-                categoria: form.categoria,
-                descripcion: form.descripcion,
-                monto
-            })
-            mostrarMsg(true, `✅ Gasto registrado: $${monto.toFixed(2)}`)
-            setForm(f => ({ ...f, descripcion: "", monto: "" }))
-            recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
-    }
-
-    async function eliminar(id: number) {
-        if (!confirm("¿Eliminar este gasto?")) return
-        try {
-            await api.eliminarGasto(id)
-            mostrarMsg(true, "🗑️ Gasto eliminado")
-            recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
-    }
-
-    const total = gastos.reduce((a, g) => a + g.monto, 0)
-    const numGastos = gastos.length
+    const TABS: { id: Tab; label: string; icon: string }[] = [
+        { id: "cuenta", label: "Mi Cuenta", icon: "User" },
+        { id: "catalogo", label: "Catálogo", icon: "ClipboardList" },
+    ]
 
     return (
         <div style={{ minHeight: "100vh" }}>
@@ -85,131 +70,161 @@ export default function Gastos() {
                     />
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p style={{ color: "rgba(255, 255, 255, 0.91)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>PERSONALIZACIÓN</p>
-                    {/*Aquí va el titulo de la pagina*/}
-                    <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
+                    <p style={{ color: "rgba(255, 255, 255, 0.91)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>CONFIGURACIÓN</p>
+                    <h1 className="hidden md:flex" style={{ color: "var(--white)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <div style={{ marginLeft: "-5px" }}>
-                            <Icon name="UserRoundPen" size={32} color="var(--primary-soft)" />
+                            <Icon name="UserRoundPen" size={32} color="var(--white)" />
                         </div>
-                        Personalización</h1>
+                        Personalización
+                    </h1>
                 </div>
             </div>
 
-            <div style={{ width: "100%", padding: "0 16px", marginTop: -47 }}>
-                {/* Stats cards */}
-                <div style={{ flex: 1, gap: 12, marginBottom: 20 }}>
+            <div style={{ width: "100%", padding: "0 24px", marginTop: -47 }}>
+                
+                {/* ── Selector de Temas Original del Usuario ── */}
+                <div style={{ flex: 1, gap: 12, marginBottom: 24 }}>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
                         <Icon name="PaintBucket" size={32} color="var(--primary-alter)" />
                         <div>
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Temas</p>
                         </div>
-                        {/*Contenedor de circulos de temas*/}
+                        {/* Contenedor de círculos de temas */}
                         <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center" }}>
-                            {/*Círculo Gris*/}
+                            {/* Círculo Gris */}
                             <button onClick={() => document.documentElement.setAttribute('data-theme', 'default')}
                                 style={{
                                     width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#91a5b3ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-
                                 }}
-                                title="Tema Default"
+                                title="Steel Slate"
                             />
-                            {/*Círculo Rosa*/}
-                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'default')}
+                            {/* Círculo Rosa */}
+                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'strawberry')}
                                 style={{
                                     width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#f33376", boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-
                                 }}
-                                title="Tema Rosa"
+                                title="Strawberry Pink"
                             />
-                            {/*Círculo Amarillo*/}
+                            {/* Círculo Negro */}
+                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'midnightBlack')}
+                                style={{
+                                    width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#232323ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+                                }}
+                                title="Midnight Black"
+                            />
+                            {/* Círculo Amarillo */}
                             <button onClick={() => document.documentElement.setAttribute('data-theme', 'cozyYellow')}
                                 style={{
                                     width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#ffd779ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-
                                 }}
-                                title="Tema Cozy Yellow"
+                                title="Cozy Yellow"
                             />
                         </div>
                     </div>
                 </div>
 
+                {/* ── Selector de Pestañas (Tabs) ── */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                    {TABS.map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => setTab(t.id)}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "10px 20px",
+                                borderRadius: 12,
+                                border: "none",
+                                fontWeight: 700,
+                                fontSize: "0.85rem",
+                                cursor: "pointer",
+                                background: tab === t.id ? "var(--primary-mid)" : "var(--bg-card)",
+                                color: tab === t.id ? "#fff" : "var(--text-muted)",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                                transition: "all 0.2s"
+                            }}
+                        >
+                            <Icon name={t.icon as any} size={16} />
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
 
-
-                {msg && (
-                    <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, borderLeft: "4px solid #4caf50", color: "#2e7d32", fontSize: "0.9rem", fontWeight: 700 }}>{msg.texto}</div>
-                )}
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
-
-                    {/* Formulario */}
-                    <div className="card fade-up" style={{ padding: 20, flex: "1 1 300px", maxWidth: 400 }}>
-                        <h2 style={{ margin: "0 0 16px", fontSize: "1rem", fontWeight: 800 }}> Registrar Gasto</h2>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Fecha</label>
-                                <input type="date" className="input-primary" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
+                {/* ── Contenido de las pestañas ── */}
+                {tab === "cuenta" && (
+                    <div className="card fade-up" style={{ padding: "24px 28px", maxWidth: 500 }}>
+                        <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Información de la Cuenta</h2>
+                        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Detalles del administrador de Goyangi Store.</p>
+                        
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
+                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Correo Electrónico</span>
+                                <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-main)" }}>{cargando ? "Cargando..." : userEmail}</span>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Categoría</label>
-                                <select className="input-primary" value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
-                                    {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
+                            <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
+                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Tenant ID (Multitenant)</span>
+                                <span style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 700 }}>{cargando ? "Cargando..." : tenantId}</span>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Descripción</label>
-                                <input className="input-primary" placeholder="Ej: Pago de luz, comida..." value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
+                            <div>
+                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Estado de Conexión</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem", fontWeight: 700, color: "#4caf50" }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4caf50" }} />
+                                    Servidores Conectados (FastAPI + Supabase)
+                                </div>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Monto ($)</label>
-                                <input type="number" step="0.01" className="input-primary" placeholder="0.00" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
-                            </div>
-                            <button className="btn-primary" style={{ marginTop: 8 }} onClick={agregar} disabled={!form.descripcion || !form.monto || !form.fecha}>
-                                Añadir Gasto
-                            </button>
                         </div>
                     </div>
+                )}
 
-                    {/* Lista / Tabla */}
-                    <div className="card fade-up" style={{ flex: "1 1 400px", overflow: "hidden" }}>
-                        <div style={{ padding: "14px 20px", borderBottom: "1px solid #fce4ec", background: "#fdf6f9" }}>
-                            <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>Movimientos</h3>
-                        </div>
+                {tab === "catalogo" && (
+                    <div className="card fade-up" style={{ padding: "20px 24px", overflow: "hidden" }}>
+                        <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Catálogo de Productos</h2>
+                        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Visualiza el catálogo de productos disponibles en el inventario.</p>
+                        
                         <div style={{ overflowX: "auto" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
-                                    <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid #fce4ec" }}>
-                                        {["Fecha", "Categoría", "Gasto", "Monto", ""].map(h => (
-                                            <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
+                                    <tr style={{ color: "var(--text-muted)", borderBottom: "1.5px solid var(--border-primary)" }}>
+                                        {["Imagen", "Producto", "Categoría", "Stock Total", "Precio"].map(h => (
+                                            <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {gastos.map(g => (
-                                        <tr key={g.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-primary-50/20">
-                                            <td style={{ padding: "12px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{new Date(g.fecha).toLocaleDateString()}</td>
+                                    {productos.map(p => (
+                                        <tr key={p.producto} style={{ borderBottom: "1px solid var(--border-light)" }}>
                                             <td style={{ padding: "12px 16px" }}>
-                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
-                                                    {g.categoria}
+                                                {p.imagen ? (
+                                                    <img src={p.imagen} alt={p.producto} style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover" }} />
+                                                ) : (
+                                                    <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--bg-app)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                        <Icon name="Package" size={18} color="var(--text-muted)" />
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: "12px 16px", fontWeight: 700 }}>{p.producto}</td>
+                                            <td style={{ padding: "12px 16px" }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "var(--bg-app)", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
+                                                    {p.categoria || "Otros"}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 600 }}>{g.descripcion}</td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 800, color: "#b71c1c" }}>-${g.monto.toFixed(2)}</td>
-                                            <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                                                <button onClick={() => eliminar(g.id)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.3 }}><Icon name="Trash2" /></button>
-                                            </td>
+                                            <td style={{ padding: "12px 16px", fontWeight: 800 }}>{p.stock_total} uds</td>
+                                            <td style={{ padding: "12px 16px", fontWeight: 800, color: "var(--primary-dark)" }}>${p.precio_venta.toFixed(2)}</td>
                                         </tr>
                                     ))}
-                                    {gastos.length === 0 && !cargando && (
-                                        <tr><td colSpan={4} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No hay gastos registrados.</td></tr>
+                                    {productos.length === 0 && !cargando && (
+                                        <tr>
+                                            <td colSpan={5} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No hay productos en el catálogo.</td>
+                                        </tr>
                                     )}
                                 </tbody>
                             </table>
                         </div>
                     </div>
-
-                </div>
-                <div style={{ height: 32 }} />
+                )}
             </div>
+            <div style={{ height: 32 }} />
         </div>
     )
 }

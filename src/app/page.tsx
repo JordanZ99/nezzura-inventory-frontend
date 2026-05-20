@@ -229,7 +229,7 @@ export default function PuntoDeVenta() {
                                     onChange={e => setBusqueda(e.target.value)}
                                 />
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid #fce4ec", paddingLeft: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
                                 <Icon name="Folders" size={20} />
                                 <select
                                     className="input-primary"
@@ -304,7 +304,7 @@ export default function PuntoDeVenta() {
                                     </div>
                                 ))}
                                 {productosFiltrados.length === 0 && !cargando && (
-                                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "rgba(255,255,255,0.6)", borderRadius: 16, border: "2px dashed #f8bbd0", marginTop: 20 }}>
+                                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
                                         <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
                                         <h2 style={{ fontSize: "1.8rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 12px", lineHeight: 1.2, textTransform: "uppercase" }}>
                                             No hay productos
@@ -321,9 +321,9 @@ export default function PuntoDeVenta() {
                     {/* ── Carrito desktop ── */}
                     <div className="card hidden md:flex" style={{
                         width: 280, flexDirection: "column",
-                        position: "sticky", top: 16, maxHeight: "calc(100vh - 80px)",
+                        position: "sticky", top: 16, maxHeight: "calc(100vh - 80px)"
                     }}>
-                        <div style={{ padding: "16px 20px", borderBottom: "1px solid #fce4ec", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-primary)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <h2 style={{
                                 margin: 0,
                                 fontSize: "1rem",
@@ -354,12 +354,12 @@ export default function PuntoDeVenta() {
                                 onClick={manejarToggleDescuento}
                                 style={{
                                     fontSize: "0.65rem", fontWeight: 800, padding: "4px 8px", borderRadius: 8, border: "none", cursor: "pointer",
-                                    background: modoDescuento ? "var(--primary-mid)" : "#eee",
+                                    background: modoDescuento ? "var(--primary-mid)" : "var(--bg-card2)",
                                     color: modoDescuento ? "#fff" : "#999",
                                     transition: "all 0.2s"
                                 }}
                             >
-                                {modoDescuento ? "✨ DESC. ON" : "🏷️ DESC"}
+                                {modoDescuento ? "CON DESCUENTO" : "SIN DESCUENTO"}
                             </button>
                         </div>
 

@@ -87,7 +87,7 @@ export default function Gastos() {
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
                     <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>EGRESOS</p>
                     {/*Aquí va el titulo de la pagina*/}
-                    <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
+                    <h1 className="hidden md:flex" style={{ color: "var(--primary-soft)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <div style={{ marginLeft: "-5px" }}>
                             <Icon name="DollarSign" size={32} color="var(--primary-soft)" />
                         </div>
@@ -150,13 +150,13 @@ export default function Gastos() {
 
                     {/* Lista / Tabla */}
                     <div className="card fade-up" style={{ flex: "1 1 400px", overflow: "hidden" }}>
-                        <div style={{ padding: "14px 20px", borderBottom: "1px solid #fce4ec", background: "#fdf6f9" }}>
+                        <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border-primary)", backgroundColor: "var(--bg-card)" }}>
                             <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>Movimientos</h3>
                         </div>
                         <div style={{ overflowX: "auto" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
-                                    <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid #fce4ec" }}>
+                                    <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
                                         {["Fecha", "Categoría", "Gasto", "Monto", ""].map(h => (
                                             <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
                                         ))}
@@ -164,7 +164,7 @@ export default function Gastos() {
                                 </thead>
                                 <tbody>
                                     {gastos.map(g => (
-                                        <tr key={g.id} style={{ borderBottom: "1px solid #fdf6f9" }} className="hover:bg-primary-50/20">
+                                        <tr key={g.id} style={{ borderBottom: "1px solid var(--bg-card)" }} className="hover:bg-primary-50/20">
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{new Date(g.fecha).toLocaleDateString()}</td>
                                             <td style={{ padding: "12px 16px" }}>
                                                 <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>

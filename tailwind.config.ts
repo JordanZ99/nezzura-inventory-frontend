@@ -44,7 +44,7 @@ const config: Config = {
         // Sobreescribimos "pink" con tu paleta de marca.
         // Cuando cambies de tema, actualiza estos hex junto con globals.css.
         pink: {
-          50:  "#fdf6f9",
+          50: "#fdf6f9",
           100: "#fce4ec",
           200: "#ffaec3",
           300: "#ff9494",
@@ -66,23 +66,23 @@ const config: Config = {
             inverted: "#ffffff",
           },
           background: {
-            muted: colors.gray[50],
-            subtle: colors.gray[100],
-            DEFAULT: colors.white,
-            emphasis: colors.gray[700],
+            muted: "var(--bg-card2)",
+            subtle: "var(--bg-card2)",
+            DEFAULT: "var(--bg-card)",
+            emphasis: "var(--text-main)",
           },
           border: {
-            DEFAULT: colors.gray[200],
+            DEFAULT: "var(--border-primary)",
           },
           ring: {
-            DEFAULT: colors.gray[200],
+            DEFAULT: "var(--border-primary)",
           },
           content: {
             subtle: colors.gray[400],
-            DEFAULT: colors.gray[500],
-            emphasis: colors.gray[700],
-            strong: colors.gray[900],
-            inverted: colors.white,
+            DEFAULT: "var(--text-main)",
+            emphasis: "var(--text-main)",
+            strong: "var(--text-main)",
+            inverted: "var(--bg-card2)",
           },
         },
       },

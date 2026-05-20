@@ -165,7 +165,7 @@ export default function Inventario() {
     }
 
     const TABS: { id: Tab; label: string; icon: string }[] = [
-        { id: "catalogo", label: "Catálogo", icon: "ClipboardList" },
+        { id: "catalogo", label: "Inventario", icon: "ClipboardList" },
         { id: "nuevo", label: "Nuevo", icon: "ClipboardPlus" },
         { id: "restock", label: "Restock", icon: "PackagePlus" },
         { id: "editar", label: "Editar Prod.", icon: "Pencil" },
@@ -260,7 +260,7 @@ export default function Inventario() {
                             const stockTotal = grupos.reduce((a, g) => a + g.stock, 0)
                             return (
                                 <div key={producto} className="card fade-up" style={{ overflow: "hidden" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "#fdf6f9", borderBottom: "1px solid #fce4ec" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "var(--bg-app)", borderBottom: "1px solid var(--border-light)" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
                                             <Pill color="gray">{inv.find(p => p.producto === producto)?.categoria || "General"}</Pill>
@@ -273,7 +273,7 @@ export default function Inventario() {
                                     <div style={{ overflowX: "auto" }}>
                                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
                                             <thead>
-                                                <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid #fce4ec" }}>
+                                                <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}>
                                                     {["Costo unit.", "Precio venta", "Stock", "Margen", ""].map(h => (
                                                         <th key={h} style={{ padding: "8px 16px", textAlign: "left", fontWeight: 600, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
                                                     ))}
@@ -281,8 +281,8 @@ export default function Inventario() {
                                             </thead>
                                             <tbody>
                                                 {grupos.map((g, i) => (
-                                                    <tr key={i} style={{ borderBottom: "1px solid #fdf6f9" }}
-                                                        onMouseEnter={e => (e.currentTarget.style.background = "#fdf6f9")}
+                                                    <tr key={i} style={{ borderBottom: "1px solid var(--border-light)" }}
+                                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--primary-soft)")}
                                                         onMouseLeave={e => (e.currentTarget.style.background = "")}>
                                                         <td style={{ padding: "10px 16px" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (

@@ -3,6 +3,198 @@
 @tailwind utilities;
 
 :root {
+  /* ============================================
+   SLATE PROFESSIONAL THEME
+   Grises elegantes · Acento azul acero · Teal sutil
+   ============================================ */
+
+  /* --- BRAND COLORS --- */
+  --primary-dark: hsl(213, 35%, 28%);
+  /* Azul acero oscuro */
+  --primary-darkGray: hsl(215, 18%, 42%);
+  /* Gris azulado medio */
+  --primary-mid: hsl(212, 40%, 48%);
+  /* Azul acero principal */
+  --primary-light: hsl(210, 35%, 68%);
+  /* Azul acero claro */
+  --primary-pale: hsl(210, 30%, 85%);
+  /* Azul muy pálido */
+  --primary-soft: hsl(210, 20%, 97%);
+  /* Fondo gris muy sutil */
+  --primary-alter: hsl(184, 30%, 42%);
+  /* Teal apagado como acento */
+
+  /* --- SEMANTIC STATES --- */
+  --success-main: hsl(152, 32%, 44%);
+  --success-text: hsl(152, 38%, 30%);
+  --success-bg: hsl(150, 20%, 94%);
+
+  --error-main: hsl(4, 65%, 52%);
+  --error-text: hsl(0, 60%, 38%);
+  --error-bg: hsl(0, 40%, 96%);
+
+  /* --- UI / NEUTRALS --- */
+  --white: hsl(0, 0%, 100%);
+  --bg-app: hsl(215, 20%, 97%);
+  /* Fondo app gris frío muy suave */
+  --bg-card: hsl(210, 25%, 95%);
+  --bg-card2: hsl(210, 25%, 95%);
+  /* Tarjetas gris azulado pálido */
+
+  --border-light: hsl(213, 15%, 90%);
+  --border-primary: hsl(212, 20%, 87%);
+
+  /* Tipografía */
+  --text-main: hsl(215, 25%, 22%);
+  /* Casi negro azulado */
+  --text-muted: hsl(213, 15%, 55%);
+  --text-white: hsl(0, 0%, 100%);
+
+  /* --- EFECTOS & SOMBRAS --- */
+  --card-shadow: 0 4px 24px 0 hsl(213 30% 30% / 8%);
+  --btn-shadow: 0 4px 15px hsl(212 40% 48% / 25%);
+  --primary-glow: 0 0 0 3px hsl(212 40% 48% / 10%);
+
+  /* --- Degradados --- */
+  --gradient-1: linear-gradient(135deg, hsl(213, 38%, 38%) 0%, hsl(210, 32%, 52%) 100%);
+  --gradient-2: linear-gradient(135deg, hsl(210, 30%, 88%) 0%, hsl(213, 25%, 80%) 100%);
+  --gradient-3: linear-gradient(135deg, hsl(210, 28%, 80%) 0%, hsl(184, 25%, 78%) 100%);
+  --gradient-4: linear-gradient(135deg, hsl(213, 35%, 35%) 0%, hsl(184, 30%, 48%) 100%);
+  --gradient-5: linear-gradient(135deg, hsl(212, 40%, 48%) 0%, hsl(184, 30%, 60%) 100%);
+  --gradient-login: linear-gradient(135deg, hsl(215, 35%, 30%), hsl(184, 30%, 42%));
+  --gradient-bg-login: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(213, 15%, 90%) 100%);
+
+  /* --- Antigravity --- */
+  --ag-color-1: #ffffff;
+  --ag-color-2: #3a7dbfff;
+  /* Azul acero en lugar de rosa */
+  --ag-color-3: #ffffff;
+  --ag-color-4: #ffffff;
+  --ag-color-5: #ffffff;
+
+  /* --- LAYOUT --- */
+  --sidebar-w: 240px;
+  --overlay-bg: hsl(0 0% 0% / 40%);
+  --gradient-layout: linear-gradient(180deg, hsl(210, 30%, 91%) 0%, hsl(210, 20%, 97%) 60%, hsl(0, 0%, 100%) 100%);
+  --primary-layout: linear-gradient(135deg, hsl(212, 20%, 92%), hsl(210, 25%, 85%));
+  --primary-icons: hsl(213, 38%, 32%);
+
+  /* --- COLORES PARA KPI's (RGB para mezclar con opacidad) --- */
+  --chart-1: 58 125 191;
+  /* Azul acero */
+  --chart-2: 32 178 170;
+  /* Teal */
+  --chart-3: 100 140 175;
+  /* Azul grisáceo */
+
+  /* --- COLORES PARA GRÁFICAS (nombres Tailwind) --- */
+  --chart-color-1: blue;
+  --chart-color-2: sky;
+  --chart-color-3: teal;
+  --chart-color-4: slate;
+  --chart-color-5: cyan;
+  --chart-color-6: zinc;
+
+}
+
+[data-theme="midnightBlack"] {
+  /* ============================================
+   MIDNIGHT SLATE THEME
+   Oscuro cálido · Sin negro puro · Teal + Índigo
+   ============================================ */
+
+
+  /* --- BRAND COLORS --- */
+  --primary-dark: hsl(195, 40%, 38%);
+  /* Teal profundo */
+  --primary-darkGray: hsl(210, 20%, 40%);
+  /* Gris azulado medio */
+  --primary-mid: hsl(170, 38%, 47%);
+  /* Teal principal */
+  --primary-light: hsl(170, 30%, 62%);
+  /* Teal suave */
+  --primary-pale: hsl(170, 20%, 28%);
+  /* Teal muy oscuro (hover) */
+  --primary-soft: hsl(212, 25%, 64%);
+  /* Fondo tarjeta suave */
+  --primary-alter: hsl(225, 35%, 55%);
+  /* Índigo como acento secundario */
+
+  /* --- SEMANTIC STATES --- */
+  --success-main: hsl(152, 38%, 44%);
+  --success-text: hsl(152, 45%, 65%);
+  /* Más claro para modo oscuro */
+  --success-bg: hsl(152, 25%, 18%);
+
+  --error-main: hsl(0, 62%, 60%);
+  --error-text: hsl(0, 70%, 72%);
+  --error-bg: hsl(0, 35%, 18%);
+
+  /* --- UI / NEUTRALS --- */
+  --white: hsl(0, 0%, 100%);
+  --bg-app: hsl(214, 16%, 11%);
+  /* Fondo principal — no negro puro, tiene calor */
+  --bg-card: hsl(213, 17%, 15%);
+  --bg-card2: hsl(212, 14%, 18%);
+  /* Tarjetas levemente más claras */
+
+  --border-light: hsl(213, 16%, 22%);
+  --border-primary: hsl(212, 18%, 26%);
+
+  /* Tipografía — nunca blanco puro, reduce fatiga visual */
+  --text-main: hsl(210, 22%, 88%);
+  /* Blanco cálido suavizado */
+  --text-muted: hsl(213, 16%, 55%);
+  --text-white: hsl(210, 20%, 92%);
+
+  /* --- EFECTOS & SOMBRAS --- */
+  --card-shadow: 0 4px 24px 0 hsl(0 0% 0% / 30%);
+  --btn-shadow: 0 4px 15px hsl(170 38% 47% / 20%);
+  --primary-glow: 0 0 0 3px hsl(170 38% 47% / 15%);
+
+  /* --- Degradados --- */
+  --gradient-1: linear-gradient(135deg, hsl(194, 31%, 16%) 0%, hsl(170, 31%, 23%) 100%);
+  --gradient-2: linear-gradient(135deg, hsl(213, 18%, 20%) 0%, hsl(213, 16%, 28%) 100%);
+  --gradient-3: linear-gradient(135deg, hsl(213, 18%, 22%) 0%, hsl(225, 28%, 30%) 100%);
+  --gradient-4: linear-gradient(135deg, hsl(171, 10%, 14%) 0%, hsl(42, 23%, 22%) 100%);
+  --gradient-5: linear-gradient(135deg, hsl(170, 38%, 35%) 0%, hsl(195, 35%, 42%) 100%);
+  --gradient-login: linear-gradient(135deg, hsl(225, 35%, 28%), hsl(170, 38%, 32%));
+  --gradient-bg-login: linear-gradient(180deg, hsl(214, 16%, 11%) 0%, hsl(214, 14%, 8%) 100%);
+
+  /* --- Antigravity --- */
+  --ag-color-1: #7e90a4;
+  --ag-color-2: #4db8a4;
+  /* Teal como partícula principal */
+  --ag-color-3: #1f2429;
+  --ag-color-4: #1f2429;
+  --ag-color-5: #1f2429;
+
+  /* --- LAYOUT --- */
+  --sidebar-w: 240px;
+  --overlay-bg: hsl(0 0% 0% / 60%);
+  --gradient-layout: linear-gradient(180deg, hsl(213, 18%, 14%) 0%, hsl(214, 16%, 11%) 60%, hsl(214, 16%, 11%) 100%);
+  --primary-layout: linear-gradient(135deg, hsl(213, 18%, 16%), hsl(213, 16%, 13%));
+  --primary-icons: hsl(170, 38%, 55%);
+  /* Teal más claro para iconos sobre fondo oscuro */
+
+  /* --- COLORES PARA KPI's (RGB) --- */
+  --chart-1: 77 184 164;
+  /* Teal */
+  --chart-2: 107 140 202;
+  /* Índigo */
+  --chart-3: 138 151 166;
+  /* Slate */
+
+  /* --- COLORES PARA GRÁFICAS (nombres Tailwind) --- */
+  --chart-color-1: teal;
+  --chart-color-2: indigo;
+  --chart-color-3: slate;
+  --chart-color-4: green;
+  --chart-color-5: violet;
+  --chart-color-6: amber;
+}
+
+[data-theme="strawberry"] {
   /* --- BRAND COLORS (Tu paleta rosa actual) --- */
   --primary-dark: hsl(336, 78%, 43%);
   --primary-darkGray: hsl(338, 30%, 50%);
@@ -26,7 +218,8 @@
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
   --white: hsl(0, 0%, 100%);
   --bg-app: hsl(230, 60%, 98%);
-  --bg-card: hsl(324, 100%, 95%);
+  --bg-card: hsl(326, 100%, 99%);
+  --bg-card2: hsl(322, 100%, 96%);
 
   /* Bordes y Divisores */
   --border-light: hsl(210, 17%, 93%);
@@ -104,8 +297,9 @@
 
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
   --white: hsl(0, 0%, 100%);
-  --bg-app: hsl(48, 40%, 98%);
-  --bg-card: hsl(51, 100%, 95%);
+  --bg-app: hsl(28, 67%, 92%);
+  --bg-card: hsl(46, 100%, 95%);
+  --bg-card2: hsl(45, 76%, 92%);
 
   /* Bordes y Divisores */
   --border-light: hsl(45, 15%, 92%);
@@ -114,7 +308,7 @@
   /* Para separadores temáticos */
 
   /* Tipografía */
-  --text-main: hsl(60, 20%, 25%);
+  --text-main: hsl(49, 11%, 30%);
   --text-muted: hsl(45, 12%, 52%);
   --text-white: hsl(0, 0%, 100%);
 
@@ -187,13 +381,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #f8bbd0;
+  background: var(--primary-light);
   border-radius: 10px;
 }
 
 /* Utilidades globales */
 .card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 16px;
   box-shadow: var(--card-shadow);
 }
@@ -250,7 +444,7 @@ body {
   font-size: 0.875rem;
   color: var(--text-main);
   width: 100%;
-  background: var(--white);
+  background: var(--bg-card);
   transition: border-color 0.2s;
   outline: none;
 }

@@ -157,7 +157,7 @@ export default function Estadisticas() {
                     <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4, textTransform: "uppercase" }}>RENDIMIENTO EXPERTO</p>
 
                     {/*Panel Estadístico*/}
-                    <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
+                    <h1 className="hidden md:flex" style={{ color: "var(--primary-soft)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <Icon name="ChartPie" size={32} color="var(--primary-soft)" />
                         Panel Estadístico
                     </h1>
@@ -182,7 +182,7 @@ export default function Estadisticas() {
                         zIndex: 9999,
                         padding: "16px 24px",
                         borderRadius: 12,
-                        background: "#fff",
+                        background: "var(--bg-card)",
                         boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
                         borderLeft: `6px solid ${msg.ok ? "#4caf50" : "#f44336"}`,
                         color: msg.ok ? "#2e7d32" : "#b71c1c",
@@ -198,7 +198,7 @@ export default function Estadisticas() {
                 )}
 
                 {/* ── CONTENEDOR PARA EL PDF ── */}
-                <div id="report-container" style={{ padding: 16, background: "#fff", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
+                <div id="report-container" style={{ padding: 16, background: "var(--bg-card)", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
 
                     <div className="flex md:hidden" style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
                         <img src="/logo.png" alt="Goyangi" style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
@@ -213,15 +213,15 @@ export default function Estadisticas() {
 
                     {/* KPIs con la clase agregada */}
                     <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-1))", borderRadius: 12, background: "var(--bg-card)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-1))", borderRadius: 12, background: "var(--bg-card2)" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Vendido</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>${totalVendido.toFixed(2)}</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-2))", borderRadius: 12, background: "var(--bg-card)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-2))", borderRadius: 12, background: "var(--bg-card2)" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Margen Bruto (%)</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>{totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : "0.0"}%</p>
                         </div>
-                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-3))", borderRadius: 12, background: "var(--bg-card)" }}>
+                        <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-3))", borderRadius: 12, background: "var(--bg-card2)" }}>
                             <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Gastos del Periodo</p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>${totalGastos.toFixed(2)}</p>
                         </div>
@@ -239,22 +239,22 @@ export default function Estadisticas() {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
                             {/* Row 1: Dona + Pie + Líneas con la clase agregada */}
                             <div className="charts-row" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
-                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Top Ventas por Producto</h3>
+                                <div style={{ padding: 16, border: "1px solid var(--border-primary)", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
+                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "var(--text-main)" }}>Top Ventas por Producto</h3>
                                     {top5.length > 0 ? <DonutChart data={top5} category="value" index="name" valueFormatter={valFormatter} colors={chartColors} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
-                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
-                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Costo vs Ganancia</h3>
+                                <div style={{ padding: 16, border: "1px solid var(--border-primary)", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
+                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "var(--text-main)" }}>Costo vs Ganancia</h3>
                                     {totalVendido > 0 ? <DonutChart variant="pie" data={globalCostProfit} category="value" index="name" valueFormatter={valFormatter} colors={chartColors.slice(0, 2)} className="h-52" showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
-                                <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12 }}>
-                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Evolución de Ventas</h3>
+                                <div style={{ padding: 16, border: "1px solid var(--border-primary)", borderRadius: 12 }}>
+                                    <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "var(--text-main)" }}>Evolución de Ventas</h3>
                                     {chartDataLine.length > 0 ? <LineChart className="h-52" data={chartDataLine} index="date" categories={["Ventas"]} colors={[chartColors[0]]} valueFormatter={valFormatter} yAxisWidth={50} showAnimation={false} /> : <p style={{ textAlign: "center", color: "#999", marginTop: 40 }}>Sin datos.</p>}
                                 </div>
                             </div>
 
-                            <div style={{ padding: 16, border: "1px solid #fce4ec", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
-                                <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "#333" }}>Contribución Marginal por Producto</h3>
+                            <div style={{ padding: 16, border: "1px solid var(--border-primary)", borderRadius: 12, overflow: "hidden", minWidth: 0 }}>
+                                <h3 style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.95rem", color: "var(--text-main)" }}>Contribución Marginal por Producto</h3>
                                 {chartDataBar.length > 0 ? (
                                     <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 8 }}>
                                         <div style={{ minWidth: Math.max(400, chartDataBar.length * 120) }}>
@@ -273,13 +273,13 @@ export default function Estadisticas() {
                 {/* [Mantuve tu tabla original intacta, va debajo del report-container] */}
                 <div style={{ marginTop: 32 }}>
                     <div className="card fade-up" style={{ overflow: "hidden" }}>
-                        <div style={{ padding: "16px 20px", borderBottom: "1px solid #fce4ec", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-primary)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>Historial Completo de Ventas</h2>
                         </div>
                         <div style={{ overflowX: "auto" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
-                                    <tr style={{ background: "#f8f9fe", color: "var(--text-muted)", borderBottom: "1px solid #fce4ec" }}>
+                                    <tr style={{ background: "var(--bg-card2)", color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
                                         {["ID", "Fecha", "Productos", "Precio unitario", "Precio Total", "Ganancia"].map(h => (
                                             <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>{h}</th>
                                         ))}
