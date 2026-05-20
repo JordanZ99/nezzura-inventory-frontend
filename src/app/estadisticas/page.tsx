@@ -136,7 +136,22 @@ export default function Estadisticas() {
             {/* ── Hero con Antigravity ── */}
             <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-3)", padding: "32px 24px 90px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
-                    <Antigravity count={800} magnetRadius={12} ringRadius={8} waveSpeed={0.5} waveAmplitude={1.2} particleSize={1.5} lerpSpeed={0.08} color="#ffffff" autoAnimate={true} particleVariance={0.8} rotationSpeed={0.3} depthFactor={0.5} pulseSpeed={2} particleShape="capsule" fieldStrength={8} />
+                    <Antigravity
+                        count={800}
+                        magnetRadius={12}
+                        ringRadius={8}
+                        waveSpeed={0.5}
+                        waveAmplitude={1.2}
+                        particleSize={1.5}
+                        lerpSpeed={0.08}
+                        color="var(--ag-color-3)"
+                        autoAnimate={true}
+                        particleVariance={0.8}
+                        rotationSpeed={0.3}
+                        depthFactor={0.5}
+                        pulseSpeed={2}
+                        particleShape="capsule"
+                        fieldStrength={8} />
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
                     <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4, textTransform: "uppercase" }}>RENDIMIENTO EXPERTO</p>

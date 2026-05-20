@@ -150,7 +150,7 @@ export default function PuntoDeVenta() {
                         waveAmplitude={1.2}
                         particleSize={1.5}
                         lerpSpeed={0.08}
-                        color="#ffffff"
+                        color="var(--ag-color-1)"
                         autoAnimate={true}
                         particleVariance={0.8}
                         rotationSpeed={0.3}

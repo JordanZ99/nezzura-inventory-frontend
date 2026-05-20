@@ -25,7 +25,7 @@
 // ==============================================================================
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 
 interface AntigravityProps {
@@ -84,13 +84,49 @@ const AntigravityInner = ({
 }: AntigravityProps) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   
+  const [resolvedColor, setResolvedColor] = useState(color);
+
+  useEffect(() => {
+    if (!color.startsWith('var(')) {
+      setResolvedColor(color);
+      return;
+    }
+
+    const varName = color.match(/var\(([^)]+)\)/)?.[1];
+    if (!varName) {
+      setResolvedColor(color);
+      return;
+    }
+
+    const updateColor = () => {
+      const val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+      if (val) {
+        setResolvedColor(val);
+      }
+    };
+
+    updateColor();
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class') {
+          updateColor();
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+    return () => observer.disconnect();
+  }, [color]);
+
   // Ensure color is valid for Three.js (handle 8-digit hex #RRGGBBAA)
   const safeColor = useMemo(() => {
-    if (color && color.startsWith('#') && color.length === 9) {
-      return color.substring(0, 7);
+    let col = resolvedColor;
+    if (col && col.startsWith('#') && col.length === 9) {
+      col = col.substring(0, 7);
     }
-    return color;
-  }, [color]);
+    return col;
+  }, [resolvedColor]);
 
   const { viewport } = useThree();
   const dummy = useMemo(() => new THREE.Object3D(), []);

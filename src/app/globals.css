@@ -53,7 +53,12 @@
   --gradient-login: linear-gradient(135deg, hsl(256, 62%, 54%), hsl(339, 70%, 65%));
   --gradient-bg-login: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(0, 0%, 87%) 100%);
 
-  /* Para el focus de los inputs */
+  /* --- Antigravity --- */
+  --ag-color-1: #ffffff;
+  --ag-color-2: #ff3a93ff;
+  --ag-color-3: #ffffff;
+  --ag-color-4: #ffffff;
+  --ag-color-5: #ffffff;
 
   /* --- LAYOUT --- */
   --sidebar-w: 240px;
@@ -70,7 +75,7 @@
   /* --- COLORES PARA GRÁFICAS --- */
   --chart-color-1: rose;
   --chart-color-2: pink;
-  --chart-color-3: fuchsia-400;
+  --chart-color-3: fuchsia-700;
   --chart-color-4: violet;
   --chart-color-5: purple;
   --chart-color-6: slate;
@@ -82,7 +87,7 @@
   --primary-darkGray: hsl(22, 52%, 58%);
   --primary-mid: hsl(45, 90%, 52%);
   --primary-light: hsl(36, 100%, 99%);
-  --primary-pale: hsl(38, 80%, 66%);
+  --primary-pale: hsl(35, 79%, 58%);
   --primary-soft: hsl(48, 60%, 97%);
   --primary-alter: hsl(21, 75%, 54%);
   /* El fondo rosado muy sutil de las tarjetas */
@@ -127,7 +132,12 @@
   --gradient-login: linear-gradient(135deg, hsl(21, 100%, 60%), hsl(43, 100%, 53%));
   --gradient-bg-login: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(48, 30%, 94%) 100%);
 
-  /* Para el focus de los inputs */
+  /* --- Antigravity --- */
+  --ag-color-1: #fffcc6;
+  --ag-color-2: rgb(255, 111, 0);
+  --ag-color-3: #00a364;
+  --ag-color-4: #ff0000;
+  --ag-color-5: #1e00ff;
 
   /* --- LAYOUT --- */
   --sidebar-w: 240px;

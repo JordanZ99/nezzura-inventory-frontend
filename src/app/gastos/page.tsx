@@ -64,7 +64,7 @@ export default function Gastos() {
     return (
         <div style={{ minHeight: "100vh" }}>
             {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-4)", padding: "32px 24px 80px" }}>
+            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-4)", padding: "32px 24px 90px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
                         count={400}
@@ -74,7 +74,7 @@ export default function Gastos() {
                         waveAmplitude={1.2}
                         particleSize={1.5}
                         lerpSpeed={0.08}
-                        color="#ffffff"
+                        color="var(--ag-color-4)"
                         autoAnimate={true}
                         particleVariance={0.8}
                         rotationSpeed={0.3}

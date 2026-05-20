@@ -190,7 +190,7 @@ export default function Inventario() {
                         waveAmplitude={1.2}
                         particleSize={1.5}
                         lerpSpeed={0.08}
-                        color="#ff3a93ff"
+                        color="var(--ag-color-2)"
                         autoAnimate={true}
                         particleVariance={0.8}
                         rotationSpeed={0.3}
