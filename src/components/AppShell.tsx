@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import Icon from "@/components/ui/Icon"
 import { supabase } from "@/lib/supabase"
+import { useTenant } from "@/contexts/TenantContext"
 
 const NAV = [
     { href: "/", icon: "ShoppingCart", label: "Punto de Venta" },
@@ -22,6 +23,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const router = useRouter()
     const isLoginPage = pathname === "/login"
+    const { tenant } = useTenant()
+
+    const logoSrc = tenant?.logo || "/logo.png"
+    const empresa = tenant?.empresa || "Goyangi Store"
 
     async function handleLogout() {
         await supabase.auth.signOut()
@@ -65,11 +70,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         marginBottom: 12,
                         boxShadow: "0 4px 16px rgba(216,27,96,0.15)",
                     }}>
-                        <img src="/logo.png" alt="Goyangi"
+                        <img src={logoSrc} alt={empresa}
                             style={{
                                 width: 76, height: 76,
                                 borderRadius: "50%",
-                                objectFit: "contain",
+                                objectFit: "cover",
                                 display: "block",
                             }}
                         />
@@ -79,8 +84,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         fontWeight: 800,
                         fontSize: "1.05rem",
                         letterSpacing: 0.3,
+                        textAlign: "center",
                     }}>
-                        Goyangi Store
+                        {empresa}
                     </span>
                     <span style={{
                         color: "var(--primary-darkGray)",
