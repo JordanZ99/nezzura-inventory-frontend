@@ -96,12 +96,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
                 {/* Etiqueta sección */}
                 <div style={{
-                    padding: "0 59px 10px",
+                    padding: "0 64px 10px",
                     color: "var(--primary-light)",
                     fontSize: "0.62rem",
                     fontWeight: 700,
                     letterSpacing: 2,
                     textTransform: "uppercase",
+                    whiteSpace: "nowrap",
                 }}>
                     Menú principal
                 </div>
