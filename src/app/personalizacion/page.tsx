@@ -95,7 +95,7 @@ export default function Gastos() {
                 </div>
             </div>
 
-            <div style={{ width: "100%", padding: "0 16px", marginTop: -60 }}>
+            <div style={{ width: "100%", padding: "0 16px", marginTop: -47 }}>
                 {/* Stats cards */}
                 <div style={{ flex: 1, gap: 12, marginBottom: 20 }}>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>

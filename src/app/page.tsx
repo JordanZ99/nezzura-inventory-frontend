@@ -284,7 +284,7 @@ export default function PuntoDeVenta() {
                                         <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                             {prod.producto}
                                         </p>
-                                        <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-mid)", margin: 0 }}>
+                                        <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>
                                             ${prod.precio_venta.toFixed(2)}
                                         </p>
                                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6, alignItems: "center" }}>
