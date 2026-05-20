@@ -58,13 +58,14 @@ export async function comprimirImagen(
                 // Dibujar la imagen redimensionada
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Convertir a Blob (JPEG para mejor compresión)
+                // Convertir a Blob (WebP para mejor compresión y menor tamaño)
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
-                            // Crear un nuevo File a partir del Blob
-                            const compressedFile = new File([blob], file.name, {
-                                type: 'image/jpeg',
+                            // Renombrar la extensión a .webp
+                            const nombreBase = file.name.replace(/\.[^.]+$/, '');
+                            const compressedFile = new File([blob], `${nombreBase}.webp`, {
+                                type: 'image/webp',
                                 lastModified: Date.now(),
                             });
                             resolve(compressedFile);
@@ -72,7 +73,7 @@ export async function comprimirImagen(
                             reject(new Error("Error al generar el Blob de la imagen"));
                         }
                     },
-                    'image/jpeg',
+                    'image/webp',
                     quality
                 );
             };
