@@ -41,7 +41,7 @@
   --bg-card2: hsl(210, 25%, 95%);
   /* Tarjetas gris azulado pálido */
 
-  --border-light: hsl(213, 15%, 90%);
+  --border-light: hsl(214, 13%, 39%);
   --border-primary: hsl(212, 20%, 87%);
 
   /* Tipografía */
@@ -323,8 +323,9 @@
   --gradient-3: linear-gradient(135deg, hsl(89, 68%, 71%) 0%, hsl(75, 82%, 75%) 100%);
   --gradient-4: linear-gradient(135deg, hsl(21, 75%, 54%) 0%, hsl(45, 90%, 52%) 100%);
   --gradient-5: linear-gradient(135deg, hsl(205, 97%, 77%) 0%, hsl(185, 70%, 82%) 100%);
-  --gradient-login: linear-gradient(135deg, hsl(21, 100%, 60%), hsl(43, 100%, 53%));
-  --gradient-bg-login: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(48, 30%, 94%) 100%);
+  /*--gradient-login: linear-gradient(135deg, hsl(21, 100%, 60%), hsl(43, 100%, 53%));*/
+  --gradient-login: linear-gradient(135deg, hsl(0, 61%, 50%), hsl(9, 57%, 58%));
+  --gradient-bg-login: linear-gradient(180deg, hsl(41, 100%, 88%) 0%, hsl(31, 71%, 69%) 100%);
 
   /* --- Antigravity --- */
   --ag-color-1: #fffcc6;

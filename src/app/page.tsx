@@ -8,6 +8,7 @@ import { api, Producto, ItemCarrito } from "@/lib/api"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import { supabase } from "@/lib/supabase"
+import { useTenant } from "@/contexts/TenantContext"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -23,6 +24,9 @@ export default function PuntoDeVenta() {
     const [modoDescuento, setModoDescuento] = useState(false)
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("Todas")
     const [userId, setUserId] = useState<string>("Cargando...");
+    const { tenant } = useTenant()
+    const logoSrc = tenant?.logo || "/logo.png"
+    const empresa = tenant?.empresa || "Goyangi Store"
 
 
     function manejarToggleDescuento() {
@@ -162,7 +166,7 @@ export default function PuntoDeVenta() {
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
                     <p className="hidden md:block" style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
-                        BIENVENIDA
+                        Te damos la bienvenida
                     </p>
 
                     <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
@@ -171,7 +175,8 @@ export default function PuntoDeVenta() {
                     </h1>
 
                     <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>
-                        <img src="/logo.png" alt="Logo" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "contain", background: "white", padding: 3 }} />
+                        <img src={logoSrc} alt={empresa}
+                            style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", background: "white", padding: 3 }} />
                         Punto de Venta
                     </h1>
                     <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.875rem", margin: 0 }}>
