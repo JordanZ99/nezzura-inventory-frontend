@@ -1,10 +1,8 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { api, Producto } from "@/lib/api"
 import { supabase } from "@/lib/supabase"
-import { useTenant } from "@/contexts/TenantContext"
-import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 
@@ -13,36 +11,29 @@ const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: fal
 type Tab = "cuenta" | "catalogo"
 
 export default function Personalizacion() {
-    const { tenant, cargando: cargandoTenant, actualizar } = useTenant()
-
+    const [userId, setUserId] = useState<string | null>(null)
     const [cargando, setCargando] = useState(true)
     const [tab, setTab] = useState<Tab>("cuenta")
     const [userEmail, setUserEmail] = useState<string | null>(null)
+    const [tenantId, setTenantId] = useState<string | null>(null)
     const [productos, setProductos] = useState<Producto[]>([])
 
-    // Form de edición del negocio
-    const [empresa, setEmpresa] = useState("")
-    const [logoUrl, setLogoUrl] = useState("")
-    const [guardando, setGuardando] = useState(false)
-    const [subiendoLogo, setSubiendoLogo] = useState(false)
-    const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const inputFileRef = useRef<HTMLInputElement>(null)
-
-    // Sincronizar form con datos del contexto cuando carguen
-    useEffect(() => {
-        if (tenant) {
-            setEmpresa(tenant.empresa || "")
-            setLogoUrl(tenant.logo || "")
-        }
-    }, [tenant])
-
+    // 1. CARGA DE DATOS AL MONTAR EL COMPONENTE
     useEffect(() => {
         async function loadData() {
             try {
-                const { data } = await supabase.auth.getSession()
-                if (data.session?.user) {
-                    setUserEmail(data.session.user.email ?? "Usuario Goyangi")
+                // Validar el JWT de forma segura
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    setUserEmail(user.email ?? "Usuario Goyangi")
+                    setUserId(user.id)
                 }
+
+                const perfil = await api.getPerfil()
+                if (perfil?.tenant_id) {
+                    setTenantId(perfil.tenant_id)
+                }
+
                 const inv = await api.getInventario()
                 setProductos(inv)
             } catch (e) {
@@ -54,39 +45,28 @@ export default function Personalizacion() {
         loadData()
     }, [])
 
-    function mostrarMsg(ok: boolean, texto: string) {
-        setMsg({ ok, texto }); setTimeout(() => setMsg(null), 4000)
-    }
-
-    async function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
-        const file = e.target.files?.[0]
-        if (!file || !tenant?.tenant_id) return
+    // 2. FUNCIÓN EXHUESTA EN EL CUERPO DEL COMPONENTE (Soluciona el Scope y Stale Closure)
+    const actualizarLogoTenant = async (nuevoLogoUrl: string) => {
         try {
-            setSubiendoLogo(true)
-            const webp = await comprimirImagen(file, 400, 400, 0.85)
-            // Usamos un nombre de producto reservado para el logo del tenant
-            const nombreClave = `_logo_${tenant.tenant_id.slice(0, 8)}`
-            const { ruta } = await api.subirFoto(nombreClave, webp)
-            setLogoUrl(ruta)
-            mostrarMsg(true, "✅ Logo subido — haz clic en Guardar para aplicarlo")
-        } catch (err: unknown) {
-            mostrarMsg(false, `❌ ${err instanceof Error ? err.message : "Error al subir logo"}`)
-        } finally {
-            setSubiendoLogo(false)
-            if (inputFileRef.current) inputFileRef.current.value = ""
-        }
-    }
+            // Validamos sesión antes de operar
+            const { data: { user } } = await supabase.auth.getUser()
 
-    async function guardarCambios() {
-        if (!empresa.trim()) { mostrarMsg(false, "❌ El nombre del negocio no puede estar vacío"); return }
-        try {
-            setGuardando(true)
-            await actualizar({ empresa: empresa.trim(), logo: logoUrl.trim() })
-            mostrarMsg(true, "✅ Cambios guardados correctamente")
-        } catch (err: unknown) {
-            mostrarMsg(false, `❌ ${err instanceof Error ? err.message : "Error al guardar"}`)
-        } finally {
-            setGuardando(false)
+            if (!user || !tenantId) {
+                alert("No se encontró una sesión activa o un Tenant asociado.")
+                return
+            }
+
+            const { error } = await supabase
+                .from('tenants')
+                .update({ logo: nuevoLogoUrl })
+                .eq('id', tenantId)
+
+            if (error) throw error
+
+            alert("¡Logo del tenant actualizado con éxito!")
+        } catch (error) {
+            console.error("Error al actualizar el logo:", error)
+            alert("Hubo un error al actualizar el logo en la base de datos.")
         }
     }
 
@@ -141,30 +121,40 @@ export default function Personalizacion() {
                         <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center" }}>
                             <button onClick={() => document.documentElement.setAttribute('data-theme', 'default')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#91a5b3ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
-                                title="Steel Slate" />
+                                title="Steel Slate"
+                            />
                             <button onClick={() => document.documentElement.setAttribute('data-theme', 'strawberry')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#f33376", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
-                                title="Strawberry Pink" />
+                                title="Strawberry Pink"
+                            />
                             <button onClick={() => document.documentElement.setAttribute('data-theme', 'midnightBlack')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#232323ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
-                                title="Midnight Black" />
+                                title="Midnight Black"
+                            />
                             <button onClick={() => document.documentElement.setAttribute('data-theme', 'cozyYellow')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#ffd779ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
-                                title="Cozy Yellow" />
+                                title="Cozy Yellow"
+                            />
                         </div>
                     </div>
                 </div>
 
-                {/* ── Selector de Pestañas ── */}
+                {/* ── Selector de Pestañas (Tabs) ── */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
                     {TABS.map(t => (
                         <button
                             key={t.id}
                             onClick={() => setTab(t.id)}
                             style={{
-                                display: "flex", alignItems: "center", gap: 8,
-                                padding: "10px 20px", borderRadius: 12, border: "none",
-                                fontWeight: 700, fontSize: "0.85rem", cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "10px 20px",
+                                borderRadius: 12,
+                                border: "none",
+                                fontWeight: 700,
+                                fontSize: "0.85rem",
+                                cursor: "pointer",
                                 background: tab === t.id ? "var(--primary-mid)" : "var(--bg-card)",
                                 color: tab === t.id ? "#fff" : "var(--text-muted)",
                                 boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
@@ -177,136 +167,56 @@ export default function Personalizacion() {
                     ))}
                 </div>
 
-                {/* ── Tab: Mi Cuenta ── */}
+                {/* ── Contenido de las pestañas ── */}
                 {tab === "cuenta" && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
+                    <div className="card fade-up" style={{ padding: "24px 28px", maxWidth: 500 }}>
+                        <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Información de la Cuenta</h2>
+                        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Detalles del administrador de Goyangi Store.</p>
 
-                        {/* Info de la sesión */}
-                        <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 320px", maxWidth: 460 }}>
-                            <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Información de la Cuenta</h2>
-                            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Detalles del administrador.</p>
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                                <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
-                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Correo Electrónico</span>
-                                    <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-main)" }}>{cargando ? "Cargando..." : userEmail}</span>
-                                </div>
-                                <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
-                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Tenant ID</span>
-                                    <span style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "var(--text-main)", fontWeight: 700, wordBreak: "break-all" }}>{cargandoTenant ? "Cargando..." : tenant?.tenant_id}</span>
-                                </div>
-                                <div>
-                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Estado de Conexión</span>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem", fontWeight: 700, color: "#4caf50" }}>
-                                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4caf50" }} />
-                                        Servidores Conectados (FastAPI + Supabase)
-                                    </div>
-                                </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
+                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Correo Electrónico</span>
+                                <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-main)" }}>{cargando ? "Cargando..." : userEmail}</span>
                             </div>
-                        </div>
-
-                        {/* Editor de logo y nombre del negocio */}
-                        <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 320px", maxWidth: 460 }}>
-                            <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Identidad del Negocio</h2>
-                            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Cambia el logo y el nombre que aparecen en el sidebar.</p>
-
-                            {msg && (
-                                <div style={{
-                                    padding: "10px 14px", marginBottom: 16,
-                                    borderRadius: 10, fontSize: "0.82rem", fontWeight: 700,
-                                    background: msg.ok ? "rgba(76,175,80,0.1)" : "rgba(244,67,54,0.1)",
-                                    color: msg.ok ? "#2e7d32" : "#c62828",
-                                    borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#f44336"}`
-                                }}>
-                                    {msg.texto}
-                                </div>
-                            )}
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-                                {/* Preview + upload del logo */}
-                                <div>
-                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Logo del Negocio</span>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                                        {/* Preview actual */}
-                                        <div style={{
-                                            width: 72, height: 72, borderRadius: "50%",
-                                            border: "2.5px solid var(--border-primary)",
-                                            overflow: "hidden", flexShrink: 0,
-                                            background: "var(--bg-app)",
-                                            display: "flex", alignItems: "center", justifyContent: "center"
-                                        }}>
-                                            {logoUrl ? (
-                                                <img src={logoUrl} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                            ) : (
-                                                <Icon name="ImageOff" size={28} color="var(--text-muted)" />
-                                            )}
-                                        </div>
-                                        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-                                            {/* Botón subir imagen */}
-                                            <input
-                                                ref={inputFileRef}
-                                                type="file"
-                                                accept="image/*"
-                                                style={{ display: "none" }}
-                                                onChange={handleLogoFile}
-                                            />
-                                            <button
-                                                onClick={() => inputFileRef.current?.click()}
-                                                disabled={subiendoLogo}
-                                                className="btn-primary"
-                                                style={{ fontSize: "0.8rem", padding: "8px 14px" }}
-                                            >
-                                                {subiendoLogo ? "Subiendo..." : "📷 Subir imagen"}
-                                            </button>
-                                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                                                Se convierte a WebP · Máx 400×400px
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* URL manual */}
-                                    <div style={{ marginTop: 10 }}>
-                                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
-                                            O pegar URL de Cloudinary
-                                        </span>
-                                        <input
-                                            className="input-primary"
-                                            placeholder="https://res.cloudinary.com/..."
-                                            value={logoUrl}
-                                            onChange={e => setLogoUrl(e.target.value)}
-                                            style={{ fontSize: "0.8rem" }}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Nombre del negocio */}
-                                <div>
-                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Nombre del Negocio</span>
-                                    <input
-                                        className="input-primary"
-                                        placeholder="Ej: Goyangi Store"
-                                        value={empresa}
-                                        onChange={e => setEmpresa(e.target.value)}
-                                        maxLength={60}
-                                    />
-                                </div>
-
-                                {/* Botón guardar */}
-                                <button
-                                    className="btn-primary"
-                                    onClick={guardarCambios}
-                                    disabled={guardando || cargandoTenant}
-                                    style={{ marginTop: 4 }}
-                                >
-                                    {guardando ? "Guardando..." : "💾 Guardar Cambios"}
-                                </button>
+                            <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
+                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Tenant ID (Multitenant)</span>
+                                <span style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 700 }}>{cargando ? "Cargando..." : tenantId}</span>
                             </div>
+                            <div>
+                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Estado de Conexión</span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem", fontWeight: 700, color: "#4caf50" }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4caf50" }} />
+                                    Servidores Conectados (FastAPI + Supabase)
+                                </div>
+
+                                {/* ── BOTÓN DE ACTUALIZACIÓN (Corregido y enmarcado correctamente) ── */}
+                                <div style={{ marginTop: 16 }}>
+                                    <button
+                                        onClick={() => actualizarLogoTenant("https://tu-storage.com/nuevo-logo.png")}
+                                        style={{
+                                            width: "100%",
+                                            padding: "10px",
+                                            background: "var(--primary-mid)",
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: "8px",
+                                            fontWeight: 700,
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: 8
+                                        }}
+                                    >
+                                        <Icon name="Upload" size={16} />
+                                        Actualizar Logo del Tenant
+                                    </button>
+                                </div>
+                            </div> {/* <- Cierre del div padre de Estado de Conexión */}
                         </div>
                     </div>
                 )}
 
-                {/* ── Tab: Catálogo ── */}
                 {tab === "catalogo" && (
                     <div className="card fade-up" style={{ padding: "20px 24px", overflow: "hidden" }}>
                         <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Catálogo de Productos</h2>
