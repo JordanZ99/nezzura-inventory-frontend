@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     __html: `
                     (function() {
                         try {
-                            var tema = localStorage.getItem('tema') || 'strawberry';
+                            var tema = localStorage.getItem('tema') || 'default';
                             document.documentElement.setAttribute('data-theme', tema);
                         } catch(e) {}
                     })();

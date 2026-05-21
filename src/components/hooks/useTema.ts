@@ -1,4 +1,12 @@
 // hooks/useTema.ts
+// ============
+// ESTE HOOK está bien implementado, pero actualmente NO
+// está conectado a nada — no se importa en ningún componente. 
+// El sistema funciona correctamente sin él gracias al <script> del layout.tsx 
+// (que es el enfoque más robusto para evitar el flash de tema incorrecto). 
+// Puedes usar useTema en el futuro si necesitas leer el tema activo dentro de un componente de React, 
+// pero por ahora no es necesario.
+
 import { useState, useEffect } from 'react';
 
 const TEMAS_DISPONIBLES = ['strawberry', 'cozy-yellow', 'slate-professional', 'midnight-slate'];
