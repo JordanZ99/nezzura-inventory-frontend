@@ -27,6 +27,17 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="es">
+            <head>
+                <script dangerouslySetInnerHTML={{
+                    __html: `
+                    (function() {
+                        try {
+                            var tema = localStorage.getItem('tema') || 'strawberry';
+                            document.documentElement.setAttribute('data-theme', tema);
+                        } catch(e) {}
+                    })();
+                `}} />
+            </head>
             <body className={jakarta.className} style={{ margin: 0 }}>
                 <Providers>
                     <AppShell>{children}</AppShell>
