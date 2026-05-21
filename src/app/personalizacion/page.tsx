@@ -155,19 +155,19 @@ export default function Personalizacion() {
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Temas</p>
                         </div>
                         <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center" }}>
-                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'default')}
+                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'default'); localStorage.setItem('tema', 'default'); }}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#91a5b3ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Steel Slate"
                             />
-                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'strawberry')}
+                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'strawberry'); localStorage.setItem('tema', 'strawberry'); }}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#f33376", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Strawberry Pink"
                             />
-                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'midnightBlack')}
+                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'midnightBlack'); localStorage.setItem('tema', 'midnightBlack'); }}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#232323ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Midnight Black"
                             />
-                            <button onClick={() => document.documentElement.setAttribute('data-theme', 'cozyYellow')}
+                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'cozyYellow'); localStorage.setItem('tema', 'cozyYellow'); }}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#ffd779ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Cozy Yellow"
                             />
