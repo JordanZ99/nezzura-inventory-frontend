@@ -39,15 +39,19 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             const perfil = await api.getPerfil()
             if (!perfil?.tenant_id) { setCargando(false); return }
 
-            // Leer empresa y logo desde la tabla tenants de Supabase
+            // Leer empresa y logo desde la tabla tenants de Supabase usando el 'id' (UserID)
             const { data, error } = await supabase
                 .from("tenants")
-                .select("tenant_id, empresa, logo")
-                .eq("tenant_id", perfil.tenant_id)
+                .select("id, empresa, logo")
+                .eq("id", perfil.tenant_id)
                 .single()
 
             if (!error && data) {
-                setTenant(data)
+                setTenant({
+                    tenant_id: data.id,
+                    empresa: data.empresa || "",
+                    logo: data.logo || ""
+                })
             } else {
                 // Si no tiene fila aún, guardamos solo el tenant_id
                 setTenant({ tenant_id: perfil.tenant_id, empresa: "", logo: "" })
@@ -76,7 +80,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase
             .from("tenants")
             .update(data)
-            .eq("tenant_id", tenant.tenant_id)
+            .eq("id", tenant.tenant_id)
 
         if (error) throw new Error(error.message)
 

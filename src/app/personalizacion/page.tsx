@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { api, Producto } from "@/lib/api"
 import { supabase } from "@/lib/supabase"
+import { useTenant } from "@/contexts/TenantContext"
+import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 
@@ -11,29 +13,37 @@ const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: fal
 type Tab = "cuenta" | "catalogo"
 
 export default function Personalizacion() {
-    const [userId, setUserId] = useState<string | null>(null)
+    const { tenant, cargando: cargandoTenant, actualizar } = useTenant()
+
     const [cargando, setCargando] = useState(true)
     const [tab, setTab] = useState<Tab>("cuenta")
     const [userEmail, setUserEmail] = useState<string | null>(null)
-    const [tenantId, setTenantId] = useState<string | null>(null)
     const [productos, setProductos] = useState<Producto[]>([])
 
-    // 1. CARGA DE DATOS AL MONTAR EL COMPONENTE
+    // Estados para el formulario de identidad del negocio
+    const [empresa, setEmpresa] = useState("")
+    const [logoUrl, setLogoUrl] = useState("")
+    const [guardando, setGuardando] = useState(false)
+    const [subiendoLogo, setSubiendoLogo] = useState(false)
+    const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+    const inputFileRef = useRef<HTMLInputElement>(null)
+
+    // Sincronizar formulario con los datos cargados desde el contexto
+    useEffect(() => {
+        if (tenant) {
+            setEmpresa(tenant.empresa || "")
+            setLogoUrl(tenant.logo || "")
+        }
+    }, [tenant])
+
     useEffect(() => {
         async function loadData() {
             try {
-                // Validar el JWT de forma segura
+                // Obtener datos del usuario autenticado
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user) {
                     setUserEmail(user.email ?? "Usuario Goyangi")
-                    setUserId(user.id)
                 }
-
-                const perfil = await api.getPerfil()
-                if (perfil?.tenant_id) {
-                    setTenantId(perfil.tenant_id)
-                }
-
                 const inv = await api.getInventario()
                 setProductos(inv)
             } catch (e) {
@@ -45,28 +55,54 @@ export default function Personalizacion() {
         loadData()
     }, [])
 
-    // 2. FUNCIÓN EXHUESTA EN EL CUERPO DEL COMPONENTE (Soluciona el Scope y Stale Closure)
-    const actualizarLogoTenant = async (nuevoLogoUrl: string) => {
+    function mostrarMsg(ok: boolean, texto: string) {
+        setMsg({ ok, texto }); setTimeout(() => setMsg(null), 4000)
+    }
+
+    // Procesa y sube el archivo de imagen, convirtiéndolo a WebP
+    async function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file || !tenant?.tenant_id) return
         try {
-            // Validamos sesión antes de operar
-            const { data: { user } } = await supabase.auth.getUser()
+            setSubiendoLogo(true)
+            
+            // 1. Convertir y comprimir a WebP automáticamente
+            const webp = await comprimirImagen(file, 400, 400, 0.85)
+            
+            // 2. Subir foto usando el nombre clave para Cloudinary
+            const nombreClave = `_logo_${tenant.tenant_id.slice(0, 8)}`
+            const { ruta } = await api.subirFoto(nombreClave, webp)
+            
+            setLogoUrl(ruta)
+            mostrarMsg(true, "📷 Logo subido temporalmente — Haz clic en Guardar Cambios para aplicarlo en el sistema")
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error al subir logo"}`)
+        } finally {
+            setSubiendoLogo(false)
+            if (inputFileRef.current) inputFileRef.current.value = ""
+        }
+    }
 
-            if (!user || !tenantId) {
-                alert("No se encontró una sesión activa o un Tenant asociado.")
-                return
-            }
-
-            const { error } = await supabase
-                .from('tenants')
-                .update({ logo: nuevoLogoUrl })
-                .eq('id', tenantId)
-
-            if (error) throw error
-
-            alert("¡Logo del tenant actualizado con éxito!")
-        } catch (error) {
-            console.error("Error al actualizar el logo:", error)
-            alert("Hubo un error al actualizar el logo en la base de datos.")
+    // Guarda empresa y logo en Supabase
+    async function guardarCambios() {
+        if (!empresa.trim()) {
+            mostrarMsg(false, "❌ El nombre del negocio no puede estar vacío")
+            return
+        }
+        try {
+            setGuardando(true)
+            
+            // Llama a la función global actualizar del contexto que actualiza WHERE id = tenant_id
+            await actualizar({
+                empresa: empresa.trim(),
+                logo: logoUrl.trim()
+            })
+            
+            mostrarMsg(true, "✅ Cambios guardados y aplicados correctamente")
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error al guardar cambios"}`)
+        } finally {
+            setGuardando(false)
         }
     }
 
@@ -169,51 +205,131 @@ export default function Personalizacion() {
 
                 {/* ── Contenido de las pestañas ── */}
                 {tab === "cuenta" && (
-                    <div className="card fade-up" style={{ padding: "24px 28px", maxWidth: 500 }}>
-                        <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Información de la Cuenta</h2>
-                        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Detalles del administrador de Goyangi Store.</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
+                        
+                        {/* Info de la sesión */}
+                        <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 320px", maxWidth: 460 }}>
+                            <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Información de la Cuenta</h2>
+                            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Detalles del administrador de Goyangi Store.</p>
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                            <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
-                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Correo Electrónico</span>
-                                <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-main)" }}>{cargando ? "Cargando..." : userEmail}</span>
-                            </div>
-                            <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
-                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Tenant ID (Multitenant)</span>
-                                <span style={{ fontFamily: "monospace", fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 700 }}>{cargando ? "Cargando..." : tenantId}</span>
-                            </div>
-                            <div>
-                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Estado de Conexión</span>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem", fontWeight: 700, color: "#4caf50" }}>
-                                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4caf50" }} />
-                                    Servidores Conectados (FastAPI + Supabase)
+                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Correo Electrónico</span>
+                                    <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-main)" }}>{cargando ? "Cargando..." : userEmail}</span>
                                 </div>
-
-                                {/* ── BOTÓN DE ACTUALIZACIÓN (Corregido y enmarcado correctamente) ── */}
-                                <div style={{ marginTop: 16 }}>
-                                    <button
-                                        onClick={() => actualizarLogoTenant("https://tu-storage.com/nuevo-logo.png")}
-                                        style={{
-                                            width: "100%",
-                                            padding: "10px",
-                                            background: "var(--primary-mid)",
-                                            color: "#fff",
-                                            border: "none",
-                                            borderRadius: "8px",
-                                            fontWeight: 700,
-                                            cursor: "pointer",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: 8
-                                        }}
-                                    >
-                                        <Icon name="Upload" size={16} />
-                                        Actualizar Logo del Tenant
-                                    </button>
+                                <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Tenant ID</span>
+                                    <span style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "var(--text-main)", fontWeight: 700, wordBreak: "break-all" }}>{cargandoTenant ? "Cargando..." : tenant?.tenant_id}</span>
                                 </div>
-                            </div> {/* <- Cierre del div padre de Estado de Conexión */}
+                                <div>
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Estado de Conexión</span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem", fontWeight: 700, color: "#4caf50" }}>
+                                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4caf50" }} />
+                                        Servidores Conectados (FastAPI + Supabase)
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
+                        {/* Editor de la Identidad del Negocio */}
+                        <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 320px", maxWidth: 460 }}>
+                            <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Identidad del Negocio</h2>
+                            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Personaliza el logo y el nombre de tu empresa.</p>
+
+                            {msg && (
+                                <div style={{
+                                    padding: "10px 14px", marginBottom: 16,
+                                    borderRadius: 10, fontSize: "0.82rem", fontWeight: 700,
+                                    background: msg.ok ? "rgba(76,175,80,0.1)" : "rgba(244,67,54,0.1)",
+                                    color: msg.ok ? "#2e7d32" : "#c62828",
+                                    borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#f44336"}`
+                                }}>
+                                    {msg.texto}
+                                </div>
+                            )}
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                                
+                                {/* Logo: Vista previa y subida */}
+                                <div>
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Logo del Negocio</span>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                                        {/* Vista previa circular */}
+                                        <div style={{
+                                            width: 72, height: 72, borderRadius: "50%",
+                                            border: "2.5px solid var(--border-primary)",
+                                            overflow: "hidden", flexShrink: 0,
+                                            background: "var(--bg-app)",
+                                            display: "flex", alignItems: "center", justifyContent: "center"
+                                        }}>
+                                            {logoUrl ? (
+                                                <img src={logoUrl} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            ) : (
+                                                <Icon name="ImageOff" size={28} color="var(--text-muted)" />
+                                            )}
+                                        </div>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                                            <input
+                                                ref={inputFileRef}
+                                                type="file"
+                                                accept="image/*"
+                                                style={{ display: "none" }}
+                                                onChange={handleLogoFile}
+                                            />
+                                            <button
+                                                onClick={() => inputFileRef.current?.click()}
+                                                disabled={subiendoLogo}
+                                                className="btn-primary"
+                                                style={{ fontSize: "0.8rem", padding: "8px 14px", width: "fit-content" }}
+                                            >
+                                                {subiendoLogo ? "Subiendo..." : "📷 Subir imagen"}
+                                            </button>
+                                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                                                Se optimiza a WebP automáticamente
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* URL manual */}
+                                    <div style={{ marginTop: 12 }}>
+                                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                                            O pega un enlace directo de Cloudinary
+                                        </span>
+                                        <input
+                                            className="input-primary"
+                                            placeholder="https://res.cloudinary.com/..."
+                                            value={logoUrl}
+                                            onChange={e => setLogoUrl(e.target.value)}
+                                            style={{ fontSize: "0.8rem" }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Nombre del negocio */}
+                                <div>
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Nombre del Negocio</span>
+                                    <input
+                                        className="input-primary"
+                                        placeholder="Ej: Goyangi Store"
+                                        value={empresa}
+                                        onChange={e => setEmpresa(e.target.value)}
+                                        maxLength={60}
+                                    />
+                                </div>
+
+                                {/* Guardar Cambios */}
+                                <button
+                                    className="btn-primary"
+                                    onClick={guardarCambios}
+                                    disabled={guardando || cargandoTenant}
+                                    style={{ marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                                >
+                                    <Icon name="Save" size={16} />
+                                    {guardando ? "Guardando..." : "Guardar Cambios"}
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
                 )}
 
