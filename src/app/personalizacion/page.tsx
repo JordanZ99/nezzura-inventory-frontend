@@ -65,14 +65,14 @@ export default function Personalizacion() {
         if (!file || !tenant?.tenant_id) return
         try {
             setSubiendoLogo(true)
-            
+
             // 1. Convertir y comprimir a WebP automáticamente
             const webp = await comprimirImagen(file, 400, 400, 0.85)
-            
+
             // 2. Subir foto usando el nombre clave para Cloudinary
             const nombreClave = `_logo_${tenant.tenant_id.slice(0, 8)}`
             const { ruta } = await api.subirFoto(nombreClave, webp)
-            
+
             setLogoUrl(ruta)
             mostrarMsg(true, "📷 Logo subido temporalmente — Haz clic en Guardar Cambios para aplicarlo en el sistema")
         } catch (err: any) {
@@ -91,13 +91,13 @@ export default function Personalizacion() {
         }
         try {
             setGuardando(true)
-            
+
             // Llama a la función global actualizar del contexto que actualiza WHERE id = tenant_id
             await actualizar({
                 empresa: empresa.trim(),
                 logo: logoUrl.trim()
             })
-            
+
             mostrarMsg(true, "✅ Cambios guardados y aplicados correctamente")
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error al guardar cambios"}`)
@@ -156,19 +156,19 @@ export default function Personalizacion() {
                         </div>
                         <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center" }}>
                             <button onClick={() => { document.documentElement.setAttribute('data-theme', 'default'); localStorage.setItem('tema', 'default'); }}
-                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#91a5b3ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
+                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #6f7375ff 0%, #5e87a4ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Steel Slate"
                             />
-                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'strawberry'); localStorage.setItem('tema', 'strawberry'); }}
-                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#f33376", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
-                                title="Strawberry Pink"
-                            />
                             <button onClick={() => { document.documentElement.setAttribute('data-theme', 'midnightBlack'); localStorage.setItem('tema', 'midnightBlack'); }}
-                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#232323ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
+                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #1f2321ff 0%, #1e6456ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Midnight Black"
                             />
+                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'strawberry'); localStorage.setItem('tema', 'strawberry'); }}
+                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #f33376 0%, #fa30dfff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
+                                title="Strawberry Pink"
+                            />
                             <button onClick={() => { document.documentElement.setAttribute('data-theme', 'cozyYellow'); localStorage.setItem('tema', 'cozyYellow'); }}
-                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", backgroundColor: "#ffd779ff", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
+                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #ffd05bff 0%, #eb7456ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Cozy Yellow"
                             />
                         </div>
@@ -206,7 +206,7 @@ export default function Personalizacion() {
                 {/* ── Contenido de las pestañas ── */}
                 {tab === "cuenta" && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
-                        
+
                         {/* Info de la sesión */}
                         <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 320px", maxWidth: 460 }}>
                             <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Información de la Cuenta</h2>
@@ -249,7 +249,7 @@ export default function Personalizacion() {
                             )}
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                                
+
                                 {/* Logo: Vista previa y subida */}
                                 <div>
                                     <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Logo del Negocio</span>
@@ -289,7 +289,7 @@ export default function Personalizacion() {
                                             </span>
                                         </div>
                                     </div>
-                                    
+
                                     {/* URL manual */}
                                     <div style={{ marginTop: 12 }}>
                                         <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
