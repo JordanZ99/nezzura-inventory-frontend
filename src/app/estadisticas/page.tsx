@@ -9,7 +9,6 @@ import { api, Venta, Gasto } from "@/lib/api"
 import { DateRangePicker, DateRangePickerValue, DonutChart, LineChart, BarChart } from "@tremor/react"
 import Icon from "@/components/ui/Icon"
 import { useChartColors } from "@/components/hooks/useChartColors"
-import { supabase } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
 
 // Dynamic import to avoid SSR issues with Three.js
@@ -209,7 +208,7 @@ export default function Estadisticas() {
                         <img src={logoSrc} alt={empresa} style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
                         <div>
                             <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.4rem", color: "var(--primary-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
-                            <p style={{ margin: "0 0 4px", fontSize: "0.95rem", color: "var(--text-main)", fontWeight: 600 }}>Goyangi Store</p>
+                            <p style={{ margin: "0 0 4px", fontSize: "0.95rem", color: "var(--text-main)", fontWeight: 600 }}>{empresa}</p>
                             <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
                                 Período: {dates.from ? dates.from.toLocaleDateString() : "Inicio"} {" — "} {dates.to ? dates.to.toLocaleDateString() : new Date().toLocaleDateString()}
                             </p>
