@@ -9,6 +9,8 @@ import { api, Venta, Gasto } from "@/lib/api"
 import { DateRangePicker, DateRangePickerValue, DonutChart, LineChart, BarChart } from "@tremor/react"
 import Icon from "@/components/ui/Icon"
 import { useChartColors } from "@/components/hooks/useChartColors"
+import { supabase } from "@/lib/supabase"
+import { useTenant } from "@/contexts/TenantContext"
 
 // Dynamic import to avoid SSR issues with Three.js
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
@@ -33,6 +35,9 @@ export default function Estadisticas() {
     const chartColors = useChartColors();
 
     const [guardando, setGuardando] = useState(false)
+    const { tenant } = useTenant()
+    const logoSrc = tenant?.logo || "/logo.png"
+    const empresa = tenant?.empresa || "..."
 
     async function recargar() {
         try {
@@ -201,7 +206,7 @@ export default function Estadisticas() {
                 <div id="report-container" style={{ padding: 16, background: "var(--bg-card)", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
 
                     <div className="flex md:hidden" style={{ alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 16, borderBottom: "2px solid #fce4ec" }}>
-                        <img src="/logo.png" alt="Goyangi" style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
+                        <img src={logoSrc} alt={empresa} style={{ width: 80, height: 80, objectFit: "contain", borderRadius: 16, background: "#fff", padding: 4, border: "1px solid #fce4ec" }} />
                         <div>
                             <h2 style={{ margin: "0 0 6px", fontWeight: 800, fontSize: "1.4rem", color: "var(--primary-dark)", textTransform: "uppercase", lineHeight: 1.1 }}>Reporte de Ventas</h2>
                             <p style={{ margin: "0 0 4px", fontSize: "0.95rem", color: "var(--text-main)", fontWeight: 600 }}>Goyangi Store</p>
