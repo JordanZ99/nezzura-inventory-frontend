@@ -5,6 +5,7 @@
 // Se oculta completamente en /login para mostrar la pantalla limpia.
 // ==============================================================================
 
+import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import Icon from "@/components/ui/Icon"
@@ -22,6 +23,17 @@ const NAV = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const router = useRouter()
+
+    // Re-aplica el tema guardado tras la hidratación de React.
+    // React reconcilia <html> contra su VDOM (sin data-theme, porque el server
+    // no conoce localStorage) y puede eliminar el atributo que puso el script
+    // inline. Este useEffect lo restaura una vez que la hidratación termina.
+    useEffect(() => {
+        try {
+            const tema = localStorage.getItem('tema') || 'default'
+            document.documentElement.setAttribute('data-theme', tema)
+        } catch (e) {}
+    }, [])
     const isLoginPage = pathname === "/login"
     const { tenant } = useTenant()
 
