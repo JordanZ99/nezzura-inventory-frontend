@@ -26,7 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const { tenant } = useTenant()
 
     const logoSrc = tenant?.logo || "/logo.png"
-    const empresa = tenant?.empresa || "Goyangi Store"
+    const empresa = tenant?.empresa || "..."
 
     async function handleLogout() {
         await supabase.auth.signOut()
