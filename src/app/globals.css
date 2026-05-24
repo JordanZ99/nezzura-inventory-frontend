@@ -41,7 +41,7 @@
   --bg-card2: hsl(210, 25%, 95%);
   /* Tarjetas gris azulado pálido */
 
-  --border-light: hsl(214, 13%, 39%);
+  --border-light: hsl(210, 22%, 88%);
   --border-primary: hsl(212, 20%, 87%);
 
   /* Tipografía */
@@ -143,7 +143,8 @@
   --border-primary: hsl(212, 18%, 26%);
 
   /* Tipografía — nunca blanco puro, reduce fatiga visual */
-  --text-main: hsl(210, 22%, 88%);
+  --text-main: hsl(213, 16%, 22%);
+  ;
   --text-secondary: hsl(195, 40%, 38%);
   /* Blanco cálido suavizado */
   --text-muted: hsl(213, 16%, 55%);
