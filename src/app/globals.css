@@ -54,7 +54,7 @@
   /* --- EFECTOS & SOMBRAS --- */
   --card-shadow: 0 4px 24px 0 hsl(213 30% 30% / 8%);
   --btn-shadow: 0 4px 15px hsl(212 40% 48% / 25%);
-  --primary-glow: #1fdaff;
+  --primary-glow: #39aac1;
 
   /* --- Degradados --- */
   --gradient-1: linear-gradient(135deg, hsl(213, 38%, 38%) 0%, hsl(210, 32%, 52%) 100%);
@@ -152,7 +152,7 @@
   /* --- EFECTOS & SOMBRAS --- */
   --card-shadow: 0 4px 24px 0 hsl(0 0% 0% / 30%);
   --btn-shadow: 0 4px 15px hsl(170 38% 47% / 20%);
-  --primary-glow: #25ffba;
+  --primary-glow: #329676;
 
   /* --- Degradados --- */
   --gradient-1: linear-gradient(135deg, hsl(194, 31%, 16%) 0%, hsl(170, 31%, 23%) 100%);
@@ -238,7 +238,7 @@
   /* --- EFECTOS & SOMBRAS --- */
   --card-shadow: 0 4px 24px 0 hsl(332 60% 49% / 10%);
   --btn-shadow: 0 4px 15px hsl(327 83% 54% / 35%);
-  --primary-glow: #ff01a6;
+  --primary-glow: #892566;
 
   /* --- Degradados --- */
   --gradient-1: linear-gradient(135deg, hsl(329, 74%, 54%) 0%, hsl(339, 81%, 66%) 100%);
@@ -319,7 +319,7 @@
   /* --- EFECTOS & SOMBRAS --- */
   --card-shadow: 0 4px 24px 0 hsl(45 80% 30% / 8%);
   --btn-shadow: 0 4px 15px hsl(45 90% 45% / 30%);
-  --primary-glow: rgb(255, 123, 35);
+  --primary-glow: rgb(176, 129, 98);
 
   /* --- Degradados --- */
   --gradient-1: linear-gradient(135deg, hsl(6, 83%, 70%) 0%, hsl(0, 57%, 55%) 100%);

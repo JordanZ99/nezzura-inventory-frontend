@@ -274,7 +274,7 @@ export default function PuntoDeVenta() {
                                         }}>
                                         <div style={{
                                             aspectRatio: "1", borderRadius: 12,
-                                            background: "var(--gradient-login)",
+                                            background: "var(--gradient-bg-login)",
                                             marginBottom: 10, overflow: "hidden",
                                             display: "flex", alignItems: "center", justifyContent: "center",
                                         }}>
@@ -457,9 +457,9 @@ export default function PuntoDeVenta() {
                     position: "fixed", bottom: 76, right: 16,
                     borderRadius: "50px", gap: 8, zIndex: 150,
                     padding: "12px 20px", fontSize: "0.9rem",
-                    boxShadow: "0 6px 25px rgba(233,30,140,0.45)",
+                    boxShadow: "0 6px 25px var(--primary-glow)",
                 }} onClick={() => setCarritoAbierto(true)}>
-                    🛒 {totalItems} · ${totalCarrito.toFixed(2)}
+                    <Icon name="ShoppingCart" size={20} color="var(--white)" /> {totalItems} · ${totalCarrito.toFixed(2)}
                 </button>
             )}
 

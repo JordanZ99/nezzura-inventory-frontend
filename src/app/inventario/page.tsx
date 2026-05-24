@@ -264,9 +264,9 @@ export default function Inventario() {
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
                                             <Pill color="gray">{inv.find(p => p.producto === producto)?.categoria || "General"}</Pill>
-                                            <Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill>
+                                            <div className="flex justify-center items-center"><Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill> </div>
                                         </div>
-                                        <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ffeef0", color: guardando ? "#999" : "#b71c1c", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
+                                        <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ad4955ff", color: guardando ? "#999" : "#ffffffff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
                                             {guardando ? "⏳" : "Dar de baja"}
                                         </button>
                                     </div>
