@@ -213,9 +213,9 @@ export default function PuntoDeVenta() {
                                     onClick={() => setCategoriaSeleccionada(cat)}
                                     style={{
                                         padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
-                                        background: categoriaSeleccionada === cat ? "var(--primary-mid)" : "#fce4ec",
+                                        background: categoriaSeleccionada === cat ? "var(--primary-mid)" : "var(--bg-card2)",
                                         color: categoriaSeleccionada === cat ? "#fff" : "var(--primary-dark)",
-                                        boxShadow: categoriaSeleccionada === cat ? "0 4px 10px rgba(233,30,140,0.3)" : "none"
+                                        boxShadow: categoriaSeleccionada === cat ? "0 4px 10px var(--primary-glow)" : "none"
                                     }}
                                 >
                                     {cat}
