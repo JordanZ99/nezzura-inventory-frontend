@@ -260,7 +260,7 @@ export default function Inventario() {
                             const stockTotal = grupos.reduce((a, g) => a + g.stock, 0)
                             return (
                                 <div key={producto} className="card fade-up" style={{ overflow: "hidden" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "var(--bg-app)", borderBottom: "1px solid var(--border-light)" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "var(--bg-app)", borderBottom: "1px solid var(--border-light)", gap: 10 }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
                                             <Pill color="gray">{inv.find(p => p.producto === producto)?.categoria || "General"}</Pill>
