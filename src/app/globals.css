@@ -139,11 +139,11 @@
   --bg-card2: hsl(212, 14%, 18%);
   /* Tarjetas levemente más claras */
 
-  --border-light: hsl(212, 18%, 26%);
+  --border-light: hsl(213, 16%, 22%);
   --border-primary: hsl(212, 18%, 26%);
 
   /* Tipografía — nunca blanco puro, reduce fatiga visual */
-  --text-main: hsl(213, 16%, 22%);
+  --text-main: hsl(210, 22%, 88%);
   ;
   --text-secondary: hsl(195, 40%, 38%);
   /* Blanco cálido suavizado */

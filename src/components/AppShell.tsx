@@ -219,7 +219,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 position: "fixed",
                 bottom: 0, left: 0, right: 0,
                 background: "var(--bg-card)",
-                borderTop: "1.5px solid var(--border-primary)",
+                //borderTop: "1.5px solid var(--border-primary)",
                 justifyContent: "space-around",
                 alignItems: "center",
                 height: 64,
