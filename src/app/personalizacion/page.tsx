@@ -7,6 +7,7 @@ import { useTenant } from "@/contexts/TenantContext"
 import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
+import { usePathname, useRouter } from "next/navigation"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -27,6 +28,12 @@ export default function Personalizacion() {
     const [subiendoLogo, setSubiendoLogo] = useState(false)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const inputFileRef = useRef<HTMLInputElement>(null)
+    const router = useRouter()
+
+    async function handleLogout() {
+        await supabase.auth.signOut()
+        router.replace("/login")
+    }
 
     // Sincronizar formulario con los datos cargados desde el contexto
     useEffect(() => {
@@ -222,11 +229,30 @@ export default function Personalizacion() {
                                     <span style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "var(--text-main)", fontWeight: 700, wordBreak: "break-all" }}>{cargandoTenant ? "Cargando..." : tenant?.tenant_id}</span>
                                 </div>
                                 <div>
-                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Estado de Conexión</span>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem", fontWeight: 700, color: "#4caf50" }}>
-                                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4caf50" }} />
-                                        Servidores Conectados (FastAPI + Supabase)
-                                    </div>
+                                    <button
+                                        id="btn-logout"
+                                        onClick={handleLogout}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 8,
+                                            width: "100%",
+                                            padding: "10px 16px",
+                                            background: "none",
+                                            border: "1.5px solid var(--border-primary)",
+                                            borderRadius: 12,
+                                            color: "var(--primary-icons)",
+                                            fontSize: "0.8rem",
+                                            fontWeight: 700,
+                                            cursor: "pointer",
+                                            transition: "background 0.15s",
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--primary-soft)")}
+                                        onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                                    >
+                                        <Icon name="LogOut" size={16} />
+                                        Cerrar sesión
+                                    </button>
                                 </div>
                             </div>
                         </div>

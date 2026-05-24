@@ -250,7 +250,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </Link>
                 ))}
                 {/* Logout en móvil */}
-                <button
+                {/*<button
                     onClick={handleLogout}
                     style={{
                         display: "flex",
@@ -273,7 +273,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     }}>
                         Salir
                     </span>
-                </button>
+                </button>*/}
             </nav>
 
         </div>
