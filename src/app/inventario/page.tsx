@@ -428,7 +428,7 @@ export default function Inventario() {
                                             <button
                                                 key={cat}
                                                 onClick={() => setEditProdVal(p => ({ ...p, categoria: cat }))}
-                                                style={{ background: "#fce4ec", color: "var(--primary-dark)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
+                                                style={{ background: "var(--bg-card2)", color: "var(--text-main)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
                                             >
                                                 {cat}
                                             </button>
