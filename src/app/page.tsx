@@ -266,7 +266,7 @@ export default function PuntoDeVenta() {
                                         onClick={() => agregarAlCarrito(prod)}
                                         onMouseEnter={e => {
                                             e.currentTarget.style.transform = "translateY(-3px)"
-                                            e.currentTarget.style.boxShadow = "0 8px 30px rgba(200,50,120,0.18)"
+                                            e.currentTarget.style.boxShadow = "0 8px 30px var(--primary-glow)"
                                         }}
                                         onMouseLeave={e => {
                                             e.currentTarget.style.transform = ""
@@ -274,7 +274,7 @@ export default function PuntoDeVenta() {
                                         }}>
                                         <div style={{
                                             aspectRatio: "1", borderRadius: 12,
-                                            background: "linear-gradient(135deg, #f4f4f4ff, #c1c1c1ff)",
+                                            background: "var(--gradient-login)",
                                             marginBottom: 10, overflow: "hidden",
                                             display: "flex", alignItems: "center", justifyContent: "center",
                                         }}>
