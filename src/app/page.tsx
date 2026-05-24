@@ -274,7 +274,7 @@ export default function PuntoDeVenta() {
                                         }}>
                                         <div style={{
                                             aspectRatio: "1", borderRadius: 12,
-                                            background: "linear-gradient(135deg, #fce4ec, #f8bbd0)",
+                                            background: "linear-gradient(135deg, #f4f4f4ff, #c1c1c1ff)",
                                             marginBottom: 10, overflow: "hidden",
                                             display: "flex", alignItems: "center", justifyContent: "center",
                                         }}>
@@ -298,7 +298,7 @@ export default function PuntoDeVenta() {
                                                     e.stopPropagation();
                                                     setCategoriaSeleccionada(prod.categoria || "General");
                                                 }}
-                                                style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "#fce4ec", borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}
+                                                style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}
                                             >
                                                 {prod.categoria || "General"}
                                             </span>
@@ -378,7 +378,7 @@ export default function PuntoDeVenta() {
                                     {carrito.map(item => {
                                         const prod = productos.find(p => p.producto === item.producto)
                                         return (
-                                            <div key={item.producto} style={{ padding: 10, background: "#fdf6f9", borderRadius: 12, border: "1px solid #fce4ec" }}>
+                                            <div key={item.producto} style={{ padding: 10, background: "var(--bg-card)", borderRadius: 12, border: "var(--bg-card)" }}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                                                     <p style={{ margin: 0, fontWeight: 600, fontSize: "0.8rem", color: "var(--text-main)", flex: 1, marginRight: 6 }}>
                                                         {item.producto}
@@ -387,7 +387,7 @@ export default function PuntoDeVenta() {
                                                         style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: "0.9rem", padding: 0, lineHeight: 1 }}>✕</button>
                                                 </div>
                                                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                                    <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", borderRadius: 8, border: "1px solid #fce4ec", padding: "2px 4px" }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", borderRadius: 8, border: "var(--border-primary)", padding: "2px 4px" }}>
                                                         <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>−</button>
                                                         <input
