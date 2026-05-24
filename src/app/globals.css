@@ -46,6 +46,7 @@
 
   /* Tipografía */
   --text-main: hsl(215, 25%, 22%);
+  --text-secondary: hsl(213, 35%, 28%);
   /* Casi negro azulado */
   --text-muted: hsl(213, 15%, 55%);
   --text-white: hsl(0, 0%, 100%);
@@ -143,6 +144,7 @@
 
   /* Tipografía — nunca blanco puro, reduce fatiga visual */
   --text-main: hsl(210, 22%, 88%);
+  --text-secondary: hsl(195, 40%, 38%);
   /* Blanco cálido suavizado */
   --text-muted: hsl(213, 16%, 55%);
   --text-white: hsl(210, 20%, 92%);
@@ -228,7 +230,8 @@
   /* Para separadores temáticos */
 
   /* Tipografía */
-  --text-main: hsl(240, 36%, 46%);
+  --text-main: hsl(309, 36%, 46%);
+  --text-secondary: hsl(336, 78%, 43%);
   --text-muted: hsl(211, 18%, 60%);
   --text-white: hsl(0, 0%, 100%);
 
@@ -309,6 +312,7 @@
 
   /* Tipografía */
   --text-main: hsl(49, 11%, 30%);
+  --text-secondary: hsl(2, 68%, 54%);
   --text-muted: hsl(45, 12%, 52%);
   --text-white: hsl(0, 0%, 100%);
 
