@@ -264,7 +264,7 @@ export default function Inventario() {
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
                                             <Pill color="gray">{inv.find(p => p.producto === producto)?.categoria || "General"}</Pill>
-                                            <div className="flex justify-center items-center"><Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill> </div>
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill> </div>
                                         </div>
                                         <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ad4955ff", color: guardando ? "#999" : "#ffffffff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
                                             {guardando ? "⏳" : "Dar de baja"}
@@ -289,7 +289,7 @@ export default function Inventario() {
                                                                 <input type="number" min={0} step="0.01" value={editLote.costo} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, costo: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                             ) : `$${g.costo.toFixed(2)}`}
                                                         </td>
-                                                        <td style={{ padding: "10px 16px", fontWeight: 700, color: "var(--primary-mid)" }}>
+                                                        <td style={{ padding: "10px 16px", fontWeight: 700, color: "var(--text-main)" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
                                                                 <input type="number" min={0} step="0.01" value={editLote.precio_venta} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                             ) : `$${g.precio.toFixed(2)}`}
