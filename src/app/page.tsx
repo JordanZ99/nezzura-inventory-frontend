@@ -433,13 +433,13 @@ export default function PuntoDeVenta() {
                         </div>
 
                         {carrito.length > 0 && (
-                            <div style={{ padding: "12px 16px", borderTop: "1px solid #fce4ec" }}>
+                            <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border-primary)" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1rem", color: "var(--text-main)", marginBottom: 12 }}>
                                     <span>Total</span>
                                     <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
                                 </div>
                                 <button className="btn-primary" style={{ width: "100%", marginBottom: 8 }} onClick={cobrar} disabled={cobrando}>
-                                    {cobrando ? "Procesando..." : "✅ Cobrar"}
+                                    {cobrando ? "Procesando..." : "Cobrar"}
                                 </button>
                                 <button className="btn-ghost" style={{ width: "100%" }}
                                     onClick={() => { setCarrito([]); setPrecios({}) }}>

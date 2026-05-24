@@ -32,7 +32,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         try {
             const tema = localStorage.getItem('tema') || 'default'
             document.documentElement.setAttribute('data-theme', tema)
-        } catch (e) {}
+        } catch (e) { }
     }, [])
     const isLoginPage = pathname === "/login"
     const { tenant } = useTenant()
@@ -198,7 +198,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         margin: 0,
                         letterSpacing: 0.3,
                     }}>
-                        Hecho para mi pookie 🐱 · lov u
+                        Nezzura Digital
                     </p>
                 </div>
             </aside>
