@@ -224,7 +224,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 alignItems: "center",
                 height: 64,
                 zIndex: 200,
-                boxShadow: "0 -4px 20px var(--border-glow)",
+                boxShadow: "0 -4px 20px rgba(47, 24, 194, 0.08)",
             }}>
                 {NAV.map(item => (
                     <Link key={item.href} href={item.href} style={{
