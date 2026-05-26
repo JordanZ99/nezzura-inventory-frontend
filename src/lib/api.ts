@@ -53,6 +53,7 @@ export interface Restock {
 
 export interface Venta {
     id: number;
+    n_ticket: number;
     fecha: string;
     producto: string;
     cantidad: number;

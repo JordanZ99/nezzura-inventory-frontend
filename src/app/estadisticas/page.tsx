@@ -291,7 +291,7 @@ export default function Estadisticas() {
                                 </thead>
                                 <tbody>
                                     {ventasFiltradas.map(v => (
-                                        <tr key={v.id} style={{ borderBottom: "1px solid #fdf6f9", opacity: v.estado === "Inactivo" ? 0.6 : 1, textDecoration: v.estado === "Inactivo" ? "line-through" : "none" }} className="hover:bg-primary-50/30">
+                                        <tr key={v.n_ticket} style={{ borderBottom: "1px solid #fdf6f9", opacity: v.estado === "Inactivo" ? 0.6 : 1, textDecoration: v.estado === "Inactivo" ? "line-through" : "none" }} className="hover:bg-primary-50/30">
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.id}</td>
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>
                                                 {editando === v.id ? (
