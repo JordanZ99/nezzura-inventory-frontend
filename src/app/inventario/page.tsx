@@ -47,6 +47,15 @@ export default function Inventario() {
     const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[] })
     const editFotoRef = useRef<HTMLInputElement>(null)
     const [guardando, setGuardando] = useState(false)
+    const [nuevaCategoria, setNuevaCategoria] = useState("")
+
+    function agregarCategoria() {
+        const cat = nuevaCategoria.trim()
+        if (!cat) return
+        if (form.categoria.includes(cat)) return
+        setForm(f => ({ ...f, categoria: [...f.categoria, cat] }))
+        setNuevaCategoria("")
+    }
 
 
     async function recargar() {
@@ -342,29 +351,66 @@ export default function Inventario() {
                         <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
                         <div>
                             <Input label="Categoría" value={form.categoria.join(", ")} onChange={e => setForm(p => ({ ...p, categoria: e.target.value.split(/,\s*/).map(c => c.trim()).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>                                    {categoriasExistentes.map(cat => {
-                                        const activa = form.categoria.includes(cat)
-                                        return (
-                                            <button
-                                                key={cat}
-                                                onClick={() => setForm(f => ({
-                                                    ...f,
-                                                    categoria: activa
-                                                        ? f.categoria.filter(c => c !== cat)
-                                                        : [...f.categoria, cat]
-                                                }))}
-                                                style={{
-                                                    background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
-                                                    color: activa ? "#fff" : "var(--primary-text)",
-                                                    border: "none", borderRadius: 12,
-                                                    padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700,
-                                                    cursor: "pointer", transition: "all 0.15s"
-                                                }}
-                                            >
-                                                {cat} {activa ? "✓" : "+"}
-                                            </button>
-                                        )
-                                    })}
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                                {/* Chips de categorías existentes */}
+                                {categoriasExistentes.map(cat => {
+                                    const activa = form.categoria.includes(cat)
+                                    return (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setForm(f => ({
+                                                ...f,
+                                                categoria: activa
+                                                    ? f.categoria.filter(c => c !== cat)
+                                                    : [...f.categoria, cat]
+                                            }))}
+                                            style={{
+                                                background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                color: activa ? "#fff" : "var(--primary-text)",
+                                                border: "none", borderRadius: 12,
+                                                padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700,
+                                                cursor: "pointer", transition: "all 0.15s"
+                                            }}
+                                        >
+                                            {cat} {activa ? "✓" : "+"}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                            {/* Input rápido para crear una categoría nueva */}
+                            <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                                <input
+                                    type="text"
+                                    placeholder="Nueva categoría..."
+                                    value={nuevaCategoria}
+                                    onChange={e => setNuevaCategoria(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter") agregarCategoria() }}
+                                    style={{
+                                        flex: 1,
+                                        padding: "6px 10px",
+                                        borderRadius: 10,
+                                        border: "1px solid var(--border-primary)",
+                                        fontSize: "0.78rem",
+                                        outline: "none",
+                                        background: "var(--bg-card2)",
+                                        color: "var(--text-main)"
+                                    }}
+                                />
+                                <button
+                                    onClick={agregarCategoria}
+                                    disabled={!nuevaCategoria.trim()}
+                                    style={{
+                                        background: nuevaCategoria.trim() ? "var(--primary-mid)" : "var(--bg-card2)",
+                                        color: nuevaCategoria.trim() ? "#fff" : "var(--text-muted)",
+                                        border: "none", borderRadius: 10,
+                                        padding: "6px 14px", fontWeight: 700, fontSize: "0.8rem",
+                                        cursor: nuevaCategoria.trim() ? "pointer" : "not-allowed",
+                                        transition: "all 0.15s",
+                                        whiteSpace: "nowrap"
+                                    }}
+                                >
+                                    + Crear
+                                </button>
                             </div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
