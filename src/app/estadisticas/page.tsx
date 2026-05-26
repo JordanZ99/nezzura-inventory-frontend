@@ -35,6 +35,10 @@ export default function Estadisticas() {
 
     const [guardando, setGuardando] = useState(false)
     const { tenant } = useTenant()
+
+    // Paginación
+    const ITEMS_POR_PAGINA = 10
+    const [paginaActual, setPaginaActual] = useState(1)
     const logoSrc = tenant?.logo || "/logo.png"
     const empresa = tenant?.empresa || "..."
 
@@ -87,6 +91,16 @@ export default function Estadisticas() {
         if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
         return true
     })
+
+    // Reiniciar paginación cuando cambian los filtros
+    useEffect(() => {
+        setPaginaActual(1)
+    }, [dates.from, dates.to])
+
+    // --- Paginación ---
+    const totalPaginas = Math.max(1, Math.ceil(ventasFiltradas.length / ITEMS_POR_PAGINA))
+    const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA
+    const ventasPaginadas = ventasFiltradas.slice(inicio, inicio + ITEMS_POR_PAGINA)
 
     // --- KPIs ---
     const ventasActivas = ventasFiltradas.filter(v => v.estado !== "Inactivo")
@@ -290,7 +304,7 @@ export default function Estadisticas() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {ventasFiltradas.map(v => (
+                                    {ventasPaginadas.map(v => (
                                         <tr key={v.n_ticket} style={{ borderBottom: "1px solid #fdf6f9", opacity: v.estado === "Inactivo" ? 0.6 : 1, textDecoration: v.estado === "Inactivo" ? "line-through" : "none" }} className="hover:bg-primary-50/30">
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.n_ticket || v.id}</td>
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>
@@ -383,6 +397,118 @@ export default function Estadisticas() {
                                 </tbody>
                             </table>
                         </div>
+                        {/* Paginación */}
+                        {ventasFiltradas.length > ITEMS_POR_PAGINA && (
+                            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border-primary)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                                <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                                    Mostrando {Math.min(paginaActual * ITEMS_POR_PAGINA, ventasFiltradas.length)} de {ventasFiltradas.length} ventas
+                                </span>
+                                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                    <button
+                                        onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                                        disabled={paginaActual <= 1}
+                                        style={{
+                                            padding: "6px 14px",
+                                            borderRadius: 8,
+                                            border: "1px solid var(--border-primary)",
+                                            background: paginaActual <= 1 ? "var(--bg-card2)" : "var(--bg-card)",
+                                            color: paginaActual <= 1 ? "var(--text-muted)" : "var(--text-main)",
+                                            cursor: paginaActual <= 1 ? "not-allowed" : "pointer",
+                                            fontWeight: 600,
+                                            fontSize: "0.8rem",
+                                            transition: "all 0.15s",
+                                            opacity: paginaActual <= 1 ? 0.5 : 1
+                                        }}
+                                        onMouseOver={e => { if (paginaActual > 1) e.currentTarget.style.background = "var(--bg-card2)" }}
+                                        onMouseOut={e => e.currentTarget.style.background = "var(--bg-card)"}
+                                    >
+                                        ← Anterior
+                                    </button>
+                                    {(() => {
+                                        const pages = []
+                                        const maxVisible = 5
+                                        let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2))
+                                        let end = Math.min(totalPaginas, start + maxVisible - 1)
+                                        if (end - start + 1 < maxVisible) {
+                                            start = Math.max(1, end - maxVisible + 1)
+                                        }
+                                        if (start > 1) {
+                                            pages.push(
+                                                <button key={1} onClick={() => setPaginaActual(1)} style={{
+                                                    padding: "6px 12px",
+                                                    borderRadius: 6,
+                                                    border: "1px solid var(--border-primary)",
+                                                    background: "var(--bg-card)",
+                                                    color: "var(--text-main)",
+                                                    cursor: "pointer",
+                                                    fontWeight: 600,
+                                                    fontSize: "0.8rem"
+                                                }}>1</button>
+                                            )
+                                            if (start > 2) pages.push(<span key="dots1" style={{ padding: "0 4px", color: "var(--text-muted)" }}>…</span>)
+                                        }
+                                        for (let i = start; i <= end; i++) {
+                                            const active = i === paginaActual
+                                            pages.push(
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setPaginaActual(i)}
+                                                    style={{
+                                                        padding: "6px 12px",
+                                                        borderRadius: 6,
+                                                        border: active ? "2px solid var(--primary-main)" : "1px solid var(--border-primary)",
+                                                        background: active ? "var(--primary-bg)" : "var(--bg-card)",
+                                                        color: active ? "var(--primary-main)" : "var(--text-main)",
+                                                        cursor: "pointer",
+                                                        fontWeight: active ? 800 : 600,
+                                                        fontSize: "0.8rem",
+                                                        transition: "all 0.15s"
+                                                    }}
+                                                >
+                                                    {i}
+                                                </button>
+                                            )
+                                        }
+                                        if (end < totalPaginas) {
+                                            if (end < totalPaginas - 1) pages.push(<span key="dots2" style={{ padding: "0 4px", color: "var(--text-muted)" }}>…</span>)
+                                            pages.push(
+                                                <button key={totalPaginas} onClick={() => setPaginaActual(totalPaginas)} style={{
+                                                    padding: "6px 12px",
+                                                    borderRadius: 6,
+                                                    border: "1px solid var(--border-primary)",
+                                                    background: "var(--bg-card)",
+                                                    color: "var(--text-main)",
+                                                    cursor: "pointer",
+                                                    fontWeight: 600,
+                                                    fontSize: "0.8rem"
+                                                }}>{totalPaginas}</button>
+                                            )
+                                        }
+                                        return pages
+                                    })()}
+                                    <button
+                                        onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                                        disabled={paginaActual >= totalPaginas}
+                                        style={{
+                                            padding: "6px 14px",
+                                            borderRadius: 8,
+                                            border: "1px solid var(--border-primary)",
+                                            background: paginaActual >= totalPaginas ? "var(--bg-card2)" : "var(--bg-card)",
+                                            color: paginaActual >= totalPaginas ? "var(--text-muted)" : "var(--text-main)",
+                                            cursor: paginaActual >= totalPaginas ? "not-allowed" : "pointer",
+                                            fontWeight: 600,
+                                            fontSize: "0.8rem",
+                                            transition: "all 0.15s",
+                                            opacity: paginaActual >= totalPaginas ? 0.5 : 1
+                                        }}
+                                        onMouseOver={e => { if (paginaActual < totalPaginas) e.currentTarget.style.background = "var(--bg-card2)" }}
+                                        onMouseOut={e => e.currentTarget.style.background = "var(--bg-card)"}
+                                    >
+                                        Siguiente →
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
