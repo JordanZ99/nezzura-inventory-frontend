@@ -39,12 +39,12 @@ export default function Inventario() {
     const [loteEditar, setLoteEditar] = useState<Lote | null>(null)
     const [editLote, setEditLote] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: "General", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const fotoRef = useRef<HTMLInputElement>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: "General" })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[] })
     const editFotoRef = useRef<HTMLInputElement>(null)
     const [guardando, setGuardando] = useState(false)
 
@@ -97,7 +97,7 @@ export default function Inventario() {
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen })
             mostrarMsg(true, `✅ ${form.producto} registrado`)
-            setForm({ producto: "", descripcion: "", categoria: "General", costo: "", precio_venta: "", stock: 1 })
+            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1 })
             setTab("catalogo"); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -158,7 +158,7 @@ export default function Inventario() {
         setGuardando(true)
         try {
             const p = inv.find(x => x.producto === producto)
-            await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo", categoria: p?.categoria ?? "General" })
+            await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo", categoria: p?.categoria ?? ["General"] })
             mostrarMsg(true, `✅ ${producto} dado de baja`); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -175,7 +175,7 @@ export default function Inventario() {
     const valorInv = inv.reduce((a, p) => a + p.stock_total * p.precio_venta, 0)
     const ganPotencial = inv.reduce((a, p) => a + p.stock_total * (p.precio_venta - p.costo_promedio), 0)
     const stockBajo = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
-    const categoriasExistentes = Array.from(new Set(inv.map(p => p.categoria || "General"))).sort()
+    const categoriasExistentes = Array.from(new Set(inv.flatMap(p => p.categoria || ["General"]))).sort()
 
     return (
         <div style={{ minHeight: "100vh" }}>
@@ -263,7 +263,7 @@ export default function Inventario() {
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "var(--bg-app)", borderBottom: "1px solid var(--border-light)", gap: 10 }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
-                                            <Pill color="gray">{inv.find(p => p.producto === producto)?.categoria || "General"}</Pill>
+                                            <Pill color="gray">{(inv.find(p => p.producto === producto)?.categoria || ["General"]).join(", ")}</Pill>
                                             <Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill>
                                         </div>
                                         <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ad4955ff", color: guardando ? "#999" : "#ffffffff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
@@ -282,7 +282,7 @@ export default function Inventario() {
                                             <tbody>
                                                 {grupos.map((g, i) => (
                                                     <tr key={i} style={{ borderBottom: "1px solid var(--border-light)" }}
-                                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--primary-soft)")}
+                                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-card2)")}
                                                         onMouseLeave={e => (e.currentTarget.style.background = "")}>
                                                         <td style={{ padding: "10px 16px" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
@@ -341,17 +341,30 @@ export default function Inventario() {
                         <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                         <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
                         <div>
-                            <Input label="Categoría" value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                                {categoriasExistentes.map(cat => (
-                                    <button
-                                        key={cat}
-                                        onClick={() => setForm(f => ({ ...f, categoria: cat }))}
-                                        style={{ background: "var(--bg-card2)", color: "var(--primary-text)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
-                                    >
-                                        {cat}
-                                    </button>
-                                ))}
+                            <Input label="Categoría" value={form.categoria.join(", ")} onChange={e => setForm(p => ({ ...p, categoria: e.target.value.split(/,\s*/).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>                                    {categoriasExistentes.map(cat => {
+                                        const activa = form.categoria.includes(cat)
+                                        return (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setForm(f => ({
+                                                    ...f,
+                                                    categoria: activa
+                                                        ? f.categoria.filter(c => c !== cat)
+                                                        : [...f.categoria, cat]
+                                                }))}
+                                                style={{
+                                                    background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                    color: activa ? "#fff" : "var(--primary-text)",
+                                                    border: "none", borderRadius: 12,
+                                                    padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700,
+                                                    cursor: "pointer", transition: "all 0.15s"
+                                                }}
+                                            >
+                                                {cat} {activa ? "✓" : "+"}
+                                            </button>
+                                        )
+                                    })}
                             </div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -411,7 +424,7 @@ export default function Inventario() {
                                         descripcion: p.descripcion ?? "",
                                         estado: p.estado ?? "Activo",
                                         imagen: p.imagen ?? "No hay foto",
-                                        categoria: p.categoria ?? "General"
+                                        categoria: p.categoria ?? ["General"]
                                     })
                                 }}>
                                 <option value="">— Selecciona —</option>
@@ -422,17 +435,32 @@ export default function Inventario() {
                         {prodEditar && (
                             <>
                                 <div>
-                                    <Input label="Categoría" value={editProdVal.categoria} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
+                                    <Input label="Categoría" value={editProdVal.categoria.join(", ")} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value.split(/,\s*/).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
                                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                                        {categoriasExistentes.map(cat => (
-                                            <button
-                                                key={cat}
-                                                onClick={() => setEditProdVal(p => ({ ...p, categoria: cat }))}
-                                                style={{ background: "var(--bg-card2)", color: "var(--text-main)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
-                                            >
-                                                {cat}
-                                            </button>
-                                        ))}
+                                        {categoriasExistentes.map(cat => {
+                                            const activa = editProdVal.categoria.includes(cat)
+                                            return (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => setEditProdVal(p => ({
+                                                        ...p,
+                                                        categoria: activa
+                                                            ? p.categoria.filter(c => c !== cat)
+                                                            : [...p.categoria, cat]
+                                                    }))}
+                                                    style={{
+                                                        background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                        color: activa ? "#fff" : "var(--text-main)",
+                                                        border: "none", borderRadius: 12,
+                                                        padding: "4px 10px", fontSize: "0.65rem",
+                                                        fontWeight: 700, cursor: "pointer",
+                                                        transition: "all 0.15s"
+                                                    }}
+                                                >
+                                                    {cat} {activa ? "✓" : "+"}
+                                                </button>
+                                            )
+                                        })}
                                     </div>
                                 </div>
                                 <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />

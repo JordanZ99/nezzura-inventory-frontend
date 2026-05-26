@@ -75,15 +75,15 @@ export default function PuntoDeVenta() {
             .finally(() => setCargando(false))
     }, [])
 
-    const categorias = ["Todas", ...Array.from(new Set(productos.map(p => p.categoria || "General"))).sort()]
+    const categorias = ["Todas", ...Array.from(new Set(productos.flatMap(p => p.categoria || ["General"]))).sort()]
 
     const productosFiltrados = productos.filter(p => {
         const busquedaBase = busqueda.toLowerCase()
         const porBusqueda = p.producto.toLowerCase().includes(busquedaBase) ||
             p.descripcion?.toLowerCase().includes(busquedaBase) ||
-            (p.categoria || "General").toLowerCase().includes(busquedaBase)
+            (p.categoria || ["General"]).join(" ").toLowerCase().includes(busquedaBase)
 
-        const porCategoria = categoriaSeleccionada === "Todas" || (p.categoria || "General") === categoriaSeleccionada
+        const porCategoria = categoriaSeleccionada === "Todas" || (p.categoria || ["General"]).includes(categoriaSeleccionada)
         return porBusqueda && porCategoria
     })
 
@@ -363,11 +363,11 @@ export default function PuntoDeVenta() {
                                             <span
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setCategoriaSeleccionada(prod.categoria || "General");
+                                                    setCategoriaSeleccionada(prod.categoria?.[0] || "General");
                                                 }}
                                                 style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}
                                             >
-                                                {prod.categoria || "General"}
+                                                {(prod.categoria || ["General"]).join(", ")}
                                             </span>
                                             <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 3 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 3 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>
                                                 Stock: {prod.stock_total}

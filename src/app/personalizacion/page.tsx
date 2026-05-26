@@ -431,7 +431,7 @@ export default function Personalizacion() {
                                             <td style={{ padding: "12px 16px", fontWeight: 700 }}>{p.producto}</td>
                                             <td style={{ padding: "12px 16px" }}>
                                                 <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "var(--bg-app)", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
-                                                    {p.categoria || "Otros"}
+                                                    {(p.categoria || ["Otros"]).join(", ")}
                                                 </span>
                                             </td>
                                             <td style={{ padding: "12px 16px", fontWeight: 800 }}>{p.stock_total} uds</td>
