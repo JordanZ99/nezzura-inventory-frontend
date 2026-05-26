@@ -56,13 +56,13 @@ export default function PuntoDeVenta() {
 
     useEffect(() => {
         api.getInventario()
-            .then(data => setProductos(data.filter(p => p.stock_total > 0)))
+            .then(data => setProductos(data))
             .catch(async () => {
                 // Tables might not exist — force creation and retry
                 try {
                     await api.initDB()
                     const data = await api.getInventario()
-                    setProductos(data.filter(p => p.stock_total > 0))
+                    setProductos(data)
                 } catch {
                     // DB is empty, keep empty state
                 }
@@ -86,7 +86,9 @@ export default function PuntoDeVenta() {
         setCarrito(prev => {
             const idx = prev.findIndex(i => i.producto === prod.producto)
             if (idx >= 0) {
-                if (prev[idx].cantidad >= prod.stock_total) return prev
+                // NOTA: Ya no limitamos por stock_total para permitir
+                // vender aunque el inventario esté en 0 o negativo.
+                // La advertencia se muestra al momento de cobrar.
                 const nuevo = [...prev]
                 nuevo[idx] = { ...nuevo[idx], cantidad: nuevo[idx].cantidad + 1 }
                 return nuevo
@@ -123,6 +125,35 @@ export default function PuntoDeVenta() {
         setCarrito(prev => prev.filter(i => i.producto !== producto))
     }
 
+    /**
+     * Verifica si hay productos con stock insuficiente en el carrito
+     * y muestra una confirmación antes de proceder con el cobro.
+     * Si el usuario acepta, ejecuta cobrar().
+     */
+    function cobrarConAdvertencia() {
+        if (carrito.length === 0) return
+
+        // Identificar productos del carrito que no tienen stock suficiente
+        const sinStock = carrito.filter(item => {
+            const prod = productos.find(p => p.producto === item.producto)
+            return !prod || prod.stock_total <= 0 || item.cantidad > (prod?.stock_total ?? 0)
+        })
+
+        if (sinStock.length > 0) {
+            // Mostrar advertencia con los nombres de los productos sin stock
+            const nombres = sinStock.map(i => i.producto).join(", ")
+            const acepta = window.confirm(
+                `⚠️ No hay stock suficiente de: ${nombres}\n\n` +
+                `¿Desea proceder con la venta de todas formas?\n` +
+                `El inventario quedará en negativo.`
+            )
+            if (!acepta) return
+        }
+
+        // Si no hay advertencia o el usuario aceptó, ejecutar cobro
+        cobrar()
+    }
+
     async function cobrar() {
         if (carrito.length === 0) return
         setCobrando(true); setMensaje(null)
@@ -131,7 +162,7 @@ export default function PuntoDeVenta() {
             setMensaje({ tipo: "ok", texto: `✅ Venta registrada — $${res.total_cobrado.toFixed(2)}` })
             setCarrito([]); setPrecios({}); setCarritoAbierto(false)
             const data = await api.getInventario()
-            setProductos(data.filter(p => p.stock_total > 0))
+            setProductos(data)
         } catch (e: unknown) {
             setMensaje({ tipo: "error", texto: `❌ ${e instanceof Error ? e.message : "Error"}` })
         } finally { setCobrando(false) }
@@ -401,10 +432,10 @@ export default function PuntoDeVenta() {
                                                         <input
                                                             type="number" min="1"
                                                             value={item.cantidad}
-                                                            onChange={e => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, Math.max(1, +e.target.value)))}
+                                                            onChange={e => cambiarCantidad(item.producto, Math.max(1, +e.target.value))}
                                                             style={{ width: 35, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                                         />
-                                                        <button onClick={() => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, item.cantidad + 1))}
+                                                        <button onClick={() => cambiarCantidad(item.producto, item.cantidad + 1)}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>+</button>
                                                     </div>
                                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -446,7 +477,7 @@ export default function PuntoDeVenta() {
                                     <span>Total</span>
                                     <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
                                 </div>
-                                <button className="btn-primary" style={{ width: "100%", marginBottom: 8 }} onClick={cobrar} disabled={cobrando}>
+                                <button className="btn-primary" style={{ width: "100%", marginBottom: 8 }} onClick={cobrarConAdvertencia} disabled={cobrando}>
                                     {cobrando ? "Procesando..." : "Cobrar"}
                                 </button>
                                 <button className="btn-ghost" style={{ width: "100%" }}
@@ -508,16 +539,12 @@ export default function PuntoDeVenta() {
                                             type="number" min="1"
                                             value={item.cantidad}
                                             onChange={e => {
-                                                const prodData = productos.find(p => p.producto === item.producto);
-                                                const stockMax = prodData?.stock_total ?? 99;
-                                                cambiarCantidad(item.producto, Math.min(stockMax, Math.max(1, +e.target.value)));
+                                                cambiarCantidad(item.producto, Math.max(1, +e.target.value));
                                             }}
                                             style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                         />
                                         <button onClick={() => {
-                                            const prodData = productos.find(p => p.producto === item.producto);
-                                            const stockMax = prodData?.stock_total ?? 0;
-                                            cambiarCantidad(item.producto, Math.min(stockMax, item.cantidad + 1));
+                                            cambiarCantidad(item.producto, item.cantidad + 1);
                                         }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>+</button>
                                     </div>
                                     <input type="text" inputMode="decimal"
@@ -547,7 +574,7 @@ export default function PuntoDeVenta() {
                             <span>Total</span>
                             <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
                         </div>
-                        <button className="btn-primary" style={{ width: "100%", marginBottom: 10 }} onClick={cobrar} disabled={cobrando}>
+                        <button className="btn-primary" style={{ width: "100%", marginBottom: 10 }} onClick={cobrarConAdvertencia} disabled={cobrando}>
                             {cobrando ? "Procesando..." : "✅ Cobrar"}
                         </button>
                         <button className="btn-ghost" style={{ width: "100%" }} onClick={() => { setCarrito([]); setPrecios({}); setCarritoAbierto(false) }}>
