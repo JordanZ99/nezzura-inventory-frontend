@@ -23,6 +23,11 @@ export default function PuntoDeVenta() {
     const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
     const [modoDescuento, setModoDescuento] = useState(false)
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("Todas")
+    // Estado para el modal de advertencia por stock insuficiente
+    const [modalAdvertencia, setModalAdvertencia] = useState<{
+        visible: boolean;
+        nombres: string;
+    }>({ visible: false, nombres: "" })
     const [userId, setUserId] = useState<string>("Cargando...");
     const { tenant } = useTenant()
     const logoSrc = tenant?.logo || "/logo.png"
@@ -130,29 +135,52 @@ export default function PuntoDeVenta() {
      * y muestra una confirmación antes de proceder con el cobro.
      * Si el usuario acepta, ejecuta cobrar().
      */
+    /**
+     * Verifica si hay productos con stock insuficiente en el carrito.
+     * Si los hay, abre el modal de advertencia en lugar del window.confirm().
+     * Si el usuario confirma desde el modal, ejecuta cobrar().
+     */
     function cobrarConAdvertencia() {
         if (carrito.length === 0) return
 
         // Identificar productos del carrito que no tienen stock suficiente
         const sinStock = carrito.filter(item => {
             const prod = productos.find(p => p.producto === item.producto)
-            return !prod || prod.stock_total <= 0 || item.cantidad > (prod?.stock_total ?? 0)
+            return !prod || prod.stock_total <= 0 || item.cantidad > prod.stock_total
         })
 
         if (sinStock.length > 0) {
-            // Mostrar advertencia con los nombres de los productos sin stock
+            // Abrimos el modal personalizado en lugar del window.confirm() nativo
             const nombres = sinStock.map(i => i.producto).join(", ")
-            const acepta = window.confirm(
-                `⚠️ No hay stock suficiente de: ${nombres}\n\n` +
-                `¿Desea proceder con la venta de todas formas?\n` +
-                `El inventario quedará en negativo.`
-            )
-            if (!acepta) return
+            setModalAdvertencia({ visible: true, nombres })
+            return
         }
 
-        // Si no hay advertencia o el usuario aceptó, ejecutar cobro
+        // Si no hay advertencia, ejecutar cobro directamente
         cobrar()
     }
+
+    /** Callback ejecutado cuando el usuario acepta la advertencia en el modal */
+    function confirmarCobroConAdvertencia() {
+        setModalAdvertencia({ visible: false, nombres: "" })
+        cobrar()
+    }
+
+    /** Callback para cancelar desde el modal */
+    function cancelarAdvertencia() {
+        setModalAdvertencia({ visible: false, nombres: "" })
+    }
+
+    // Cerrar el modal con la tecla Escape
+    useEffect(() => {
+        function manejarEscape(e: KeyboardEvent) {
+            if (e.key === "Escape" && modalAdvertencia.visible) {
+                cancelarAdvertencia()
+            }
+        }
+        document.addEventListener("keydown", manejarEscape)
+        return () => document.removeEventListener("keydown", manejarEscape)
+    }, [modalAdvertencia.visible])
 
     async function cobrar() {
         if (carrito.length === 0) return
@@ -580,6 +608,102 @@ export default function PuntoDeVenta() {
                         <button className="btn-ghost" style={{ width: "100%" }} onClick={() => { setCarrito([]); setPrecios({}); setCarritoAbierto(false) }}>
                             Vaciar carrito
                         </button>
+                    </div>
+                </div>
+            )}
+            {/* ── Modal de advertencia por stock insuficiente ── */}
+            {modalAdvertencia.visible && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 9999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "var(--overlay-bg)",
+                    backdropFilter: "blur(4px)",
+                    WebkitBackdropFilter: "blur(4px)",
+                }}>
+                    {/**
+                     * Card flotante con los colores del tema actual.
+                     * Usa las variables CSS del tema dinámico para mantener
+                     * la coherencia visual con Midnight Black, Steel Slate,
+                     * Strawberry y Cozy Yellow.
+                     */}
+                    <div className="fade-up" style={{
+                        background: "var(--bg-card)",
+                        borderRadius: 20,
+                        padding: "32px 28px 24px",
+                        maxWidth: 400,
+                        width: "90%",
+                        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                        border: "1px solid var(--border-primary)",
+                        textAlign: "center",
+                    }}>
+                        {/* Icono de advertencia */}
+                        <div style={{
+                            width: 64, height: 64,
+                            borderRadius: "50%",
+                            background: "var(--error-bg)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            margin: "0 auto 16px",
+                            fontSize: "2rem",
+                        }}>
+                            ⚠️
+                        </div>
+
+                        <h3 style={{
+                            margin: "0 0 8px",
+                            fontSize: "1.1rem",
+                            fontWeight: 800,
+                            color: "var(--text-main)",
+                        }}>
+                            Stock insuficiente
+                        </h3>
+
+                        <p style={{
+                            margin: "0 0 6px",
+                            fontSize: "0.85rem",
+                            color: "var(--text-secondary)",
+                            lineHeight: 1.5,
+                        }}>
+                            No hay stock suficiente de:
+                        </p>
+
+                        <p style={{
+                            margin: "0 0 16px",
+                            fontSize: "0.9rem",
+                            fontWeight: 700,
+                            color: "var(--error-text)",
+                            padding: "8px 12px",
+                            background: "var(--error-bg)",
+                            borderRadius: 10,
+                            wordBreak: "break-word",
+                        }}>
+                            {modalAdvertencia.nombres}
+                        </p>
+
+                        <p style={{
+                            margin: "0 0 20px",
+                            fontSize: "0.8rem",
+                            color: "var(--text-muted)",
+                        }}>
+                            ¿Deseas proceder con la venta de todas formas?
+                            El inventario quedará en <strong style={{ color: "var(--error-text)" }}>negativo</strong>.
+                        </p>
+
+                        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                            <button
+                                className="btn-primary"
+                                onClick={confirmarCobroConAdvertencia}
+                                style={{ flex: 1 }}
+                            >
+                                Sí, cobrar
+                            </button>
+                            <button
+                                className="btn-ghost"
+                                onClick={cancelarAdvertencia}
+                                style={{ flex: 1 }}
+                            >
+                                Cancelar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
