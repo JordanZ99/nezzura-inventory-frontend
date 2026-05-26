@@ -284,7 +284,7 @@ export default function Estadisticas() {
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
                                     <tr style={{ background: "var(--bg-card2)", color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
-                                        {["ID", "Fecha", "Productos", "Precio unitario", "Precio Total", "Ganancia"].map(h => (
+                                        {["ID", "Fecha", "Productos", "Precio unitario", "Precio Total", "Ganancia", "Estado"].map(h => (
                                             <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>{h}</th>
                                         ))}
                                     </tr>
@@ -350,6 +350,14 @@ export default function Estadisticas() {
                                                     </div>
                                                 ) : <Pill color="green">${(v.ganancia_bruta || 0).toFixed(2)}</Pill>}
                                             </td>
+                                            <td style={{ padding: "12px 16px" }}>
+                                                {v.estado === "Inactivo" ? (
+                                                    <Pill color="red">Anulada</Pill>
+                                                ) : (
+                                                    <Pill color="green">Activa</Pill>
+                                                )}
+                                            </td>
+
                                             <td style={{ padding: "12px 16px" }}>
                                                 {v.estado === "Inactivo" ? (
                                                     <Pill color="red">Anulada</Pill>
