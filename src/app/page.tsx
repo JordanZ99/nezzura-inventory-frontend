@@ -75,7 +75,7 @@ export default function PuntoDeVenta() {
             .finally(() => setCargando(false))
     }, [])
 
-    const categorias = ["Todas", ...Array.from(new Set(productos.flatMap(p => p.categoria || ["General"]))).sort()]
+    const categorias = ["Todas", ...Array.from(new Set(productos.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()]
 
     const productosFiltrados = productos.filter(p => {
         const busquedaBase = busqueda.toLowerCase()

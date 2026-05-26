@@ -175,7 +175,7 @@ export default function Inventario() {
     const valorInv = inv.reduce((a, p) => a + p.stock_total * p.precio_venta, 0)
     const ganPotencial = inv.reduce((a, p) => a + p.stock_total * (p.precio_venta - p.costo_promedio), 0)
     const stockBajo = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
-    const categoriasExistentes = Array.from(new Set(inv.flatMap(p => p.categoria || ["General"]))).sort()
+    const categoriasExistentes = Array.from(new Set(inv.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()
 
     return (
         <div style={{ minHeight: "100vh" }}>
@@ -341,7 +341,7 @@ export default function Inventario() {
                         <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                         <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
                         <div>
-                            <Input label="Categoría" value={form.categoria.join(", ")} onChange={e => setForm(p => ({ ...p, categoria: e.target.value.split(/,\s*/).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
+                            <Input label="Categoría" value={form.categoria.join(", ")} onChange={e => setForm(p => ({ ...p, categoria: e.target.value.split(/,\s*/).map(c => c.trim()).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>                                    {categoriasExistentes.map(cat => {
                                         const activa = form.categoria.includes(cat)
                                         return (
@@ -435,7 +435,7 @@ export default function Inventario() {
                         {prodEditar && (
                             <>
                                 <div>
-                                    <Input label="Categoría" value={editProdVal.categoria.join(", ")} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value.split(/,\s*/).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
+                                    <Input label="Categoría" value={editProdVal.categoria.join(", ")} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value.split(/,\s*/).map(c => c.trim()).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
                                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
                                         {categoriasExistentes.map(cat => {
                                             const activa = editProdVal.categoria.includes(cat)
