@@ -369,7 +369,7 @@ export default function PuntoDeVenta() {
                                             >
                                                 {(prod.categoria || ["General"]).join(", ")}
                                             </span>
-                                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 3 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 3 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>
+                                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total < 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total < 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>
                                                 Stock: {prod.stock_total}
                                             </span>
                                         </div>
