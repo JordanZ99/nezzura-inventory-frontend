@@ -48,6 +48,8 @@ export default function Inventario() {
     const editFotoRef = useRef<HTMLInputElement>(null)
     const [guardando, setGuardando] = useState(false)
     const [nuevaCategoria, setNuevaCategoria] = useState("")
+    const [buscadorEditar, setBuscadorEditar] = useState("")
+    const [catSelecEditar, setCatSelecEditar] = useState("Todas")
 
     function agregarCategoria() {
         const cat = nuevaCategoria.trim()
@@ -185,6 +187,14 @@ export default function Inventario() {
     const ganPotencial = inv.reduce((a, p) => a + p.stock_total * (p.precio_venta - p.costo_promedio), 0)
     const stockBajo = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
     const categoriasExistentes = Array.from(new Set(inv.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()
+    const productosEditar = inv.filter(p => {
+        const b = buscadorEditar.toLowerCase()
+        const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
+            p.descripcion?.toLowerCase().includes(b) ||
+            (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
+        const porCategoria = catSelecEditar === "Todas" || (p.categoria || ["General"]).includes(catSelecEditar)
+        return porBusqueda && porCategoria
+    })
 
     return (
         <div style={{ minHeight: "100vh" }}>
@@ -455,81 +465,142 @@ export default function Inventario() {
                     </div>
                 )}
 
-                {/* Editar producto */}
-                {tab === "editar" && (
+                {/* Editar producto — buscador */}
+                {tab === "editar" && !prodEditar && (
+                    <>
+                        {/* Categorías */}
+                        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 8, scrollbarWidth: "none" }}>
+                            {["Todas", ...categoriasExistentes].map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setCatSelecEditar(cat)}
+                                    style={{
+                                        padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
+                                        background: catSelecEditar === cat ? "var(--primary-mid)" : "var(--bg-card2)",
+                                        color: catSelecEditar === cat ? "#fff" : "var(--primary-dark)",
+                                        boxShadow: catSelecEditar === cat ? "0 4px 10px var(--primary-glow)" : "none"
+                                    }}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+                            <Icon name="Search" size={20} color="var(--text-muted)" />
+                            <input
+                                className="input-primary"
+                                style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
+                                placeholder="Buscar producto por nombre, código o categoría..."
+                                value={buscadorEditar}
+                                onChange={e => setBuscadorEditar(e.target.value)}
+                            />
+                        </div>
+
+                        {cargando ? (
+                            <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>Cargando productos...</p>
+                        ) : (
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+                                {productosEditar.length === 0 ? (
+                                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
+                                        <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
+                                        <h2 style={{ fontSize: "1.5rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 8px" }}>Sin resultados</h2>
+                                        <p style={{ fontSize: "1rem", color: "var(--text-main)", fontWeight: 600, margin: 0 }}>Intenta con otra búsqueda o categoría</p>
+                                    </div>
+                                ) : (
+                                    productosEditar.map(prod => (
+                                        <div
+                                            key={prod.producto}
+                                            className="card fade-up"
+                                            style={{ padding: 12, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
+                                            onClick={() => {
+                                                setProdEditar(prod.producto)
+                                                setEditProdVal({
+                                                    descripcion: prod.descripcion ?? "",
+                                                    estado: prod.estado ?? "Activo",
+                                                    imagen: prod.imagen ?? "No hay foto",
+                                                    categoria: prod.categoria ?? ["General"]
+                                                })
+                                            }}
+                                            onMouseEnter={e => {
+                                                e.currentTarget.style.transform = "translateY(-3px)"
+                                                e.currentTarget.style.boxShadow = "0 8px 30px var(--primary-glow)"
+                                            }}
+                                            onMouseLeave={e => {
+                                                e.currentTarget.style.transform = ""
+                                                e.currentTarget.style.boxShadow = ""
+                                            }}
+                                        >
+                                            <div style={{ aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                {prod.imagen && prod.imagen !== "No hay foto" ? (
+                                                    <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
+                                                        alt={prod.producto}
+                                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }} />
+                                                ) : (
+                                                    <span style={{ fontSize: "2rem" }}>🛍️</span>
+                                                )}
+                                            </div>
+                                            <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.producto}</p>
+                                            <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>${prod.precio_venta.toFixed(2)}</p>
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px" }}>{(prod.categoria || ["General"]).join(", ")}</span>
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 3 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 3 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>Stock: {prod.stock_total}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Editar producto — formulario */}
+                {tab === "editar" && prodEditar && (
                     <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Editar Producto</h2>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                            <button
+                                onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas") }}
+                                style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
+                            >
+                                <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
+                            </button>
+                            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>{prodEditar}</h2>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                {categoriasExistentes.map(cat => {
+                                    const activa = editProdVal.categoria.includes(cat)
+                                    return (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setEditProdVal(p => ({ ...p, categoria: activa ? p.categoria.filter(c => c !== cat) : [...p.categoria, cat] }))}
+                                            style={{ background: activa ? "var(--primary-mid)" : "var(--bg-card2)", color: activa ? "#fff" : "var(--text-main)", border: "none", borderRadius: 12, padding: "6px 14px", fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+                                        >{cat} {activa ? "✓" : "+"}</button>
+                                    )
+                                })}
+                            </div>
+                            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>Selecciona las categorías que aplican a este producto</p>
+                        </div>
+                        <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Seleccionar Producto</label>
-                            <select className="input-primary" value={prodEditar}
-                                onChange={e => {
-                                    const p = inv.find(x => x.producto === e.target.value)
-                                    setProdEditar(e.target.value)
-                                    if (p) setEditProdVal({
-                                        descripcion: p.descripcion ?? "",
-                                        estado: p.estado ?? "Activo",
-                                        imagen: p.imagen ?? "No hay foto",
-                                        categoria: p.categoria ?? ["General"]
-                                    })
-                                }}>
-                                <option value="">— Selecciona —</option>
-                                {productos.map(p => <option key={p} value={p}>{p}</option>)}
+                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Actualizar Foto (Opcional)</label>
+                            <input type="file" accept="image/*" ref={editFotoRef} style={{ fontSize: "0.85rem" }} />
+                        </div>
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
+                            <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
                             </select>
                         </div>
 
-                        {prodEditar && (
-                            <>
-                                <div>
-                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
-                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                        {categoriasExistentes.map(cat => {
-                                            const activa = editProdVal.categoria.includes(cat)
-                                            return (
-                                                <button
-                                                    key={cat}
-                                                    onClick={() => setEditProdVal(p => ({
-                                                        ...p,
-                                                        categoria: activa
-                                                            ? p.categoria.filter(c => c !== cat)
-                                                            : [...p.categoria, cat]
-                                                    }))}
-                                                    style={{
-                                                        background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
-                                                        color: activa ? "#fff" : "var(--text-main)",
-                                                        border: "none", borderRadius: 12,
-                                                        padding: "6px 14px", fontSize: "0.72rem",
-                                                        fontWeight: 700, cursor: "pointer",
-                                                        transition: "all 0.15s"
-                                                    }}
-                                                >
-                                                    {cat} {activa ? "✓" : "+"}
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                    <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>Selecciona las categorías que aplican a este producto</p>
-                                </div>
-                                <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
-
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Actualizar Foto (Opcional)</label>
-                                    <input type="file" accept="image/*" ref={editFotoRef} style={{ fontSize: "0.85rem" }} />
-                                </div>
-
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
-                                    <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
-                                        <option value="Activo">Activo</option>
-                                        <option value="Inactivo">Inactivo</option>
-                                    </select>
-                                </div>
-
-                                <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
-                                    {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
-                                </button>
-                            </>
-                        )}
+                        <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
+                            {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
+                        </button>
                     </div>
                 )}
 
