@@ -353,14 +353,6 @@ export default function Estadisticas() {
                                             <td style={{ padding: "12px 16px" }}>
                                                 {v.estado === "Inactivo" ? (
                                                     <Pill color="red">Anulada</Pill>
-                                                ) : (
-                                                    <Pill color="green">Activa</Pill>
-                                                )}
-                                            </td>
-
-                                            <td style={{ padding: "12px 16px" }}>
-                                                {v.estado === "Inactivo" ? (
-                                                    <Pill color="red">Anulada</Pill>
                                                 ) : editando === v.id ? (
                                                     <div style={{ display: "flex", gap: 8 }}>
                                                         <button onClick={guardarEdicion} disabled={guardando} style={{ color: guardando ? "#999" : "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer" }}>
