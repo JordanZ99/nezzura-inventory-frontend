@@ -435,8 +435,8 @@ export default function Inventario() {
                         {prodEditar && (
                             <>
                                 <div>
-                                    <Input label="Categoría" value={editProdVal.categoria.join(", ")} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value.split(/,\s*/).map(c => c.trim()).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
-                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
+                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                         {categoriasExistentes.map(cat => {
                                             const activa = editProdVal.categoria.includes(cat)
                                             return (
@@ -452,7 +452,7 @@ export default function Inventario() {
                                                         background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
                                                         color: activa ? "#fff" : "var(--text-main)",
                                                         border: "none", borderRadius: 12,
-                                                        padding: "4px 10px", fontSize: "0.65rem",
+                                                        padding: "6px 14px", fontSize: "0.72rem",
                                                         fontWeight: 700, cursor: "pointer",
                                                         transition: "all 0.15s"
                                                     }}
@@ -462,6 +462,7 @@ export default function Inventario() {
                                             )
                                         })}
                                     </div>
+                                    <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>Selecciona las categorías que aplican a este producto</p>
                                 </div>
                                 <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
