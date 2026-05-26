@@ -4,7 +4,7 @@
 // ==============================================================================
 
 import { useState, useEffect, useRef } from "react"
-import { api, Producto, Lote, NuevoProducto, Restock } from "@/lib/api"
+import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/api"
 import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
@@ -51,6 +51,13 @@ export default function Inventario() {
     const [buscadorEditar, setBuscadorEditar] = useState("")
     const [catSelecEditar, setCatSelecEditar] = useState("Todas")
 
+    // Estado para la gestión de categorías
+    const [categorias, setCategorias] = useState<Categoria[]>([])
+    const [nuevaCatNombre, setNuevaCatNombre] = useState("")
+    const [catEditandoId, setCatEditandoId] = useState<string | null>(null)
+    const [catEditandoNombre, setCatEditandoNombre] = useState("")
+    const [cargandoCats, setCargandoCats] = useState(false)
+
     function agregarCategoria() {
         const cat = nuevaCategoria.trim()
         if (!cat) return
@@ -75,7 +82,88 @@ export default function Inventario() {
             }
         }
     }
+    /**
+     * Carga la lista de categorías desde la API
+     * (tabla 'categorias' con conteo de productos asociados)
+     */
+    async function cargarCategorias() {
+        setCargandoCats(true)
+        try {
+            const cats = await api.getCategorias()
+            setCategorias(cats)
+        } catch {
+            // Si falla, ignoramos silenciosamente
+        } finally {
+            setCargandoCats(false)
+        }
+    }
+
+    /**
+     * Crea una categoría nueva en la base de datos (tabla 'categorias')
+     * y actualiza la lista visual inmediatamente
+     */
+    async function guardarNuevaCategoria() {
+        const nombre = nuevaCatNombre.trim()
+        if (!nombre || guardando) return
+        setGuardando(true)
+        try {
+            await api.crearCategoria(nombre)
+            setNuevaCatNombre("")
+            await Promise.all([cargarCategorias(), recargar()])
+            mostrarMsg(true, `✅ Categoría "${nombre}" creada`)
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+        } finally {
+            setGuardando(false)
+        }
+    }
+
+    /**
+     * Inicia el modo de edición inline para una categoría
+     */
+    function iniciarEditarCategoria(cat: Categoria) {
+        setCatEditandoId(cat.id)
+        setCatEditandoNombre(cat.nombre)
+    }
+
+    /**
+     * Guarda el cambio de nombre de una categoría
+     */
+    async function guardarEditarCategoria(viejoNombre: string) {
+        const nuevo = catEditandoNombre.trim()
+        if (!nuevo || nuevo === viejoNombre || guardando) {
+            setCatEditandoId(null)
+            return
+        }
+        setGuardando(true)
+        try {
+            await api.editarCategoria(viejoNombre, nuevo)
+            setCatEditandoId(null)
+            await Promise.all([cargarCategorias(), recargar()])
+            mostrarMsg(true, `✅ Categoría renombrada a "${nuevo}"`)
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+        } finally {
+            setGuardando(false)
+        }
+    }
+
+    /**
+     * Cancela la edición inline de una categoría
+     */
+    function cancelarEditarCategoria() {
+        setCatEditandoId(null)
+        setCatEditandoNombre("")
+    }
+
     useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
+
+    // Al cambiar al tab "nuevo", cargamos las categorías si no están
+    useEffect(() => {
+        if (tab === "nuevo") {
+            cargarCategorias()
+        }
+    }, [tab])
 
     function mostrarMsg(ok: boolean, texto: string) {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
@@ -169,7 +257,7 @@ export default function Inventario() {
         try {
             const res = await api.eliminarCategoria(cat) as { productos_actualizados: number }
             mostrarMsg(true, `✅ Categoría "${cat}" eliminada de ${res.productos_actualizados} producto(s)`)
-            recargar()
+            await Promise.all([recargar(), cargarCategorias()])
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
@@ -195,7 +283,12 @@ export default function Inventario() {
     const valorInv = inv.reduce((a, p) => a + p.stock_total * p.precio_venta, 0)
     const ganPotencial = inv.reduce((a, p) => a + p.stock_total * (p.precio_venta - p.costo_promedio), 0)
     const stockBajo = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
-    const categoriasExistentes = Array.from(new Set(inv.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()
+    // Categorías disponibles: combina las que están en uso por productos + las de la tabla 'categorias'
+    // Al unir ambas fuentes, las categorías recién creadas aparecen como chips cliqueables inmediatamente
+    const categoriasExistentes = Array.from(new Set([
+        ...inv.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())),
+        ...categorias.map(c => c.nombre)
+    ])).sort()
     const productosEditar = inv.filter(p => {
         const b = buscadorEditar.toLowerCase()
         const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
@@ -362,88 +455,276 @@ export default function Inventario() {
                 )}
                 {tab === "catalogo" && cargando && <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>Cargando inventario...</p>}
 
-                {/* Nuevo producto */}
+                {/* Nuevo producto + Gestión de categorías */}
                 {tab === "nuevo" && (
-                    <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
-                        <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
-                        <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
-                        <div>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                {/* Chips de categorías existentes */}
-                                {categoriasExistentes.map(cat => {
-                                    const activa = form.categoria.includes(cat)
-                                    return (
-                                        <button
-                                            key={cat}
-                                            onClick={() => setForm(f => ({
-                                                ...f,
-                                                categoria: activa
-                                                    ? f.categoria.filter(c => c !== cat)
-                                                    : [...f.categoria, cat]
-                                            }))}
-                                            style={{
-                                                background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
-                                                color: activa ? "#fff" : "var(--primary-text)",
-                                                border: "none", borderRadius: 12,
-                                                padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700,
-                                                cursor: "pointer", transition: "all 0.15s"
-                                            }}
-                                        >
-                                            {cat} {activa ? "✓" : "+"}
-                                        </button>
-                                    )
-                                })}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="md:grid-cols-2">
+                        {/* ── Card: Dar de alta producto ── */}
+                        <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                            <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
+                            <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
+                            <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
+                            <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                    {/* Chips de categorías existentes */}
+                                    {categoriasExistentes.map(cat => {
+                                        const activa = form.categoria.includes(cat)
+                                        return (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setForm(f => ({
+                                                    ...f,
+                                                    categoria: activa
+                                                        ? f.categoria.filter(c => c !== cat)
+                                                        : [...f.categoria, cat]
+                                                }))}
+                                                style={{
+                                                    background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                    color: activa ? "#fff" : "var(--primary-text)",
+                                                    border: "none", borderRadius: 12,
+                                                    padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700,
+                                                    cursor: "pointer", transition: "all 0.15s"
+                                                }}
+                                            >
+                                                {cat} {activa ? "✓" : "+"}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                                {/* Input rápido para crear una categoría nueva */}
+                                <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Nueva categoría..."
+                                        value={nuevaCategoria}
+                                        onChange={e => setNuevaCategoria(e.target.value)}
+                                        onKeyDown={e => { if (e.key === "Enter") agregarCategoria() }}
+                                        style={{
+                                            flex: 1,
+                                            padding: "6px 10px",
+                                            borderRadius: 10,
+                                            border: "1px solid var(--border-primary)",
+                                            fontSize: "0.78rem",
+                                            outline: "none",
+                                            background: "var(--bg-card2)",
+                                            color: "var(--text-main)"
+                                        }}
+                                    />
+                                    <button
+                                        onClick={agregarCategoria}
+                                        disabled={!nuevaCategoria.trim()}
+                                        style={{
+                                            background: nuevaCategoria.trim() ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: nuevaCategoria.trim() ? "#fff" : "var(--text-muted)",
+                                            border: "none", borderRadius: 10,
+                                            padding: "6px 14px", fontWeight: 700, fontSize: "0.8rem",
+                                            cursor: nuevaCategoria.trim() ? "pointer" : "not-allowed",
+                                            transition: "all 0.15s",
+                                            whiteSpace: "nowrap"
+                                        }}
+                                    >
+                                        + Crear
+                                    </button>
+                                </div>
                             </div>
-                            {/* Input rápido para crear una categoría nueva */}
-                            <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Foto</label>
+                                <input type="file" accept="image/*" ref={fotoRef} style={{ fontSize: "0.85rem" }} />
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                                <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            </div>
+                            <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
+                                {guardando ? "⏳ Procesando..." : " Dar de Alta"}
+                            </button>
+                        </div>
+
+                        {/* ── Card: Gestionar Categorías ── */}
+                        <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                            <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Icon name="Tags" size={20} color="var(--primary-mid)" />
+                                Gestionar Categorías
+                            </h2>
+                            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
+                                Crea, renombra o elimina las categorías de tu inventario.
+                            </p>
+
+                            {/* Input para crear nueva categoría */}
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                 <input
                                     type="text"
-                                    placeholder="Nueva categoría..."
-                                    value={nuevaCategoria}
-                                    onChange={e => setNuevaCategoria(e.target.value)}
-                                    onKeyDown={e => { if (e.key === "Enter") agregarCategoria() }}
+                                    placeholder="Nombre de la nueva categoría..."
+                                    value={nuevaCatNombre}
+                                    onChange={e => setNuevaCatNombre(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter") guardarNuevaCategoria() }}
                                     style={{
                                         flex: 1,
-                                        padding: "6px 10px",
+                                        padding: "8px 12px",
                                         borderRadius: 10,
                                         border: "1px solid var(--border-primary)",
-                                        fontSize: "0.78rem",
+                                        fontSize: "0.8rem",
                                         outline: "none",
                                         background: "var(--bg-card2)",
                                         color: "var(--text-main)"
                                     }}
                                 />
                                 <button
-                                    onClick={agregarCategoria}
-                                    disabled={!nuevaCategoria.trim()}
+                                    onClick={guardarNuevaCategoria}
+                                    disabled={!nuevaCatNombre.trim() || guardando}
                                     style={{
-                                        background: nuevaCategoria.trim() ? "var(--primary-mid)" : "var(--bg-card2)",
-                                        color: nuevaCategoria.trim() ? "#fff" : "var(--text-muted)",
+                                        background: nuevaCatNombre.trim() && !guardando ? "var(--primary-mid)" : "var(--bg-card2)",
+                                        color: nuevaCatNombre.trim() && !guardando ? "#fff" : "var(--text-muted)",
                                         border: "none", borderRadius: 10,
-                                        padding: "6px 14px", fontWeight: 700, fontSize: "0.8rem",
-                                        cursor: nuevaCategoria.trim() ? "pointer" : "not-allowed",
+                                        padding: "8px 16px", fontWeight: 700, fontSize: "0.78rem",
+                                        cursor: nuevaCatNombre.trim() && !guardando ? "pointer" : "not-allowed",
                                         transition: "all 0.15s",
-                                        whiteSpace: "nowrap"
+                                        whiteSpace: "nowrap",
+                                        display: "flex", alignItems: "center", gap: 6
                                     }}
                                 >
-                                    + Crear
+                                    <Icon name="Plus" size={16} color={nuevaCatNombre.trim() && !guardando ? "#fff" : "var(--text-muted)"} /> Crear
                                 </button>
                             </div>
+
+                            {/* Separador */}
+                            <div style={{ height: 1, background: "var(--border-light)", margin: "4px 0" }} />
+
+                            {/* Lista de categorías existentes */}
+                            {cargandoCats ? (
+                                <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 20, fontSize: "0.8rem" }}>
+                                    Cargando categorías...
+                                </p>
+                            ) : categorias.length === 0 ? (
+                                <div style={{ textAlign: "center", padding: "24px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
+                                    <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
+                                        Aún no hay categorías. ¡Crea la primera!
+                                    </p>
+                                </div>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                    {categorias.map(cat => {
+                                        const editando = catEditandoId === cat.id
+                                        return (
+                                            <div
+                                                key={cat.id}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 8,
+                                                    padding: "8px 12px",
+                                                    borderRadius: 10,
+                                                    background: "var(--bg-card2)",
+                                                    transition: "all 0.15s"
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = "var(--border-light)" }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)" }}
+                                            >
+                                                {editando ? (
+                                                    /* Modo edición: input inline */
+                                                    <>
+                                                        <input
+                                                            type="text"
+                                                            value={catEditandoNombre}
+                                                            onChange={e => setCatEditandoNombre(e.target.value)}
+                                                            onKeyDown={e => {
+                                                                if (e.key === "Enter") guardarEditarCategoria(cat.nombre)
+                                                                if (e.key === "Escape") cancelarEditarCategoria()
+                                                            }}
+                                                            autoFocus
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: "4px 8px",
+                                                                borderRadius: 6,
+                                                                border: "2px solid var(--primary-mid)",
+                                                                fontSize: "0.78rem",
+                                                                outline: "none",
+                                                                background: "var(--bg-app)",
+                                                                color: "var(--text-main)"
+                                                            }}
+                                                        />
+                                                        <button
+                                                            onClick={() => guardarEditarCategoria(cat.nombre)}
+                                                            disabled={guardando || !catEditandoNombre.trim()}
+                                                            style={{
+                                                                background: "var(--primary-mid)", color: "#fff",
+                                                                border: "none", borderRadius: 8,
+                                                                padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700,
+                                                                cursor: guardando || !catEditandoNombre.trim() ? "not-allowed" : "pointer",
+                                                                display: "flex", alignItems: "center", gap: 4
+                                                            }}
+                                                        >
+                                                            <Icon name="Check" size={14} color="#fff" />
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelarEditarCategoria}
+                                                            style={{
+                                                                background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                                border: "none", borderRadius: 8,
+                                                                padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700,
+                                                                cursor: "pointer"
+                                                            }}
+                                                        >
+                                                            <Icon name="X" size={14} color="var(--text-muted)" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    /* Modo vista: nombre + contador + acciones */
+                                                    <>
+                                                        <Icon name="Tag" size={16} color="var(--primary-mid)" />
+                                                        <span style={{ flex: 1, fontWeight: 600, fontSize: "0.8rem", color: "var(--text-main)" }}>
+                                                            {cat.nombre}
+                                                        </span>
+                                                        <span style={{
+                                                            fontSize: "0.62rem",
+                                                            fontWeight: 700,
+                                                            color: "var(--text-secondary)",
+                                                            background: "var(--bg-app)",
+                                                            borderRadius: 8,
+                                                            padding: "2px 8px",
+                                                            whiteSpace: "nowrap"
+                                                        }}>
+                                                            {cat.total_productos} prod.
+                                                        </span>
+                                                        <button
+                                                            onClick={() => iniciarEditarCategoria(cat)}
+                                                            title={`Renombrar "${cat.nombre}"`}
+                                                            style={{
+                                                                background: "none", border: "none",
+                                                                cursor: "pointer", padding: 4,
+                                                                borderRadius: 6,
+                                                                display: "flex", alignItems: "center",
+                                                                opacity: 0.5, transition: "opacity 0.15s"
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.opacity = "1" }}
+                                                            onMouseLeave={e => { e.currentTarget.style.opacity = "0.5" }}
+                                                        >
+                                                            <Icon name="Pencil" size={14} color="var(--primary-mid)" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => eliminarCategoria(cat.nombre)}
+                                                            title={`Eliminar "${cat.nombre}"`}
+                                                            style={{
+                                                                background: "none", border: "none",
+                                                                cursor: "pointer", padding: 4,
+                                                                borderRadius: 6,
+                                                                display: "flex", alignItems: "center",
+                                                                opacity: 0.4, transition: "opacity 0.15s"
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "#e74c3c" }}
+                                                            onMouseLeave={e => { e.currentTarget.style.opacity = "0.4"; e.currentTarget.style.color = "" }}
+                                                        >
+                                                            <Icon name="Trash2" size={14} color="#e74c3c" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Foto</label>
-                            <input type="file" accept="image/*" ref={fotoRef} style={{ fontSize: "0.85rem" }} />
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                            <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                            <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                            <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                        </div>
-                        <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
-                            {guardando ? "⏳ Procesando..." : " Dar de Alta"}
-                        </button>
                     </div>
                 )}
 

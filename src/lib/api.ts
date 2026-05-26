@@ -73,6 +73,13 @@ export interface Gasto {
     monto: number;
 }
 
+export interface Categoria {
+    id: string;
+    nombre: string;
+    slug: string;
+    total_productos: number;
+}
+
 /**
  * Obtiene el token JWT de la sesión activa de Supabase.
  * Si no hay sesión, devuelve null y el backend rechazará la petición.
@@ -117,6 +124,10 @@ export const api = {
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
     editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[] }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
+    // Categorías
+    getCategorias: () => request<Categoria[]>("/inventario/categorias"),
+    crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),
+    editarCategoria: (viejoNombre: string, nuevoNombre: string) => request<{ ok: boolean; categoria: Categoria }>(`/inventario/categoria/${encodeURIComponent(viejoNombre)}`, { method: "PATCH", body: JSON.stringify({ nuevo_nombre: nuevoNombre }) }),
     eliminarCategoria: (categoria: string) => request(`/inventario/categoria/${encodeURIComponent(categoria)}`, { method: "DELETE" }),
     editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     subirFoto: async (producto: string, file: File): Promise<{ ruta: string }> => {
