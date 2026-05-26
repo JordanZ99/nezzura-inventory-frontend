@@ -13,6 +13,21 @@ const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: fal
 
 type Tab = "cuenta" | "catalogo"
 
+/**
+ * Mapa que traduce las claves de tema guardadas en localStorage
+ * a nombres mostrables en la interfaz.
+ * - default      → "Steel Slate" (tema por defecto, gris-azulado)
+ * - midnightBlack → "Midnight Black"
+ * - strawberry   → "Strawberry Pink"
+ * - cozyYellow   → "Cozy Yellow"
+ */
+const NOMBRES_TEMA: Record<string, string> = {
+    default: "Steel Slate",
+    midnightBlack: "Midnight Black",
+    strawberry: "Strawberry Pink",
+    cozyYellow: "Cozy Yellow",
+}
+
 export default function Personalizacion() {
     const { tenant, cargando: cargandoTenant, actualizar } = useTenant()
 
@@ -29,6 +44,31 @@ export default function Personalizacion() {
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const inputFileRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
+
+    // Estado para mostrar el nombre del tema actual en el Hero
+    const [temaActual, setTemaActual] = useState<string>("Steel Slate")
+
+    /**
+     * Cambia el tema visual de la aplicación: actualiza el atributo
+     * data-theme en el elemento <html>, persiste la elección en
+     * localStorage y actualiza el nombre visible en el Hero.
+     *
+     * @param claveTema - Clave del tema ('default', 'midnightBlack', etc.)
+     */
+    function cambiarTema(claveTema: string) {
+        // Aplicamos el tema al documento
+        document.documentElement.setAttribute('data-theme', claveTema)
+        // Lo persistimos para que sobreviva a recargas de página
+        localStorage.setItem('tema', claveTema)
+        // Actualizamos el nombre mostrado en el Hero
+        setTemaActual(NOMBRES_TEMA[claveTema] || claveTema)
+    }
+
+    // Al montar el componente, leemos el tema guardado para mostrarlo
+    useEffect(() => {
+        const temaGuardado = localStorage.getItem('tema') || 'default'
+        setTemaActual(NOMBRES_TEMA[temaGuardado] || 'Steel Slate')
+    }, [])
 
     async function handleLogout() {
         await supabase.auth.signOut()
@@ -142,7 +182,10 @@ export default function Personalizacion() {
                     />
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p style={{ color: "rgba(255, 255, 255, 0.91)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>CONFIGURACIÓN</p>
+                    {/* Mostramos el nombre del tema actual en lugar de un texto fijo */}
+                    <p style={{ color: "rgba(255, 255, 255, 0.91)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4, textTransform: "uppercase" }}>
+                        {temaActual}
+                    </p>
                     <h1 className="hidden md:flex" style={{ color: "var(--white)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <div style={{ marginLeft: "-5px" }}>
                             <Icon name="UserRoundPen" size={32} color="var(--white)" />
@@ -162,19 +205,19 @@ export default function Personalizacion() {
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Temas</p>
                         </div>
                         <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center" }}>
-                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'default'); localStorage.setItem('tema', 'default'); }}
+                            <button onClick={() => cambiarTema('default')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #6f7375ff 0%, #5e87a4ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Steel Slate"
                             />
-                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'midnightBlack'); localStorage.setItem('tema', 'midnightBlack'); }}
+                            <button onClick={() => cambiarTema('midnightBlack')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #1f2321ff 0%, #1e6456ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Midnight Black"
                             />
-                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'strawberry'); localStorage.setItem('tema', 'strawberry'); }}
+                            <button onClick={() => cambiarTema('strawberry')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #f33376 0%, #fa30dfff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Strawberry Pink"
                             />
-                            <button onClick={() => { document.documentElement.setAttribute('data-theme', 'cozyYellow'); localStorage.setItem('tema', 'cozyYellow'); }}
+                            <button onClick={() => cambiarTema('cozyYellow')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #ffd05bff 0%, #eb7456ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Cozy Yellow"
                             />
