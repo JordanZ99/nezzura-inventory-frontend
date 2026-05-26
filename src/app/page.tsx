@@ -281,7 +281,15 @@ export default function PuntoDeVenta() {
                                             {prod.imagen && prod.imagen !== "No hay foto" ? (
                                                 <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
                                                     alt={prod.producto}
-                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                    /*
+                                         * Usamos objectFit: "contain" en lugar de "cover" para que
+                                         * las imágenes verticales (retrato) no se recorten. Con "contain"
+                                         * el lado más grande se ajusta al contenedor y la imagen se ve
+                                         * completa, mostrando el fondo gradiente en los bordes vacíos.
+                                         * Se agrega un padding sutil para evitar que la imagen toque
+                                         * los bordes del contenedor cuadrado.
+                                         */
+                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }} />
                                             ) : (
                                                 <span style={{ fontSize: "2rem" }}>🛍️</span>
                                             )}
