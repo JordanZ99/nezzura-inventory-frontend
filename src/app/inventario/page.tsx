@@ -350,8 +350,8 @@ export default function Inventario() {
                         <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                         <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
                         <div>
-                            <Input label="Categoría" value={form.categoria.join(", ")} onChange={e => setForm(p => ({ ...p, categoria: e.target.value.split(/,\s*/).map(c => c.trim()).filter(Boolean) }))} placeholder="Ej. Ropa, Electrónica, General..." />
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                                 {/* Chips de categorías existentes */}
                                 {categoriasExistentes.map(cat => {
                                     const activa = form.categoria.includes(cat)
