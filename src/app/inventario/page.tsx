@@ -457,9 +457,9 @@ export default function Inventario() {
 
                 {/* Nuevo producto + Gestión de categorías */}
                 {tab === "nuevo" && (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, minWidth: 0 }} className="md:grid-cols-2">
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }} className="md:flex-row">
                         {/* ── Card: Dar de alta producto ── */}
-                        <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, width: "100%" }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
                             <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                             <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
@@ -542,7 +542,7 @@ export default function Inventario() {
                         </div>
 
                         {/* ── Card: Gestionar Categorías ── */}
-                        <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, width: "100%" }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
                                 <Icon name="Tags" size={20} color="var(--primary-mid)" />
                                 Gestionar Categorías
