@@ -48,6 +48,8 @@ export default function Inventario() {
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string })
+    // Valores originales de costo/precio al abrir edición, para detectar cambios en lotes
+    const [editValoresOriginales, setEditValoresOriginales] = useState({ costo: "" as number | string, precio_venta: "" as number | string })
     const [guardando, setGuardando] = useState(false)
     const [nuevaCategoria, setNuevaCategoria] = useState("")
     const [buscadorEditar, setBuscadorEditar] = useState("")
@@ -231,6 +233,17 @@ export default function Inventario() {
 
     async function guardarProducto() {
         if (!prodEditar || guardando) return
+
+        // Detectar si costo o precio cambiaron respecto a sus valores originales
+        const costoCambio = editProdVal.costo !== "" && editProdVal.costo !== editValoresOriginales.costo
+        const precioCambio = editProdVal.precio_venta !== "" && editProdVal.precio_venta !== editValoresOriginales.precio_venta
+        if (costoCambio || precioCambio) {
+            const campos = [costoCambio ? "costo unitario" : "", precioCambio ? "precio de venta" : ""].filter(Boolean).join(" y ")
+            if (!confirm(`⚠️  Al cambiar el ${campos} se actualizarán TODOS los lotes activos de este producto.\n\n¿Estás seguro de proceder?`)) {
+                return
+            }
+        }
+
         setGuardando(true)
         try {
             let nuevaImagen: string | undefined = undefined
@@ -833,13 +846,16 @@ export default function Inventario() {
                                             style={{ padding: 12, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
                                             onClick={() => {
                                                 setProdEditar(prod.producto)
+                                                const costoOrig = prod.costo_promedio ?? ""
+                                                const precioOrig = prod.precio_venta ?? ""
+                                                setEditValoresOriginales({ costo: costoOrig, precio_venta: precioOrig })
                                                 setEditProdVal({
                                                     descripcion: prod.descripcion ?? "",
                                                     estado: prod.estado ?? "Activo",
                                                     imagen: prod.imagen ?? "No hay foto",
                                                     categoria: prod.categoria ?? ["General"],
-                                                    costo: prod.costo_promedio ?? "",
-                                                    precio_venta: prod.precio_venta ?? ""
+                                                    costo: costoOrig,
+                                                    precio_venta: precioOrig
                                                 })
                                             }}
                                             onMouseEnter={e => {
