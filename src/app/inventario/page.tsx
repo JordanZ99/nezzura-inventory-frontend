@@ -355,7 +355,7 @@ export default function Inventario() {
                         { label: "Productos activos", valor: totalActivos, icon: "PackagePlus" },
                         { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "PiggyBank" },
                         { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "Banknote" },
-                        { label: "Stock descuadrado", valor: stockDesc, icon: "AlertTriangle" },
+                        { label: "Stock descuadrado", valor: stockDesc, icon: "TriangleAlert" },
                     ].map(m => (
                         <div key={m.label} className="card fade-up" style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                             <div style={{ background: "var(--gradient-1)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
