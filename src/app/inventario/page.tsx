@@ -47,9 +47,10 @@ export default function Inventario() {
     const [editFoto, setEditFoto] = useState<File | null>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string })
-    // Valores originales de costo/precio al abrir edición, para detectar cambios en lotes
-    const [editValoresOriginales, setEditValoresOriginales] = useState({ costo: "" as number | string, precio_venta: "" as number | string })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[] })
+    // Estado para editar lotes individuales dentro del formulario Editar Prod.
+    const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
+    const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const [guardando, setGuardando] = useState(false)
     const [nuevaCategoria, setNuevaCategoria] = useState("")
     const [buscadorEditar, setBuscadorEditar] = useState("")
@@ -233,45 +234,38 @@ export default function Inventario() {
 
     async function guardarProducto() {
         if (!prodEditar || guardando) return
-
-        // Detectar si costo o precio cambiaron respecto a sus valores originales
-        const costoCambio = editProdVal.costo !== "" && editProdVal.costo !== editValoresOriginales.costo
-        const precioCambio = editProdVal.precio_venta !== "" && editProdVal.precio_venta !== editValoresOriginales.precio_venta
-        if (costoCambio || precioCambio) {
-            const campos = [costoCambio ? "costo unitario" : "", precioCambio ? "precio de venta" : ""].filter(Boolean).join(" y ")
-            if (!confirm(`⚠️  Al cambiar el ${campos} se actualizarán TODOS los lotes activos de este producto.\n\n¿Estás seguro de proceder?`)) {
-                return
-            }
-        }
-
         setGuardando(true)
         try {
             let nuevaImagen: string | undefined = undefined
             if (editFoto) {
-                // Comprimir antes de subir
                 const compressedFile = await comprimirImagen(editFoto)
                 const r = await api.subirFoto(prodEditar, compressedFile)
                 nuevaImagen = r.ruta
             }
 
-            // Usar la nueva imagen si existe, de lo contrario mantener la del estado
             const payload: Parameters<typeof api.editarProducto>[1] = {
                 descripcion: editProdVal.descripcion,
                 imagen: nuevaImagen || editProdVal.imagen,
                 estado: editProdVal.estado,
                 categoria: editProdVal.categoria,
             }
-            // Solo enviar costo/precio si el usuario los modificó (no están vacíos)
-            if (editProdVal.costo !== "") {
-                payload.costo = Number(editProdVal.costo)
-            }
-            if (editProdVal.precio_venta !== "") {
-                payload.precio_venta = Number(editProdVal.precio_venta)
-            }
             await api.editarProducto(prodEditar, payload)
 
             mostrarMsg(true, "✅ Producto actualizado")
             setProdEditar(""); setEditFoto(null); recargar()
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
+    }
+
+    /** Guarda los cambios de un lote individual desde el formulario Editar Prod. */
+    async function guardarLoteIndividual() {
+        if (loteEditandoId === null || guardando) return
+        setGuardando(true)
+        try {
+            await api.editarLote(loteEditandoId, { costo: Number(editLoteVal.costo), precio_venta: Number(editLoteVal.precio_venta), stock: Number(editLoteVal.stock) })
+            mostrarMsg(true, "✅ Lote actualizado")
+            setLoteEditandoId(null)
+            recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -846,16 +840,12 @@ export default function Inventario() {
                                             style={{ padding: 12, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
                                             onClick={() => {
                                                 setProdEditar(prod.producto)
-                                                const costoOrig = prod.costo_promedio ?? ""
-                                                const precioOrig = prod.precio_venta ?? ""
-                                                setEditValoresOriginales({ costo: costoOrig, precio_venta: precioOrig })
+                                                setLoteEditandoId(null)
                                                 setEditProdVal({
                                                     descripcion: prod.descripcion ?? "",
                                                     estado: prod.estado ?? "Activo",
                                                     imagen: prod.imagen ?? "No hay foto",
                                                     categoria: prod.categoria ?? ["General"],
-                                                    costo: costoOrig,
-                                                    precio_venta: precioOrig
                                                 })
                                             }}
                                             onMouseEnter={e => {
@@ -890,84 +880,170 @@ export default function Inventario() {
                     </>
                 )}
 
-                {/* Editar producto — formulario */}
+                {/* Editar producto — formulario + lotes */}
                 {tab === "editar" && prodEditar && (
-                    <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                            <button
-                                onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas") }}
-                                style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
-                            >
-                                <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
-                            </button>
-                            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>{prodEditar}</h2>
-                        </div>
-
-                        <div>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                {categoriasExistentes.map(cat => {
-                                    const activa = editProdVal.categoria.includes(cat)
-                                    return (
-                                        <div key={cat} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-                                            <button
-                                                onClick={() => setEditProdVal(p => ({ ...p, categoria: activa ? p.categoria.filter(c => c !== cat) : [...p.categoria, cat] }))}
-                                                style={{ background: activa ? "var(--primary-mid)" : "var(--bg-card2)", color: activa ? "#fff" : "var(--text-main)", border: "none", borderRadius: 12, padding: "6px 14px", paddingRight: 28, fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
-                                            >{cat} {activa ? "✓" : "+"}</button>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); eliminarCategoria(cat) }}
-                                                title={`Eliminar categoría "${cat}"`}
-                                                style={{
-                                                    position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
-                                                    width: 18, height: 18, borderRadius: "50%", border: "none",
-                                                    background: "var(--bg-card2)", color: "var(--text-muted)",
-                                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                                    cursor: "pointer", fontSize: "0.6rem", fontWeight: 700,
-                                                    transition: "all 0.15s", opacity: 0.6, lineHeight: 1
-                                                }}
-                                                onMouseEnter={e => { e.currentTarget.style.background = "#e74c3c"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.opacity = "1" }}
-                                                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.6" }}
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    )
-                                })}
+                    <>
+                        {/* ── Card 1: Información del producto ── */}
+                        <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                                <button
+                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null) }}
+                                    style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
+                                >
+                                    <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
+                                </button>
+                                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>{prodEditar}</h2>
                             </div>
-                            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>Selecciona las categorías que aplican a este producto</p>
+
+                            <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                    {categoriasExistentes.map(cat => {
+                                        const activa = editProdVal.categoria.includes(cat)
+                                        return (
+                                            <div key={cat} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                                                <button
+                                                    onClick={() => setEditProdVal(p => ({ ...p, categoria: activa ? p.categoria.filter(c => c !== cat) : [...p.categoria, cat] }))}
+                                                    style={{ background: activa ? "var(--primary-mid)" : "var(--bg-card2)", color: activa ? "#fff" : "var(--text-main)", border: "none", borderRadius: 12, padding: "6px 14px", paddingRight: 28, fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+                                                >{cat} {activa ? "✓" : "+"}</button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); eliminarCategoria(cat) }}
+                                                    title={`Eliminar categoría "${cat}"`}
+                                                    style={{
+                                                        position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
+                                                        width: 18, height: 18, borderRadius: "50%", border: "none",
+                                                        background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                                        cursor: "pointer", fontSize: "0.6rem", fontWeight: 700,
+                                                        transition: "all 0.15s", opacity: 0.6, lineHeight: 1
+                                                    }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = "#e74c3c"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.opacity = "1" }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.6" }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>Selecciona las categorías que aplican a este producto</p>
+                            </div>
+                            <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
+
+                            <ImagePicker
+                                onImageSelected={setEditFoto}
+                                currentImageUrl={editProdVal.imagen !== "No hay foto" ? editProdVal.imagen : undefined}
+                                label="Actualizar Foto (Opcional)"
+                            />
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
+                                <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
+                                    <option value="Activo">Activo</option>
+                                    <option value="Inactivo">Inactivo</option>
+                                </select>
+                            </div>
+
+                            <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
+                                {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
+                            </button>
                         </div>
-                        <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
-                        <ImagePicker
-                            onImageSelected={setEditFoto}
-                            currentImageUrl={editProdVal.imagen !== "No hay foto" ? editProdVal.imagen : undefined}
-                            label="Actualizar Foto (Opcional)"
-                        />
-
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
-                            <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
-                                <option value="Activo">Activo</option>
-                                <option value="Inactivo">Inactivo</option>
-                            </select>
+                        {/* ── Card 2: Editar lotes individuales ── */}
+                        <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
+                            <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Icon name="Package" size={20} color="var(--primary-mid)" />
+                                Lotes de {prodEditar}
+                                <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginLeft: "auto" }}>
+                                    {lotes.filter(l => l.producto === prodEditar).length} lote(s)
+                                </span>
+                            </h2>
+                            <ScrollableTable>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                                    <thead>
+                                        <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}>
+                                            {["ID", "Costo unit.", "Precio venta", "Stock", "Margen", ""].map(h => (
+                                                <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {lotes.filter(l => l.producto === prodEditar).map(lote => {
+                                            const editando = loteEditandoId === lote.id_lote
+                                            const margen = lote.precio_venta > 0 ? ((lote.precio_venta - lote.costo) / lote.precio_venta) * 100 : 0
+                                            return (
+                                                <tr key={lote.id_lote} style={{ borderBottom: "1px solid var(--border-light)" }}
+                                                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-card2)")}
+                                                    onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                                                    <td style={{ padding: "8px 12px", fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                                                        #{lote.id_lote}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        {editando ? (
+                                                            <input type="number" min={0} step="0.01" value={editLoteVal.costo} placeholder="0.00"
+                                                                onChange={e => setEditLoteVal(l => ({ ...l, costo: e.target.value === "" ? "" : Number(e.target.value) }))}
+                                                                className="input-primary" style={{ width: 80, padding: 4 }} />
+                                                        ) : `$${lote.costo.toFixed(2)}`}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px", fontWeight: 700, color: "var(--text-main)" }}>
+                                                        {editando ? (
+                                                            <input type="number" min={0} step="0.01" value={editLoteVal.precio_venta} placeholder="0.00"
+                                                                onChange={e => setEditLoteVal(l => ({ ...l, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))}
+                                                                className="input-primary" style={{ width: 80, padding: 4 }} />
+                                                        ) : `$${lote.precio_venta.toFixed(2)}`}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        {editando ? (
+                                                            <input type="number" min={0} value={editLoteVal.stock} placeholder="0"
+                                                                onChange={e => setEditLoteVal(l => ({ ...l, stock: e.target.value === "" ? "" : Number(e.target.value) }))}
+                                                                className="input-primary" style={{ width: 80, padding: 4 }} />
+                                                        ) : lote.stock_lote}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        <Pill color={margen > 0 ? "green" : "red"}>
+                                                            {lote.precio_venta > 0 ? `${margen.toFixed(0)}%` : "—"}
+                                                        </Pill>
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        {editando ? (
+                                                            <div style={{ display: "flex", gap: 6 }}>
+                                                                <button onClick={guardarLoteIndividual} disabled={guardando}
+                                                                    style={{ background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer", padding: 4 }}>
+                                                                    {guardando ?
+                                                                        (<Icon name="Hourglass" size={16} color="var(--primary-dark)" />) :
+                                                                        (<Icon name="Save" size={16} color="var(--primary-dark)" />)
+                                                                    }
+                                                                </button>
+                                                                <button onClick={() => setLoteEditandoId(null)}
+                                                                    style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}>
+                                                                    <Icon name="X" size={16} color="var(--text-muted)" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button onClick={() => {
+                                                                setLoteEditandoId(lote.id_lote)
+                                                                setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote })
+                                                            }}
+                                                                style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
+                                                                Editar
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                        {lotes.filter(l => l.producto === prodEditar).length === 0 && (
+                                            <tr>
+                                                <td colSpan={6} style={{ textAlign: "center", padding: "24px 12px", color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                                                    No hay lotes registrados para este producto.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </ScrollableTable>
                         </div>
-
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                            <Input label="Costo unitario" type="number" min={0} step="0.01" placeholder="0.00"
-                                value={editProdVal.costo}
-                                onChange={e => setEditProdVal(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                            <Input label="Precio de venta" type="number" min={0} step="0.01" placeholder="0.00"
-                                value={editProdVal.precio_venta}
-                                onChange={e => setEditProdVal(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                        </div>
-                        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 500 }}>
-                            Al cambiar costo o precio, se actualizarán todos los lotes activos de este producto.
-                        </p>
-
-                        <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
-                            {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
-                        </button>
-                    </div>
+                    </>
                 )}
 
                 <div style={{ height: 20 }} />
