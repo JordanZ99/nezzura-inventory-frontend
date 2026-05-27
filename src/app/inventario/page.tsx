@@ -300,7 +300,7 @@ export default function Inventario() {
     const totalActivos = inv.filter(p => p.stock_total > 0).length
     const valorInv = inv.reduce((a, p) => a + p.stock_total * p.precio_venta, 0)
     const ganPotencial = inv.reduce((a, p) => a + p.stock_total * (p.precio_venta - p.costo_promedio), 0)
-    const stockBajo = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
+    const stockDesc = inv.filter(p => p.stock_total <= 0).length
     // Categorías disponibles: combina las que están en uso por productos + las de la tabla 'categorias'
     // Al unir ambas fuentes, las categorías recién creadas aparecen como chips cliqueables inmediatamente
     const categoriasExistentes = Array.from(new Set([
@@ -355,7 +355,7 @@ export default function Inventario() {
                         { label: "Productos activos", valor: totalActivos, icon: "PackagePlus" },
                         { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "PiggyBank" },
                         { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "Banknote" },
-                        { label: "Stock bajo (≤3)", valor: stockBajo, icon: "Megaphone" },
+                        { label: "Stock descuadrado", valor: stockDesc, icon: "AlertTriangle" },
                     ].map(m => (
                         <div key={m.label} className="card fade-up" style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                             <div style={{ background: "var(--gradient-1)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
