@@ -50,12 +50,16 @@ export default function ScrollableTable({ children }: Props) {
 
     return (
         <div style={{ position: "relative" }}>
+            {/* Oculta la scrollbar nativa para que solo se vea el indicador personalizado */}
             <div
                 ref={wrapperRef}
-                style={{ overflowX: "auto" }}
+                className="scrollable-table-wrapper"
+                style={{ overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
                 {children}
             </div>
+            {/* Estilo para ocultar la scrollbar en WebKit (Chrome, Safari, Edge) */}
+            <style>{`.scrollable-table-wrapper::-webkit-scrollbar { display: none; }`}</style>
 
             {/* Indicador de scroll horizontal */}
             {overflow && (
