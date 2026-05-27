@@ -46,7 +46,7 @@ export default function Inventario() {
     const [editFoto, setEditFoto] = useState<File | null>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[] })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string })
     const [guardando, setGuardando] = useState(false)
     const [nuevaCategoria, setNuevaCategoria] = useState("")
     const [buscadorEditar, setBuscadorEditar] = useState("")
@@ -241,10 +241,20 @@ export default function Inventario() {
             }
 
             // Usar la nueva imagen si existe, de lo contrario mantener la del estado
-            await api.editarProducto(prodEditar, {
-                ...editProdVal,
-                imagen: nuevaImagen || editProdVal.imagen
-            })
+            const payload: Parameters<typeof api.editarProducto>[1] = {
+                descripcion: editProdVal.descripcion,
+                imagen: nuevaImagen || editProdVal.imagen,
+                estado: editProdVal.estado,
+                categoria: editProdVal.categoria,
+            }
+            // Solo enviar costo/precio si el usuario los modificó (no están vacíos)
+            if (editProdVal.costo !== "") {
+                payload.costo = Number(editProdVal.costo)
+            }
+            if (editProdVal.precio_venta !== "") {
+                payload.precio_venta = Number(editProdVal.precio_venta)
+            }
+            await api.editarProducto(prodEditar, payload)
 
             mostrarMsg(true, "✅ Producto actualizado")
             setProdEditar(""); setEditFoto(null); recargar()
@@ -826,7 +836,9 @@ export default function Inventario() {
                                                     descripcion: prod.descripcion ?? "",
                                                     estado: prod.estado ?? "Activo",
                                                     imagen: prod.imagen ?? "No hay foto",
-                                                    categoria: prod.categoria ?? ["General"]
+                                                    categoria: prod.categoria ?? ["General"],
+                                                    costo: prod.costo_promedio ?? "",
+                                                    precio_venta: prod.precio_venta ?? ""
                                                 })
                                             }}
                                             onMouseEnter={e => {
@@ -922,6 +934,18 @@ export default function Inventario() {
                                 <option value="Inactivo">Inactivo</option>
                             </select>
                         </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                            <Input label="Costo unitario" type="number" min={0} step="0.01" placeholder="0.00"
+                                value={editProdVal.costo}
+                                onChange={e => setEditProdVal(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            <Input label="Precio de venta" type="number" min={0} step="0.01" placeholder="0.00"
+                                value={editProdVal.precio_venta}
+                                onChange={e => setEditProdVal(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                        </div>
+                        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 500 }}>
+                            Al cambiar costo o precio, se actualizarán todos los lotes activos de este producto.
+                        </p>
 
                         <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
                             {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
