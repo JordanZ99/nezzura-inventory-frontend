@@ -330,7 +330,7 @@ export default function Inventario() {
                 </div>
             </div>
 
-            <div style={{ padding: "0 24px", marginTop: -60 }}>
+            <div style={{ padding: "0 24px", marginTop: -60, overflowX: "hidden" }}>
                 {/* Stat cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-4">
                     {[
@@ -457,7 +457,7 @@ export default function Inventario() {
 
                 {/* Nuevo producto + Gestión de categorías */}
                 {tab === "nuevo" && (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }} className="md:grid-cols-2">
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, minWidth: 0 }} className="md:grid-cols-2">
                         {/* ── Card: Dar de alta producto ── */}
                         <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
