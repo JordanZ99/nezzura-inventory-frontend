@@ -330,7 +330,7 @@ export default function Inventario() {
                 </div>
             </div>
 
-            <div style={{ padding: "0 16px", marginTop: -60 }}>
+            <div style={{ padding: "0 24px", marginTop: -60 }}>
                 {/* Stat cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-4">
                     {[
