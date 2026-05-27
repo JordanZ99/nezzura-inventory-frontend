@@ -3,11 +3,12 @@
 // src/app/inventario/page.tsx  —  Rediseño Argon primary -Prueba botón de guardado
 // ==============================================================================
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/api"
 import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
+import ImagePicker from "@/components/ui/ImagePicker"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -41,11 +42,11 @@ export default function Inventario() {
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
-    const fotoRef = useRef<HTMLInputElement>(null)
+    const [nuevaFoto, setNuevaFoto] = useState<File | null>(null)
+    const [editFoto, setEditFoto] = useState<File | null>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[] })
-    const editFotoRef = useRef<HTMLInputElement>(null)
     const [guardando, setGuardando] = useState(false)
     const [nuevaCategoria, setNuevaCategoria] = useState("")
     const [buscadorEditar, setBuscadorEditar] = useState("")
@@ -187,16 +188,16 @@ export default function Inventario() {
             // Ensure tables exist before creating a product
             await api.initDB()
             let imagen = "No hay foto"
-            if (fotoRef.current?.files?.[0]) {
-                const originalFile = fotoRef.current.files[0]
+            if (nuevaFoto) {
                 // Comprimir antes de subir
-                const compressedFile = await comprimirImagen(originalFile)
+                const compressedFile = await comprimirImagen(nuevaFoto)
                 const r = await api.subirFoto(form.producto, compressedFile)
                 imagen = r.ruta
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen })
             mostrarMsg(true, `✅ ${form.producto} registrado`)
             setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1 })
+            setNuevaFoto(null)
             setTab("catalogo"); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -232,10 +233,9 @@ export default function Inventario() {
         setGuardando(true)
         try {
             let nuevaImagen: string | undefined = undefined
-            if (editFotoRef.current?.files?.[0]) {
-                const originalFile = editFotoRef.current.files[0]
+            if (editFoto) {
                 // Comprimir antes de subir
-                const compressedFile = await comprimirImagen(originalFile)
+                const compressedFile = await comprimirImagen(editFoto)
                 const r = await api.subirFoto(prodEditar, compressedFile)
                 nuevaImagen = r.ruta
             }
@@ -247,7 +247,7 @@ export default function Inventario() {
             })
 
             mostrarMsg(true, "✅ Producto actualizado")
-            setProdEditar(""); if (editFotoRef.current) editFotoRef.current.value = ""; recargar()
+            setProdEditar(""); setEditFoto(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -527,10 +527,7 @@ export default function Inventario() {
                                     </button>
                                 </div>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Foto</label>
-                                <input type="file" accept="image/*" ref={fotoRef} style={{ fontSize: "0.85rem" }} />
-                            </div>
+                            <ImagePicker onImageSelected={setNuevaFoto} />
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                                 <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
                                 <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
@@ -912,10 +909,11 @@ export default function Inventario() {
                         </div>
                         <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Actualizar Foto (Opcional)</label>
-                            <input type="file" accept="image/*" ref={editFotoRef} style={{ fontSize: "0.85rem" }} />
-                        </div>
+                        <ImagePicker
+                            onImageSelected={setEditFoto}
+                            currentImageUrl={editProdVal.imagen !== "No hay foto" ? editProdVal.imagen : undefined}
+                            label="Actualizar Foto (Opcional)"
+                        />
 
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
