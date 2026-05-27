@@ -9,6 +9,7 @@ import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import ImagePicker from "@/components/ui/ImagePicker"
+import ScrollableTable from "@/components/ui/ScrollableTable"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -401,7 +402,7 @@ export default function Inventario() {
                                             {guardando ? "⏳" : "Dar de baja"}
                                         </button>
                                     </div>
-                                    <div style={{ overflowX: "auto" }}>
+                                    <ScrollableTable>
                                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
                                             <thead>
                                                 <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}>
@@ -456,7 +457,7 @@ export default function Inventario() {
                                                 ))}
                                             </tbody>
                                         </table>
-                                    </div>
+                                    </ScrollableTable>
                                 </div>
                             )
                         })}
