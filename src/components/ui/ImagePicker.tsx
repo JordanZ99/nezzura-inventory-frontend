@@ -121,7 +121,8 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
                         style={{
                             width: "100%",
                             height: "100%",
-                            objectFit: "cover"
+                            objectFit: "contain",
+                            padding: 8
                         }}
                     />
                     <button
