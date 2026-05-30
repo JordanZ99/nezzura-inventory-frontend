@@ -3,11 +3,13 @@
 // src/app/inventario/page.tsx  —  Rediseño Argon primary -Prueba botón de guardado
 // ==============================================================================
 
-import { useState, useEffect, useRef } from "react"
-import { api, Producto, Lote, NuevoProducto, Restock } from "@/lib/api"
+import { useState, useEffect } from "react"
+import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/api"
 import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
+import ImagePicker from "@/components/ui/ImagePicker"
+import ScrollableTable from "@/components/ui/ScrollableTable"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -39,14 +41,36 @@ export default function Inventario() {
     const [loteEditar, setLoteEditar] = useState<Lote | null>(null)
     const [editLote, setEditLote] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: "General", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
-    const fotoRef = useRef<HTMLInputElement>(null)
+    const [nuevaFoto, setNuevaFoto] = useState<File | null>(null)
+    const [editFoto, setEditFoto] = useState<File | null>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: "General" })
-    const editFotoRef = useRef<HTMLInputElement>(null)
+    const [editProdNombre, setEditProdNombre] = useState("")
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[] })
+    // Estado para editar lotes individuales dentro del formulario Editar Prod.
+    const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
+    const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const [guardando, setGuardando] = useState(false)
+    const [nuevaCategoria, setNuevaCategoria] = useState("")
+    const [buscadorEditar, setBuscadorEditar] = useState("")
+    const [catSelecEditar, setCatSelecEditar] = useState("Todas")
+
+    // Estado para la gestión de categorías
+    const [categorias, setCategorias] = useState<Categoria[]>([])
+    const [nuevaCatNombre, setNuevaCatNombre] = useState("")
+    const [catEditandoId, setCatEditandoId] = useState<string | null>(null)
+    const [catEditandoNombre, setCatEditandoNombre] = useState("")
+    const [cargandoCats, setCargandoCats] = useState(false)
+
+    function agregarCategoria() {
+        const cat = nuevaCategoria.trim()
+        if (!cat) return
+        if (form.categoria.includes(cat)) return
+        setForm(f => ({ ...f, categoria: [...f.categoria, cat] }))
+        setNuevaCategoria("")
+    }
 
 
     async function recargar() {
@@ -64,7 +88,88 @@ export default function Inventario() {
             }
         }
     }
+    /**
+     * Carga la lista de categorías desde la API
+     * (tabla 'categorias' con conteo de productos asociados)
+     */
+    async function cargarCategorias() {
+        setCargandoCats(true)
+        try {
+            const cats = await api.getCategorias()
+            setCategorias(cats)
+        } catch {
+            // Si falla, ignoramos silenciosamente
+        } finally {
+            setCargandoCats(false)
+        }
+    }
+
+    /**
+     * Crea una categoría nueva en la base de datos (tabla 'categorias')
+     * y actualiza la lista visual inmediatamente
+     */
+    async function guardarNuevaCategoria() {
+        const nombre = nuevaCatNombre.trim()
+        if (!nombre || guardando) return
+        setGuardando(true)
+        try {
+            await api.crearCategoria(nombre)
+            setNuevaCatNombre("")
+            await Promise.all([cargarCategorias(), recargar()])
+            mostrarMsg(true, `✅ Categoría "${nombre}" creada`)
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+        } finally {
+            setGuardando(false)
+        }
+    }
+
+    /**
+     * Inicia el modo de edición inline para una categoría
+     */
+    function iniciarEditarCategoria(cat: Categoria) {
+        setCatEditandoId(cat.id)
+        setCatEditandoNombre(cat.nombre)
+    }
+
+    /**
+     * Guarda el cambio de nombre de una categoría
+     */
+    async function guardarEditarCategoria(viejoNombre: string) {
+        const nuevo = catEditandoNombre.trim()
+        if (!nuevo || nuevo === viejoNombre || guardando) {
+            setCatEditandoId(null)
+            return
+        }
+        setGuardando(true)
+        try {
+            await api.editarCategoria(viejoNombre, nuevo)
+            setCatEditandoId(null)
+            await Promise.all([cargarCategorias(), recargar()])
+            mostrarMsg(true, `✅ Categoría renombrada a "${nuevo}"`)
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+        } finally {
+            setGuardando(false)
+        }
+    }
+
+    /**
+     * Cancela la edición inline de una categoría
+     */
+    function cancelarEditarCategoria() {
+        setCatEditandoId(null)
+        setCatEditandoNombre("")
+    }
+
     useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
+
+    // Al cambiar al tab "nuevo", cargamos las categorías si no están
+    useEffect(() => {
+        if (tab === "nuevo") {
+            cargarCategorias()
+        }
+    }, [tab])
 
     function mostrarMsg(ok: boolean, texto: string) {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
@@ -88,16 +193,16 @@ export default function Inventario() {
             // Ensure tables exist before creating a product
             await api.initDB()
             let imagen = "No hay foto"
-            if (fotoRef.current?.files?.[0]) {
-                const originalFile = fotoRef.current.files[0]
+            if (nuevaFoto) {
                 // Comprimir antes de subir
-                const compressedFile = await comprimirImagen(originalFile)
+                const compressedFile = await comprimirImagen(nuevaFoto)
                 const r = await api.subirFoto(form.producto, compressedFile)
                 imagen = r.ruta
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen })
             mostrarMsg(true, `✅ ${form.producto} registrado`)
-            setForm({ producto: "", descripcion: "", categoria: "General", costo: "", precio_venta: "", stock: 1 })
+            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1 })
+            setNuevaFoto(null)
             setTab("catalogo"); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -133,24 +238,47 @@ export default function Inventario() {
         setGuardando(true)
         try {
             let nuevaImagen: string | undefined = undefined
-            if (editFotoRef.current?.files?.[0]) {
-                const originalFile = editFotoRef.current.files[0]
-                // Comprimir antes de subir
-                const compressedFile = await comprimirImagen(originalFile)
+            if (editFoto) {
+                const compressedFile = await comprimirImagen(editFoto)
                 const r = await api.subirFoto(prodEditar, compressedFile)
                 nuevaImagen = r.ruta
             }
 
-            // Usar la nueva imagen si existe, de lo contrario mantener la del estado
-            await api.editarProducto(prodEditar, {
-                ...editProdVal,
-                imagen: nuevaImagen || editProdVal.imagen
-            })
+            const payload: Parameters<typeof api.editarProducto>[1] = {
+                descripcion: editProdVal.descripcion,
+                imagen: nuevaImagen || editProdVal.imagen,
+                estado: editProdVal.estado,
+                categoria: editProdVal.categoria,
+                producto: editProdNombre,
+            }
+            await api.editarProducto(prodEditar, payload)
 
             mostrarMsg(true, "✅ Producto actualizado")
-            setProdEditar(""); if (editFotoRef.current) editFotoRef.current.value = ""; recargar()
+            setProdEditar(""); setEditProdNombre(""); setEditFoto(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
+    }
+
+    /** Guarda los cambios de un lote individual desde el formulario Editar Prod. */
+    async function guardarLoteIndividual() {
+        if (loteEditandoId === null || guardando) return
+        setGuardando(true)
+        try {
+            await api.editarLote(loteEditandoId, { costo: Number(editLoteVal.costo), precio_venta: Number(editLoteVal.precio_venta), stock: Number(editLoteVal.stock) })
+            mostrarMsg(true, "✅ Lote actualizado")
+            setLoteEditandoId(null)
+            recargar()
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
+    }
+
+    async function eliminarCategoria(cat: string) {
+        if (!confirm(`¿Estás seguro de eliminar la categoría "${cat}"? Se eliminará de todos los productos.`)) return
+        try {
+            const res = await api.eliminarCategoria(cat) as { productos_actualizados: number }
+            mostrarMsg(true, `✅ Categoría "${cat}" eliminada de ${res.productos_actualizados} producto(s)`)
+            await Promise.all([recargar(), cargarCategorias()])
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function darDeBaja(producto: string) {
@@ -158,7 +286,7 @@ export default function Inventario() {
         setGuardando(true)
         try {
             const p = inv.find(x => x.producto === producto)
-            await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo", categoria: p?.categoria ?? "General" })
+            await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo", categoria: p?.categoria ?? ["General"] })
             mostrarMsg(true, `✅ ${producto} dado de baja`); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -174,8 +302,21 @@ export default function Inventario() {
     const totalActivos = inv.filter(p => p.stock_total > 0).length
     const valorInv = inv.reduce((a, p) => a + p.stock_total * p.precio_venta, 0)
     const ganPotencial = inv.reduce((a, p) => a + p.stock_total * (p.precio_venta - p.costo_promedio), 0)
-    const stockBajo = inv.filter(p => p.stock_total <= 3 && p.stock_total > 0).length
-    const categoriasExistentes = Array.from(new Set(inv.map(p => p.categoria || "General"))).sort()
+    const stockDesc = inv.filter(p => p.stock_total <= 0).length
+    // Categorías disponibles: combina las que están en uso por productos + las de la tabla 'categorias'
+    // Al unir ambas fuentes, las categorías recién creadas aparecen como chips cliqueables inmediatamente
+    const categoriasExistentes = Array.from(new Set([
+        ...inv.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())),
+        ...categorias.map(c => c.nombre)
+    ])).sort()
+    const productosEditar = inv.filter(p => {
+        const b = buscadorEditar.toLowerCase()
+        const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
+            p.descripcion?.toLowerCase().includes(b) ||
+            (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
+        const porCategoria = catSelecEditar === "Todas" || (p.categoria || ["General"]).includes(catSelecEditar)
+        return porBusqueda && porCategoria
+    })
 
     return (
         <div style={{ minHeight: "100vh" }}>
@@ -209,14 +350,14 @@ export default function Inventario() {
                 </div>
             </div>
 
-            <div style={{ padding: "0 16px", marginTop: -60 }}>
+            <div style={{ padding: "0 24px", marginTop: -60, overflowX: "hidden" }}>
                 {/* Stat cards */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-4">
                     {[
                         { label: "Productos activos", valor: totalActivos, icon: "PackagePlus" },
                         { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "PiggyBank" },
                         { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "Banknote" },
-                        { label: "Stock bajo (≤3)", valor: stockBajo, icon: "Megaphone" },
+                        { label: "Stock descuadrado", valor: stockDesc, icon: "TriangleAlert" },
                     ].map(m => (
                         <div key={m.label} className="card fade-up" style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
                             <div style={{ background: "var(--gradient-1)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
@@ -263,14 +404,14 @@ export default function Inventario() {
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "var(--bg-app)", borderBottom: "1px solid var(--border-light)", gap: 10 }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                                             <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
-                                            <Pill color="gray">{inv.find(p => p.producto === producto)?.categoria || "General"}</Pill>
+                                            <Pill color="gray">{(inv.find(p => p.producto === producto)?.categoria || ["General"]).join(", ")}</Pill>
                                             <Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill>
                                         </div>
                                         <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ad4955ff", color: guardando ? "#999" : "#ffffffff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
                                             {guardando ? "⏳" : "Dar de baja"}
                                         </button>
                                     </div>
-                                    <div style={{ overflowX: "auto" }}>
+                                    <ScrollableTable>
                                         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
                                             <thead>
                                                 <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}>
@@ -282,7 +423,7 @@ export default function Inventario() {
                                             <tbody>
                                                 {grupos.map((g, i) => (
                                                     <tr key={i} style={{ borderBottom: "1px solid var(--border-light)" }}
-                                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--primary-soft)")}
+                                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-card2)")}
                                                         onMouseLeave={e => (e.currentTarget.style.background = "")}>
                                                         <td style={{ padding: "10px 16px" }}>
                                                             {loteEditar?.id_lote === g.lote.id_lote ? (
@@ -325,7 +466,7 @@ export default function Inventario() {
                                                 ))}
                                             </tbody>
                                         </table>
-                                    </div>
+                                    </ScrollableTable>
                                 </div>
                             )
                         })}
@@ -334,38 +475,273 @@ export default function Inventario() {
                 )}
                 {tab === "catalogo" && cargando && <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>Cargando inventario...</p>}
 
-                {/* Nuevo producto */}
+                {/* Nuevo producto + Gestión de categorías */}
                 {tab === "nuevo" && (
-                    <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
-                        <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
-                        <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
-                        <div>
-                            <Input label="Categoría" value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                                {categoriasExistentes.map(cat => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }} className="md:flex-row">
+                        {/* ── Card: Dar de alta producto ── */}
+                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, width: "100%" }}>
+                            <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
+                            <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
+                            <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
+                            <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                    {/* Chips de categorías existentes */}
+                                    {categoriasExistentes.map(cat => {
+                                        const activa = form.categoria.includes(cat)
+                                        return (
+                                            <button
+                                                key={cat}
+                                                onClick={() => setForm(f => ({
+                                                    ...f,
+                                                    categoria: activa
+                                                        ? f.categoria.filter(c => c !== cat)
+                                                        : [...f.categoria, cat]
+                                                }))}
+                                                style={{
+                                                    background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                    color: activa ? "#fff" : "var(--primary-text)",
+                                                    border: "none", borderRadius: 12,
+                                                    padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700,
+                                                    cursor: "pointer", transition: "all 0.15s"
+                                                }}
+                                            >
+                                                {cat} {activa ? "✓" : "+"}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                                {/* Input rápido para crear una categoría nueva */}
+                                <div style={{ display: "flex", gap: 6, marginTop: 8, alignItems: "center" }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Nueva categoría..."
+                                        value={nuevaCategoria}
+                                        onChange={e => setNuevaCategoria(e.target.value)}
+                                        onKeyDown={e => { if (e.key === "Enter") agregarCategoria() }}
+                                        style={{
+                                            flex: 1,
+                                            padding: "6px 10px",
+                                            borderRadius: 10,
+                                            border: "1px solid var(--border-primary)",
+                                            fontSize: "0.78rem",
+                                            outline: "none",
+                                            background: "var(--bg-card2)",
+                                            color: "var(--text-main)"
+                                        }}
+                                    />
                                     <button
-                                        key={cat}
-                                        onClick={() => setForm(f => ({ ...f, categoria: cat }))}
-                                        style={{ background: "var(--bg-card2)", color: "var(--primary-text)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
+                                        onClick={agregarCategoria}
+                                        disabled={!nuevaCategoria.trim()}
+                                        style={{
+                                            background: nuevaCategoria.trim() ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: nuevaCategoria.trim() ? "#fff" : "var(--text-muted)",
+                                            border: "none", borderRadius: 10,
+                                            padding: "6px 14px", fontWeight: 700, fontSize: "0.8rem",
+                                            cursor: nuevaCategoria.trim() ? "pointer" : "not-allowed",
+                                            transition: "all 0.15s",
+                                            whiteSpace: "nowrap"
+                                        }}
                                     >
-                                        {cat}
+                                        + Crear
                                     </button>
-                                ))}
+                                </div>
                             </div>
+                            <ImagePicker onImageSelected={setNuevaFoto} />
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                                <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            </div>
+                            <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
+                                {guardando ? "⏳ Procesando..." : " Dar de Alta"}
+                            </button>
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Foto</label>
-                            <input type="file" accept="image/*" ref={fotoRef} style={{ fontSize: "0.85rem" }} />
+
+                        {/* ── Card: Gestionar Categorías ── */}
+                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, width: "100%" }}>
+                            <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Icon name="Tags" size={20} color="var(--primary-mid)" />
+                                Gestionar Categorías
+                            </h2>
+                            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
+                                Crea, renombra o elimina las categorías de tu inventario.
+                            </p>
+
+                            {/* Input para crear nueva categoría */}
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                <input
+                                    type="text"
+                                    placeholder="Nombre de la nueva categoría..."
+                                    value={nuevaCatNombre}
+                                    onChange={e => setNuevaCatNombre(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter") guardarNuevaCategoria() }}
+                                    style={{
+                                        flex: 1,
+                                        padding: "8px 12px",
+                                        borderRadius: 10,
+                                        border: "1px solid var(--border-primary)",
+                                        fontSize: "0.8rem",
+                                        outline: "none",
+                                        background: "var(--bg-card2)",
+                                        color: "var(--text-main)"
+                                    }}
+                                />
+                                <button
+                                    onClick={guardarNuevaCategoria}
+                                    disabled={!nuevaCatNombre.trim() || guardando}
+                                    style={{
+                                        background: nuevaCatNombre.trim() && !guardando ? "var(--primary-mid)" : "var(--bg-card2)",
+                                        color: nuevaCatNombre.trim() && !guardando ? "#fff" : "var(--text-muted)",
+                                        border: "none", borderRadius: 10,
+                                        padding: "8px 16px", fontWeight: 700, fontSize: "0.78rem",
+                                        cursor: nuevaCatNombre.trim() && !guardando ? "pointer" : "not-allowed",
+                                        transition: "all 0.15s",
+                                        whiteSpace: "nowrap",
+                                        display: "flex", alignItems: "center", gap: 6
+                                    }}
+                                >
+                                    <Icon name="Plus" size={16} color={nuevaCatNombre.trim() && !guardando ? "#fff" : "var(--text-muted)"} /> Crear
+                                </button>
+                            </div>
+
+                            {/* Separador */}
+                            <div style={{ height: 1, background: "var(--border-light)", margin: "4px 0" }} />
+
+                            {/* Lista de categorías existentes */}
+                            {cargandoCats ? (
+                                <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 20, fontSize: "0.8rem" }}>
+                                    Cargando categorías...
+                                </p>
+                            ) : categorias.length === 0 ? (
+                                <div style={{ textAlign: "center", padding: "24px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
+                                    <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
+                                        Aún no hay categorías. ¡Crea la primera!
+                                    </p>
+                                </div>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                    {categorias.map(cat => {
+                                        const editando = catEditandoId === cat.id
+                                        return (
+                                            <div
+                                                key={cat.id}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 8,
+                                                    padding: "8px 12px",
+                                                    borderRadius: 10,
+                                                    background: "var(--bg-card2)",
+                                                    transition: "all 0.15s"
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = "var(--border-light)" }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)" }}
+                                            >
+                                                {editando ? (
+                                                    /* Modo edición: input inline */
+                                                    <>
+                                                        <input
+                                                            type="text"
+                                                            value={catEditandoNombre}
+                                                            onChange={e => setCatEditandoNombre(e.target.value)}
+                                                            onKeyDown={e => {
+                                                                if (e.key === "Enter") guardarEditarCategoria(cat.nombre)
+                                                                if (e.key === "Escape") cancelarEditarCategoria()
+                                                            }}
+                                                            autoFocus
+                                                            style={{
+                                                                flex: 1,
+                                                                padding: "4px 8px",
+                                                                borderRadius: 6,
+                                                                border: "2px solid var(--primary-mid)",
+                                                                fontSize: "0.78rem",
+                                                                outline: "none",
+                                                                background: "var(--bg-app)",
+                                                                color: "var(--text-main)"
+                                                            }}
+                                                        />
+                                                        <button
+                                                            onClick={() => guardarEditarCategoria(cat.nombre)}
+                                                            disabled={guardando || !catEditandoNombre.trim()}
+                                                            style={{
+                                                                background: "var(--primary-mid)", color: "#fff",
+                                                                border: "none", borderRadius: 8,
+                                                                padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700,
+                                                                cursor: guardando || !catEditandoNombre.trim() ? "not-allowed" : "pointer",
+                                                                display: "flex", alignItems: "center", gap: 4
+                                                            }}
+                                                        >
+                                                            <Icon name="Check" size={14} color="#fff" />
+                                                        </button>
+                                                        <button
+                                                            onClick={cancelarEditarCategoria}
+                                                            style={{
+                                                                background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                                border: "none", borderRadius: 8,
+                                                                padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700,
+                                                                cursor: "pointer"
+                                                            }}
+                                                        >
+                                                            <Icon name="X" size={14} color="var(--text-muted)" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    /* Modo vista: nombre + contador + acciones */
+                                                    <>
+                                                        <Icon name="Tag" size={16} color="var(--primary-mid)" />
+                                                        <span style={{ flex: 1, fontWeight: 600, fontSize: "0.8rem", color: "var(--text-main)" }}>
+                                                            {cat.nombre}
+                                                        </span>
+                                                        <span style={{
+                                                            fontSize: "0.62rem",
+                                                            fontWeight: 700,
+                                                            color: "var(--text-secondary)",
+                                                            background: "var(--bg-app)",
+                                                            borderRadius: 8,
+                                                            padding: "2px 8px",
+                                                            whiteSpace: "nowrap"
+                                                        }}>
+                                                            {cat.total_productos} prod.
+                                                        </span>
+                                                        <button
+                                                            onClick={() => iniciarEditarCategoria(cat)}
+                                                            title={`Renombrar "${cat.nombre}"`}
+                                                            style={{
+                                                                background: "none", border: "none",
+                                                                cursor: "pointer", padding: 4,
+                                                                borderRadius: 6,
+                                                                display: "flex", alignItems: "center",
+                                                                opacity: 0.5, transition: "opacity 0.15s"
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.opacity = "1" }}
+                                                            onMouseLeave={e => { e.currentTarget.style.opacity = "0.5" }}
+                                                        >
+                                                            <Icon name="Pencil" size={14} color="var(--primary-mid)" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => eliminarCategoria(cat.nombre)}
+                                                            title={`Eliminar "${cat.nombre}"`}
+                                                            style={{
+                                                                background: "none", border: "none",
+                                                                cursor: "pointer", padding: 4,
+                                                                borderRadius: 6,
+                                                                display: "flex", alignItems: "center",
+                                                                opacity: 0.4, transition: "opacity 0.15s"
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "#e74c3c" }}
+                                                            onMouseLeave={e => { e.currentTarget.style.opacity = "0.4"; e.currentTarget.style.color = "" }}
+                                                        >
+                                                            <Icon name="Trash2" size={14} color="#e74c3c" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                            <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                            <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                            <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                        </div>
-                        <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
-                            {guardando ? "⏳ Procesando..." : " Dar de Alta"}
-                        </button>
                     </div>
                 )}
 
@@ -396,66 +772,265 @@ export default function Inventario() {
                     </div>
                 )}
 
-                {/* Editar producto */}
-                {tab === "editar" && (
-                    <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Editar Producto</h2>
-
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Seleccionar Producto</label>
-                            <select className="input-primary" value={prodEditar}
-                                onChange={e => {
-                                    const p = inv.find(x => x.producto === e.target.value)
-                                    setProdEditar(e.target.value)
-                                    if (p) setEditProdVal({
-                                        descripcion: p.descripcion ?? "",
-                                        estado: p.estado ?? "Activo",
-                                        imagen: p.imagen ?? "No hay foto",
-                                        categoria: p.categoria ?? "General"
-                                    })
-                                }}>
-                                <option value="">— Selecciona —</option>
-                                {productos.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
+                {/* Editar producto — buscador */}
+                {tab === "editar" && !prodEditar && (
+                    <>
+                        {/* Categorías */}
+                        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 8, scrollbarWidth: "none" }}>
+                            {["Todas", ...categoriasExistentes].map(cat => (
+                                <div key={cat} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+                                    <button
+                                        onClick={() => setCatSelecEditar(cat)}
+                                        style={{
+                                            padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
+                                            background: catSelecEditar === cat ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: catSelecEditar === cat ? "#fff" : "var(--primary-dark)",
+                                            boxShadow: catSelecEditar === cat ? "0 4px 10px var(--primary-glow)" : "none",
+                                            paddingRight: cat !== "Todas" ? 28 : 14
+                                        }}
+                                    >
+                                        {cat}
+                                    </button>
+                                    {cat !== "Todas" && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); eliminarCategoria(cat) }}
+                                            title={`Eliminar categoría "${cat}"`}
+                                            style={{
+                                                position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
+                                                width: 20, height: 20, borderRadius: "50%", border: "none",
+                                                background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                display: "flex", alignItems: "center", justifyContent: "center",
+                                                cursor: "pointer", fontSize: "0.65rem", fontWeight: 700,
+                                                transition: "all 0.15s", opacity: 0.6, lineHeight: 1
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = "#e74c3c"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.opacity = "1" }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.6" }}
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
                         </div>
 
-                        {prodEditar && (
-                            <>
-                                <div>
-                                    <Input label="Categoría" value={editProdVal.categoria} onChange={e => setEditProdVal(p => ({ ...p, categoria: e.target.value }))} placeholder="Ej. Ropa, Electrónica, General..." />
-                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                                        {categoriasExistentes.map(cat => (
+                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+                            <Icon name="Search" size={20} color="var(--text-muted)" />
+                            <input
+                                className="input-primary"
+                                style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
+                                placeholder="Buscar producto por nombre, código o categoría..."
+                                value={buscadorEditar}
+                                onChange={e => setBuscadorEditar(e.target.value)}
+                            />
+                        </div>
+
+                        {cargando ? (
+                            <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>Cargando productos...</p>
+                        ) : (
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+                                {productosEditar.length === 0 ? (
+                                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
+                                        <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
+                                        <h2 style={{ fontSize: "1.5rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 8px" }}>Sin resultados</h2>
+                                        <p style={{ fontSize: "1rem", color: "var(--text-main)", fontWeight: 600, margin: 0 }}>Intenta con otra búsqueda o categoría</p>
+                                    </div>
+                                ) : (
+                                    productosEditar.map(prod => (
+                                        <div
+                                            key={prod.producto}
+                                            className="card fade-up"
+                                            style={{ padding: 12, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
+                                            onClick={() => {
+                                                setProdEditar(prod.producto)
+                                                setEditProdNombre(prod.producto)
+                                                setLoteEditandoId(null)
+                                                setEditProdVal({
+                                                    descripcion: prod.descripcion ?? "",
+                                                    estado: prod.estado ?? "Activo",
+                                                    imagen: prod.imagen ?? "No hay foto",
+                                                    categoria: prod.categoria ?? ["General"],
+                                                })
+                                            }}
+                                            onMouseEnter={e => {
+                                                e.currentTarget.style.transform = "translateY(-3px)"
+                                                e.currentTarget.style.boxShadow = "0 8px 30px var(--primary-glow)"
+                                            }}
+                                            onMouseLeave={e => {
+                                                e.currentTarget.style.transform = ""
+                                                e.currentTarget.style.boxShadow = ""
+                                            }}
+                                        >
+                                            <div style={{ aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                {prod.imagen && prod.imagen !== "No hay foto" ? (
+                                                    <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
+                                                        alt={prod.producto}
+                                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }} />
+                                                ) : (
+                                                    <span style={{ fontSize: "2rem" }}>🛍️</span>
+                                                )}
+                                            </div>
+                                            <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.producto}</p>
+                                            <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>${prod.precio_venta.toFixed(2)}</p>
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px" }}>{(prod.categoria || ["General"]).join(", ")}</span>
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total < 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total < 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>Stock: {prod.stock_total}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Editar producto — formulario + lotes */}
+                {tab === "editar" && prodEditar && (
+                    <>
+                        {/* ── Card 1: Información del producto ── */}
+                        <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                                <button
+                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null) }}
+                                    style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
+                                >
+                                    <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
+                                </button>
+                                <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-muted)" }}>Editando: <strong style={{ color: "var(--text-main)" }}>{prodEditar}</strong></span>
+                            </div>
+                            <Input label="Nombre del producto" value={editProdNombre} onChange={e => setEditProdNombre(e.target.value)} />
+
+                            <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
+                                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                    {categoriasExistentes.map(cat => {
+                                        const activa = editProdVal.categoria.includes(cat)
+                                        return (
                                             <button
                                                 key={cat}
-                                                onClick={() => setEditProdVal(p => ({ ...p, categoria: cat }))}
-                                                style={{ background: "var(--bg-card2)", color: "var(--text-main)", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: "0.65rem", fontWeight: 700, cursor: "pointer" }}
-                                            >
-                                                {cat}
-                                            </button>
-                                        ))}
-                                    </div>
+                                                onClick={() => setEditProdVal(p => ({ ...p, categoria: activa ? p.categoria.filter(c => c !== cat) : [...p.categoria, cat] }))}
+                                                style={{ background: activa ? "var(--primary-mid)" : "var(--bg-card2)", color: activa ? "#fff" : "var(--text-main)", border: "none", borderRadius: 12, padding: "6px 14px", fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+                                            >{cat} {activa ? "✓" : "+"}</button>
+                                        )
+                                    })}
                                 </div>
-                                <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
+                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>Selecciona las categorías que aplican a este producto</p>
+                            </div>
+                            <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Actualizar Foto (Opcional)</label>
-                                    <input type="file" accept="image/*" ref={editFotoRef} style={{ fontSize: "0.85rem" }} />
-                                </div>
+                            <ImagePicker
+                                onImageSelected={setEditFoto}
+                                currentImageUrl={editProdVal.imagen !== "No hay foto" ? editProdVal.imagen : undefined}
+                                label="Actualizar Foto (Opcional)"
+                            />
 
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
-                                    <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
-                                        <option value="Activo">Activo</option>
-                                        <option value="Inactivo">Inactivo</option>
-                                    </select>
-                                </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
+                                <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
+                                    <option value="Activo">Activo</option>
+                                    <option value="Inactivo">Inactivo</option>
+                                </select>
+                            </div>
 
-                                <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
-                                    {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
-                                </button>
-                            </>
-                        )}
-                    </div>
+                            <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
+                                {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
+                            </button>
+                        </div>
+
+                        {/* ── Card 2: Editar lotes individuales ── */}
+                        <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
+                            <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Icon name="Package" size={20} color="var(--primary-mid)" />
+                                Lotes de {prodEditar}
+                                <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginLeft: "auto" }}>
+                                    {lotes.filter(l => l.producto === prodEditar).length} lote(s)
+                                </span>
+                            </h2>
+                            <ScrollableTable>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                                    <thead>
+                                        <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}>
+                                            {["ID", "Costo unit.", "Precio venta", "Stock", "Margen", ""].map(h => (
+                                                <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {lotes.filter(l => l.producto === prodEditar).map(lote => {
+                                            const editando = loteEditandoId === lote.id_lote
+                                            const margen = lote.precio_venta > 0 ? ((lote.precio_venta - lote.costo) / lote.precio_venta) * 100 : 0
+                                            return (
+                                                <tr key={lote.id_lote} style={{ borderBottom: "1px solid var(--border-light)" }}
+                                                    onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-card2)")}
+                                                    onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                                                    <td style={{ padding: "8px 12px", fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                                                        #{lote.id_lote}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        {editando ? (
+                                                            <input type="number" min={0} step="0.01" value={editLoteVal.costo} placeholder="0.00"
+                                                                onChange={e => setEditLoteVal(l => ({ ...l, costo: e.target.value === "" ? "" : Number(e.target.value) }))}
+                                                                className="input-primary" style={{ width: 80, padding: 4 }} />
+                                                        ) : `$${lote.costo.toFixed(2)}`}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px", fontWeight: 700, color: "var(--text-main)" }}>
+                                                        {editando ? (
+                                                            <input type="number" min={0} step="0.01" value={editLoteVal.precio_venta} placeholder="0.00"
+                                                                onChange={e => setEditLoteVal(l => ({ ...l, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))}
+                                                                className="input-primary" style={{ width: 80, padding: 4 }} />
+                                                        ) : `$${lote.precio_venta.toFixed(2)}`}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        {editando ? (
+                                                            <input type="number" min={0} value={editLoteVal.stock} placeholder="0"
+                                                                onChange={e => setEditLoteVal(l => ({ ...l, stock: e.target.value === "" ? "" : Number(e.target.value) }))}
+                                                                className="input-primary" style={{ width: 80, padding: 4 }} />
+                                                        ) : lote.stock_lote}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        <Pill color={margen > 0 ? "green" : "red"}>
+                                                            {lote.precio_venta > 0 ? `${margen.toFixed(0)}%` : "—"}
+                                                        </Pill>
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        {editando ? (
+                                                            <div style={{ display: "flex", gap: 6 }}>
+                                                                <button onClick={guardarLoteIndividual} disabled={guardando}
+                                                                    style={{ background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer", padding: 4 }}>
+                                                                    {guardando ?
+                                                                        (<Icon name="Hourglass" size={16} color="var(--primary-dark)" />) :
+                                                                        (<Icon name="Save" size={16} color="var(--primary-dark)" />)
+                                                                    }
+                                                                </button>
+                                                                <button onClick={() => setLoteEditandoId(null)}
+                                                                    style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}>
+                                                                    <Icon name="X" size={16} color="var(--text-muted)" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button onClick={() => {
+                                                                setLoteEditandoId(lote.id_lote)
+                                                                setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote })
+                                                            }}
+                                                                style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
+                                                                Editar
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                        {lotes.filter(l => l.producto === prodEditar).length === 0 && (
+                                            <tr>
+                                                <td colSpan={6} style={{ textAlign: "center", padding: "24px 12px", color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                                                    No hay lotes registrados para este producto.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </ScrollableTable>
+                        </div>
+                    </>
                 )}
 
                 <div style={{ height: 20 }} />

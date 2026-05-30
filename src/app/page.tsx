@@ -23,6 +23,11 @@ export default function PuntoDeVenta() {
     const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
     const [modoDescuento, setModoDescuento] = useState(false)
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("Todas")
+    // Estado para el modal de advertencia por stock insuficiente
+    const [modalAdvertencia, setModalAdvertencia] = useState<{
+        visible: boolean;
+        nombres: string;
+    }>({ visible: false, nombres: "" })
     const [userId, setUserId] = useState<string>("Cargando...");
     const { tenant } = useTenant()
     const logoSrc = tenant?.logo || "/logo.png"
@@ -56,13 +61,13 @@ export default function PuntoDeVenta() {
 
     useEffect(() => {
         api.getInventario()
-            .then(data => setProductos(data.filter(p => p.stock_total > 0)))
+            .then(data => setProductos(data))
             .catch(async () => {
                 // Tables might not exist — force creation and retry
                 try {
                     await api.initDB()
                     const data = await api.getInventario()
-                    setProductos(data.filter(p => p.stock_total > 0))
+                    setProductos(data)
                 } catch {
                     // DB is empty, keep empty state
                 }
@@ -70,15 +75,15 @@ export default function PuntoDeVenta() {
             .finally(() => setCargando(false))
     }, [])
 
-    const categorias = ["Todas", ...Array.from(new Set(productos.map(p => p.categoria || "General"))).sort()]
+    const categorias = ["Todas", ...Array.from(new Set(productos.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()]
 
     const productosFiltrados = productos.filter(p => {
         const busquedaBase = busqueda.toLowerCase()
         const porBusqueda = p.producto.toLowerCase().includes(busquedaBase) ||
             p.descripcion?.toLowerCase().includes(busquedaBase) ||
-            (p.categoria || "General").toLowerCase().includes(busquedaBase)
+            (p.categoria || ["General"]).join(" ").toLowerCase().includes(busquedaBase)
 
-        const porCategoria = categoriaSeleccionada === "Todas" || (p.categoria || "General") === categoriaSeleccionada
+        const porCategoria = categoriaSeleccionada === "Todas" || (p.categoria || ["General"]).includes(categoriaSeleccionada)
         return porBusqueda && porCategoria
     })
 
@@ -86,7 +91,9 @@ export default function PuntoDeVenta() {
         setCarrito(prev => {
             const idx = prev.findIndex(i => i.producto === prod.producto)
             if (idx >= 0) {
-                if (prev[idx].cantidad >= prod.stock_total) return prev
+                // NOTA: Ya no limitamos por stock_total para permitir
+                // vender aunque el inventario esté en 0 o negativo.
+                // La advertencia se muestra al momento de cobrar.
                 const nuevo = [...prev]
                 nuevo[idx] = { ...nuevo[idx], cantidad: nuevo[idx].cantidad + 1 }
                 return nuevo
@@ -123,6 +130,58 @@ export default function PuntoDeVenta() {
         setCarrito(prev => prev.filter(i => i.producto !== producto))
     }
 
+    /**
+     * Verifica si hay productos con stock insuficiente en el carrito
+     * y muestra una confirmación antes de proceder con el cobro.
+     * Si el usuario acepta, ejecuta cobrar().
+     */
+    /**
+     * Verifica si hay productos con stock insuficiente en el carrito.
+     * Si los hay, abre el modal de advertencia en lugar del window.confirm().
+     * Si el usuario confirma desde el modal, ejecuta cobrar().
+     */
+    function cobrarConAdvertencia() {
+        if (carrito.length === 0) return
+
+        // Identificar productos del carrito que no tienen stock suficiente
+        const sinStock = carrito.filter(item => {
+            const prod = productos.find(p => p.producto === item.producto)
+            return !prod || prod.stock_total <= 0 || item.cantidad > prod.stock_total
+        })
+
+        if (sinStock.length > 0) {
+            // Abrimos el modal personalizado en lugar del window.confirm() nativo
+            const nombres = sinStock.map(i => i.producto).join(", ")
+            setModalAdvertencia({ visible: true, nombres })
+            return
+        }
+
+        // Si no hay advertencia, ejecutar cobro directamente
+        cobrar()
+    }
+
+    /** Callback ejecutado cuando el usuario acepta la advertencia en el modal */
+    function confirmarCobroConAdvertencia() {
+        setModalAdvertencia({ visible: false, nombres: "" })
+        cobrar()
+    }
+
+    /** Callback para cancelar desde el modal */
+    function cancelarAdvertencia() {
+        setModalAdvertencia({ visible: false, nombres: "" })
+    }
+
+    // Cerrar el modal con la tecla Escape
+    useEffect(() => {
+        function manejarEscape(e: KeyboardEvent) {
+            if (e.key === "Escape" && modalAdvertencia.visible) {
+                cancelarAdvertencia()
+            }
+        }
+        document.addEventListener("keydown", manejarEscape)
+        return () => document.removeEventListener("keydown", manejarEscape)
+    }, [modalAdvertencia.visible])
+
     async function cobrar() {
         if (carrito.length === 0) return
         setCobrando(true); setMensaje(null)
@@ -131,7 +190,7 @@ export default function PuntoDeVenta() {
             setMensaje({ tipo: "ok", texto: `✅ Venta registrada — $${res.total_cobrado.toFixed(2)}` })
             setCarrito([]); setPrecios({}); setCarritoAbierto(false)
             const data = await api.getInventario()
-            setProductos(data.filter(p => p.stock_total > 0))
+            setProductos(data)
         } catch (e: unknown) {
             setMensaje({ tipo: "error", texto: `❌ ${e instanceof Error ? e.message : "Error"}` })
         } finally { setCobrando(false) }
@@ -281,7 +340,15 @@ export default function PuntoDeVenta() {
                                             {prod.imagen && prod.imagen !== "No hay foto" ? (
                                                 <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
                                                     alt={prod.producto}
-                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                    /*
+                                         * Usamos objectFit: "contain" en lugar de "cover" para que
+                                         * las imágenes verticales (retrato) no se recorten. Con "contain"
+                                         * el lado más grande se ajusta al contenedor y la imagen se ve
+                                         * completa, mostrando el fondo gradiente en los bordes vacíos.
+                                         * Se agrega un padding sutil para evitar que la imagen toque
+                                         * los bordes del contenedor cuadrado.
+                                         */
+                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }} />
                                             ) : (
                                                 <span style={{ fontSize: "2rem" }}>🛍️</span>
                                             )}
@@ -296,13 +363,13 @@ export default function PuntoDeVenta() {
                                             <span
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setCategoriaSeleccionada(prod.categoria || "General");
+                                                    setCategoriaSeleccionada(prod.categoria?.[0] || "General");
                                                 }}
                                                 style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px", cursor: "pointer" }}
                                             >
-                                                {prod.categoria || "General"}
+                                                {(prod.categoria || ["General"]).join(", ")}
                                             </span>
-                                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 3 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 3 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>
+                                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total < 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total < 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>
                                                 Stock: {prod.stock_total}
                                             </span>
                                         </div>
@@ -393,10 +460,10 @@ export default function PuntoDeVenta() {
                                                         <input
                                                             type="number" min="1"
                                                             value={item.cantidad}
-                                                            onChange={e => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, Math.max(1, +e.target.value)))}
+                                                            onChange={e => cambiarCantidad(item.producto, Math.max(1, +e.target.value))}
                                                             style={{ width: 35, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                                         />
-                                                        <button onClick={() => cambiarCantidad(item.producto, Math.min(prod?.stock_total ?? 99, item.cantidad + 1))}
+                                                        <button onClick={() => cambiarCantidad(item.producto, item.cantidad + 1)}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>+</button>
                                                     </div>
                                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -438,7 +505,7 @@ export default function PuntoDeVenta() {
                                     <span>Total</span>
                                     <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
                                 </div>
-                                <button className="btn-primary" style={{ width: "100%", marginBottom: 8 }} onClick={cobrar} disabled={cobrando}>
+                                <button className="btn-primary" style={{ width: "100%", marginBottom: 8 }} onClick={cobrarConAdvertencia} disabled={cobrando}>
                                     {cobrando ? "Procesando..." : "Cobrar"}
                                 </button>
                                 <button className="btn-ghost" style={{ width: "100%" }}
@@ -500,16 +567,12 @@ export default function PuntoDeVenta() {
                                             type="number" min="1"
                                             value={item.cantidad}
                                             onChange={e => {
-                                                const prodData = productos.find(p => p.producto === item.producto);
-                                                const stockMax = prodData?.stock_total ?? 99;
-                                                cambiarCantidad(item.producto, Math.min(stockMax, Math.max(1, +e.target.value)));
+                                                cambiarCantidad(item.producto, Math.max(1, +e.target.value));
                                             }}
                                             style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                         />
                                         <button onClick={() => {
-                                            const prodData = productos.find(p => p.producto === item.producto);
-                                            const stockMax = prodData?.stock_total ?? 0;
-                                            cambiarCantidad(item.producto, Math.min(stockMax, item.cantidad + 1));
+                                            cambiarCantidad(item.producto, item.cantidad + 1);
                                         }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>+</button>
                                     </div>
                                     <input type="text" inputMode="decimal"
@@ -539,12 +602,108 @@ export default function PuntoDeVenta() {
                             <span>Total</span>
                             <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
                         </div>
-                        <button className="btn-primary" style={{ width: "100%", marginBottom: 10 }} onClick={cobrar} disabled={cobrando}>
+                        <button className="btn-primary" style={{ width: "100%", marginBottom: 10 }} onClick={cobrarConAdvertencia} disabled={cobrando}>
                             {cobrando ? "Procesando..." : "✅ Cobrar"}
                         </button>
                         <button className="btn-ghost" style={{ width: "100%" }} onClick={() => { setCarrito([]); setPrecios({}); setCarritoAbierto(false) }}>
                             Vaciar carrito
                         </button>
+                    </div>
+                </div>
+            )}
+            {/* ── Modal de advertencia por stock insuficiente ── */}
+            {modalAdvertencia.visible && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 9999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "var(--overlay-bg)",
+                    backdropFilter: "blur(4px)",
+                    WebkitBackdropFilter: "blur(4px)",
+                }}>
+                    {/**
+                     * Card flotante con los colores del tema actual.
+                     * Usa las variables CSS del tema dinámico para mantener
+                     * la coherencia visual con Midnight Black, Steel Slate,
+                     * Strawberry y Cozy Yellow.
+                     */}
+                    <div className="fade-up" style={{
+                        background: "var(--bg-card)",
+                        borderRadius: 20,
+                        padding: "32px 28px 24px",
+                        maxWidth: 400,
+                        width: "90%",
+                        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                        border: "1px solid var(--border-primary)",
+                        textAlign: "center",
+                    }}>
+                        {/* Icono de advertencia */}
+                        <div style={{
+                            width: 64, height: 64,
+                            borderRadius: "50%",
+                            background: "var(--error-bg)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            margin: "0 auto 16px",
+                            fontSize: "2rem",
+                        }}>
+                            ⚠️
+                        </div>
+
+                        <h3 style={{
+                            margin: "0 0 8px",
+                            fontSize: "1.1rem",
+                            fontWeight: 800,
+                            color: "var(--text-main)",
+                        }}>
+                            Stock insuficiente
+                        </h3>
+
+                        <p style={{
+                            margin: "0 0 6px",
+                            fontSize: "0.85rem",
+                            color: "var(--text-secondary)",
+                            lineHeight: 1.5,
+                        }}>
+                            No hay stock suficiente de:
+                        </p>
+
+                        <p style={{
+                            margin: "0 0 16px",
+                            fontSize: "0.9rem",
+                            fontWeight: 700,
+                            color: "var(--error-text)",
+                            padding: "8px 12px",
+                            background: "var(--error-bg)",
+                            borderRadius: 10,
+                            wordBreak: "break-word",
+                        }}>
+                            {modalAdvertencia.nombres}
+                        </p>
+
+                        <p style={{
+                            margin: "0 0 20px",
+                            fontSize: "0.8rem",
+                            color: "var(--text-muted)",
+                        }}>
+                            ¿Deseas proceder con la venta de todas formas?
+                            El inventario quedará en <strong style={{ color: "var(--error-text)" }}>negativo</strong>.
+                        </p>
+
+                        <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                            <button
+                                className="btn-primary"
+                                onClick={confirmarCobroConAdvertencia}
+                                style={{ flex: 1 }}
+                            >
+                                Sí, cobrar
+                            </button>
+                            <button
+                                className="btn-ghost"
+                                onClick={cancelarAdvertencia}
+                                style={{ flex: 1 }}
+                            >
+                                Cancelar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

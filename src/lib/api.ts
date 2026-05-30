@@ -15,7 +15,7 @@ export interface Producto {
     stock_total: number;
     precio_venta: number;
     costo_promedio: number;
-    categoria: string;
+    categoria: string[];
 }
 
 export interface ItemCarrito {
@@ -41,7 +41,7 @@ export interface NuevoProducto {
     precio_venta: number;
     stock: number;
     imagen?: string;
-    categoria?: string;
+    categoria?: string[];
 }
 
 export interface Restock {
@@ -53,6 +53,7 @@ export interface Restock {
 
 export interface Venta {
     id: number;
+    n_ticket: number;
     fecha: string;
     producto: string;
     cantidad: number;
@@ -70,6 +71,13 @@ export interface Gasto {
     categoria: string;
     descripcion: string;
     monto: number;
+}
+
+export interface Categoria {
+    id: string;
+    nombre: string;
+    slug: string;
+    total_productos: number;
 }
 
 /**
@@ -115,7 +123,12 @@ export const api = {
     getLotes: () => request<Lote[]>("/inventario/lotes"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
+    // Categorías
+    getCategorias: () => request<Categoria[]>("/inventario/categorias"),
+    crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),
+    editarCategoria: (viejoNombre: string, nuevoNombre: string) => request<{ ok: boolean; categoria: Categoria }>(`/inventario/categoria/${encodeURIComponent(viejoNombre)}`, { method: "PATCH", body: JSON.stringify({ nuevo_nombre: nuevoNombre }) }),
+    eliminarCategoria: (categoria: string) => request(`/inventario/categoria/${encodeURIComponent(categoria)}`, { method: "DELETE" }),
     editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     subirFoto: async (producto: string, file: File): Promise<{ ruta: string }> => {
         const authHeaders = await getAuthHeaders()
