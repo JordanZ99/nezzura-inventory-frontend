@@ -47,6 +47,7 @@ export default function Inventario() {
     const [editFoto, setEditFoto] = useState<File | null>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
+    const [editProdNombre, setEditProdNombre] = useState("")
     const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[] })
     // Estado para editar lotes individuales dentro del formulario Editar Prod.
     const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
@@ -248,11 +249,12 @@ export default function Inventario() {
                 imagen: nuevaImagen || editProdVal.imagen,
                 estado: editProdVal.estado,
                 categoria: editProdVal.categoria,
+                producto: editProdNombre,
             }
             await api.editarProducto(prodEditar, payload)
 
             mostrarMsg(true, "✅ Producto actualizado")
-            setProdEditar(""); setEditFoto(null); recargar()
+            setProdEditar(""); setEditProdNombre(""); setEditFoto(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -840,6 +842,7 @@ export default function Inventario() {
                                             style={{ padding: 12, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
                                             onClick={() => {
                                                 setProdEditar(prod.producto)
+                                                setEditProdNombre(prod.producto)
                                                 setLoteEditandoId(null)
                                                 setEditProdVal({
                                                     descripcion: prod.descripcion ?? "",
@@ -885,15 +888,16 @@ export default function Inventario() {
                     <>
                         {/* ── Card 1: Información del producto ── */}
                         <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                                 <button
                                     onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null) }}
                                     style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
                                 >
                                     <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
                                 </button>
-                                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>{prodEditar}</h2>
+                                <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-muted)" }}>Editando: <strong style={{ color: "var(--text-main)" }}>{prodEditar}</strong></span>
                             </div>
+                            <Input label="Nombre del producto" value={editProdNombre} onChange={e => setEditProdNombre(e.target.value)} />
 
                             <div>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
@@ -901,28 +905,11 @@ export default function Inventario() {
                                     {categoriasExistentes.map(cat => {
                                         const activa = editProdVal.categoria.includes(cat)
                                         return (
-                                            <div key={cat} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-                                                <button
-                                                    onClick={() => setEditProdVal(p => ({ ...p, categoria: activa ? p.categoria.filter(c => c !== cat) : [...p.categoria, cat] }))}
-                                                    style={{ background: activa ? "var(--primary-mid)" : "var(--bg-card2)", color: activa ? "#fff" : "var(--text-main)", border: "none", borderRadius: 12, padding: "6px 14px", paddingRight: 28, fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
-                                                >{cat} {activa ? "✓" : "+"}</button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); eliminarCategoria(cat) }}
-                                                    title={`Eliminar categoría "${cat}"`}
-                                                    style={{
-                                                        position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
-                                                        width: 18, height: 18, borderRadius: "50%", border: "none",
-                                                        background: "var(--bg-card2)", color: "var(--text-muted)",
-                                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                                        cursor: "pointer", fontSize: "0.6rem", fontWeight: 700,
-                                                        transition: "all 0.15s", opacity: 0.6, lineHeight: 1
-                                                    }}
-                                                    onMouseEnter={e => { e.currentTarget.style.background = "#e74c3c"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.opacity = "1" }}
-                                                    onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.6" }}
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
+                                            <button
+                                                key={cat}
+                                                onClick={() => setEditProdVal(p => ({ ...p, categoria: activa ? p.categoria.filter(c => c !== cat) : [...p.categoria, cat] }))}
+                                                style={{ background: activa ? "var(--primary-mid)" : "var(--bg-card2)", color: activa ? "#fff" : "var(--text-main)", border: "none", borderRadius: 12, padding: "6px 14px", fontSize: "0.72rem", fontWeight: 700, cursor: "pointer", transition: "all 0.15s" }}
+                                            >{cat} {activa ? "✓" : "+"}</button>
                                         )
                                     })}
                                 </div>
