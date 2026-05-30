@@ -16,6 +16,9 @@ export interface Producto {
     precio_venta: number;
     costo_promedio: number;
     categoria: string[];
+    codigo_interno?: string;
+    codigo_barras?: string;
+    ubicacion?: string;
 }
 
 export interface ItemCarrito {
@@ -42,6 +45,9 @@ export interface NuevoProducto {
     stock: number;
     imagen?: string;
     categoria?: string[];
+    codigo_interno?: string;
+    codigo_barras?: string;
+    ubicacion?: string;
 }
 
 export interface Restock {
@@ -123,7 +129,7 @@ export const api = {
     getLotes: () => request<Lote[]>("/inventario/lotes"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
     // Categorías
     getCategorias: () => request<Categoria[]>("/inventario/categorias"),
     crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),
