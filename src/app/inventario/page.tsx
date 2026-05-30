@@ -480,9 +480,9 @@ export default function Inventario() {
 
                 {/* Nuevo producto + Gestión de categorías */}
                 {tab === "nuevo" && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }} className="md:flex-row">
+                    <div style={{ display: "flex", gap: 16, width: "100%" }} className="flex-col md:flex-row md:items-stretch">
                         {/* ── Card: Dar de alta producto ── */}
-                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, width: "100%" }}>
+                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
                             <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                             <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
@@ -567,17 +567,17 @@ export default function Inventario() {
                         </div>
 
                         {/* ── Card: Gestionar Categorías ── */}
-                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, width: "100%" }}>
+                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
                                 <Icon name="Tags" size={20} color="var(--primary-mid)" />
                                 Gestionar Categorías
                             </h2>
-                            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
+                            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 600, flexShrink: 0 }}>
                                 Crea, renombra o elimina las categorías de tu inventario.
                             </p>
 
-                            {/* Input para crear nueva categoría */}
-                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            {/* Input para crear nueva categoría — fijo arriba */}
+                            <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
                                 <input
                                     type="text"
                                     placeholder="Nombre de la nueva categoría..."
@@ -614,9 +614,9 @@ export default function Inventario() {
                             </div>
 
                             {/* Separador */}
-                            <div style={{ height: 1, background: "var(--border-light)", margin: "4px 0" }} />
+                            <div style={{ height: 1, background: "var(--border-light)", margin: "4px 0", flexShrink: 0 }} />
 
-                            {/* Lista de categorías existentes */}
+                            {/* Lista de categorías existentes — scrollable si sobran */}
                             {cargandoCats ? (
                                 <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 20, fontSize: "0.8rem" }}>
                                     Cargando categorías...
@@ -628,7 +628,7 @@ export default function Inventario() {
                                     </p>
                                 </div>
                             ) : (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto", flex: 1, minHeight: 0, scrollbarWidth: "thin" }}>
                                     {categorias.map(cat => {
                                         const editando = catEditandoId === cat.id
                                         return (
