@@ -23,6 +23,8 @@ export default function PuntoDeVenta() {
     const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null)
     const [modoDescuento, setModoDescuento] = useState(false)
     const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("Todas")
+    // Estado para el tipo de ordenamiento de los productos
+    const [ordenamiento, setOrdenamiento] = useState<string>("alfabetico")
     // Estado para el modal de advertencia por stock insuficiente
     const [modalAdvertencia, setModalAdvertencia] = useState<{
         visible: boolean;
@@ -85,6 +87,21 @@ export default function PuntoDeVenta() {
 
         const porCategoria = categoriaSeleccionada === "Todas" || (p.categoria || ["General"]).includes(categoriaSeleccionada)
         return porBusqueda && porCategoria
+    }).sort((a, b) => {
+        // Aplicamos el ordenamiento seleccionado por el usuario
+        switch (ordenamiento) {
+            case "precio-desc":
+                return b.precio_venta - a.precio_venta
+            case "precio-asc":
+                return a.precio_venta - b.precio_venta
+            case "stock-desc":
+                return b.stock_total - a.stock_total
+            case "stock-asc":
+                return a.stock_total - b.stock_total
+            case "alfabetico":
+            default:
+                return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
+        }
     })
 
     function agregarAlCarrito(prod: Producto) {
@@ -245,7 +262,7 @@ export default function PuntoDeVenta() {
             </div>
 
             {/* ── Contenido sobre el hero ── */}
-            <div style={{ padding: "0 16px", marginTop: -48 }}>
+            <div style={{ padding: "0 16px", marginTop: -16 }}>
 
                 {/* Mensaje de resultado */}
                 {mensaje && (
@@ -264,22 +281,31 @@ export default function PuntoDeVenta() {
 
                     {/* ── Catálogo ── */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* Categorías */}
-                        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16, scrollbarWidth: "none" }}>
-                            {categorias.map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setCategoriaSeleccionada(cat)}
-                                    style={{
-                                        padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
-                                        background: categoriaSeleccionada === cat ? "var(--primary-mid)" : "var(--bg-card2)",
-                                        color: categoriaSeleccionada === cat ? "#fff" : "var(--primary-dark)",
-                                        boxShadow: categoriaSeleccionada === cat ? "0 4px 10px var(--primary-glow)" : "none"
-                                    }}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
+                        {/* ── Filtro de categorías como pills (inspirado en Editar Prod.) ── */}
+                        <div style={{ marginBottom: 12 }}>
+                            <p style={{
+                                fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)",
+                                textTransform: "uppercase", letterSpacing: 0.8, margin: "0 0 8px"
+                            }}>
+                                Filtrar por categoría
+                            </p>
+                            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
+                                {categorias.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setCategoriaSeleccionada(cat)}
+                                        style={{
+                                            padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.78rem",
+                                            whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
+                                            background: categoriaSeleccionada === cat ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: categoriaSeleccionada === cat ? "#fff" : "var(--primary-dark)",
+                                            boxShadow: categoriaSeleccionada === cat ? "0 4px 12px var(--primary-glow)" : "none"
+                                        }}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -294,14 +320,18 @@ export default function PuntoDeVenta() {
                                 />
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
-                                <Icon name="Folders" size={20} />
+                                <Icon name="ArrowUpDown" size={20} color="var(--text-muted)" />
                                 <select
                                     className="input-primary"
                                     style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--primary-dark)" }}
-                                    value={categoriaSeleccionada}
-                                    onChange={e => setCategoriaSeleccionada(e.target.value)}
+                                    value={ordenamiento}
+                                    onChange={e => setOrdenamiento(e.target.value)}
                                 >
-                                    {categorias.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    <option value="alfabetico">Alfabético</option>
+                                    <option value="precio-desc">Mayor precio</option>
+                                    <option value="precio-asc">Menor precio</option>
+                                    <option value="stock-desc">Mayor stock</option>
+                                    <option value="stock-asc">Menor stock</option>
                                 </select>
                             </div>
                         </div>

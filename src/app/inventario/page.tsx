@@ -41,17 +41,20 @@ export default function Inventario() {
     const [loteEditar, setLoteEditar] = useState<Lote | null>(null)
     const [editLote, setEditLote] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "" })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const [nuevaFoto, setNuevaFoto] = useState<File | null>(null)
     const [editFoto, setEditFoto] = useState<File | null>(null)
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[] })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "" })
     // Estado para editar lotes individuales dentro del formulario Editar Prod.
     const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
     const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
+    // Estado para el diálogo de confirmación persistente al dar de baja un lote
+    // Contiene el id del lote pendiente de confirmación; no se cierra hasta eliminar o recargar
+    const [loteEliminarConfirm, setLoteEliminarConfirm] = useState<string | null>(null)
     const [guardando, setGuardando] = useState(false)
     const [nuevaCategoria, setNuevaCategoria] = useState("")
     const [buscadorEditar, setBuscadorEditar] = useState("")
@@ -199,9 +202,9 @@ export default function Inventario() {
                 const r = await api.subirFoto(form.producto, compressedFile)
                 imagen = r.ruta
             }
-            await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen })
+            await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen, codigo_interno: form.codigo_interno || undefined, codigo_barras: form.codigo_barras || undefined, ubicacion: form.ubicacion || undefined })
             mostrarMsg(true, `✅ ${form.producto} registrado`)
-            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1 })
+            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "" })
             setNuevaFoto(null)
             setTab("catalogo"); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
@@ -250,6 +253,9 @@ export default function Inventario() {
                 estado: editProdVal.estado,
                 categoria: editProdVal.categoria,
                 producto: editProdNombre,
+                codigo_interno: editProdVal.codigo_interno || undefined,
+                codigo_barras: editProdVal.codigo_barras || undefined,
+                ubicacion: editProdVal.ubicacion || undefined,
             }
             await api.editarProducto(prodEditar, payload)
 
@@ -270,6 +276,30 @@ export default function Inventario() {
             recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
+    }
+
+    /**
+     * Da de baja un lote individual desde el formulario Editar Prod.
+     * Muestra un diálogo de confirmación persistente que no desaparece
+     * hasta que se completa la eliminación, para evitar errores accidentales.
+     * Si es el último lote activo, también desactiva el producto automáticamente.
+     */
+    async function eliminarLoteHandler(id_lote: string) {
+        setGuardando(true)
+        try {
+            const res = await api.eliminarLote(id_lote)
+            setLoteEliminarConfirm(null)
+            if (res.producto_desactivado) {
+                mostrarMsg(true, `✅ Lote #${id_lote} eliminado. El producto "${res.producto}" también fue desactivado por ser el único lote.`)
+            } else {
+                mostrarMsg(true, `✅ Lote #${id_lote} eliminado`)
+            }
+            recargar()
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al eliminar lote"}`)
+        } finally {
+            setGuardando(false)
+        }
     }
 
     async function eliminarCategoria(cat: string) {
@@ -477,12 +507,17 @@ export default function Inventario() {
 
                 {/* Nuevo producto + Gestión de categorías */}
                 {tab === "nuevo" && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }} className="md:flex-row">
+                    <div style={{ display: "flex", gap: 16, width: "100%" }} className="flex-col md:flex-row md:items-stretch">
                         {/* ── Card: Dar de alta producto ── */}
-                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, width: "100%" }}>
+                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
                             <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
-                            <Input label="Descripción o código" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
+                            <Input label="Descripción" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                                <Input label="Código interno" value={form.codigo_interno} onChange={e => setForm(p => ({ ...p, codigo_interno: e.target.value }))} />
+                                <Input label="Código de barras" value={form.codigo_barras} onChange={e => setForm(p => ({ ...p, codigo_barras: e.target.value }))} />
+                                <Input label="Ubicación" value={form.ubicacion} onChange={e => setForm(p => ({ ...p, ubicacion: e.target.value }))} />
+                            </div>
                             <div>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
                                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -559,17 +594,17 @@ export default function Inventario() {
                         </div>
 
                         {/* ── Card: Gestionar Categorías ── */}
-                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0, width: "100%" }}>
+                        <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
                                 <Icon name="Tags" size={20} color="var(--primary-mid)" />
                                 Gestionar Categorías
                             </h2>
-                            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
+                            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 600, flexShrink: 0 }}>
                                 Crea, renombra o elimina las categorías de tu inventario.
                             </p>
 
-                            {/* Input para crear nueva categoría */}
-                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            {/* Input para crear nueva categoría — fijo arriba */}
+                            <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
                                 <input
                                     type="text"
                                     placeholder="Nombre de la nueva categoría..."
@@ -606,9 +641,9 @@ export default function Inventario() {
                             </div>
 
                             {/* Separador */}
-                            <div style={{ height: 1, background: "var(--border-light)", margin: "4px 0" }} />
+                            <div style={{ height: 1, background: "var(--border-light)", margin: "4px 0", flexShrink: 0 }} />
 
-                            {/* Lista de categorías existentes */}
+                            {/* Lista de categorías existentes — scrollable si sobran */}
                             {cargandoCats ? (
                                 <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 20, fontSize: "0.8rem" }}>
                                     Cargando categorías...
@@ -620,7 +655,7 @@ export default function Inventario() {
                                     </p>
                                 </div>
                             ) : (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto", flex: 1, minHeight: 0, scrollbarWidth: "thin" }}>
                                     {categorias.map(cat => {
                                         const editando = catEditandoId === cat.id
                                         return (
@@ -778,38 +813,18 @@ export default function Inventario() {
                         {/* Categorías */}
                         <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 8, scrollbarWidth: "none" }}>
                             {["Todas", ...categoriasExistentes].map(cat => (
-                                <div key={cat} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-                                    <button
-                                        onClick={() => setCatSelecEditar(cat)}
-                                        style={{
-                                            padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
-                                            background: catSelecEditar === cat ? "var(--primary-mid)" : "var(--bg-card2)",
-                                            color: catSelecEditar === cat ? "#fff" : "var(--primary-dark)",
-                                            boxShadow: catSelecEditar === cat ? "0 4px 10px var(--primary-glow)" : "none",
-                                            paddingRight: cat !== "Todas" ? 28 : 14
-                                        }}
-                                    >
-                                        {cat}
-                                    </button>
-                                    {cat !== "Todas" && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); eliminarCategoria(cat) }}
-                                            title={`Eliminar categoría "${cat}"`}
-                                            style={{
-                                                position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
-                                                width: 20, height: 20, borderRadius: "50%", border: "none",
-                                                background: "var(--bg-card2)", color: "var(--text-muted)",
-                                                display: "flex", alignItems: "center", justifyContent: "center",
-                                                cursor: "pointer", fontSize: "0.65rem", fontWeight: 700,
-                                                transition: "all 0.15s", opacity: 0.6, lineHeight: 1
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = "#e74c3c"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.opacity = "1" }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.6" }}
-                                        >
-                                            ✕
-                                        </button>
-                                    )}
-                                </div>
+                                <button
+                                    key={cat}
+                                    onClick={() => setCatSelecEditar(cat)}
+                                    style={{
+                                        padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
+                                        background: catSelecEditar === cat ? "var(--primary-mid)" : "var(--bg-card2)",
+                                        color: catSelecEditar === cat ? "#fff" : "var(--primary-dark)",
+                                        boxShadow: catSelecEditar === cat ? "0 4px 10px var(--primary-glow)" : "none"
+                                    }}
+                                >
+                                    {cat}
+                                </button>
                             ))}
                         </div>
 
@@ -849,6 +864,9 @@ export default function Inventario() {
                                                     estado: prod.estado ?? "Activo",
                                                     imagen: prod.imagen ?? "No hay foto",
                                                     categoria: prod.categoria ?? ["General"],
+                                                    codigo_interno: prod.codigo_interno ?? "",
+                                                    codigo_barras: prod.codigo_barras ?? "",
+                                                    ubicacion: prod.ubicacion ?? "",
                                                 })
                                             }}
                                             onMouseEnter={e => {
@@ -899,6 +917,12 @@ export default function Inventario() {
                             </div>
                             <Input label="Nombre del producto" value={editProdNombre} onChange={e => setEditProdNombre(e.target.value)} />
 
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                                <Input label="Código interno" value={editProdVal.codigo_interno} onChange={e => setEditProdVal(p => ({ ...p, codigo_interno: e.target.value }))} />
+                                <Input label="Código de barras" value={editProdVal.codigo_barras} onChange={e => setEditProdVal(p => ({ ...p, codigo_barras: e.target.value }))} />
+                                <Input label="Ubicación" value={editProdVal.ubicacion} onChange={e => setEditProdVal(p => ({ ...p, ubicacion: e.target.value }))} />
+                            </div>
+
                             <div>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Categorías</label>
                                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -915,7 +939,7 @@ export default function Inventario() {
                                 </div>
                                 <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>Selecciona las categorías que aplican a este producto</p>
                             </div>
-                            <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
+                            <Input label="Descripción" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
                             <ImagePicker
                                 onImageSelected={setEditFoto}
@@ -1001,19 +1025,26 @@ export default function Inventario() {
                                                                         (<Icon name="Save" size={16} color="var(--primary-dark)" />)
                                                                     }
                                                                 </button>
-                                                                <button onClick={() => setLoteEditandoId(null)}
+                                                                <button onClick={() => { setLoteEditandoId(null); setLoteEliminarConfirm(null) }}
                                                                     style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}>
                                                                     <Icon name="X" size={16} color="var(--text-muted)" />
                                                                 </button>
                                                             </div>
                                                         ) : (
-                                                            <button onClick={() => {
-                                                                setLoteEditandoId(lote.id_lote)
-                                                                setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote })
-                                                            }}
-                                                                style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
-                                                                Editar
-                                                            </button>
+                                                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                                                <button onClick={() => {
+                                                                    setLoteEditandoId(lote.id_lote)
+                                                                    setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote })
+                                                                }}
+                                                                    style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
+                                                                    Editar
+                                                                </button>
+                                                                <button onClick={() => setLoteEliminarConfirm(lote.id_lote)}
+                                                                    title={`Dar de baja lote #${lote.id_lote}`}
+                                                                    style={{ background: "none", border: "none", color: "#ad4955ff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
+                                                                    <Icon name="Trash2" size={14} color="#ad4955ff" />
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -1030,6 +1061,106 @@ export default function Inventario() {
                                 </table>
                             </ScrollableTable>
                         </div>
+
+                        {/* ── Diálogo de confirmación persistente para dar de baja un lote ── */}
+                        {loteEliminarConfirm && (() => {
+                            // Determinamos si es el único lote activo del producto
+                            const lotesDelProducto = lotes.filter(l => l.producto === prodEditar)
+                            const esUltimoLote = lotesDelProducto.length <= 1
+                            return (
+                                <div style={{
+                                    position: "fixed", inset: 0, zIndex: 9999,
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+                                    padding: 24
+                                }}>
+                                    <div className="card" style={{
+                                        maxWidth: 440, width: "100%", padding: 28, gap: 20,
+                                        display: "flex", flexDirection: "column",
+                                        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                                        border: "1px solid var(--border-light)"
+                                    }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                            <div style={{
+                                                width: 44, height: 44, borderRadius: 12,
+                                                background: "#ffeef0", display: "flex",
+                                                alignItems: "center", justifyContent: "center", flexShrink: 0
+                                            }}>
+                                                <Icon name="TriangleAlert" size={24} color="#ad4955ff" />
+                                            </div>
+                                            <div>
+                                                <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                                    Dar de baja lote
+                                                </h3>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                                    #{loteEliminarConfirm}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--text-main)", lineHeight: 1.5, fontWeight: 500 }}>
+                                            ¿Estás seguro de que quieres dar de baja este lote? Esta acción marcará el lote como inactivo y pondrá su stock en 0.
+                                        </p>
+
+                                        {/* Advertencia adicional si es el último lote: el producto también se desactivará */}
+                                        {esUltimoLote && (
+                                            <div style={{
+                                                padding: "12px 16px", borderRadius: 10,
+                                                background: "#fff4e5", border: "1px solid #ffd699",
+                                                display: "flex", gap: 10, alignItems: "flex-start"
+                                            }}>
+                                                <div style={{ flexShrink: 0, marginTop: 2 }}>
+                                                    <Icon name="TriangleAlert" size={20} color="#cc7a00" />
+                                                </div>
+                                                <div>
+                                                    <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#8a5e00" }}>
+                                                        ⚠️ Último lote activo
+                                                    </p>
+                                                    <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#8a5e00", fontWeight: 500 }}>
+                                                        Este es el único lote activo de <strong>{prodEditar}</strong>. 
+                                                        Al dar de baja este lote, el producto también será desactivado automáticamente.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                                            <button
+                                                onClick={() => setLoteEliminarConfirm(null)}
+                                                disabled={guardando}
+                                                style={{
+                                                    padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                                                    background: "var(--bg-card2)", color: "var(--text-main)",
+                                                    fontWeight: 700, fontSize: "0.82rem", cursor: guardando ? "not-allowed" : "pointer",
+                                                    transition: "all 0.15s"
+                                                }}
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={() => eliminarLoteHandler(loteEliminarConfirm)}
+                                                disabled={guardando}
+                                                style={{
+                                                    padding: "10px 20px", borderRadius: 10, border: "none",
+                                                    background: guardando ? "#ccc" : "#ad4955ff",
+                                                    color: guardando ? "#999" : "#fff",
+                                                    fontWeight: 700, fontSize: "0.82rem",
+                                                    cursor: guardando ? "not-allowed" : "pointer",
+                                                    display: "flex", alignItems: "center", gap: 8,
+                                                    transition: "all 0.15s"
+                                                }}
+                                            >
+                                                {guardando ? (
+                                                    <><Icon name="Hourglass" size={16} color="#999" /> Procesando...</>
+                                                ) : (
+                                                    <><Icon name="Trash2" size={16} color="#fff" /> Sí, dar de baja</>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })()}
                     </>
                 )}
 
