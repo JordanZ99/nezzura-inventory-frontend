@@ -912,7 +912,7 @@ export default function Inventario() {
                                 </div>
                                 <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, marginBottom: 0 }}>Selecciona las categorías que aplican a este producto</p>
                             </div>
-                            <Input label="Descripción o código" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
+                            <Input label="Descripción" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
                             <ImagePicker
                                 onImageSelected={setEditFoto}

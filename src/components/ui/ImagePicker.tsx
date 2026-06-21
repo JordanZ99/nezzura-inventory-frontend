@@ -22,6 +22,8 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
     const galleryRef = useRef<HTMLInputElement>(null)
     const cameraRef = useRef<HTMLInputElement>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null)
+    // Estado para controlar el hover sobre la previsualización de la imagen
+    const [hoverPreview, setHoverPreview] = useState(false)
 
     // Sincronizar si cambia currentImageUrl externamente (e.g. al editar otro producto)
     useEffect(() => {
@@ -104,30 +106,71 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
 
             {/* Preview */}
             {previewUrl ? (
-                <div style={{
-                    position: "relative",
-                    borderRadius: 12,
-                    overflow: "hidden",
-                    background: "var(--bg-card2)",
-                    aspectRatio: "16/9",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "1px solid var(--border-light)"
-                }}>
+                <div
+                    onClick={handleGalleryClick}
+                    onMouseEnter={() => setHoverPreview(true)}
+                    onMouseLeave={() => setHoverPreview(false)}
+                    style={{
+                        position: "relative",
+                        borderRadius: 12,
+                        overflow: "hidden",
+                        background: "var(--bg-card2)",
+                        aspectRatio: "16/9",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "1px solid var(--border-light)",
+                        cursor: "pointer",
+                        transition: "border-color 0.2s"
+                    }}
+                >
                     <img
                         src={previewUrl}
-                        alt="Vista previa"
+                        alt="Vista previa — haz clic para cambiar la foto"
                         style={{
                             width: "100%",
                             height: "100%",
                             objectFit: "contain",
-                            padding: 8
+                            padding: 8,
+                            transition: "filter 0.2s"
                         }}
                     />
+
+                    {/* Overlay semitransparente con ícono Pencil que aparece al hacer hover
+                        para indicar que la imagen es cliqueable y se puede reemplazar */}
+                    {hoverPreview && (
+                        <div style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "rgba(0,0,0,0.4)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "opacity 0.2s",
+                            backdropFilter: "blur(2px)"
+                        }}>
+                            <div style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                gap: 6,
+                                color: "#fff"
+                            }}>
+                                <Icon name="Pencil" size={32} color="#fff" />
+                                <span style={{
+                                    fontSize: "0.75rem",
+                                    fontWeight: 700,
+                                    textShadow: "0 1px 4px rgba(0,0,0,0.5)"
+                                }}>
+                                    Cambiar foto
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
                     <button
                         type="button"
-                        onClick={handleRemove}
+                        onClick={(e) => { e.stopPropagation(); handleRemove() }}
                         title="Quitar foto"
                         style={{
                             position: "absolute",
@@ -144,7 +187,8 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
                             justifyContent: "center",
                             cursor: "pointer",
                             transition: "all 0.15s",
-                            backdropFilter: "blur(4px)"
+                            backdropFilter: "blur(4px)",
+                            zIndex: 2
                         }}
                         onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.8)" }}
                         onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.6)" }}
