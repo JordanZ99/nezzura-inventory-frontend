@@ -786,38 +786,18 @@ export default function Inventario() {
                         {/* Categorías */}
                         <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 8, scrollbarWidth: "none" }}>
                             {["Todas", ...categoriasExistentes].map(cat => (
-                                <div key={cat} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-                                    <button
-                                        onClick={() => setCatSelecEditar(cat)}
-                                        style={{
-                                            padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
-                                            background: catSelecEditar === cat ? "var(--primary-mid)" : "var(--bg-card2)",
-                                            color: catSelecEditar === cat ? "#fff" : "var(--primary-dark)",
-                                            boxShadow: catSelecEditar === cat ? "0 4px 10px var(--primary-glow)" : "none",
-                                            paddingRight: cat !== "Todas" ? 28 : 14
-                                        }}
-                                    >
-                                        {cat}
-                                    </button>
-                                    {cat !== "Todas" && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); eliminarCategoria(cat) }}
-                                            title={`Eliminar categoría "${cat}"`}
-                                            style={{
-                                                position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
-                                                width: 20, height: 20, borderRadius: "50%", border: "none",
-                                                background: "var(--bg-card2)", color: "var(--text-muted)",
-                                                display: "flex", alignItems: "center", justifyContent: "center",
-                                                cursor: "pointer", fontSize: "0.65rem", fontWeight: 700,
-                                                transition: "all 0.15s", opacity: 0.6, lineHeight: 1
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = "#e74c3c"; e.currentTarget.style.color = "#fff"; e.currentTarget.style.opacity = "1" }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.opacity = "0.6" }}
-                                        >
-                                            ✕
-                                        </button>
-                                    )}
-                                </div>
+                                <button
+                                    key={cat}
+                                    onClick={() => setCatSelecEditar(cat)}
+                                    style={{
+                                        padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
+                                        background: catSelecEditar === cat ? "var(--primary-mid)" : "var(--bg-card2)",
+                                        color: catSelecEditar === cat ? "#fff" : "var(--primary-dark)",
+                                        boxShadow: catSelecEditar === cat ? "0 4px 10px var(--primary-glow)" : "none"
+                                    }}
+                                >
+                                    {cat}
+                                </button>
                             ))}
                         </div>
 
