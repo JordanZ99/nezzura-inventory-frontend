@@ -52,6 +52,9 @@ export default function Inventario() {
     // Estado para editar lotes individuales dentro del formulario Editar Prod.
     const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
     const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
+    // Estado para el diálogo de confirmación persistente al dar de baja un lote
+    // Contiene el id del lote pendiente de confirmación; no se cierra hasta eliminar o recargar
+    const [loteEliminarConfirm, setLoteEliminarConfirm] = useState<string | null>(null)
     const [guardando, setGuardando] = useState(false)
     const [nuevaCategoria, setNuevaCategoria] = useState("")
     const [buscadorEditar, setBuscadorEditar] = useState("")
@@ -273,6 +276,30 @@ export default function Inventario() {
             recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
+    }
+
+    /**
+     * Da de baja un lote individual desde el formulario Editar Prod.
+     * Muestra un diálogo de confirmación persistente que no desaparece
+     * hasta que se completa la eliminación, para evitar errores accidentales.
+     * Si es el último lote activo, también desactiva el producto automáticamente.
+     */
+    async function eliminarLoteHandler(id_lote: string) {
+        setGuardando(true)
+        try {
+            const res = await api.eliminarLote(id_lote)
+            setLoteEliminarConfirm(null)
+            if (res.producto_desactivado) {
+                mostrarMsg(true, `✅ Lote #${id_lote} eliminado. El producto "${res.producto}" también fue desactivado por ser el único lote.`)
+            } else {
+                mostrarMsg(true, `✅ Lote #${id_lote} eliminado`)
+            }
+            recargar()
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al eliminar lote"}`)
+        } finally {
+            setGuardando(false)
+        }
     }
 
     async function eliminarCategoria(cat: string) {
@@ -998,19 +1025,26 @@ export default function Inventario() {
                                                                         (<Icon name="Save" size={16} color="var(--primary-dark)" />)
                                                                     }
                                                                 </button>
-                                                                <button onClick={() => setLoteEditandoId(null)}
+                                                                <button onClick={() => { setLoteEditandoId(null); setLoteEliminarConfirm(null) }}
                                                                     style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}>
                                                                     <Icon name="X" size={16} color="var(--text-muted)" />
                                                                 </button>
                                                             </div>
                                                         ) : (
-                                                            <button onClick={() => {
-                                                                setLoteEditandoId(lote.id_lote)
-                                                                setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote })
-                                                            }}
-                                                                style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
-                                                                Editar
-                                                            </button>
+                                                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                                                <button onClick={() => {
+                                                                    setLoteEditandoId(lote.id_lote)
+                                                                    setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote })
+                                                                }}
+                                                                    style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
+                                                                    Editar
+                                                                </button>
+                                                                <button onClick={() => setLoteEliminarConfirm(lote.id_lote)}
+                                                                    title={`Dar de baja lote #${lote.id_lote}`}
+                                                                    style={{ background: "none", border: "none", color: "#ad4955ff", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
+                                                                    <Icon name="Trash2" size={14} color="#ad4955ff" />
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </td>
                                                 </tr>
@@ -1027,6 +1061,106 @@ export default function Inventario() {
                                 </table>
                             </ScrollableTable>
                         </div>
+
+                        {/* ── Diálogo de confirmación persistente para dar de baja un lote ── */}
+                        {loteEliminarConfirm && (() => {
+                            // Determinamos si es el único lote activo del producto
+                            const lotesDelProducto = lotes.filter(l => l.producto === prodEditar)
+                            const esUltimoLote = lotesDelProducto.length <= 1
+                            return (
+                                <div style={{
+                                    position: "fixed", inset: 0, zIndex: 9999,
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+                                    padding: 24
+                                }}>
+                                    <div className="card" style={{
+                                        maxWidth: 440, width: "100%", padding: 28, gap: 20,
+                                        display: "flex", flexDirection: "column",
+                                        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                                        border: "1px solid var(--border-light)"
+                                    }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                            <div style={{
+                                                width: 44, height: 44, borderRadius: 12,
+                                                background: "#ffeef0", display: "flex",
+                                                alignItems: "center", justifyContent: "center", flexShrink: 0
+                                            }}>
+                                                <Icon name="TriangleAlert" size={24} color="#ad4955ff" />
+                                            </div>
+                                            <div>
+                                                <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                                    Dar de baja lote
+                                                </h3>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                                    #{loteEliminarConfirm}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--text-main)", lineHeight: 1.5, fontWeight: 500 }}>
+                                            ¿Estás seguro de que quieres dar de baja este lote? Esta acción marcará el lote como inactivo y pondrá su stock en 0.
+                                        </p>
+
+                                        {/* Advertencia adicional si es el último lote: el producto también se desactivará */}
+                                        {esUltimoLote && (
+                                            <div style={{
+                                                padding: "12px 16px", borderRadius: 10,
+                                                background: "#fff4e5", border: "1px solid #ffd699",
+                                                display: "flex", gap: 10, alignItems: "flex-start"
+                                            }}>
+                                                <div style={{ flexShrink: 0, marginTop: 2 }}>
+                                                    <Icon name="TriangleAlert" size={20} color="#cc7a00" />
+                                                </div>
+                                                <div>
+                                                    <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#8a5e00" }}>
+                                                        ⚠️ Último lote activo
+                                                    </p>
+                                                    <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#8a5e00", fontWeight: 500 }}>
+                                                        Este es el único lote activo de <strong>{prodEditar}</strong>. 
+                                                        Al dar de baja este lote, el producto también será desactivado automáticamente.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                                            <button
+                                                onClick={() => setLoteEliminarConfirm(null)}
+                                                disabled={guardando}
+                                                style={{
+                                                    padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                                                    background: "var(--bg-card2)", color: "var(--text-main)",
+                                                    fontWeight: 700, fontSize: "0.82rem", cursor: guardando ? "not-allowed" : "pointer",
+                                                    transition: "all 0.15s"
+                                                }}
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={() => eliminarLoteHandler(loteEliminarConfirm)}
+                                                disabled={guardando}
+                                                style={{
+                                                    padding: "10px 20px", borderRadius: 10, border: "none",
+                                                    background: guardando ? "#ccc" : "#ad4955ff",
+                                                    color: guardando ? "#999" : "#fff",
+                                                    fontWeight: 700, fontSize: "0.82rem",
+                                                    cursor: guardando ? "not-allowed" : "pointer",
+                                                    display: "flex", alignItems: "center", gap: 8,
+                                                    transition: "all 0.15s"
+                                                }}
+                                            >
+                                                {guardando ? (
+                                                    <><Icon name="Hourglass" size={16} color="#999" /> Procesando...</>
+                                                ) : (
+                                                    <><Icon name="Trash2" size={16} color="#fff" /> Sí, dar de baja</>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })()}
                     </>
                 )}
 
