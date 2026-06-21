@@ -281,22 +281,31 @@ export default function PuntoDeVenta() {
 
                     {/* ── Catálogo ── */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* Categorías */}
-                        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 16, scrollbarWidth: "none" }}>
-                            {categorias.map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setCategoriaSeleccionada(cat)}
-                                    style={{
-                                        padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
-                                        background: categoriaSeleccionada === cat ? "var(--primary-mid)" : "var(--bg-card2)",
-                                        color: categoriaSeleccionada === cat ? "#fff" : "var(--primary-dark)",
-                                        boxShadow: categoriaSeleccionada === cat ? "0 4px 10px var(--primary-glow)" : "none"
-                                    }}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
+                        {/* ── Filtro de categorías como pills (inspirado en Editar Prod.) ── */}
+                        <div style={{ marginBottom: 12 }}>
+                            <p style={{
+                                fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)",
+                                textTransform: "uppercase", letterSpacing: 0.8, margin: "0 0 8px"
+                            }}>
+                                Filtrar por categoría
+                            </p>
+                            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
+                                {categorias.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setCategoriaSeleccionada(cat)}
+                                        style={{
+                                            padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.78rem",
+                                            whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
+                                            background: categoriaSeleccionada === cat ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: categoriaSeleccionada === cat ? "#fff" : "var(--primary-dark)",
+                                            boxShadow: categoriaSeleccionada === cat ? "0 4px 12px var(--primary-glow)" : "none"
+                                        }}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
