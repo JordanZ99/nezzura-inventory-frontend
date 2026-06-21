@@ -262,7 +262,7 @@ export default function PuntoDeVenta() {
             </div>
 
             {/* ── Contenido sobre el hero ── */}
-            <div style={{ padding: "0 16px", marginTop: -48 }}>
+            <div style={{ padding: "0 16px", marginTop: -16 }}>
 
                 {/* Mensaje de resultado */}
                 {mensaje && (
