@@ -8,6 +8,7 @@ import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/ap
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import ImagePicker from "@/components/ui/ImagePicker"
+import { comprimirImagen } from "@/lib/image-utils"
 import ScrollableTable from "@/components/ui/ScrollableTable"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
@@ -196,8 +197,13 @@ export default function Inventario() {
             await api.initDB()
             let imagen = "No hay foto"
             if (nuevaFoto) {
-                // Comprimir antes de subir
-                const r = await api.subirFoto(form.producto, nuevaFoto)
+                let imgAEnviar = nuevaFoto
+                try {
+                    imgAEnviar = await comprimirImagen(nuevaFoto)
+                } catch {
+                    // si falla la compresión, enviamos el original
+                }
+                const r = await api.subirFoto(form.producto, imgAEnviar)
                 imagen = r.ruta
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen, codigo_interno: form.codigo_interno || undefined, codigo_barras: form.codigo_barras || undefined, ubicacion: form.ubicacion || undefined })
@@ -240,7 +246,13 @@ export default function Inventario() {
         try {
             let nuevaImagen: string | undefined = undefined
             if (editFoto) {
-                const r = await api.subirFoto(prodEditar, editFoto)
+                let imgAEnviar = editFoto
+                try {
+                    imgAEnviar = await comprimirImagen(editFoto)
+                } catch {
+                    // si falla la compresión, enviamos el original
+                }
+                const r = await api.subirFoto(prodEditar, imgAEnviar)
                 nuevaImagen = r.ruta
             }
 
