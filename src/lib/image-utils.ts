@@ -1,7 +1,7 @@
 // ==============================================================================
 // src/lib/image-utils.ts
-// Compresión de imágenes en el navegador.
-// Convierte a WebP con calidad reducida para que ocupen muy poco espacio.
+// Compresión agresiva de imágenes en el navegador.
+// Convierte a WebP con calidad reducida para que ocupen ~40-80 KB.
 // ==============================================================================
 
 /**
@@ -59,39 +59,67 @@ function redimensionar(img: HTMLImageElement, maxWidth: number, maxHeight: numbe
 }
 
 /**
- * Comprime una imagen a WebP con calidad reducida.
+ * Convierte un canvas a Blob WebP con la calidad indicada.
+ */
+function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob(
+            (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error("Error al generar el blob"));
+            },
+            "image/webp",
+            quality
+        );
+    });
+}
+
+/**
+ * Comprime una imagen a WebP con calidad muy reducida.
  *
- * 1. Redimensiona a máximo 1200px (lado más grande).
- * 2. Convierte a WebP con calidad 0.5 (balance entre peso y calidad).
- * 3. NO impone un límite de KB — confía en que WebP + redimensionamiento
- *    reducirá drásticamente el peso.
+ * Estrategia:
+ * 1. Redimensiona a máximo 600px (lado más grande) — suficiente para
+ *    una foto de producto en catálogo.
+ * 2. Empieza con calidad 0.3 y va bajando progresivamente hasta que
+ *    el archivo pese menos de 80 KB.
+ * 3. Si incluso en calidad mínima (0.1) supera 80 KB, lo entrega igual.
  *
  * @param file Archivo original seleccionado por el usuario.
- * @returns Un File en formato WebP, listo para subir.
+ * @returns Un File en formato WebP, extremadamente ligero.
  */
 export async function comprimirImagen(file: File): Promise<File> {
     if (!file.type.startsWith("image/")) return file;
 
     const dataUrl = await leerArchivoComoDataURL(file);
     const img = await cargarImagenDesdeURL(dataUrl);
-    const canvas = redimensionar(img, 1200, 1200);
+    const canvas = redimensionar(img, 600, 600);
 
-    return new Promise((resolve, reject) => {
-        canvas.toBlob(
-            (blob) => {
-                if (!blob) {
-                    reject(new Error("Error al generar el blob"));
-                    return;
-                }
-                const nombreBase = file.name.replace(/\.[^.]+$/, "");
-                const webpFile = new File([blob], `${nombreBase}.webp`, {
-                    type: "image/webp",
-                    lastModified: Date.now(),
-                });
-                resolve(webpFile);
-            },
-            "image/webp",
-            0.5
-        );
+    // Compresión progresiva: empieza con 0.3 y baja hasta 0.1
+    const MAX_SIZE_KB = 80;
+    let quality = 0.3;
+
+    for (let intento = 0; intento < 10; intento++) {
+        const blob = await canvasToBlob(canvas, quality);
+        const kb = blob.size / 1024;
+
+        if (kb <= MAX_SIZE_KB || quality <= 0.1) {
+            const nombreBase = file.name.replace(/\.[^.]+$/, "");
+            const webpFile = new File([blob], `${nombreBase}.webp`, {
+                type: "image/webp",
+                lastModified: Date.now(),
+            });
+            return webpFile;
+        }
+
+        // Reducir calidad un escalón
+        quality = Math.max(0.1, quality - 0.05);
+    }
+
+    // Último recurso: calidad 0.1
+    const blob = await canvasToBlob(canvas, 0.1);
+    const nombreBase = file.name.replace(/\.[^.]+$/, "");
+    return new File([blob], `${nombreBase}.webp`, {
+        type: "image/webp",
+        lastModified: Date.now(),
     });
 }
