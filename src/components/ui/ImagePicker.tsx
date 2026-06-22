@@ -197,23 +197,29 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
                     </button>
                 </div>
             ) : (
-                /* Placeholder cuando no hay imagen */
-                <div style={{
-                    borderRadius: 12,
-                    background: "var(--bg-card2)",
-                    border: "2px dashed var(--border-light)",
-                    aspectRatio: "16/9",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: 16,
-                    transition: "border-color 0.15s"
-                }}>
+                /* Placeholder cuando no hay imagen — también es cliqueable */
+                <div
+                    onClick={handleGalleryClick}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--primary-mid)"; e.currentTarget.style.background = "var(--border-light)" }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-light)"; e.currentTarget.style.background = "var(--bg-card2)" }}
+                    style={{
+                        borderRadius: 12,
+                        background: "var(--bg-card2)",
+                        border: "2px dashed var(--border-light)",
+                        aspectRatio: "16/9",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        padding: 16,
+                        cursor: "pointer",
+                        transition: "all 0.15s"
+                    }}
+                >
                     <Icon name="Image" size={32} color="var(--text-muted)" />
                     <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600, textAlign: "center" }}>
-                        Elige una foto para el producto
+                        Haz clic o presiona Subir foto
                     </p>
                 </div>
             )}
