@@ -332,7 +332,6 @@ export default function Inventario() {
     }
 
     const TABS: { id: Tab; label: string; icon: string }[] = [
-        { id: "catalogo", label: "Inventario", icon: "ClipboardList" },
         { id: "nuevo", label: "Nuevo", icon: "ClipboardPlus" },
         { id: "restock", label: "Restock", icon: "PackagePlus" },
         { id: "editar", label: "Editar Prod.", icon: "Pencil" },
