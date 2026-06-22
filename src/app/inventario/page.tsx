@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from "react"
 import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/api"
-import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import ImagePicker from "@/components/ui/ImagePicker"
@@ -198,8 +197,7 @@ export default function Inventario() {
             let imagen = "No hay foto"
             if (nuevaFoto) {
                 // Comprimir antes de subir
-                const compressedFile = await comprimirImagen(nuevaFoto)
-                const r = await api.subirFoto(form.producto, compressedFile)
+                const r = await api.subirFoto(form.producto, nuevaFoto)
                 imagen = r.ruta
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen, codigo_interno: form.codigo_interno || undefined, codigo_barras: form.codigo_barras || undefined, ubicacion: form.ubicacion || undefined })
@@ -242,8 +240,7 @@ export default function Inventario() {
         try {
             let nuevaImagen: string | undefined = undefined
             if (editFoto) {
-                const compressedFile = await comprimirImagen(editFoto)
-                const r = await api.subirFoto(prodEditar, compressedFile)
+                const r = await api.subirFoto(prodEditar, editFoto)
                 nuevaImagen = r.ruta
             }
 
@@ -1114,10 +1111,10 @@ export default function Inventario() {
                                                 </div>
                                                 <div>
                                                     <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#8a5e00" }}>
-                                                        ⚠️ Último lote activo
+                                                        Último lote activo
                                                     </p>
                                                     <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#8a5e00", fontWeight: 500 }}>
-                                                        Este es el único lote activo de <strong>{prodEditar}</strong>. 
+                                                        Este es el único lote activo de <strong>{prodEditar}</strong>.
                                                         Al dar de baja este lote, el producto también será desactivado automáticamente.
                                                     </p>
                                                 </div>

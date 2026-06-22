@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { api, Producto } from "@/lib/api"
 import { supabase } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
-import { comprimirImagen } from "@/lib/image-utils"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import { usePathname, useRouter } from "next/navigation"
@@ -113,12 +112,9 @@ export default function Personalizacion() {
         try {
             setSubiendoLogo(true)
 
-            // 1. Convertir y comprimir a WebP automáticamente
-            const webp = await comprimirImagen(file, 400, 400, 0.85)
-
-            // 2. Subir foto usando el nombre clave para Cloudinary
+            // Subir foto directamente sin compresión
             const nombreClave = `_logo_${tenant.tenant_id.slice(0, 8)}`
-            const { ruta } = await api.subirFoto(nombreClave, webp)
+            const { ruta } = await api.subirFoto(nombreClave, file)
 
             setLogoUrl(ruta)
             mostrarMsg(true, "📷 Logo subido temporalmente — Haz clic en Guardar Cambios para aplicarlo en el sistema")
