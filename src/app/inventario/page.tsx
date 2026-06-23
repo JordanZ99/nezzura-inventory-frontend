@@ -200,8 +200,16 @@ export default function Inventario() {
                 let imgAEnviar = nuevaFoto
                 try {
                     imgAEnviar = await comprimirImagen(nuevaFoto)
-                } catch {
-                    // si falla la compresión, enviamos el original
+                } catch (compErr: unknown) {
+                    const msgErr = compErr instanceof Error ? compErr.message : "Error al comprimir"
+                    // Si es un error de validación (tamaño), abortar la subida
+                    if (msgErr.includes("MB")) {
+                        mostrarMsg(false, `❌ ${msgErr}`)
+                        setGuardando(false)
+                        return
+                    }
+                    // Otro error de compresión: intentar subir el original
+                    console.warn("Compresión falló, se envía el original:", msgErr)
                 }
                 const r = await api.subirFoto(form.producto, imgAEnviar)
                 imagen = r.ruta
@@ -249,8 +257,16 @@ export default function Inventario() {
                 let imgAEnviar = editFoto
                 try {
                     imgAEnviar = await comprimirImagen(editFoto)
-                } catch {
-                    // si falla la compresión, enviamos el original
+                } catch (compErr: unknown) {
+                    const msgErr = compErr instanceof Error ? compErr.message : "Error al comprimir"
+                    // Si es un error de validación (tamaño), abortar la subida
+                    if (msgErr.includes("MB")) {
+                        mostrarMsg(false, `❌ ${msgErr}`)
+                        setGuardando(false)
+                        return
+                    }
+                    // Otro error de compresión: intentar subir el original
+                    console.warn("Compresión falló, se envía el original:", msgErr)
                 }
                 const r = await api.subirFoto(prodEditar, imgAEnviar)
                 nuevaImagen = r.ruta
