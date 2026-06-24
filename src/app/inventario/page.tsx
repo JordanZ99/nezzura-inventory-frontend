@@ -119,9 +119,9 @@ export default function Inventario() {
             await api.crearCategoria(nombre)
             setNuevaCatNombre("")
             await Promise.all([cargarCategorias(), recargar()])
-            mostrarMsg(true, `✅ Categoría "${nombre}" creada`)
+            mostrarMsg(true, `Categoría "${nombre}" creada`)
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         } finally {
             setGuardando(false)
         }
@@ -149,9 +149,9 @@ export default function Inventario() {
             await api.editarCategoria(viejoNombre, nuevo)
             setCatEditandoId(null)
             await Promise.all([cargarCategorias(), recargar()])
-            mostrarMsg(true, `✅ Categoría renombrada a "${nuevo}"`)
+            mostrarMsg(true, `Categoría renombrada a "${nuevo}"`)
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         } finally {
             setGuardando(false)
         }
@@ -204,7 +204,7 @@ export default function Inventario() {
                     const msgErr = compErr instanceof Error ? compErr.message : "Error al comprimir"
                     // Si es un error de validación (tamaño), abortar la subida
                     if (msgErr.includes("MB")) {
-                        mostrarMsg(false, `❌ ${msgErr}`)
+                        mostrarMsg(false, `${msgErr}`)
                         setGuardando(false)
                         return
                     }
@@ -215,11 +215,11 @@ export default function Inventario() {
                 imagen = r.ruta
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen, codigo_interno: form.codigo_interno || undefined, codigo_barras: form.codigo_barras || undefined, ubicacion: form.ubicacion || undefined })
-            mostrarMsg(true, `✅ ${form.producto} registrado`)
+            mostrarMsg(true, `${form.producto} registrado`)
             setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "" })
             setNuevaFoto(null)
             setTab("catalogo"); recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
 
@@ -230,10 +230,10 @@ export default function Inventario() {
             const prodActual = inv.find(p => p.producto === restock.producto)
             const precio = restock.precio_venta === "" ? (prodActual?.precio_venta || 0) : Number(restock.precio_venta)
             await api.restockear({ ...restock, costo: Number(restock.costo), stock: Number(restock.stock), precio_venta: precio })
-            mostrarMsg(true, `✅ +${Number(restock.stock)} a ${restock.producto}`)
+            mostrarMsg(true, `+${Number(restock.stock)} a ${restock.producto}`)
             setTab("catalogo"); recargar()
             setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
 
@@ -242,9 +242,9 @@ export default function Inventario() {
         setGuardando(true)
         try {
             await api.editarLote(loteEditar.id_lote, { costo: Number(editLote.costo), precio_venta: Number(editLote.precio_venta), stock: Number(editLote.stock) })
-            mostrarMsg(true, "✅ Lote actualizado")
+            mostrarMsg(true, "Lote actualizado")
             setLoteEditar(null); recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
 
@@ -261,7 +261,7 @@ export default function Inventario() {
                     const msgErr = compErr instanceof Error ? compErr.message : "Error al comprimir"
                     // Si es un error de validación (tamaño), abortar la subida
                     if (msgErr.includes("MB")) {
-                        mostrarMsg(false, `❌ ${msgErr}`)
+                        mostrarMsg(false, `${msgErr}`)
                         setGuardando(false)
                         return
                     }
@@ -284,9 +284,9 @@ export default function Inventario() {
             }
             await api.editarProducto(prodEditar, payload)
 
-            mostrarMsg(true, "✅ Producto actualizado")
+            mostrarMsg(true, "Producto actualizado")
             setProdEditar(""); setEditProdNombre(""); setEditFoto(null); recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
 
@@ -296,10 +296,10 @@ export default function Inventario() {
         setGuardando(true)
         try {
             await api.editarLote(loteEditandoId, { costo: Number(editLoteVal.costo), precio_venta: Number(editLoteVal.precio_venta), stock: Number(editLoteVal.stock) })
-            mostrarMsg(true, "✅ Lote actualizado")
+            mostrarMsg(true, "Lote actualizado")
             setLoteEditandoId(null)
             recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
 
@@ -315,13 +315,13 @@ export default function Inventario() {
             const res = await api.eliminarLote(id_lote)
             setLoteEliminarConfirm(null)
             if (res.producto_desactivado) {
-                mostrarMsg(true, `✅ Lote #${id_lote} eliminado. El producto "${res.producto}" también fue desactivado por ser el único lote.`)
+                mostrarMsg(true, `Lote #${id_lote} eliminado. El producto "${res.producto}" también fue desactivado por ser el único lote.`)
             } else {
-                mostrarMsg(true, `✅ Lote #${id_lote} eliminado`)
+                mostrarMsg(true, `Lote #${id_lote} eliminado`)
             }
             recargar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al eliminar lote"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al eliminar lote"}`)
         } finally {
             setGuardando(false)
         }
@@ -331,9 +331,9 @@ export default function Inventario() {
         if (!confirm(`¿Estás seguro de eliminar la categoría "${cat}"? Se eliminará de todos los productos.`)) return
         try {
             const res = await api.eliminarCategoria(cat) as { productos_actualizados: number }
-            mostrarMsg(true, `✅ Categoría "${cat}" eliminada de ${res.productos_actualizados} producto(s)`)
+            mostrarMsg(true, `Categoría "${cat}" eliminada de ${res.productos_actualizados} producto(s)`)
             await Promise.all([recargar(), cargarCategorias()])
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function darDeBaja(producto: string) {
@@ -342,8 +342,8 @@ export default function Inventario() {
         try {
             const p = inv.find(x => x.producto === producto)
             await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo", categoria: p?.categoria ?? ["General"] })
-            mostrarMsg(true, `✅ ${producto} dado de baja`); recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+            mostrarMsg(true, `${producto} dado de baja`); recargar()
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
 
@@ -462,7 +462,7 @@ export default function Inventario() {
                                             <Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill>
                                         </div>
                                         <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ad4955ff", color: guardando ? "#999" : "#ffffffff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
-                                            {guardando ? "⏳" : "Dar de baja"}
+                                            {guardando ? "..." : "Dar de baja"}
                                         </button>
                                     </div>
                                     <ScrollableTable>
@@ -613,7 +613,7 @@ export default function Inventario() {
                                 <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             </div>
                             <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
-                                {guardando ? "⏳ Procesando..." : " Dar de Alta"}
+                                {guardando ? "Procesando..." : " Dar de Alta"}
                             </button>
                         </div>
 
@@ -826,7 +826,7 @@ export default function Inventario() {
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
                         <button className="btn-primary" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0}>
-                            {guardando ? "⏳ Procesando..." : "Añadir Stock"}
+                            {guardando ? "Procesando..." : "Añadir Stock"}
                         </button>
                     </div>
                 )}
@@ -869,7 +869,7 @@ export default function Inventario() {
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
                                 {productosEditar.length === 0 ? (
                                     <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
-                                        <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
+                                        <span style={{ fontSize: "4rem", display: "block", marginBottom: 16, opacity: 0.3 }}>—</span>
                                         <h2 style={{ fontSize: "1.5rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 8px" }}>Sin resultados</h2>
                                         <p style={{ fontSize: "1rem", color: "var(--text-main)", fontWeight: 600, margin: 0 }}>Intenta con otra búsqueda o categoría</p>
                                     </div>
@@ -908,7 +908,7 @@ export default function Inventario() {
                                                         alt={prod.producto}
                                                         style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }} />
                                                 ) : (
-                                                    <span style={{ fontSize: "2rem" }}>🛍️</span>
+                                                    <Icon name="Package" size={32} color="var(--text-muted)" />
                                                 )}
                                             </div>
                                             <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.producto}</p>
@@ -980,7 +980,7 @@ export default function Inventario() {
                             </div>
 
                             <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
-                                {guardando ? "⏳ Procesando..." : "Guardar Cambios"}
+                                {guardando ? "Procesando..." : "Guardar Cambios"}
                             </button>
                         </div>
 

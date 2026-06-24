@@ -237,10 +237,10 @@ export default function ImageCropperModal({
                         }}
                     >
                         {zoom <= 1.2
-                            ? "🖼️ Toda la imagen en marco cuadrado"
+                            ? "Toda la imagen en marco cuadrado"
                             : zoom >= 2.5
-                                ? "🔍 Vista muy cercana"
-                                : "🔍 Ajusta el zoom para encuadrar"}
+                                ? "Vista muy cercana"
+                                : "Ajusta el zoom para encuadrar"}
                     </p>
 
                     {/* Botones */}
