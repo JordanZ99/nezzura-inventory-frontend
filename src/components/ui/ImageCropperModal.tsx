@@ -1,14 +1,24 @@
 // ==============================================================================
 // src/components/ui/ImageCropperModal.tsx
 // Modal con cropper 1:1 para recortar fotos antes de subirlas.
-// Usa react-easy-crop — zoom ajustable, arrastre, aspecto cuadrado.
+//
+// Comportamiento del zoom:
+//   - Slider de 0% a 100%, con posición inicial en 50% (centro).
+//   - 50% → zoom por defecto: la imagen cubre todo el marco cuadrado (cover).
+//   - < 50% → zoom out: la imagen se encoge hasta mostrarse COMPLETA
+//              dentro del marco cuadrado (contain), dejando márgenes.
+//   - > 50% → zoom in: acerca la imagen para ver detalles.
+//   - Snap magnético en 48-52% → salta a 50% automáticamente.
+//   - Drag bounds se adaptan según el zoom.
 // ==============================================================================
 
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import Cropper, { Area } from "react-easy-crop"
 import Icon from "./Icon"
+
+const MAX_ZOOM = 3
 
 interface ImageCropperModalProps {
     /** URL (blob) de la imagen original a recortar */
@@ -20,7 +30,8 @@ interface ImageCropperModalProps {
 }
 
 /**
- * Carga una imagen desde una URL (blob) para dibujarla en canvas.
+ * Carga una imagen desde una URL para dibujarla en canvas o medir sus
+ * dimensiones naturales.
  */
 function cargarImagen(url: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
@@ -68,6 +79,43 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
     })
 }
 
+/**
+ * Convierte un valor de slider (0-100) al zoom real de react-easy-crop.
+ *
+ *   - 0%   → zoomContain (imagen completa visible dentro del marco cuadrado)
+ *   - 50%  → zoom=1 (imagen cubre todo el marco, comportamiento por defecto)
+ *   - 100% → MAX_ZOOM (zoom máximo, detalle muy cercano)
+ */
+function sliderToZoom(sliderPct: number, zoomContain: number): number {
+    if (zoomContain >= 0.99) {
+        // Imagen cuadrada: la mitad izquierda del slider (0-50%) mantiene
+        // zoom=1 (cover ≡ contain), la mitad derecha (50-100%) hace zoom in.
+        if (sliderPct <= 50) return 1
+        return 1 + (MAX_ZOOM - 1) * ((sliderPct - 50) / 50)
+    }
+    if (sliderPct <= 50) {
+        // Modo contain → cover: de zoomContain a 1
+        return zoomContain + (1 - zoomContain) * (sliderPct / 50)
+    }
+    // Modo cover → zoom in: de 1 a MAX_ZOOM
+    return 1 + (MAX_ZOOM - 1) * ((sliderPct - 50) / 50)
+}
+
+/**
+ * Convierte un zoom real de react-easy-crop a valor de slider (0-100).
+ */
+function zoomToSlider(zoom: number, zoomContain: number): number {
+    if (zoomContain >= 0.99) {
+        // Imagen cuadrada: zoom=1 mapea a slider=50%, zoom>1 sube hasta 100%
+        if (zoom <= 1) return 50
+        return 50 + ((zoom - 1) / (MAX_ZOOM - 1)) * 50
+    }
+    if (zoom <= 1) {
+        return ((zoom - zoomContain) / (1 - zoomContain)) * 50
+    }
+    return 50 + ((zoom - 1) / (MAX_ZOOM - 1)) * 50
+}
+
 export default function ImageCropperModal({
     imageUrl,
     onCropComplete,
@@ -77,6 +125,40 @@ export default function ImageCropperModal({
     const [zoom, setZoom] = useState(1)
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
     const [procesando, setProcesando] = useState(false)
+
+    // ── Dimensiones naturales de la imagen ──
+    const [imageNaturalSize, setImageNaturalSize] = useState({ width: 0, height: 0 })
+    const zoomContainRef = useRef(1)
+
+    useEffect(() => {
+        let cancel = false
+        const img = new Image()
+        img.setAttribute("crossOrigin", "anonymous")
+        img.onload = () => {
+            if (cancel) return
+            const w = img.naturalWidth
+            const h = img.naturalHeight
+            setImageNaturalSize({ width: w, height: h })
+            // zoomContain = lado más corto / lado más largo
+            // Así se ve la imagen COMPLETA dentro del marco cuadrado
+            const ratio = Math.min(w, h) / Math.max(w, h)
+            zoomContainRef.current = Math.max(0.1, ratio)
+        }
+        img.onerror = () => {
+            if (cancel) return
+            zoomContainRef.current = 1
+        }
+        img.src = imageUrl
+        return () => { cancel = true }
+    }, [imageUrl])
+
+    // Valor del slider derivado del zoom actual
+    const sliderValue = useMemo(
+        () => zoomToSlider(zoom, zoomContainRef.current),
+        [zoom],
+    )
+
+    // ── Handlers ──
 
     const onCropChange = useCallback((location: { x: number; y: number }) => {
         setCrop(location)
@@ -89,6 +171,18 @@ export default function ImageCropperModal({
     const onCropAreaComplete = useCallback(
         (_: Area, croppedPixels: Area) => {
             setCroppedAreaPixels(croppedPixels)
+        },
+        [],
+    )
+
+    const handleSliderChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            const raw = Number(e.target.value)
+            // Snap magnético: si está entre 48 y 52, salta al 50 exacto
+            const snapped = raw >= 48 && raw <= 52 ? 50 : raw
+            const zc = zoomContainRef.current
+            const newZoom = sliderToZoom(snapped, zc)
+            setZoom(newZoom)
         },
         [],
     )
@@ -111,6 +205,25 @@ export default function ImageCropperModal({
             }
         }
     }, [imageUrl, croppedAreaPixels, onCropComplete, onCancel, procesando])
+
+    // ── Texto contextual del zoom ──
+    const zoomLabel = useMemo(() => {
+        const zc = zoomContainRef.current
+        const esCuadrada = zc >= 0.99
+        if (esCuadrada) {
+            if (sliderValue >= 90) return "Vista ampliada"
+            return "Imagen cuadrada - ajusta el zoom"
+        }
+        if (sliderValue <= 5) return "Imagen completa dentro del marco"
+        if (sliderValue <= 15) return "Casi toda la imagen visible"
+        if (sliderValue >= 48 && sliderValue <= 52) return "Imagen ajustada al marco"
+        if (sliderValue >= 90) return "Vista ampliada"
+        if (sliderValue < 48) return "Mostrando mas imagen"
+        return "Acercando para detalle"
+    }, [sliderValue])
+
+    // ── Determinar si estamos en modo contain (< 50%) para ajustar mensaje ──
+    const esModoContain = sliderValue < 48 && zoomContainRef.current < 0.99
 
     return (
         <div
@@ -174,6 +287,8 @@ export default function ImageCropperModal({
                         crop={crop}
                         zoom={zoom}
                         aspect={1}
+                        minZoom={zoomContainRef.current}
+                        maxZoom={MAX_ZOOM}
                         onCropChange={onCropChange}
                         onZoomChange={onZoomChange}
                         onCropComplete={onCropAreaComplete}
@@ -193,34 +308,25 @@ export default function ImageCropperModal({
                         gap: 14,
                     }}
                 >
-                    {/* Slider de zoom */}
+                    {/* Slider de zoom — 0 a 100% */}
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <Icon name="ZoomOut" size={18} color="var(--text-muted)" />
                         <input
                             type="range"
-                            min={1}
-                            max={3}
-                            step={0.05}
-                            value={zoom}
-                            onChange={(e) => setZoom(Number(e.target.value))}
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={Math.round(sliderValue)}
+                            onChange={handleSliderChange}
                             style={{
                                 flex: 1,
                                 height: 4,
                                 appearance: "none",
                                 WebkitAppearance: "none",
-                                background: zoom <= 1
-                                    ? "var(--border-light)"
-                                    : `linear-gradient(to right, var(--primary-mid) ${((zoom - 1) / 2) * 100}%, var(--border-light) ${((zoom - 1) / 2) * 100}%)`,
+                                background: `linear-gradient(to right, var(--primary-mid) ${sliderValue}%, var(--border-light) ${sliderValue}%)`,
                                 borderRadius: 2,
                                 outline: "none",
                                 cursor: "pointer",
-                            }}
-                            onInput={(e) => {
-                                // Sincronizar color del slider en tiempo real
-                                const val = Number((e.target as HTMLInputElement).value)
-                                const pct = ((val - 1) / 2) * 100
-                                ;(e.target as HTMLInputElement).style.background =
-                                    `linear-gradient(to right, var(--primary-mid) ${pct}%, var(--border-light) ${pct}%)`
                             }}
                         />
                         <Icon name="ZoomIn" size={18} color="var(--text-muted)" />
@@ -236,11 +342,13 @@ export default function ImageCropperModal({
                             textAlign: "center",
                         }}
                     >
-                        {zoom <= 1.2
-                            ? "Toda la imagen en marco cuadrado"
-                            : zoom >= 2.5
-                                ? "Vista muy cercana"
-                                : "Ajusta el zoom para encuadrar"}
+                        {esModoContain ? (
+                            <>
+                                La imagen se ve completa dentro del marco cuadrado
+                            </>
+                        ) : (
+                            <>{zoomLabel}</>
+                        )}
                     </p>
 
                     {/* Botones */}
