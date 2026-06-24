@@ -209,37 +209,27 @@ export default function Estadisticas() {
     const valFormatter = (number: number) => `$${Intl.NumberFormat("us").format(number).toString()}`
 
     /**
-     * Genera el rango de páginas para la paginación con truncado inteligente.
-     * Siempre muestra la primera y última página, con hasta 3 números visibles
-     * alrededor de la página actual, usando '...' para rangos saltados.
+     * Genera el rango de páginas truncado para evitar desbordamiento en móviles.
+     * Máximo 3 números de página visibles + '...' para rangos saltados.
+     * Siempre muestra primera y última página.
      */
     function getPaginationRange(current: number, total: number): (number | "ellipsis")[] {
-        if (total <= 7) {
+        if (total <= 3) {
             return Array.from({ length: total }, (_, i) => i + 1)
         }
 
+        // Páginas 1-2: [1, 2, '…', total]
         if (current <= 2) {
-            // Páginas 1-2: [1, 2, 3, '...', total]
-            return [1, 2, 3, "ellipsis", total]
+            return [1, 2, "ellipsis", total]
         }
 
-        if (current === 3) {
-            // Página 3: [1, 2, 3, 4, '...', total]
-            return [1, 2, 3, 4, "ellipsis", total]
-        }
-
-        if (current === total - 2) {
-            // Antepenúltima: [1, '...', total-3, total-2, total-1, total]
-            return [1, "ellipsis", total - 3, total - 2, total - 1, total]
-        }
-
+        // Últimas 2: [1, '…', total - 1, total]
         if (current >= total - 1) {
-            // Últimas 2: [1, '...', total-2, total-1, total]
-            return [1, "ellipsis", total - 2, total - 1, total]
+            return [1, "ellipsis", total - 1, total]
         }
 
-        // Paginas intermedias: [1, '...', current-1, current, current+1, '...', total]
-        return [1, "ellipsis", current - 1, current, current + 1, "ellipsis", total]
+        // Intermedias: [1, '…', current, '…', total]
+        return [1, "ellipsis", current, "ellipsis", total]
     }
 
     return (
