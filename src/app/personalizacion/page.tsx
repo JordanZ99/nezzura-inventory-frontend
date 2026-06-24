@@ -319,14 +319,21 @@ export default function Personalizacion() {
                                 <div>
                                     <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Logo del Negocio</span>
                                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                                        {/* Vista previa circular */}
-                                        <div style={{
-                                            width: 72, height: 72, borderRadius: "50%",
-                                            border: "2.5px solid var(--border-primary)",
-                                            overflow: "hidden", flexShrink: 0,
-                                            background: "var(--bg-app)",
-                                            display: "flex", alignItems: "center", justifyContent: "center"
-                                        }}>
+                                        {/* Vista previa circular (click para cambiar) */}
+                                        <div
+                                            onClick={() => inputFileRef.current?.click()}
+                                            style={{
+                                                width: 72, height: 72, borderRadius: "50%",
+                                                border: "2.5px solid var(--border-primary)",
+                                                overflow: "hidden", flexShrink: 0,
+                                                background: "var(--bg-app)",
+                                                display: "flex", alignItems: "center", justifyContent: "center",
+                                                cursor: "pointer",
+                                                transition: "opacity 0.2s"
+                                            }}
+                                            onMouseEnter={e => e.currentTarget.style.opacity = "0.75"}
+                                            onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                                        >
                                             {logoUrl ? (
                                                 <img src={logoUrl} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                             ) : (
@@ -347,7 +354,7 @@ export default function Personalizacion() {
                                                 className="btn-primary"
                                                 style={{ fontSize: "0.8rem", padding: "8px 14px", width: "fit-content" }}
                                             >
-                                                {subiendoLogo ? "Subiendo..." : "📷 Subir imagen"}
+                                                {subiendoLogo ? "Subiendo..." : <><Icon name="Camera" size={16} /> Subir imagen</>}
                                             </button>
                                             <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
                                                 Se optimiza a WebP automáticamente
