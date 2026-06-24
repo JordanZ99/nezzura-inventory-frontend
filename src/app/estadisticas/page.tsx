@@ -131,6 +131,14 @@ export default function Estadisticas() {
     // --- Catálogo de productos ---
     const categoriasCatalogo = ["Todas", ...Array.from(new Set(productos.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()]
 
+    // Conteo de ventas por producto (para ordenar por Más/Menos ventas)
+    const ventasPorProducto = ventas
+        .filter(v => v.estado !== "Inactivo")
+        .reduce((acc, v) => {
+            acc[v.producto] = (acc[v.producto] || 0) + 1
+            return acc
+        }, {} as Record<string, number>)
+
     const productosFiltrados = productos.filter(p => {
         const q = busquedaProd.toLowerCase()
         const porBusqueda = !q || p.producto.toLowerCase().includes(q) ||
@@ -144,6 +152,8 @@ export default function Estadisticas() {
             case "precio-asc": return a.precio_venta - b.precio_venta
             case "stock-desc": return b.stock_total - a.stock_total
             case "stock-asc": return a.stock_total - b.stock_total
+            case "ventas-desc": return (ventasPorProducto[b.producto] || 0) - (ventasPorProducto[a.producto] || 0)
+            case "ventas-asc": return (ventasPorProducto[a.producto] || 0) - (ventasPorProducto[b.producto] || 0)
             case "alfabetico":
             default: return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
         }
@@ -711,6 +721,8 @@ export default function Estadisticas() {
                                         <option value="precio-asc">Menor precio</option>
                                         <option value="stock-desc">Mayor stock</option>
                                         <option value="stock-asc">Menor stock</option>
+                                        <option value="ventas-desc">Más ventas</option>
+                                        <option value="ventas-asc">Menos ventas</option>
                                     </select>
                                 </div>
                             </div>
