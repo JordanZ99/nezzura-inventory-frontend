@@ -881,15 +881,15 @@ export default function Estadisticas() {
                                     {/* Métricas principales */}
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                                         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
-                                            <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Precio venta</p>
-                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: "var(--text-main)" }}>${precioVenta.toFixed(2)}</p>
-                                        </div>
-                                        <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
                                             <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Costo promedio</p>
                                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: "var(--text-main)" }}>${costoProm.toFixed(2)}</p>
                                         </div>
                                         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
-                                            <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Stock total</p>
+                                            <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Precio venta</p>
+                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: "var(--text-main)" }}>${precioVenta.toFixed(2)}</p>
+                                        </div>
+                                        <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
+                                            <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Stock Actual</p>
                                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: prod.stock_total < 0 ? "#b71c1c" : "var(--text-main)" }}>{prod.stock_total}</p>
                                         </div>
                                         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
@@ -932,24 +932,51 @@ export default function Estadisticas() {
                                             Rendimiento de Ventas
                                         </h3>
                                         {stats.totalVentas > 0 ? (
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                                                <div style={{ padding: "12px 16px", background: "var(--success-bg)", borderRadius: 12, borderLeft: "3px solid var(--success-main)" }}>
-                                                    <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Ventas realizadas</p>
-                                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--success-text)" }}>{stats.totalVentas}</p>
+                                            <>
+                                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
+                                                    <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, borderLeft: "3px solid var(--primary-mid)" }}>
+                                                        <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Unidades vendidas</p>
+                                                        <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--text-main)" }}>{stats.totalUnidades}</p>
+                                                    </div>
+                                                    <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, borderLeft: "3px solid rgb(var(--chart-1))" }}>
+                                                        <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total vendido</p>
+                                                        <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--text-main)" }}>${stats.totalVendido.toFixed(2)}</p>
+                                                    </div>
+                                                    <div style={{ padding: "12px 16px", background: stats.totalGanancia >= 0 ? "var(--success-bg)" : "var(--error-bg)", borderRadius: 12, borderLeft: `3px solid ${stats.totalGanancia >= 0 ? "var(--success-main)" : "var(--error-main)"}` }}>
+                                                        <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Ganancia total</p>
+                                                        <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: stats.totalGanancia >= 0 ? "var(--success-text)" : "var(--error-text)" }}>${stats.totalGanancia.toFixed(2)}</p>
+                                                    </div>
                                                 </div>
-                                                <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, borderLeft: "3px solid var(--primary-mid)" }}>
-                                                    <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Unidades vendidas</p>
-                                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--text-main)" }}>{stats.totalUnidades}</p>
+                                                {/* Tabla de ventas del producto */}
+                                                <div style={{ overflowX: "auto" }}>
+                                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
+                                                        <thead>
+                                                            <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
+                                                                {["Ticket", "Fecha", "Cant.", "P. Unit.", "Total", "Ganancia"].map(h => (
+                                                                    <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontWeight: 700, fontSize: "0.62rem", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                                                                ))}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {ventas
+                                                                .filter(v => v.producto === prod.producto && v.estado !== "Inactivo")
+                                                                .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+                                                                .map(v => (
+                                                                    <tr key={v.n_ticket} style={{ borderBottom: "1px solid var(--border-light)" }}
+                                                                        onMouseEnter={e => e.currentTarget.style.background = "var(--bg-card2)"}
+                                                                        onMouseLeave={e => e.currentTarget.style.background = ""}>
+                                                                        <td style={{ padding: "6px 10px", fontWeight: 600 }}>#{v.n_ticket || v.id}</td>
+                                                                        <td style={{ padding: "6px 10px", color: "var(--text-muted)" }}>{new Date(v.fecha).toLocaleDateString()}</td>
+                                                                        <td style={{ padding: "6px 10px" }}>{v.cantidad}</td>
+                                                                        <td style={{ padding: "6px 10px", fontWeight: 600 }}>${v.precio_real.toFixed(2)}</td>
+                                                                        <td style={{ padding: "6px 10px", fontWeight: 700, color: "var(--primary-dark)" }}>${(v.total_venta || 0).toFixed(2)}</td>
+                                                                        <td style={{ padding: "6px 10px" }}><Pill color={v.ganancia_bruta >= 0 ? "green" : "red"}>${(v.ganancia_bruta || 0).toFixed(2)}</Pill></td>
+                                                                    </tr>
+                                                                ))}
+                                                        </tbody>
+                                                    </table>
                                                 </div>
-                                                <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, borderLeft: "3px solid rgb(var(--chart-1))" }}>
-                                                    <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total vendido</p>
-                                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--text-main)" }}>${stats.totalVendido.toFixed(2)}</p>
-                                                </div>
-                                                <div style={{ padding: "12px 16px", background: stats.totalGanancia >= 0 ? "var(--success-bg)" : "var(--error-bg)", borderRadius: 12, borderLeft: `3px solid ${stats.totalGanancia >= 0 ? "var(--success-main)" : "var(--error-main)"}` }}>
-                                                    <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Ganancia total</p>
-                                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: stats.totalGanancia >= 0 ? "var(--success-text)" : "var(--error-text)" }}>${stats.totalGanancia.toFixed(2)}</p>
-                                                </div>
-                                            </div>
+                                            </>
                                         ) : (
                                             <div style={{ textAlign: "center", padding: "24px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
                                                 <Icon name="ShoppingBag" size={32} color="var(--text-muted)" />
