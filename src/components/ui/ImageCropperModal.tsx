@@ -133,11 +133,19 @@ export default function ImageCropperModal({
     useEffect(() => {
         let cancel = false
         const img = new Image()
-        img.setAttribute("crossOrigin", "anonymous")
+        // Solo ponemos crossOrigin si NO es blob URL (las blob son mismo origen)
+        if (!imageUrl.startsWith("blob:")) {
+            img.setAttribute("crossOrigin", "anonymous")
+        }
         img.onload = () => {
             if (cancel) return
             const w = img.naturalWidth
             const h = img.naturalHeight
+            if (w === 0 || h === 0) {
+                // Imagen inválida: usar fallback
+                zoomContainRef.current = 0.35
+                return
+            }
             setImageNaturalSize({ width: w, height: h })
             // zoomContain = lado más corto / lado más largo
             // Así se ve la imagen COMPLETA dentro del marco cuadrado
@@ -146,7 +154,9 @@ export default function ImageCropperModal({
         }
         img.onerror = () => {
             if (cancel) return
-            zoomContainRef.current = 1
+            // Si falla la carga (e.g. CORS), usamos un valor razonable
+            // que permite zoom out aunque no sea perfecto
+            zoomContainRef.current = 0.35
         }
         img.src = imageUrl
         return () => { cancel = true }
