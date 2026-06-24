@@ -762,7 +762,7 @@ export default function Estadisticas() {
                                                 {prod.producto}
                                             </p>
                                             <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>
-                                                ${prod.precio_venta.toFixed(2)}
+                                                ${(prod.precio_venta ?? 0).toFixed(2)}
                                             </p>
                                             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
                                                 <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px" }}>
@@ -789,7 +789,9 @@ export default function Estadisticas() {
                 {prodSeleccionado && (() => {
                     const prod = prodSeleccionado
                     const stats = getVentasProducto(prod)
-                    const margen = prod.precio_venta > 0 ? ((prod.precio_venta - prod.costo_promedio) / prod.precio_venta) * 100 : 0
+                    const costoProm = prod.costo_promedio ?? 0
+                    const precioVenta = prod.precio_venta ?? 0
+                    const margen = precioVenta > 0 ? ((precioVenta - costoProm) / precioVenta) * 100 : 0
                     return (
                         <div style={{
                             position: "fixed", inset: 0, zIndex: 9999,
@@ -880,11 +882,11 @@ export default function Estadisticas() {
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                                         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
                                             <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Precio venta</p>
-                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: "var(--text-main)" }}>${prod.precio_venta.toFixed(2)}</p>
+                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: "var(--text-main)" }}>${precioVenta.toFixed(2)}</p>
                                         </div>
                                         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
                                             <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Costo promedio</p>
-                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: "var(--text-main)" }}>${prod.costo_promedio.toFixed(2)}</p>
+                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: "var(--text-main)" }}>${costoProm.toFixed(2)}</p>
                                         </div>
                                         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
                                             <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Stock total</p>
