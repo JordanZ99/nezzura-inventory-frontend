@@ -14,8 +14,18 @@ const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: fal
 
 export default function PuntoDeVenta() {
     const [productos, setProductos] = useState<Producto[]>([])
-    const [carrito, setCarrito] = useState<ItemCarrito[]>([])
-    const [precios, setPrecios] = useState<Record<string, string>>({})
+    const [carrito, setCarrito] = useState<ItemCarrito[]>(() => {
+        try {
+            const saved = localStorage.getItem("pos_carrito")
+            return saved ? JSON.parse(saved) : []
+        } catch { return [] }
+    })
+    const [precios, setPrecios] = useState<Record<string, string>>(() => {
+        try {
+            const saved = localStorage.getItem("pos_precios")
+            return saved ? JSON.parse(saved) : {}
+        } catch { return {} }
+    })
     const [busqueda, setBusqueda] = useState("")
     const [cargando, setCargando] = useState(true)
     const [cobrando, setCobrando] = useState(false)
@@ -76,6 +86,15 @@ export default function PuntoDeVenta() {
             })
             .finally(() => setCargando(false))
     }, [])
+
+    // Persistir carrito en localStorage al cambiar de sección
+    useEffect(() => {
+        localStorage.setItem("pos_carrito", JSON.stringify(carrito))
+    }, [carrito])
+
+    useEffect(() => {
+        localStorage.setItem("pos_precios", JSON.stringify(precios))
+    }, [precios])
 
     const categorias = ["Todas", ...Array.from(new Set(productos.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()]
 
@@ -205,7 +224,8 @@ export default function PuntoDeVenta() {
         try {
             const res = await api.cobrarCarrito(carrito)
             setMensaje({ tipo: "ok", texto: `✅ Venta registrada — $${res.total_cobrado.toFixed(2)}` })
-            setCarrito([]); setPrecios({}); setCarritoAbierto(false)
+            setCarrito([]); setPrecios({}); setCarritoAbierto(false);
+            localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
             const data = await api.getInventario()
             setProductos(data)
         } catch (e: unknown) {
@@ -539,7 +559,7 @@ export default function PuntoDeVenta() {
                                     {cobrando ? "Procesando..." : "Cobrar"}
                                 </button>
                                 <button className="btn-ghost" style={{ width: "100%" }}
-                                    onClick={() => { setCarrito([]); setPrecios({}) }}>
+                                    onClick={() => { setCarrito([]); setPrecios({}); localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios") }}>
                                     Vaciar carrito
                                 </button>
                             </div>
@@ -635,7 +655,7 @@ export default function PuntoDeVenta() {
                         <button className="btn-primary" style={{ width: "100%", marginBottom: 10 }} onClick={cobrarConAdvertencia} disabled={cobrando}>
                             {cobrando ? "Procesando..." : "✅ Cobrar"}
                         </button>
-                        <button className="btn-ghost" style={{ width: "100%" }} onClick={() => { setCarrito([]); setPrecios({}); setCarritoAbierto(false) }}>
+                        <button className="btn-ghost" style={{ width: "100%" }} onClick={() => { setCarrito([]); setPrecios({}); setCarritoAbierto(false); localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios") }}>
                             Vaciar carrito
                         </button>
                     </div>
