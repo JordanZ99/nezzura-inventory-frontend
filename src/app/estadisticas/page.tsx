@@ -39,6 +39,8 @@ export default function Estadisticas() {
     // Paginación
     const ITEMS_POR_PAGINA = 10
     const [paginaActual, setPaginaActual] = useState(1)
+    const [busquedaVentas, setBusquedaVentas] = useState("")
+    const [ordenVentas, setOrdenVentas] = useState("fecha-desc")
     const logoSrc = tenant?.logo || "/logo.png"
     const empresa = tenant?.empresa || "..."
 
@@ -82,7 +84,23 @@ export default function Estadisticas() {
         const f = new Date(v.fecha)
         if (dates.from && f < dates.from) return false
         if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
+        // Buscador por nombre o descripción del producto
+        if (busquedaVentas.trim()) {
+            const q = busquedaVentas.toLowerCase()
+            const prod = v.producto?.toLowerCase().includes(q)
+            if (!prod) return false
+        }
         return true
+    }).sort((a, b) => {
+        switch (ordenVentas) {
+            case "fecha-asc": return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+            case "monto-desc": return (b.total_venta || 0) - (a.total_venta || 0)
+            case "monto-asc": return (a.total_venta || 0) - (b.total_venta || 0)
+            case "producto": return (a.producto || "").localeCompare(b.producto || "")
+            case "ganancia-desc": return (b.ganancia_bruta || 0) - (a.ganancia_bruta || 0)
+            case "fecha-desc":
+            default: return new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+        }
     })
 
     const gastosFiltrados = gastos.filter(g => {
@@ -95,7 +113,7 @@ export default function Estadisticas() {
     // Reiniciar paginación cuando cambian los filtros
     useEffect(() => {
         setPaginaActual(1)
-    }, [dates.from, dates.to])
+    }, [dates.from, dates.to, busquedaVentas, ordenVentas])
 
     // --- Paginación ---
     const totalPaginas = Math.max(1, Math.ceil(ventasFiltradas.length / ITEMS_POR_PAGINA))
@@ -291,8 +309,61 @@ export default function Estadisticas() {
                 {/* [Mantuve tu tabla original intacta, va debajo del report-container] */}
                 <div style={{ marginTop: 32 }}>
                     <div className="card fade-up" style={{ overflow: "hidden" }}>
-                        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-primary)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>Historial Completo de Ventas</h2>
+                        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-primary)", display: "flex", flexDirection: "column", gap: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>Historial Completo de Ventas</h2>
+                                <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>{ventasFiltradas.length} venta(s)</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                                <div style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 10, padding: "0 12px", border: "1px solid var(--border-primary)" }}>
+                                    <Icon name="Search" size={16} color="var(--text-muted)" />
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por producto..."
+                                        value={busquedaVentas}
+                                        onChange={e => setBusquedaVentas(e.target.value)}
+                                        style={{
+                                            flex: 1,
+                                            border: "none",
+                                            background: "transparent",
+                                            padding: "8px 0",
+                                            fontSize: "0.82rem",
+                                            outline: "none",
+                                            color: "var(--text-main)"
+                                        }}
+                                    />
+                                    {busquedaVentas && (
+                                        <button onClick={() => setBusquedaVentas("")} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}>
+                                            <Icon name="X" size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <Icon name="ArrowUpDown" size={16} color="var(--text-muted)" />
+                                    <select
+                                        value={ordenVentas}
+                                        onChange={e => setOrdenVentas(e.target.value)}
+                                        style={{
+                                            padding: "8px 12px",
+                                            borderRadius: 10,
+                                            border: "1px solid var(--border-primary)",
+                                            background: "var(--bg-card2)",
+                                            color: "var(--text-main)",
+                                            fontSize: "0.78rem",
+                                            fontWeight: 600,
+                                            outline: "none",
+                                            cursor: "pointer"
+                                        }}
+                                    >
+                                        <option value="fecha-desc">Mas recientes</option>
+                                        <option value="fecha-asc">Mas antiguos</option>
+                                        <option value="monto-desc">Mayor monto</option>
+                                        <option value="monto-asc">Menor monto</option>
+                                        <option value="producto">A-Z producto</option>
+                                        <option value="ganancia-desc">Mayor ganancia</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div style={{ overflowX: "auto" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
