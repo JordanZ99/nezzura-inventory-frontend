@@ -208,6 +208,40 @@ export default function Estadisticas() {
 
     const valFormatter = (number: number) => `$${Intl.NumberFormat("us").format(number).toString()}`
 
+    /**
+     * Genera el rango de páginas para la paginación con truncado inteligente.
+     * Siempre muestra la primera y última página, con hasta 3 números visibles
+     * alrededor de la página actual, usando '...' para rangos saltados.
+     */
+    function getPaginationRange(current: number, total: number): (number | "ellipsis")[] {
+        if (total <= 7) {
+            return Array.from({ length: total }, (_, i) => i + 1)
+        }
+
+        if (current <= 2) {
+            // Páginas 1-2: [1, 2, 3, '...', total]
+            return [1, 2, 3, "ellipsis", total]
+        }
+
+        if (current === 3) {
+            // Página 3: [1, 2, 3, 4, '...', total]
+            return [1, 2, 3, 4, "ellipsis", total]
+        }
+
+        if (current === total - 2) {
+            // Antepenúltima: [1, '...', total-3, total-2, total-1, total]
+            return [1, "ellipsis", total - 3, total - 2, total - 1, total]
+        }
+
+        if (current >= total - 1) {
+            // Últimas 2: [1, '...', total-2, total-1, total]
+            return [1, "ellipsis", total - 2, total - 1, total]
+        }
+
+        // Paginas intermedias: [1, '...', current-1, current, current+1, '...', total]
+        return [1, "ellipsis", current - 1, current, current + 1, "ellipsis", total]
+    }
+
     return (
         <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
 
@@ -538,68 +572,29 @@ export default function Estadisticas() {
                                     >
                                         ← Anterior
                                     </button>
-                                    {(() => {
-                                        const pages = []
-                                        const maxVisible = 5
-                                        let start = Math.max(1, paginaActual - Math.floor(maxVisible / 2))
-                                        let end = Math.min(totalPaginas, start + maxVisible - 1)
-                                        if (end - start + 1 < maxVisible) {
-                                            start = Math.max(1, end - maxVisible + 1)
-                                        }
-                                        if (start > 1) {
-                                            pages.push(
-                                                <button key={1} onClick={() => setPaginaActual(1)} style={{
+                                    {getPaginationRange(paginaActual, totalPaginas).map((item, idx) =>
+                                        item === "ellipsis" ? (
+                                            <span key={`ellipsis-${idx}`} style={{ padding: "0 4px", color: "var(--text-muted)", fontSize: "0.8rem" }}>…</span>
+                                        ) : (
+                                            <button
+                                                key={item}
+                                                onClick={() => setPaginaActual(item)}
+                                                style={{
                                                     padding: "6px 12px",
                                                     borderRadius: 6,
-                                                    border: "1px solid var(--border-primary)",
-                                                    background: "var(--bg-card)",
-                                                    color: "var(--text-main)",
+                                                    border: item === paginaActual ? "2px solid var(--primary-main)" : "1px solid var(--border-primary)",
+                                                    background: item === paginaActual ? "var(--primary-bg)" : "var(--bg-card)",
+                                                    color: item === paginaActual ? "var(--primary-main)" : "var(--text-main)",
                                                     cursor: "pointer",
-                                                    fontWeight: 600,
-                                                    fontSize: "0.8rem"
-                                                }}>1</button>
-                                            )
-                                            if (start > 2) pages.push(<span key="dots1" style={{ padding: "0 4px", color: "var(--text-muted)" }}>…</span>)
-                                        }
-                                        for (let i = start; i <= end; i++) {
-                                            const active = i === paginaActual
-                                            pages.push(
-                                                <button
-                                                    key={i}
-                                                    onClick={() => setPaginaActual(i)}
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        borderRadius: 6,
-                                                        border: active ? "2px solid var(--primary-main)" : "1px solid var(--border-primary)",
-                                                        background: active ? "var(--primary-bg)" : "var(--bg-card)",
-                                                        color: active ? "var(--primary-main)" : "var(--text-main)",
-                                                        cursor: "pointer",
-                                                        fontWeight: active ? 800 : 600,
-                                                        fontSize: "0.8rem",
-                                                        transition: "all 0.15s"
-                                                    }}
-                                                >
-                                                    {i}
-                                                </button>
-                                            )
-                                        }
-                                        if (end < totalPaginas) {
-                                            if (end < totalPaginas - 1) pages.push(<span key="dots2" style={{ padding: "0 4px", color: "var(--text-muted)" }}>…</span>)
-                                            pages.push(
-                                                <button key={totalPaginas} onClick={() => setPaginaActual(totalPaginas)} style={{
-                                                    padding: "6px 12px",
-                                                    borderRadius: 6,
-                                                    border: "1px solid var(--border-primary)",
-                                                    background: "var(--bg-card)",
-                                                    color: "var(--text-main)",
-                                                    cursor: "pointer",
-                                                    fontWeight: 600,
-                                                    fontSize: "0.8rem"
-                                                }}>{totalPaginas}</button>
-                                            )
-                                        }
-                                        return pages
-                                    })()}
+                                                    fontWeight: item === paginaActual ? 800 : 600,
+                                                    fontSize: "0.8rem",
+                                                    transition: "all 0.15s"
+                                                }}
+                                            >
+                                                {item}
+                                            </button>
+                                        )
+                                    )}
                                     <button
                                         onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
                                         disabled={paginaActual >= totalPaginas}
