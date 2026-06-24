@@ -319,7 +319,7 @@ export default function PuntoDeVenta() {
                                             whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
                                             background: categoriaSeleccionada === cat ? "var(--primary-mid)" : "var(--bg-card2)",
                                             color: categoriaSeleccionada === cat ? "#fff" : "var(--primary-dark)",
-                                            boxShadow: categoriaSeleccionada === cat ? "0 4px 12px var(--primary-glow)" : "none"
+                                            boxShadow: categoriaSeleccionada === cat ? "0 2px 6px var(--primary-glow)" : "none"
                                         }}
                                     >
                                         {cat}
