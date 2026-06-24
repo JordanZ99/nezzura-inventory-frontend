@@ -118,7 +118,7 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
         if (previewUrl && previewUrl.startsWith("blob:")) {
             URL.revokeObjectURL(previewUrl)
         }
-        setPreviewUrl(currentImageUrl && currentImageUrl !== "No hay foto" ? currentImageUrl : null)
+        setPreviewUrl(null)
         onImageSelected(null)
     }
 

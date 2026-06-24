@@ -45,6 +45,7 @@ export default function Inventario() {
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
     const [nuevaFoto, setNuevaFoto] = useState<File | null>(null)
     const [editFoto, setEditFoto] = useState<File | null>(null)
+    const [editFotoRemovida, setEditFotoRemovida] = useState(false)
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
@@ -270,6 +271,8 @@ export default function Inventario() {
                 }
                 const r = await api.subirFoto(prodEditar, imgAEnviar)
                 nuevaImagen = r.ruta
+            } else if (editFotoRemovida) {
+                nuevaImagen = "No hay foto"
             }
 
             const payload: Parameters<typeof api.editarProducto>[1] = {
@@ -285,7 +288,7 @@ export default function Inventario() {
             await api.editarProducto(prodEditar, payload)
 
             mostrarMsg(true, "Producto actualizado")
-            setProdEditar(""); setEditProdNombre(""); setEditFoto(null); recargar()
+            setProdEditar(""); setEditProdNombre(""); setEditFoto(null); setEditFotoRemovida(false); recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -883,6 +886,8 @@ export default function Inventario() {
                                                 setProdEditar(prod.producto)
                                                 setEditProdNombre(prod.producto)
                                                 setLoteEditandoId(null)
+                                                setEditFoto(null)
+                                                setEditFotoRemovida(false)
                                                 setEditProdVal({
                                                     descripcion: prod.descripcion ?? "",
                                                     estado: prod.estado ?? "Activo",
@@ -932,7 +937,7 @@ export default function Inventario() {
                         <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                                 <button
-                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null) }}
+                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null); setEditFoto(null); setEditFotoRemovida(false) }}
                                     style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
                                 >
                                     <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
@@ -966,7 +971,10 @@ export default function Inventario() {
                             <Input label="Descripción" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
                             <ImagePicker
-                                onImageSelected={setEditFoto}
+                                onImageSelected={(file) => {
+                                    setEditFoto(file)
+                                    if (file) setEditFotoRemovida(false)
+                                }}
                                 currentImageUrl={editProdVal.imagen !== "No hay foto" ? editProdVal.imagen : undefined}
                                 label="Actualizar Foto (Opcional)"
                             />
