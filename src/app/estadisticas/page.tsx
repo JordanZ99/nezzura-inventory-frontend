@@ -952,7 +952,7 @@ export default function Estadisticas() {
                                                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
                                                         <thead>
                                                             <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
-                                                                {["Ticket", "Fecha", "Cant.", "P. Unit.", "Total", "Ganancia"].map(h => (
+                                                                {["Ticket", "Fecha", "Cant.", "Costo", "Total", "Ganancia"].map(h => (
                                                                     <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontWeight: 700, fontSize: "0.62rem", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
                                                                 ))}
                                                             </tr>
@@ -968,7 +968,7 @@ export default function Estadisticas() {
                                                                         <td style={{ padding: "6px 10px", fontWeight: 600 }}>#{v.n_ticket || v.id}</td>
                                                                         <td style={{ padding: "6px 10px", color: "var(--text-muted)" }}>{new Date(v.fecha).toLocaleDateString()}</td>
                                                                         <td style={{ padding: "6px 10px" }}>{v.cantidad}</td>
-                                                                        <td style={{ padding: "6px 10px", fontWeight: 600 }}>${v.precio_real.toFixed(2)}</td>
+                                                                        <td style={{ padding: "6px 10px", fontWeight: 600 }}>${(v.costo_unitario || 0).toFixed(2)}</td>
                                                                         <td style={{ padding: "6px 10px", fontWeight: 700, color: "var(--primary-dark)" }}>${(v.total_venta || 0).toFixed(2)}</td>
                                                                         <td style={{ padding: "6px 10px" }}><Pill color={v.ganancia_bruta >= 0 ? "green" : "red"}>${(v.ganancia_bruta || 0).toFixed(2)}</Pill></td>
                                                                     </tr>
