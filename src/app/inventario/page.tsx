@@ -13,7 +13,7 @@ import ScrollableTable from "@/components/ui/ScrollableTable"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
-type Tab = "catalogo" | "nuevo" | "restock" | "editar"
+type Tab = "nuevo" | "restock" | "editar"
 
 function Input({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
     return (
@@ -36,10 +36,8 @@ function Pill({ children, color = "primary" }: { children: React.ReactNode; colo
 export default function Inventario() {
     const [lotes, setLotes] = useState<Lote[]>([])
     const [inv, setInv] = useState<Producto[]>([])
-    const [cargando, setCargando] = useState(true)
-    const [tab, setTab] = useState<Tab>("catalogo")
-    const [loteEditar, setLoteEditar] = useState<Lote | null>(null)
-    const [editLote, setEditLote] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
+    const [tab, setTab] = useState<Tab>("nuevo")
+
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "" })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
@@ -166,7 +164,7 @@ export default function Inventario() {
         setCatEditandoNombre("")
     }
 
-    useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
+    useEffect(() => { recargar() }, [])
 
     // Al cambiar al tab "nuevo", cargamos las categorías si no están
     useEffect(() => {
@@ -178,15 +176,6 @@ export default function Inventario() {
     function mostrarMsg(ok: boolean, texto: string) {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
     }
-
-    const tablaLotes = lotes.reduce<Record<string, { costo: number; precio: number; stock: number; lote: Lote }[]>>((acc, lote) => {
-        if (!acc[lote.producto]) acc[lote.producto] = []
-        const key = `${lote.costo}-${lote.precio_venta}`
-        const ex = acc[lote.producto].find(g => `${g.costo}-${g.precio}` === key)
-        if (ex) { ex.stock += lote.stock_lote }
-        else { acc[lote.producto].push({ costo: lote.costo, precio: lote.precio_venta, stock: lote.stock_lote, lote }) }
-        return acc
-    }, {})
 
     const productos = Array.from(new Set(lotes.map(l => l.producto))).sort()
 
@@ -219,7 +208,7 @@ export default function Inventario() {
             mostrarMsg(true, `${form.producto} registrado`)
             setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "" })
             setNuevaFoto(null)
-            setTab("catalogo"); recargar()
+            recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -232,19 +221,8 @@ export default function Inventario() {
             const precio = restock.precio_venta === "" ? (prodActual?.precio_venta || 0) : Number(restock.precio_venta)
             await api.restockear({ ...restock, costo: Number(restock.costo), stock: Number(restock.stock), precio_venta: precio })
             mostrarMsg(true, `+${Number(restock.stock)} a ${restock.producto}`)
-            setTab("catalogo"); recargar()
+            recargar()
             setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
-        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
-        finally { setGuardando(false) }
-    }
-
-    async function guardarLote() {
-        if (!loteEditar || guardando) return
-        setGuardando(true)
-        try {
-            await api.editarLote(loteEditar.id_lote, { costo: Number(editLote.costo), precio_venta: Number(editLote.precio_venta), stock: Number(editLote.stock) })
-            mostrarMsg(true, "Lote actualizado")
-            setLoteEditar(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -337,17 +315,6 @@ export default function Inventario() {
             mostrarMsg(true, `Categoría "${cat}" eliminada de ${res.productos_actualizados} producto(s)`)
             await Promise.all([recargar(), cargarCategorias()])
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
-    }
-
-    async function darDeBaja(producto: string) {
-        if (!confirm(`¿Dar de baja ${producto}?`) || guardando) return
-        setGuardando(true)
-        try {
-            const p = inv.find(x => x.producto === producto)
-            await api.editarProducto(producto, { descripcion: p?.descripcion ?? "", imagen: p?.imagen ?? "No hay foto", estado: "Inactivo", categoria: p?.categoria ?? ["General"] })
-            mostrarMsg(true, `${producto} dado de baja`); recargar()
-        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
-        finally { setGuardando(false) }
     }
 
     const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -449,88 +416,6 @@ export default function Inventario() {
                         </button>
                     ))}
                 </div>
-
-                {/* Catálogo */}
-                {tab === "catalogo" && !cargando && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        {productos.map(producto => {
-                            const grupos = tablaLotes[producto] ?? []
-                            const stockTotal = grupos.reduce((a, g) => a + g.stock, 0)
-                            return (
-                                <div key={producto} className="card fade-up" style={{ overflow: "hidden" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "var(--bg-app)", borderBottom: "1px solid var(--border-light)", gap: 10 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                            <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>{producto}</span>
-                                            <Pill color="gray">{(inv.find(p => p.producto === producto)?.categoria || ["General"]).join(", ")}</Pill>
-                                            <Pill color={stockTotal <= 3 ? "red" : "green"}>{stockTotal} en stock</Pill>
-                                        </div>
-                                        <button onClick={() => darDeBaja(producto)} disabled={guardando} style={{ background: guardando ? "#eee" : "#ad4955ff", color: guardando ? "#999" : "#ffffffff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: "0.75rem", fontWeight: 700, cursor: guardando ? "not-allowed" : "pointer" }}>
-                                            {guardando ? "..." : "Dar de baja"}
-                                        </button>
-                                    </div>
-                                    <ScrollableTable>
-                                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
-                                            <thead>
-                                                <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}>
-                                                    {["Costo unit.", "Precio venta", "Stock", "Margen", ""].map(h => (
-                                                        <th key={h} style={{ padding: "8px 16px", textAlign: "left", fontWeight: 600, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {grupos.map((g, i) => (
-                                                    <tr key={i} style={{ borderBottom: "1px solid var(--border-light)" }}
-                                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-card2)")}
-                                                        onMouseLeave={e => (e.currentTarget.style.background = "")}>
-                                                        <td style={{ padding: "10px 16px" }}>
-                                                            {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <input type="number" min={0} step="0.01" value={editLote.costo} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, costo: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-primary" style={{ width: 80, padding: 4 }} />
-                                                            ) : `$${g.costo.toFixed(2)}`}
-                                                        </td>
-                                                        <td style={{ padding: "10px 16px", fontWeight: 700, color: "var(--text-main)" }}>
-                                                            {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <input type="number" min={0} step="0.01" value={editLote.precio_venta} placeholder="0.00" onChange={e => setEditLote(l => ({ ...l, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-primary" style={{ width: 80, padding: 4 }} />
-                                                            ) : `$${g.precio.toFixed(2)}`}
-                                                        </td>
-                                                        <td style={{ padding: "10px 16px" }}>
-                                                            {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <input type="number" min={0} value={editLote.stock} placeholder="0" onChange={e => setEditLote(l => ({ ...l, stock: e.target.value === "" ? "" : Number(e.target.value) }))} className="input-primary" style={{ width: 80, padding: 4 }} />
-                                                            ) : g.stock}
-                                                        </td>
-                                                        <td style={{ padding: "10px 16px" }}>
-                                                            <Pill color={g.precio > g.costo ? "green" : "red"}>
-                                                                {g.precio > 0 ? `${(((g.precio - g.costo) / g.precio) * 100).toFixed(0)}%` : "—"}
-                                                            </Pill>
-                                                        </td>
-                                                        <td style={{ padding: "10px 16px" }}>
-                                                            {loteEditar?.id_lote === g.lote.id_lote ? (
-                                                                <div style={{ display: "flex", gap: 8 }}>
-                                                                    <button onClick={guardarLote} disabled={guardando} style={{ color: guardando ? "#999" : "#2e7d32", background: "none", border: "none", fontWeight: 800, cursor: guardando ? "not-allowed" : "pointer" }}>
-                                                                        {guardando ?
-                                                                            (<Icon name="Hourglass" size={16} color="var(--primary-dark)" />) :
-                                                                            (<Icon name="Save" size={16} color="var(--primary-dark)" />)
-                                                                        }
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <button onClick={() => { setLoteEditar(g.lote); setEditLote({ costo: g.costo, precio_venta: g.precio, stock: g.stock }) }}
-                                                                    style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>
-                                                                    Editar lote
-                                                                </button>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </ScrollableTable>
-                                </div>
-                            )
-                        })}
-                        {productos.length === 0 && <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 32 }}>No hay productos registrados.</p>}
-                    </div>
-                )}
-                {tab === "catalogo" && cargando && <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>Cargando inventario...</p>}
 
                 {/* Nuevo producto + Gestión de categorías */}
                 {tab === "nuevo" && (
@@ -866,10 +751,7 @@ export default function Inventario() {
                             />
                         </div>
 
-                        {cargando ? (
-                            <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>Cargando productos...</p>
-                        ) : (
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
                                 {productosEditar.length === 0 ? (
                                     <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
                                         <span style={{ fontSize: "4rem", display: "block", marginBottom: 16, opacity: 0.3 }}>—</span>
@@ -923,10 +805,8 @@ export default function Inventario() {
                                                 <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total < 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total < 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>Stock: {prod.stock_total}</span>
                                             </div>
                                         </div>
-                                    ))
-                                )}
+                                    )))}
                             </div>
-                        )}
                     </>
                 )}
 
