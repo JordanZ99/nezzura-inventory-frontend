@@ -666,7 +666,7 @@ export default function Estadisticas() {
                                             whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
                                             background: catSelecProd === cat ? "var(--primary-mid)" : "var(--bg-card2)",
                                             color: catSelecProd === cat ? "#fff" : "var(--primary-dark)",
-                                            boxShadow: catSelecProd === cat ? "0 4px 12px var(--primary-glow)" : "none"
+                                            boxShadow: catSelecProd === cat ? "0 2px 6px var(--primary-glow)" : "none"
                                         }}
                                     >
                                         {cat}

@@ -732,7 +732,7 @@ export default function Inventario() {
                                         padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
                                         background: catSelecEditar === cat ? "var(--primary-mid)" : "var(--bg-card2)",
                                         color: catSelecEditar === cat ? "#fff" : "var(--primary-dark)",
-                                        boxShadow: catSelecEditar === cat ? "0 4px 10px var(--primary-glow)" : "none"
+                                        boxShadow: catSelecEditar === cat ? "0 2px 6px var(--primary-glow)" : "none"
                                     }}
                                 >
                                     {cat}
