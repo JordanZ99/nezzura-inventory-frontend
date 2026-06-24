@@ -279,7 +279,7 @@ export default function ImageCropperModal({
                         position: "relative",
                         width: "100%",
                         height: 360,
-                        background: "#000",
+                        background: "var(--border-light)",
                     }}
                 >
                     <Cropper
