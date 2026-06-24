@@ -309,7 +309,7 @@ export default function PuntoDeVenta() {
                             }}>
                                 Filtrar por categoría
                             </p>
-                            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
+                            <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "4px 8px 8px", scrollbarWidth: "none" }}>
                                 {categorias.map(cat => (
                                     <button
                                         key={cat}
