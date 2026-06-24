@@ -2,15 +2,18 @@
 // src/components/ui/ImagePicker.tsx
 // Selector de imagen con dos opciones: subir desde galería o tomar foto con la
 // cámara. Muestra una previsualización de la imagen seleccionada.
+//
+// Al seleccionar una foto, se abre un modal de recorte 1:1 antes de confirmar.
 // ==============================================================================
 
 "use client"
 
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect, useCallback } from "react"
 import Icon from "./Icon"
+import ImageCropperModal from "./ImageCropperModal"
 
 interface ImagePickerProps {
-    /** Se dispara cuando el usuario selecciona o limpia una imagen */
+    /** Se dispara cuando el usuario selecciona una imagen (ya recortada) */
     onImageSelected: (file: File | null) => void
     /** URL de previsualización inicial (para edición de productos existentes) */
     currentImageUrl?: string
@@ -22,6 +25,13 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
     const galleryRef = useRef<HTMLInputElement>(null)
     const cameraRef = useRef<HTMLInputElement>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null)
+
+    // Estado del cropper
+    const [showCropper, setShowCropper] = useState(false)
+    const [cropperImageUrl, setCropperImageUrl] = useState<string | null>(null)
+    /** Archivo original pendiente de recortar */
+    const pendingFileRef = useRef<File | null>(null)
+
     // Estado para controlar el hover sobre la previsualización de la imagen
     const [hoverPreview, setHoverPreview] = useState(false)
 
@@ -34,23 +44,63 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
         }
     }, [currentImageUrl])
 
-    function handleFileSelected(file: File | null) {
-        if (!file) {
-            setPreviewUrl(null)
-            onImageSelected(null)
-            return
-        }
+    /**
+     * Cuando el usuario selecciona un archivo del input, abrimos el cropper.
+     */
+    const iniciarCropper = useCallback((file: File) => {
+        pendingFileRef.current = file
 
-        // Liberar la URL anterior si existe
+        // Crear URL temporal para mostrar en el cropper
+        const url = URL.createObjectURL(file)
+        setCropperImageUrl(url)
+        setShowCropper(true)
+    }, [])
+
+    /**
+     * El cropper terminó — recibimos el Blob recortado.
+     */
+    const handleCropComplete = useCallback((croppedBlob: Blob) => {
+        // Liberar la URL temporal del cropper
+        if (cropperImageUrl && cropperImageUrl.startsWith("blob:")) {
+            URL.revokeObjectURL(cropperImageUrl)
+        }
+        setCropperImageUrl(null)
+        setShowCropper(false)
+
+        const originalFile = pendingFileRef.current
+        pendingFileRef.current = null
+
+        if (!originalFile) return
+
+        // Crear un File a partir del Blob recortado, usando el nombre original
+        const nombreBase = originalFile.name.replace(/\.[^.]+$/, "")
+        const croppedFile = new File([croppedBlob], `${nombreBase}_cropped.jpg`, {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+        })
+
+        // Liberar la preview anterior si existe
         if (previewUrl && previewUrl.startsWith("blob:")) {
             URL.revokeObjectURL(previewUrl)
         }
 
-        // Crear URL de previsualización
-        const url = URL.createObjectURL(file)
-        setPreviewUrl(url)
-        onImageSelected(file)
-    }
+        // Mostrar preview del recorte
+        const newPreviewUrl = URL.createObjectURL(croppedFile)
+        setPreviewUrl(newPreviewUrl)
+        onImageSelected(croppedFile)
+    }, [cropperImageUrl, previewUrl, onImageSelected])
+
+    /**
+     * El usuario canceló el recorte.
+     */
+    const handleCropCancel = useCallback(() => {
+        if (cropperImageUrl && cropperImageUrl.startsWith("blob:")) {
+            URL.revokeObjectURL(cropperImageUrl)
+        }
+        setCropperImageUrl(null)
+        setShowCropper(false)
+        pendingFileRef.current = null
+    }, [cropperImageUrl])
 
     function handleGalleryClick() {
         galleryRef.current?.click()
@@ -89,7 +139,7 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
                 style={{ display: "none" }}
                 onChange={e => {
                     const file = e.target.files?.[0] || null
-                    if (file) handleFileSelected(file)
+                    if (file) iniciarCropper(file)
                 }}
             />
             <input
@@ -100,9 +150,18 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
                 style={{ display: "none" }}
                 onChange={e => {
                     const file = e.target.files?.[0] || null
-                    if (file) handleFileSelected(file)
+                    if (file) iniciarCropper(file)
                 }}
             />
+
+            {/* Cropper modal */}
+            {showCropper && cropperImageUrl && (
+                <ImageCropperModal
+                    imageUrl={cropperImageUrl}
+                    onCropComplete={handleCropComplete}
+                    onCancel={handleCropCancel}
+                />
+            )}
 
             {/* Preview */}
             {previewUrl ? (
@@ -136,8 +195,7 @@ export default function ImagePicker({ onImageSelected, currentImageUrl, label = 
                         }}
                     />
 
-                    {/* Overlay semitransparente con ícono Pencil que aparece al hacer hover
-                        para indicar que la imagen es cliqueable y se puede reemplazar */}
+                    {/* Overlay semitransparente con ícono Pencil que aparece al hacer hover */}
                     {hoverPreview && (
                         <div style={{
                             position: "absolute",
