@@ -36,6 +36,16 @@ export default function Estadisticas() {
     const [guardando, setGuardando] = useState(false)
     const { tenant } = useTenant()
 
+    // Responsive
+    const [isMobile, setIsMobile] = useState(false)
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 899px)")
+        setIsMobile(mq.matches)
+        const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+        mq.addEventListener("change", handler)
+        return () => mq.removeEventListener("change", handler)
+    }, [])
+
     // Paginación
     const ITEMS_POR_PAGINA = 10
     const [paginaActual, setPaginaActual] = useState(1)
@@ -209,27 +219,39 @@ export default function Estadisticas() {
     const valFormatter = (number: number) => `$${Intl.NumberFormat("us").format(number).toString()}`
 
     /**
-     * Genera el rango de páginas truncado para evitar desbordamiento en móviles.
-     * Máximo 3 números de página visibles + '...' para rangos saltados.
+     * Genera el rango de páginas con truncado inteligente.
+     * - Móvil (< 900px): máximo 3 números de página
+     * - Escritorio (>= 900px): máximo 9 números de página (casillas)
      * Siempre muestra primera y última página.
      */
-    function getPaginationRange(current: number, total: number): (number | "ellipsis")[] {
-        if (total <= 3) {
+    function getPaginationRange(current: number, total: number, mobile: boolean): (number | "ellipsis")[] {
+        if (mobile) {
+            if (total <= 3) {
+                return Array.from({ length: total }, (_, i) => i + 1)
+            }
+            if (current <= 2) {
+                return [1, 2, "ellipsis", total]
+            }
+            if (current >= total - 1) {
+                return [1, "ellipsis", total - 1, total]
+            }
+            return [1, "ellipsis", current, "ellipsis", total]
+        }
+
+        // Desktop: hasta 9 casillas
+        if (total <= 9) {
             return Array.from({ length: total }, (_, i) => i + 1)
         }
 
-        // Páginas 1-2: [1, 2, '…', total]
-        if (current <= 2) {
-            return [1, 2, "ellipsis", total]
+        if (current <= 4) {
+            return [1, 2, 3, 4, 5, "ellipsis", total]
         }
 
-        // Últimas 2: [1, '…', total - 1, total]
-        if (current >= total - 1) {
-            return [1, "ellipsis", total - 1, total]
+        if (current >= total - 3) {
+            return [1, "ellipsis", total - 4, total - 3, total - 2, total - 1, total]
         }
 
-        // Intermedias: [1, '…', current, '…', total]
-        return [1, "ellipsis", current, "ellipsis", total]
+        return [1, "ellipsis", current - 2, current - 1, current, current + 1, current + 2, "ellipsis", total]
     }
 
     return (
@@ -562,7 +584,7 @@ export default function Estadisticas() {
                                     >
                                         ← Anterior
                                     </button>
-                                    {getPaginationRange(paginaActual, totalPaginas).map((item, idx) =>
+                                    {getPaginationRange(paginaActual, totalPaginas, isMobile).map((item, idx) =>
                                         item === "ellipsis" ? (
                                             <span key={`ellipsis-${idx}`} style={{ padding: "0 4px", color: "var(--text-muted)", fontSize: "0.8rem" }}>…</span>
                                         ) : (
