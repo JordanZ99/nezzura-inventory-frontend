@@ -24,6 +24,7 @@ export default function Gastos() {
     const [editandoId, setEditandoId] = useState<number | null>(null)
     const [editMonto, setEditMonto] = useState("")
     const [editCategoria, setEditCategoria] = useState("Otros")
+    const [editDescripcion, setEditDescripcion] = useState("")
 
     const CATEGORIAS = ["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"]
 
@@ -83,19 +84,21 @@ export default function Gastos() {
         setEditandoId(g.id)
         setEditMonto(g.monto.toString())
         setEditCategoria(g.categoria)
+        setEditDescripcion(g.descripcion)
     }
 
     function cancelarEdicion() {
         setEditandoId(null)
         setEditMonto("")
         setEditCategoria("Otros")
+        setEditDescripcion("")
     }
 
     async function guardarEdicion(id: number) {
         const monto = parseFloat(editMonto)
         if (isNaN(monto) || monto <= 0) return
         try {
-            await api.actualizarGasto(id, { monto, categoria: editCategoria })
+            await api.actualizarGasto(id, { monto, categoria: editCategoria, descripcion: editDescripcion })
             mostrarMsg(true, "✅ Gasto actualizado")
             cancelarEdicion()
             recargar()
@@ -263,7 +266,19 @@ export default function Gastos() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td style={{ padding: "12px 14px", fontWeight: 600 }}>{g.descripcion}</td>
+                                                <td style={{ padding: "12px 14px", fontWeight: 600 }}>
+                                                    {editandoId === g.id ? (
+                                                        <input
+                                                            type="text"
+                                                            className="input-primary"
+                                                            style={{ padding: "4px 8px", fontSize: "0.85rem", fontWeight: 600, minWidth: 120 }}
+                                                            value={editDescripcion}
+                                                            onChange={e => setEditDescripcion(e.target.value)}
+                                                        />
+                                                    ) : (
+                                                        g.descripcion
+                                                    )}
+                                                </td>
                                                 <td style={{ padding: "12px 14px", fontWeight: 800, color: esPendiente ? "#d97706" : "#b71c1c" }}>
                                                     {editandoId === g.id ? (
                                                         <input
@@ -354,7 +369,7 @@ export default function Gastos() {
                                                             </button>
                                                         </span>
                                                     ) : (
-                                                        <span style={{ display: "inline-flex", gap: 4 }}>
+                                                        <span style={{ display: "inline-flex", gap: 10 }}>
                                                             <button
                                                                 onClick={() => iniciarEdicion(g)}
                                                                 title="Editar gasto"
