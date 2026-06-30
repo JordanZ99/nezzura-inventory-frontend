@@ -25,6 +25,7 @@ const ETIQUETAS: Record<string, string> = {
 export default function GastosProgramados() {
     const [reglas, setReglas] = useState<GastoProgramado[]>([])
     const [cargando, setCargando] = useState(true)
+    const [guardando, setGuardando] = useState(false)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
 
     const [form, setForm] = useState({
@@ -48,8 +49,9 @@ export default function GastosProgramados() {
 
     async function guardar() {
         const valor = parseFloat(form.valor)
-        if (!form.nombre || isNaN(valor) || valor <= 0) return
+        if (!form.nombre || isNaN(valor) || valor <= 0 || guardando) return
 
+        setGuardando(true)
         try {
             await api.crearGastoProgramado({
                 nombre: form.nombre,
@@ -65,9 +67,11 @@ export default function GastosProgramados() {
                 valor: "",
                 proxima_fecha: new Date().toISOString().substring(0, 10),
             }))
-            recargar()
+            await recargar()
         } catch (e: unknown) {
             mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al crear la regla"}`)
+        } finally {
+            setGuardando(false)
         }
     }
 
@@ -278,12 +282,12 @@ export default function GastosProgramados() {
                                 className="btn-primary"
                                 style={{ marginTop: 8 }}
                                 onClick={guardar}
-                                disabled={!form.nombre || !form.valor || parseFloat(form.valor) <= 0 || !form.proxima_fecha}
+                                disabled={!form.nombre || !form.valor || parseFloat(form.valor) <= 0 || !form.proxima_fecha || guardando}
                             >
                                 <span style={{ marginRight: 6, verticalAlign: "middle", display: "inline-flex" }}>
-                                    <Icon name="Save" size={16} />
+                                    <Icon name={guardando ? "Loader" : "Save"} size={16} className={guardando ? "animate-spin" : ""} />
                                 </span>
-                                Guardar Regla
+                                {guardando ? "Guardando..." : "Guardar Regla"}
                             </button>
                         </div>
                     </div>
