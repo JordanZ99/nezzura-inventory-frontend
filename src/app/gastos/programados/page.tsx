@@ -242,7 +242,7 @@ export default function GastosProgramados() {
                                 />
                                 {form.tipo === "porcentaje" && (
                                     <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: 2 }}>
-                                        El porcentaje se calcula sobre el total de ventas del período.
+                                        El porcentaje se calcula sobre la ganancia neta del período.
                                     </span>
                                 )}
                             </div>
@@ -366,7 +366,7 @@ export default function GastosProgramados() {
                                                     onClick={() => ejecutarRegla(g.id, g.nombre)}
                                                     disabled={ejecutando === g.id}
                                                     title={g.tipo === "porcentaje"
-                                                        ? "Calcular y registrar pago basado en ventas"
+                                                        ? "Calcular porcentaje sobre la ganancia neta del período"
                                                         : "Registrar pago de monto fijo"}
                                                     style={{
                                                         display: "inline-flex", alignItems: "center", gap: 4,
