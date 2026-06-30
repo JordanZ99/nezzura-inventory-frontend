@@ -93,15 +93,7 @@ export default function GastosProgramados() {
         return ETIQUETAS[f] || f
     }
 
-    // ---- Activo badge ----
-    function estadoBadge(activo: boolean) {
-        return activo
-            ? { label: "Activo", color: "#16a34a", bg: "#dcfce7" }
-            : { label: "Inactivo", color: "#ca8a04", bg: "#fef9c3" }
-    }
-
     const totalMensual = reglas
-        .filter(r => r.activo)
         .reduce((acc, r) => {
             if (r.tipo === "fijo") return acc + r.valor
             return acc // los porcentajes no se suman aquí
@@ -146,10 +138,10 @@ export default function GastosProgramados() {
                         <Icon name="Repeat" size={32} color="var(--primary-alter)" />
                         <div>
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
-                                Reglas Activas
+                                Reglas Creadas
                             </p>
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-alter)" }}>
-                                {reglas.filter(r => r.activo).length}
+                                {reglas.length}
                             </p>
                         </div>
                     </div>
@@ -317,7 +309,7 @@ export default function GastosProgramados() {
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
                                     <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
-                                        {["Nombre", "Tipo", "Valor", "Frecuencia", "Próx. Fecha", "Estado"].map(h => (
+                                        {["Nombre", "Tipo", "Valor", "Frecuencia", "Próx. Fecha"].map(h => (
                                             <th key={h} style={{
                                                 padding: "10px 14px", textAlign: "left",
                                                 fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase"
@@ -328,44 +320,32 @@ export default function GastosProgramados() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {reglas.map(g => {
-                                        const badge = estadoBadge(g.activo)
-                                        return (
-                                            <tr key={g.id} style={{ borderBottom: "1px solid var(--bg-card)" }} className="hover:bg-primary-50/20">
-                                                <td style={{ padding: "12px 14px", fontWeight: 600 }}>{g.nombre}</td>
-                                                <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>
-                                                    {ETIQUETAS[g.tipo] || g.tipo}
-                                                </td>
-                                                <td style={{ padding: "12px 14px", fontWeight: 700 }}>
-                                                    {valorMostrado(g)}
-                                                </td>
-                                                <td style={{ padding: "12px 14px" }}>
-                                                    <span style={{
-                                                        fontSize: "0.7rem", fontWeight: 700,
-                                                        background: "#ede9fe", color: "#6d28d9",
-                                                        padding: "3px 8px", borderRadius: 12,
-                                                    }}>
-                                                        {frecuenciaLabel(g.frecuencia)}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                                                    {new Date(g.proxima_fecha).toLocaleDateString()}
-                                                </td>
-                                                <td style={{ padding: "12px 14px" }}>
-                                                    <span style={{
-                                                        fontSize: "0.7rem", fontWeight: 700,
-                                                        background: badge.bg, color: badge.color,
-                                                        padding: "3px 8px", borderRadius: 12,
-                                                    }}>
-                                                        {badge.label}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
+                                    {reglas.map(g => (
+                                        <tr key={g.id} style={{ borderBottom: "1px solid var(--bg-card)" }} className="hover:bg-primary-50/20">
+                                            <td style={{ padding: "12px 14px", fontWeight: 600 }}>{g.nombre}</td>
+                                            <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>
+                                                {ETIQUETAS[g.tipo] || g.tipo}
+                                            </td>
+                                            <td style={{ padding: "12px 14px", fontWeight: 700 }}>
+                                                {valorMostrado(g)}
+                                            </td>
+                                            <td style={{ padding: "12px 14px" }}>
+                                                <span style={{
+                                                    fontSize: "0.7rem", fontWeight: 700,
+                                                    background: "#ede9fe", color: "#6d28d9",
+                                                    padding: "3px 8px", borderRadius: 12,
+                                                }}>
+                                                    {frecuenciaLabel(g.frecuencia)}
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                                                {new Date(g.proxima_fecha).toLocaleDateString()}
+                                            </td>
+                                        </tr>
+                                    ))}
                                     {reglas.length === 0 && !cargando && (
                                         <tr>
-                                            <td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
+                                            <td colSpan={5} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
                                                 <span style={{ display: "block", margin: "0 auto 8px", opacity: 0.4, textAlign: "center" }}>
                                                     <Icon name="CalendarX" size={32} />
                                                 </span>

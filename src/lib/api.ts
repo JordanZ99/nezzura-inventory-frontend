@@ -89,7 +89,6 @@ export interface GastoProgramado {
     valor: number;
     frecuencia: string;    // "semanal" | "mensual" | "anual"
     proxima_fecha: string;
-    activo: boolean;
     ultima_ejecucion?: string;
     created_at?: string;
 }
