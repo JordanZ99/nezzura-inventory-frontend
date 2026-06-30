@@ -189,7 +189,7 @@ export const api = {
     eliminarGasto: (id: number) => request(`/gastos/${id}`, { method: "DELETE" }),
 
     // Gastos Programados
-    getGastosProgramados: () => request<GastoProgramado[]>("/gastos_programados/"),
+    getGastosProgramados: () => request<GastoProgramado[]>("/gastos_programados"),
     crearGastoProgramado: (data: { nombre: string; tipo: string; valor: number; frecuencia: string; proxima_fecha: string }) =>
-        request("/gastos_programados/", { method: "POST", body: JSON.stringify(data) }),
+        request("/gastos_programados", { method: "POST", body: JSON.stringify(data) }),
 }
