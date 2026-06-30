@@ -369,7 +369,7 @@ export default function Gastos() {
                                                             </button>
                                                         </span>
                                                     ) : (
-                                                        <span style={{ display: "inline-flex", gap: 10 }}>
+                                                        <span style={{ display: "inline-flex", gap: 20, alignItems: "center" }}>
                                                             <button
                                                                 onClick={() => iniciarEdicion(g)}
                                                                 title="Editar gasto"
@@ -377,18 +377,34 @@ export default function Gastos() {
                                                                     background: "none", border: "none",
                                                                     cursor: "pointer", opacity: 0.35,
                                                                     display: "inline-flex", alignItems: "center",
-                                                                    transition: "opacity 0.15s",
+                                                                    justifyContent: "center",
+                                                                    padding: "8px",
+                                                                    borderRadius: 8,
+                                                                    minWidth: 32,
+                                                                    minHeight: 32,
+                                                                    transition: "opacity 0.15s, background 0.15s",
                                                                 }}
-                                                                onMouseEnter={e => e.currentTarget.style.opacity = "0.7"}
-                                                                onMouseLeave={e => e.currentTarget.style.opacity = "0.35"}
+                                                                onMouseEnter={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "var(--bg-card2)" }}
+                                                                onMouseLeave={e => { e.currentTarget.style.opacity = "0.35"; e.currentTarget.style.background = "transparent" }}
                                                             >
                                                                 <Icon name="Pencil" size={16} />
                                                             </button>
-                                                            <button onClick={() => eliminar(g.id)} style={{
-                                                                background: "none", border: "none",
-                                                                cursor: "pointer", opacity: 0.3,
-                                                                display: "inline-flex", alignItems: "center",
-                                                            }}>
+                                                            <button onClick={() => eliminar(g.id)}
+                                                                title="Eliminar gasto"
+                                                                style={{
+                                                                    background: "none", border: "none",
+                                                                    cursor: "pointer", opacity: 0.3,
+                                                                    display: "inline-flex", alignItems: "center",
+                                                                    justifyContent: "center",
+                                                                    padding: "8px",
+                                                                    borderRadius: 8,
+                                                                    minWidth: 32,
+                                                                    minHeight: 32,
+                                                                    transition: "opacity 0.15s, background 0.15s",
+                                                                }}
+                                                                onMouseEnter={e => { e.currentTarget.style.opacity = "0.6"; e.currentTarget.style.background = "var(--bg-card2)" }}
+                                                                onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent" }}
+                                                            >
                                                                 <Icon name="Trash2" size={16} />
                                                             </button>
                                                         </span>
