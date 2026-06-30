@@ -21,6 +21,9 @@ export default function Gastos() {
         monto: ""
     })
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+    const [editandoId, setEditandoId] = useState<number | null>(null)
+    const [editMonto, setEditMonto] = useState("")
+    const [editCategoria, setEditCategoria] = useState("Otros")
 
     const CATEGORIAS = ["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"]
 
@@ -72,6 +75,29 @@ export default function Gastos() {
         try {
             await api.descartarGasto(id)
             mostrarMsg(true, "🗑️ Gasto descartado")
+            recargar()
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+    }
+
+    function iniciarEdicion(g: Gasto) {
+        setEditandoId(g.id)
+        setEditMonto(g.monto.toString())
+        setEditCategoria(g.categoria)
+    }
+
+    function cancelarEdicion() {
+        setEditandoId(null)
+        setEditMonto("")
+        setEditCategoria("Otros")
+    }
+
+    async function guardarEdicion(id: number) {
+        const monto = parseFloat(editMonto)
+        if (isNaN(monto) || monto <= 0) return
+        try {
+            await api.actualizarGasto(id, { monto, categoria: editCategoria })
+            mostrarMsg(true, "✅ Gasto actualizado")
+            cancelarEdicion()
             recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
@@ -222,13 +248,36 @@ export default function Gastos() {
                                                     {new Date(g.fecha).toLocaleDateString()}
                                                 </td>
                                                 <td style={{ padding: "12px 14px" }}>
-                                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
-                                                        {g.categoria}
-                                                    </span>
+                                                    {editandoId === g.id ? (
+                                                        <select
+                                                            className="input-primary"
+                                                            style={{ padding: "4px 8px", fontSize: "0.75rem", fontWeight: 600 }}
+                                                            value={editCategoria}
+                                                            onChange={e => setEditCategoria(e.target.value)}
+                                                        >
+                                                            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                                        </select>
+                                                    ) : (
+                                                        <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
+                                                            {g.categoria}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td style={{ padding: "12px 14px", fontWeight: 600 }}>{g.descripcion}</td>
                                                 <td style={{ padding: "12px 14px", fontWeight: 800, color: esPendiente ? "#d97706" : "#b71c1c" }}>
-                                                    -${g.monto.toFixed(2)}
+                                                    {editandoId === g.id ? (
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0.01"
+                                                            className="input-primary"
+                                                            style={{ width: 100, padding: "4px 8px", fontSize: "0.85rem", fontWeight: 700 }}
+                                                            value={editMonto}
+                                                            onChange={e => setEditMonto(e.target.value)}
+                                                        />
+                                                    ) : (
+                                                        `-$${g.monto.toFixed(2)}`
+                                                    )}
                                                 </td>
                                                 <td style={{ padding: "12px 14px" }}>
                                                     <span style={{
@@ -242,7 +291,38 @@ export default function Gastos() {
                                                     </span>
                                                 </td>
                                                 <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
-                                                    {esPendiente ? (
+                                                    {editandoId === g.id ? (
+                                                        <span style={{ display: "inline-flex", gap: 4 }}>
+                                                            <button
+                                                                onClick={() => guardarEdicion(g.id)}
+                                                                title="Guardar cambios"
+                                                                style={{
+                                                                    background: "var(--bg-success)", border: "none",
+                                                                    borderRadius: 8, padding: "6px 8px",
+                                                                    cursor: "pointer", color: "#16a34a",
+                                                                    display: "inline-flex", alignItems: "center",
+                                                                }}
+                                                                onMouseEnter={e => { e.currentTarget.style.background = "#bbf7d0"; e.currentTarget.style.color = "#15803d" }}
+                                                                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-success)"; e.currentTarget.style.color = "#16a34a" }}
+                                                            >
+                                                                <Icon name="Check" size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={cancelarEdicion}
+                                                                title="Cancelar"
+                                                                style={{
+                                                                    background: "transparent", border: "1.5px solid var(--border-primary)",
+                                                                    borderRadius: 8, padding: "6px 8px",
+                                                                    cursor: "pointer", color: "var(--text-muted)",
+                                                                    display: "inline-flex", alignItems: "center",
+                                                                }}
+                                                                onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.borderColor = "#fca5a5"; e.currentTarget.style.color = "#b91c1c" }}
+                                                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-primary)"; e.currentTarget.style.color = "var(--text-muted)" }}
+                                                            >
+                                                                <Icon name="X" size={16} />
+                                                            </button>
+                                                        </span>
+                                                    ) : esPendiente ? (
                                                         <span style={{ display: "inline-flex", gap: 4 }}>
                                                             <button
                                                                 onClick={() => confirmar(g.id)}
@@ -274,13 +354,29 @@ export default function Gastos() {
                                                             </button>
                                                         </span>
                                                     ) : (
-                                                        <button onClick={() => eliminar(g.id)} style={{
-                                                            background: "none", border: "none",
-                                                            cursor: "pointer", opacity: 0.3,
-                                                            display: "inline-flex", alignItems: "center",
-                                                        }}>
-                                                            <Icon name="Trash2" size={16} />
-                                                        </button>
+                                                        <span style={{ display: "inline-flex", gap: 4 }}>
+                                                            <button
+                                                                onClick={() => iniciarEdicion(g)}
+                                                                title="Editar gasto"
+                                                                style={{
+                                                                    background: "none", border: "none",
+                                                                    cursor: "pointer", opacity: 0.35,
+                                                                    display: "inline-flex", alignItems: "center",
+                                                                    transition: "opacity 0.15s",
+                                                                }}
+                                                                onMouseEnter={e => e.currentTarget.style.opacity = "0.7"}
+                                                                onMouseLeave={e => e.currentTarget.style.opacity = "0.35"}
+                                                            >
+                                                                <Icon name="Pencil" size={16} />
+                                                            </button>
+                                                            <button onClick={() => eliminar(g.id)} style={{
+                                                                background: "none", border: "none",
+                                                                cursor: "pointer", opacity: 0.3,
+                                                                display: "inline-flex", alignItems: "center",
+                                                            }}>
+                                                                <Icon name="Trash2" size={16} />
+                                                            </button>
+                                                        </span>
                                                     )}
                                                 </td>
                                             </tr>

@@ -182,6 +182,7 @@ export const api = {
     // Gastos
     getGastos: () => request<Gasto[]>("/gastos/"),
     crearGasto: (data: { fecha: string; categoria: string; descripcion: string; monto: number; estado?: string; gasto_programado_id?: string }) => request("/gastos/", { method: "POST", body: JSON.stringify(data) }),
+    actualizarGasto: (id: number, data: { monto: number; categoria: string }) => request(`/gastos/${id}`, { method: "PUT", body: JSON.stringify({ ...data, fecha: "", descripcion: "" }) }),
     confirmarGasto: (id: number) => request(`/gastos/${id}/confirmar`, { method: "PUT" }),
     descartarGasto: (id: number) => request(`/gastos/${id}/descartar`, { method: "PUT" }),
     eliminarGasto: (id: number) => request(`/gastos/${id}`, { method: "DELETE" }),
