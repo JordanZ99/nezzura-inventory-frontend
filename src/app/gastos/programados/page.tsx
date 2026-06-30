@@ -41,7 +41,14 @@ export default function GastosProgramados() {
         setReglas(r)
     }
 
-    useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
+    useEffect(() => {
+        recargar()
+            .catch(e => {
+                console.error("Error al cargar reglas programadas:", e)
+                mostrarMsg(false, `Error al cargar reglas: ${e.message}`)
+            })
+            .finally(() => setCargando(false))
+    }, [])
 
     function mostrarMsg(ok: boolean, texto: string) {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
