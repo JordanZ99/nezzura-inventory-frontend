@@ -26,6 +26,7 @@ export default function GastosProgramados() {
     const [reglas, setReglas] = useState<GastoProgramado[]>([])
     const [cargando, setCargando] = useState(true)
     const [guardando, setGuardando] = useState(false)
+    const [ejecutando, setEjecutando] = useState<string | null>(null)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
 
     const [form, setForm] = useState({
@@ -52,6 +53,24 @@ export default function GastosProgramados() {
 
     function mostrarMsg(ok: boolean, texto: string) {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
+    }
+
+    async function ejecutarRegla(id: string, nombre: string) {
+        if (ejecutando) return
+        setEjecutando(id)
+        try {
+            const res = await api.ejecutarGastoProgramado(id)
+            if (res.ok) {
+                mostrarMsg(true, `✅ ${res.mensaje}`)
+            } else {
+                mostrarMsg(false, `❌ ${res.mensaje || "Error al ejecutar"}`)
+            }
+            await recargar()
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al ejecutar la regla"}`)
+        } finally {
+            setEjecutando(null)
+        }
     }
 
     async function guardar() {
@@ -175,8 +194,8 @@ export default function GastosProgramados() {
                     <div className="card fade-up" style={{ padding: 20, flex: "1 1 320px", maxWidth: 420 }}>
                         <h2 style={{ margin: "0 0 16px", fontSize: "1rem", fontWeight: 800 }}>
                             <span style={{ marginRight: 6, verticalAlign: "middle", display: "inline-flex" }}>
-                            <Icon name="CirclePlus" size={18} />
-                        </span>
+                                <Icon name="CirclePlus" size={18} />
+                            </span>
                             Nueva Regla
                         </h2>
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -187,7 +206,7 @@ export default function GastosProgramados() {
                                 </label>
                                 <input
                                     className="input-primary"
-                                    placeholder="Ej: Diezmo, Renta, Netflix..."
+                                    placeholder="Ej: Renta, luz, agua..."
                                     value={form.nombre}
                                     onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
                                 />
@@ -309,7 +328,7 @@ export default function GastosProgramados() {
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
                                     <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
-                                        {["Nombre", "Tipo", "Valor", "Frecuencia", "Próx. Fecha"].map(h => (
+                                        {["Nombre", "Tipo", "Valor", "Frecuencia", "Próx. Fecha", "Acciones"].map(h => (
                                             <th key={h} style={{
                                                 padding: "10px 14px", textAlign: "left",
                                                 fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase"
@@ -341,11 +360,42 @@ export default function GastosProgramados() {
                                             <td style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
                                                 {new Date(g.proxima_fecha).toLocaleDateString()}
                                             </td>
+                                            <td style={{ padding: "12px 14px" }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => ejecutarRegla(g.id, g.nombre)}
+                                                    disabled={ejecutando === g.id}
+                                                    title={g.tipo === "porcentaje"
+                                                        ? "Calcular y registrar pago basado en ventas"
+                                                        : "Registrar pago de monto fijo"}
+                                                    style={{
+                                                        display: "inline-flex", alignItems: "center", gap: 4,
+                                                        padding: "6px 12px", borderRadius: 8,
+                                                        border: "none",
+                                                        background: ejecutando === g.id
+                                                            ? "var(--border-primary)"
+                                                            : "var(--primary-pale)",
+                                                        color: ejecutando === g.id
+                                                            ? "var(--text-muted)"
+                                                            : "var(--primary-dark)",
+                                                        fontWeight: 700, fontSize: "0.75rem",
+                                                        cursor: ejecutando === g.id ? "not-allowed" : "pointer",
+                                                        transition: "all 0.15s",
+                                                    }}
+                                                >
+                                                    <Icon
+                                                        name={ejecutando === g.id ? "Loader" : "DollarSign"}
+                                                        size={14}
+                                                        className={ejecutando === g.id ? "animate-spin" : ""}
+                                                    />
+                                                    {ejecutando === g.id ? "Calculando..." : "Pagar"}
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                     {reglas.length === 0 && !cargando && (
                                         <tr>
-                                            <td colSpan={5} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
+                                            <td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>
                                                 <span style={{ display: "block", margin: "0 auto 8px", opacity: 0.4, textAlign: "center" }}>
                                                     <Icon name="CalendarX" size={32} />
                                                 </span>
