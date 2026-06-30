@@ -77,6 +77,21 @@ export interface Gasto {
     categoria: string;
     descripcion: string;
     monto: number;
+    estado?: string;
+    gasto_programado_id?: string;
+}
+
+export interface GastoProgramado {
+    id: string;
+    tenant_id: string;
+    nombre: string;
+    tipo: string;          // "fijo" | "porcentaje"
+    valor: number;
+    frecuencia: string;    // "semanal" | "mensual" | "anual"
+    proxima_fecha: string;
+    activo: boolean;
+    ultima_ejecucion?: string;
+    created_at?: string;
 }
 
 export interface Categoria {
@@ -168,6 +183,13 @@ export const api = {
 
     // Gastos
     getGastos: () => request<Gasto[]>("/gastos/"),
-    crearGasto: (data: { fecha: string; categoria: string; descripcion: string; monto: number }) => request("/gastos/", { method: "POST", body: JSON.stringify(data) }),
+    crearGasto: (data: { fecha: string; categoria: string; descripcion: string; monto: number; estado?: string; gasto_programado_id?: string }) => request("/gastos/", { method: "POST", body: JSON.stringify(data) }),
+    confirmarGasto: (id: number) => request(`/gastos/${id}/confirmar`, { method: "PUT" }),
+    descartarGasto: (id: number) => request(`/gastos/${id}/descartar`, { method: "PUT" }),
     eliminarGasto: (id: number) => request(`/gastos/${id}`, { method: "DELETE" }),
+
+    // Gastos Programados
+    getGastosProgramados: () => request<GastoProgramado[]>("/gastos_programados/"),
+    crearGastoProgramado: (data: { nombre: string; tipo: string; valor: number; frecuencia: string; proxima_fecha: string }) =>
+        request("/gastos_programados/", { method: "POST", body: JSON.stringify(data) }),
 }

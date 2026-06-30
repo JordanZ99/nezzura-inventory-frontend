@@ -17,6 +17,7 @@ const NAV = [
     { href: "/inventario", icon: "Package", label: "Inventario" },
     { href: "/estadisticas", icon: "ChartPie", label: "Estadísticas" },
     { href: "/gastos", icon: "DollarSign", label: "Gastos" },
+    { href: "/gastos/programados", icon: "CalendarClock", label: "Gastos Prog." },
     { href: "/personalizacion", icon: "UserRoundPen", label: "Ajustes" }
 ]
 

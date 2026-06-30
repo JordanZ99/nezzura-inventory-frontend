@@ -1,6 +1,7 @@
 "use client"
 // ==============================================================================
 // src/app/gastos/page.tsx — Rediseño Argon primary
+// Soporta gastos con estado: 'pagado', 'pendiente', 'descartado'
 // ==============================================================================
 
 import { useState, useEffect } from "react"
@@ -38,7 +39,7 @@ export default function Gastos() {
         if (!form.descripcion || isNaN(monto)) return
         try {
             await api.crearGasto({
-                fecha: form.fecha + "T12:00:00.000Z", // add time to ensure it posts correctly in UTC/local timezone logic
+                fecha: form.fecha + "T12:00:00.000Z",
                 categoria: form.categoria,
                 descripcion: form.descripcion,
                 monto
@@ -58,8 +59,41 @@ export default function Gastos() {
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
-    const total = gastos.reduce((a, g) => a + g.monto, 0)
-    const numGastos = gastos.length
+    async function confirmar(id: number) {
+        try {
+            await api.confirmarGasto(id)
+            mostrarMsg(true, "✅ Gasto confirmado como pagado")
+            recargar()
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+    }
+
+    async function descartar(id: number) {
+        if (!confirm("¿Descartar este gasto pendiente?")) return
+        try {
+            await api.descartarGasto(id)
+            mostrarMsg(true, "🗑️ Gasto descartado")
+            recargar()
+        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+    }
+
+    // ── Stats: solo gastos pagados ──
+    const pagados = gastos.filter(g => g.estado !== "pendiente" && g.estado !== "descartado")
+    const totalPagado = pagados.reduce((a, g) => a + g.monto, 0)
+    const numPagados = pagados.length
+    const pendientes = gastos.filter(g => g.estado === "pendiente")
+    const totalPendiente = pendientes.reduce((a, g) => a + g.monto, 0)
+
+    // ── Estado badge ──
+    function estadoBadge(estado?: string) {
+        switch (estado) {
+            case "pendiente":
+                return { label: "Pendiente", bg: "#fef9c3", color: "#ca8a04" }
+            case "descartado":
+                return { label: "Descartado", bg: "#f3f4f6", color: "#6b7280" }
+            default:
+                return { label: "Pagado", bg: "#dcfce7", color: "#16a34a" }
+        }
+    }
 
     return (
         <div style={{ minHeight: "100vh" }}>
@@ -67,26 +101,15 @@ export default function Gastos() {
             <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-4)", padding: "32px 24px 90px" }}>
                 <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
                     <Antigravity
-                        count={400}
-                        magnetRadius={12}
-                        ringRadius={8}
-                        waveSpeed={0.5}
-                        waveAmplitude={1.2}
-                        particleSize={1.5}
-                        lerpSpeed={0.08}
-                        color="var(--ag-color-4)"
-                        autoAnimate={true}
-                        particleVariance={0.8}
-                        rotationSpeed={0.3}
-                        depthFactor={0.5}
-                        pulseSpeed={2}
-                        particleShape="capsule"
-                        fieldStrength={8}
+                        count={400} magnetRadius={12} ringRadius={8}
+                        waveSpeed={0.5} waveAmplitude={1.2} particleSize={1.5}
+                        lerpSpeed={0.08} color="var(--ag-color-4)" autoAnimate={true}
+                        particleVariance={0.8} rotationSpeed={0.3} depthFactor={0.5}
+                        pulseSpeed={2} particleShape="capsule" fieldStrength={8}
                     />
                 </div>
                 <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
                     <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>EGRESOS</p>
-                    {/*Aquí va el titulo de la pagina*/}
                     <h1 className="hidden md:flex" style={{ color: "var(--primary-soft)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
                         <div style={{ marginLeft: "-5px" }}>
                             <Icon name="DollarSign" size={32} color="var(--primary-soft)" />
@@ -96,26 +119,42 @@ export default function Gastos() {
             </div>
 
             <div style={{ padding: "0 16px", marginTop: -60 }}>
-                {/* Stats cards */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+                {/* Stats cards: solo pagados */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
                         <Icon name="BanknoteArrowDown" size={32} color="var(--primary-alter)" />
                         <div>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Gastado</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-alter)" }}>${total.toFixed(0)}</p>
+                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Pagado</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-alter)" }}>${totalPagado.toFixed(0)}</p>
                         </div>
                     </div>
                     <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
                         <Icon name="ClipboardList" size={32} color="var(--primary-pale)" />
                         <div>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Operaciones</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-pale)" }}>{numGastos}</p>
+                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pagados</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-pale)" }}>{numPagados}</p>
+                        </div>
+                    </div>
+                    <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+                        <Icon name="Clock" size={32} color="var(--primary-dark)" />
+                        <div>
+                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pendientes</p>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-dark)" }}>
+                                {pendientes.length > 0 ? `${pendientes.length} ($${totalPendiente.toFixed(0)})` : "0"}
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 {msg && (
-                    <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, borderLeft: "4px solid #4caf50", color: "#2e7d32", fontSize: "0.9rem", fontWeight: 700 }}>{msg.texto}</div>
+                    <div className="card fade-up" style={{
+                        padding: "12px 16px", marginBottom: 16,
+                        borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#ef4444"}`,
+                        color: msg.ok ? "#2e7d32" : "#b91c1c",
+                        fontSize: "0.9rem", fontWeight: 700
+                    }}>
+                        {msg.texto}
+                    </div>
                 )}
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
@@ -151,35 +190,104 @@ export default function Gastos() {
                     {/* Lista / Tabla */}
                     <div className="card fade-up" style={{ flex: "1 1 400px", overflow: "hidden" }}>
                         <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border-primary)", backgroundColor: "var(--bg-card)" }}>
-                            <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>Movimientos</h3>
+                            <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
+                                <span style={{ marginRight: 6, verticalAlign: "middle", display: "inline-flex" }}>
+                                    <Icon name="ListChecks" size={18} />
+                                </span>
+                                Movimientos
+                            </h3>
                         </div>
                         <div style={{ overflowX: "auto" }}>
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
                                     <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
-                                        {["Fecha", "Categoría", "Gasto", "Monto", ""].map(h => (
-                                            <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
+                                        {["Fecha", "Categoría", "Gasto", "Monto", "Estado", ""].map(h => (
+                                            <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {gastos.map(g => (
-                                        <tr key={g.id} style={{ borderBottom: "1px solid var(--bg-card)" }} className="hover:bg-primary-50/20">
-                                            <td style={{ padding: "12px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{new Date(g.fecha).toLocaleDateString()}</td>
-                                            <td style={{ padding: "12px 16px" }}>
-                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
-                                                    {g.categoria}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 600 }}>{g.descripcion}</td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 800, color: "#b71c1c" }}>-${g.monto.toFixed(2)}</td>
-                                            <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                                                <button onClick={() => eliminar(g.id)} style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.3 }}><Icon name="Trash2" /></button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {gastos.map(g => {
+                                        const esPendiente = g.estado === "pendiente"
+                                        const badge = estadoBadge(g.estado)
+                                        return (
+                                            <tr key={g.id} style={{
+                                                borderBottom: "1px solid var(--bg-card)",
+                                                background: esPendiente ? "var(--bg-warning)" : "transparent",
+                                                borderLeft: esPendiente ? "3px solid #f59e0b" : "3px solid transparent",
+                                                opacity: g.estado === "descartado" ? 0.5 : 1,
+                                                transition: "background 0.15s",
+                                            }} className={esPendiente ? "" : "hover:bg-primary-50/20"}>
+                                                <td style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                                                    {new Date(g.fecha).toLocaleDateString()}
+                                                </td>
+                                                <td style={{ padding: "12px 14px" }}>
+                                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
+                                                        {g.categoria}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: "12px 14px", fontWeight: 600 }}>{g.descripcion}</td>
+                                                <td style={{ padding: "12px 14px", fontWeight: 800, color: esPendiente ? "#d97706" : "#b71c1c" }}>
+                                                    -${g.monto.toFixed(2)}
+                                                </td>
+                                                <td style={{ padding: "12px 14px" }}>
+                                                    <span style={{
+                                                        fontSize: "0.7rem", fontWeight: 700,
+                                                        background: badge.bg, color: badge.color,
+                                                        padding: "3px 8px", borderRadius: 12,
+                                                        display: "inline-flex", alignItems: "center", gap: 4,
+                                                    }}>
+                                                        {esPendiente && <Icon name="Timer" size={12} />}
+                                                        {badge.label}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                                                    {esPendiente ? (
+                                                        <span style={{ display: "inline-flex", gap: 4 }}>
+                                                            <button
+                                                                onClick={() => confirmar(g.id)}
+                                                                title="Confirmar pago"
+                                                                style={{
+                                                                    background: "var(--bg-success)", border: "none",
+                                                                    borderRadius: 8, padding: "6px 8px",
+                                                                    cursor: "pointer", color: "#16a34a",
+                                                                    display: "inline-flex", alignItems: "center",
+                                                                }}
+                                                                onMouseEnter={e => { e.currentTarget.style.background = "#bbf7d0"; e.currentTarget.style.color = "#15803d" }}
+                                                                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-success)"; e.currentTarget.style.color = "#16a34a" }}
+                                                            >
+                                                                <Icon name="Check" size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => descartar(g.id)}
+                                                                title="Descartar gasto"
+                                                                style={{
+                                                                    background: "transparent", border: "1.5px solid var(--border-primary)",
+                                                                    borderRadius: 8, padding: "6px 8px",
+                                                                    cursor: "pointer", color: "var(--text-muted)",
+                                                                    display: "inline-flex", alignItems: "center",
+                                                                }}
+                                                                onMouseEnter={e => { e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.borderColor = "#9ca3af" }}
+                                                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-primary)" }}
+                                                            >
+                                                                <Icon name="X" size={16} />
+                                                            </button>
+                                                        </span>
+                                                    ) : (
+                                                        <button onClick={() => eliminar(g.id)} style={{
+                                                            background: "none", border: "none",
+                                                            cursor: "pointer", opacity: 0.3,
+                                                            display: "inline-flex", alignItems: "center",
+                                                        }}>
+                                                            <Icon name="Trash2" size={16} />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
                                     {gastos.length === 0 && !cargando && (
-                                        <tr><td colSpan={4} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No hay gastos registrados.</td></tr>
+                                        <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No hay gastos registrados.</td></tr>
                                     )}
                                 </tbody>
                             </table>
