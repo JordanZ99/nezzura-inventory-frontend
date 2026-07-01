@@ -1,17 +1,26 @@
 "use client"
 // ==============================================================================
 // src/app/gastos/page.tsx — Rediseño Argon primary
-// Soporta gastos con estado: 'pagado', 'pendiente', 'descartado'
+// Ahora con tabs: Movimientos | Gastos Programados (mismo patrón que Inventario)
 // ==============================================================================
 
 import { useState, useEffect } from "react"
 import { api, Gasto } from "@/lib/api"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
+import GestionGastosProgramados from "@/components/GestionGastosProgramados"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
+type Tab = "movimientos" | "programados"
+
+const TABS: { id: Tab; label: string; icon: string }[] = [
+    { id: "movimientos", label: "Movimientos", icon: "ListChecks" },
+    { id: "programados", label: "Gastos Programados", icon: "CalendarClock" },
+]
+
 export default function Gastos() {
+    const [tab, setTab] = useState<Tab>("movimientos")
     const [gastos, setGastos] = useState<Gasto[]>([])
     const [cargando, setCargando] = useState(true)
     const [form, setForm] = useState({
@@ -112,7 +121,6 @@ export default function Gastos() {
     const pendientes = gastos.filter(g => g.estado === "pendiente")
     const totalPendiente = pendientes.reduce((a, g) => a + g.monto, 0)
 
-    // ── Estado badge ──
     function estadoBadge(estado?: string) {
         switch (estado) {
             case "pendiente":
@@ -148,280 +156,229 @@ export default function Gastos() {
             </div>
 
             <div style={{ padding: "0 16px", marginTop: -60 }}>
-                {/* Stats cards: solo pagados */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-                    <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-                        <Icon name="BanknoteArrowDown" size={32} color="var(--primary-alter)" />
-                        <div>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Pagado</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-alter)" }}>${totalPagado.toFixed(0)}</p>
-                        </div>
-                    </div>
-                    <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-                        <Icon name="ClipboardList" size={32} color="var(--primary-pale)" />
-                        <div>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pagados</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-pale)" }}>{numPagados}</p>
-                        </div>
-                    </div>
-                    <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-                        <Icon name="Clock" size={32} color="var(--primary-dark)" />
-                        <div>
-                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pendientes</p>
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-dark)" }}>
-                                {pendientes.length > 0 ? `${pendientes.length} ($${totalPendiente.toFixed(0)})` : "0"}
-                            </p>
-                        </div>
-                    </div>
+
+                {/* ── Tabs (patrón Inventario) ── */}
+                <div className="card" style={{ display: "flex", padding: 6, gap: 4, marginBottom: 20, flexWrap: "wrap" }}>
+                    {TABS.map(t => (
+                        <button key={t.id} onClick={() => setTab(t.id)} style={{
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flex: 1, minWidth: 80, padding: "10px 16px", gap: 8, borderRadius: 10, border: "none",
+                            background: tab === t.id ? "var(--gradient-4)" : "transparent",
+                            color: tab === t.id ? "#fff" : "var(--text-muted)",
+                            fontWeight: 700, fontSize: "0.85rem", cursor: "pointer", transition: "all 0.2s",
+                        }}>
+                            <Icon name={t.icon as any} size={22} color={tab === t.id ? "#fff" : "var(--text-muted)"} />
+                            {t.label}
+                        </button>
+                    ))}
                 </div>
 
-                {msg && (
-                    <div className="card fade-up" style={{
-                        padding: "12px 16px", marginBottom: 16,
-                        borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#ef4444"}`,
-                        color: msg.ok ? "#2e7d32" : "#b91c1c",
-                        fontSize: "0.9rem", fontWeight: 700
-                    }}>
-                        {msg.texto}
-                    </div>
+                {/* ── Tab: Movimientos ── */}
+                {tab === "movimientos" && (
+                    <>
+                        {/* Stats cards: solo pagados */}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+                            <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+                                <Icon name="BanknoteArrowDown" size={32} color="var(--primary-alter)" />
+                                <div>
+                                    <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Pagado</p>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-alter)" }}>${totalPagado.toFixed(0)}</p>
+                                </div>
+                            </div>
+                            <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+                                <Icon name="ClipboardList" size={32} color="var(--primary-pale)" />
+                                <div>
+                                    <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pagados</p>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-pale)" }}>{numPagados}</p>
+                                </div>
+                            </div>
+                            <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+                                <Icon name="Clock" size={32} color="var(--primary-dark)" />
+                                <div>
+                                    <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pendientes</p>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-dark)" }}>
+                                        {pendientes.length > 0 ? `${pendientes.length} ($${totalPendiente.toFixed(0)})` : "0"}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {msg && (
+                            <div className="card fade-up" style={{
+                                padding: "12px 16px", marginBottom: 16,
+                                borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#ef4444"}`,
+                                color: msg.ok ? "#2e7d32" : "#b91c1c",
+                                fontSize: "0.9rem", fontWeight: 700
+                            }}>
+                                {msg.texto}
+                            </div>
+                        )}
+
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
+                            {/* Formulario */}
+                            <div className="card fade-up" style={{ padding: 20, flex: "1 1 300px", maxWidth: 400 }}>
+                                <h2 style={{ margin: "0 0 16px", fontSize: "1rem", fontWeight: 800 }}> Registrar Gasto</h2>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Fecha</label>
+                                        <input type="date" className="input-primary" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Categoría</label>
+                                        <select className="input-primary" value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
+                                            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Descripción</label>
+                                        <input className="input-primary" placeholder="Ej: Pago de luz, comida..." value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
+                                    </div>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Monto ($)</label>
+                                        <input type="number" step="0.01" className="input-primary" placeholder="0.00" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
+                                    </div>
+                                    <button className="btn-primary" style={{ marginTop: 8 }} onClick={agregar} disabled={!form.descripcion || !form.monto || !form.fecha}>
+                                        Añadir Gasto
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Lista / Tabla */}
+                            <div className="card fade-up" style={{ flex: "1 1 400px", overflow: "hidden" }}>
+                                <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border-primary)", backgroundColor: "var(--bg-card)" }}>
+                                    <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
+                                        <span style={{ marginRight: 6, verticalAlign: "middle", display: "inline-flex" }}>
+                                            <Icon name="ListChecks" size={18} />
+                                        </span>
+                                        Movimientos
+                                    </h3>
+                                </div>
+                                <div style={{ overflowX: "auto" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                                        <thead>
+                                            <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
+                                                {["Fecha", "Categoría", "Gasto", "Monto", "Estado", ""].map(h => (
+                                                    <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {gastos.map(g => {
+                                                const esPendiente = g.estado === "pendiente"
+                                                const badge = estadoBadge(g.estado)
+                                                return (
+                                                    <tr key={g.id} style={{
+                                                        borderBottom: "1px solid var(--bg-card)",
+                                                        background: esPendiente ? "var(--bg-warning)" : "transparent",
+                                                        borderLeft: esPendiente ? "3px solid #f59e0b" : "3px solid transparent",
+                                                        opacity: g.estado === "descartado" ? 0.5 : 1,
+                                                        transition: "background 0.15s",
+                                                    }} className={esPendiente ? "" : "hover:bg-primary-50/20"}>
+                                                        <td style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                                                            {(g.fecha || '').split('T')[0].split('-').reverse().join('/') || '—'}
+                                                        </td>
+                                                        <td style={{ padding: "12px 14px" }}>
+                                                            {editandoId === g.id ? (
+                                                                <select className="input-primary" style={{ padding: "4px 8px", fontSize: "0.75rem", fontWeight: 600 }}
+                                                                    value={editCategoria} onChange={e => setEditCategoria(e.target.value)}>
+                                                                    {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                                                </select>
+                                                            ) : (
+                                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
+                                                                    {g.categoria}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ padding: "12px 14px", fontWeight: 600 }}>
+                                                            {editandoId === g.id ? (
+                                                                <input type="text" className="input-primary" style={{ padding: "4px 8px", fontSize: "0.85rem", fontWeight: 600, minWidth: 120 }}
+                                                                    value={editDescripcion} onChange={e => setEditDescripcion(e.target.value)} />
+                                                            ) : g.descripcion}
+                                                        </td>
+                                                        <td style={{ padding: "12px 14px", fontWeight: 800, color: esPendiente ? "#d97706" : "#b71c1c" }}>
+                                                            {editandoId === g.id ? (
+                                                                <input type="number" step="0.01" min="0.01" className="input-primary" style={{ width: 100, padding: "4px 8px", fontSize: "0.85rem", fontWeight: 700 }}
+                                                                    value={editMonto} onChange={e => setEditMonto(e.target.value)} />
+                                                            ) : `-$${g.monto.toFixed(2)}`}
+                                                        </td>
+                                                        <td style={{ padding: "12px 14px" }}>
+                                                            <span style={{
+                                                                fontSize: "0.7rem", fontWeight: 700,
+                                                                background: badge.bg, color: badge.color,
+                                                                padding: "3px 8px", borderRadius: 12,
+                                                                display: "inline-flex", alignItems: "center", gap: 4,
+                                                            }}>
+                                                                {esPendiente && <Icon name="Timer" size={12} />}
+                                                                {badge.label}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
+                                                            {editandoId === g.id ? (
+                                                                <span style={{ display: "inline-flex", gap: 4 }}>
+                                                                    <button onClick={() => guardarEdicion(g.id)} title="Guardar cambios"
+                                                                        style={{ background: "var(--bg-success)", border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer", color: "#16a34a", display: "inline-flex", alignItems: "center" }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.background = "#bbf7d0"; e.currentTarget.style.color = "#15803d" }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-success)"; e.currentTarget.style.color = "#16a34a" }}>
+                                                                        <Icon name="Check" size={16} />
+                                                                    </button>
+                                                                    <button onClick={cancelarEdicion} title="Cancelar"
+                                                                        style={{ background: "transparent", border: "1.5px solid var(--border-primary)", borderRadius: 8, padding: "6px 8px", cursor: "pointer", color: "var(--text-muted)", display: "inline-flex", alignItems: "center" }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.borderColor = "#fca5a5"; e.currentTarget.style.color = "#b91c1c" }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-primary)"; e.currentTarget.style.color = "var(--text-muted)" }}>
+                                                                        <Icon name="X" size={16} />
+                                                                    </button>
+                                                                </span>
+                                                            ) : esPendiente ? (
+                                                                <span style={{ display: "inline-flex", gap: 4 }}>
+                                                                    <button onClick={() => confirmar(g.id)} title="Confirmar pago"
+                                                                        style={{ background: "var(--bg-success)", border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer", color: "#16a34a", display: "inline-flex", alignItems: "center" }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.background = "#bbf7d0"; e.currentTarget.style.color = "#15803d" }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-success)"; e.currentTarget.style.color = "#16a34a" }}>
+                                                                        <Icon name="Check" size={16} />
+                                                                    </button>
+                                                                    <button onClick={() => descartar(g.id)} title="Descartar gasto"
+                                                                        style={{ background: "transparent", border: "1.5px solid var(--border-primary)", borderRadius: 8, padding: "6px 8px", cursor: "pointer", color: "var(--text-muted)", display: "inline-flex", alignItems: "center" }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.borderColor = "#9ca3af" }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-primary)" }}>
+                                                                        <Icon name="X" size={16} />
+                                                                    </button>
+                                                                </span>
+                                                            ) : (
+                                                                <span style={{ display: "inline-flex", gap: 20, alignItems: "center" }}>
+                                                                    <button onClick={() => iniciarEdicion(g)} title="Editar gasto"
+                                                                        style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.35, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px", borderRadius: 8, minWidth: 32, minHeight: 32, transition: "opacity 0.15s, background 0.15s" }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "var(--bg-card2)" }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.opacity = "0.35"; e.currentTarget.style.background = "transparent" }}>
+                                                                        <Icon name="Pencil" size={16} />
+                                                                    </button>
+                                                                    <button onClick={() => eliminar(g.id)} title="Eliminar gasto"
+                                                                        style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.3, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px", borderRadius: 8, minWidth: 32, minHeight: 32, transition: "opacity 0.15s, background 0.15s" }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.opacity = "0.6"; e.currentTarget.style.background = "var(--bg-card2)" }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent" }}>
+                                                                        <Icon name="Trash2" size={16} />
+                                                                    </button>
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })}
+                                            {gastos.length === 0 && !cargando && (
+                                                <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No hay gastos registrados.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </>
                 )}
 
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
+                {/* ── Tab: Gastos Programados ── */}
+                {tab === "programados" && (
+                    <GestionGastosProgramados />
+                )}
 
-                    {/* Formulario */}
-                    <div className="card fade-up" style={{ padding: 20, flex: "1 1 300px", maxWidth: 400 }}>
-                        <h2 style={{ margin: "0 0 16px", fontSize: "1rem", fontWeight: 800 }}> Registrar Gasto</h2>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Fecha</label>
-                                <input type="date" className="input-primary" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))} />
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Categoría</label>
-                                <select className="input-primary" value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
-                                    {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Descripción</label>
-                                <input className="input-primary" placeholder="Ej: Pago de luz, comida..." value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Monto ($)</label>
-                                <input type="number" step="0.01" className="input-primary" placeholder="0.00" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))} />
-                            </div>
-                            <button className="btn-primary" style={{ marginTop: 8 }} onClick={agregar} disabled={!form.descripcion || !form.monto || !form.fecha}>
-                                Añadir Gasto
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Lista / Tabla */}
-                    <div className="card fade-up" style={{ flex: "1 1 400px", overflow: "hidden" }}>
-                        <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border-primary)", backgroundColor: "var(--bg-card)" }}>
-                            <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800 }}>
-                                <span style={{ marginRight: 6, verticalAlign: "middle", display: "inline-flex" }}>
-                                    <Icon name="ListChecks" size={18} />
-                                </span>
-                                Movimientos
-                            </h3>
-                        </div>
-                        <div style={{ overflowX: "auto" }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-                                <thead>
-                                    <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
-                                        {["Fecha", "Categoría", "Gasto", "Monto", "Estado", ""].map(h => (
-                                            <th key={h} style={{ padding: "10px 14px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {gastos.map(g => {
-                                        const esPendiente = g.estado === "pendiente"
-                                        const badge = estadoBadge(g.estado)
-                                        return (
-                                            <tr key={g.id} style={{
-                                                borderBottom: "1px solid var(--bg-card)",
-                                                background: esPendiente ? "var(--bg-warning)" : "transparent",
-                                                borderLeft: esPendiente ? "3px solid #f59e0b" : "3px solid transparent",
-                                                opacity: g.estado === "descartado" ? 0.5 : 1,
-                                                transition: "background 0.15s",
-                                            }} className={esPendiente ? "" : "hover:bg-primary-50/20"}>
-                                                <td style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                                                    {(g.fecha || '').split('T')[0].split('-').reverse().join('/') || '—'}
-                                                </td>
-                                                <td style={{ padding: "12px 14px" }}>
-                                                    {editandoId === g.id ? (
-                                                        <select
-                                                            className="input-primary"
-                                                            style={{ padding: "4px 8px", fontSize: "0.75rem", fontWeight: 600 }}
-                                                            value={editCategoria}
-                                                            onChange={e => setEditCategoria(e.target.value)}
-                                                        >
-                                                            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
-                                                        </select>
-                                                    ) : (
-                                                        <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
-                                                            {g.categoria}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: "12px 14px", fontWeight: 600 }}>
-                                                    {editandoId === g.id ? (
-                                                        <input
-                                                            type="text"
-                                                            className="input-primary"
-                                                            style={{ padding: "4px 8px", fontSize: "0.85rem", fontWeight: 600, minWidth: 120 }}
-                                                            value={editDescripcion}
-                                                            onChange={e => setEditDescripcion(e.target.value)}
-                                                        />
-                                                    ) : (
-                                                        g.descripcion
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: "12px 14px", fontWeight: 800, color: esPendiente ? "#d97706" : "#b71c1c" }}>
-                                                    {editandoId === g.id ? (
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0.01"
-                                                            className="input-primary"
-                                                            style={{ width: 100, padding: "4px 8px", fontSize: "0.85rem", fontWeight: 700 }}
-                                                            value={editMonto}
-                                                            onChange={e => setEditMonto(e.target.value)}
-                                                        />
-                                                    ) : (
-                                                        `-$${g.monto.toFixed(2)}`
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: "12px 14px" }}>
-                                                    <span style={{
-                                                        fontSize: "0.7rem", fontWeight: 700,
-                                                        background: badge.bg, color: badge.color,
-                                                        padding: "3px 8px", borderRadius: 12,
-                                                        display: "inline-flex", alignItems: "center", gap: 4,
-                                                    }}>
-                                                        {esPendiente && <Icon name="Timer" size={12} />}
-                                                        {badge.label}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
-                                                    {editandoId === g.id ? (
-                                                        <span style={{ display: "inline-flex", gap: 4 }}>
-                                                            <button
-                                                                onClick={() => guardarEdicion(g.id)}
-                                                                title="Guardar cambios"
-                                                                style={{
-                                                                    background: "var(--bg-success)", border: "none",
-                                                                    borderRadius: 8, padding: "6px 8px",
-                                                                    cursor: "pointer", color: "#16a34a",
-                                                                    display: "inline-flex", alignItems: "center",
-                                                                }}
-                                                                onMouseEnter={e => { e.currentTarget.style.background = "#bbf7d0"; e.currentTarget.style.color = "#15803d" }}
-                                                                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-success)"; e.currentTarget.style.color = "#16a34a" }}
-                                                            >
-                                                                <Icon name="Check" size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={cancelarEdicion}
-                                                                title="Cancelar"
-                                                                style={{
-                                                                    background: "transparent", border: "1.5px solid var(--border-primary)",
-                                                                    borderRadius: 8, padding: "6px 8px",
-                                                                    cursor: "pointer", color: "var(--text-muted)",
-                                                                    display: "inline-flex", alignItems: "center",
-                                                                }}
-                                                                onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.borderColor = "#fca5a5"; e.currentTarget.style.color = "#b91c1c" }}
-                                                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-primary)"; e.currentTarget.style.color = "var(--text-muted)" }}
-                                                            >
-                                                                <Icon name="X" size={16} />
-                                                            </button>
-                                                        </span>
-                                                    ) : esPendiente ? (
-                                                        <span style={{ display: "inline-flex", gap: 4 }}>
-                                                            <button
-                                                                onClick={() => confirmar(g.id)}
-                                                                title="Confirmar pago"
-                                                                style={{
-                                                                    background: "var(--bg-success)", border: "none",
-                                                                    borderRadius: 8, padding: "6px 8px",
-                                                                    cursor: "pointer", color: "#16a34a",
-                                                                    display: "inline-flex", alignItems: "center",
-                                                                }}
-                                                                onMouseEnter={e => { e.currentTarget.style.background = "#bbf7d0"; e.currentTarget.style.color = "#15803d" }}
-                                                                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-success)"; e.currentTarget.style.color = "#16a34a" }}
-                                                            >
-                                                                <Icon name="Check" size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => descartar(g.id)}
-                                                                title="Descartar gasto"
-                                                                style={{
-                                                                    background: "transparent", border: "1.5px solid var(--border-primary)",
-                                                                    borderRadius: 8, padding: "6px 8px",
-                                                                    cursor: "pointer", color: "var(--text-muted)",
-                                                                    display: "inline-flex", alignItems: "center",
-                                                                }}
-                                                                onMouseEnter={e => { e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.borderColor = "#9ca3af" }}
-                                                                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-primary)" }}
-                                                            >
-                                                                <Icon name="X" size={16} />
-                                                            </button>
-                                                        </span>
-                                                    ) : (
-                                                        <span style={{ display: "inline-flex", gap: 20, alignItems: "center" }}>
-                                                            <button
-                                                                onClick={() => iniciarEdicion(g)}
-                                                                title="Editar gasto"
-                                                                style={{
-                                                                    background: "none", border: "none",
-                                                                    cursor: "pointer", opacity: 0.35,
-                                                                    display: "inline-flex", alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    padding: "8px",
-                                                                    borderRadius: 8,
-                                                                    minWidth: 32,
-                                                                    minHeight: 32,
-                                                                    transition: "opacity 0.15s, background 0.15s",
-                                                                }}
-                                                                onMouseEnter={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "var(--bg-card2)" }}
-                                                                onMouseLeave={e => { e.currentTarget.style.opacity = "0.35"; e.currentTarget.style.background = "transparent" }}
-                                                            >
-                                                                <Icon name="Pencil" size={16} />
-                                                            </button>
-                                                            <button onClick={() => eliminar(g.id)}
-                                                                title="Eliminar gasto"
-                                                                style={{
-                                                                    background: "none", border: "none",
-                                                                    cursor: "pointer", opacity: 0.3,
-                                                                    display: "inline-flex", alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    padding: "8px",
-                                                                    borderRadius: 8,
-                                                                    minWidth: 32,
-                                                                    minHeight: 32,
-                                                                    transition: "opacity 0.15s, background 0.15s",
-                                                                }}
-                                                                onMouseEnter={e => { e.currentTarget.style.opacity = "0.6"; e.currentTarget.style.background = "var(--bg-card2)" }}
-                                                                onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent" }}
-                                                            >
-                                                                <Icon name="Trash2" size={16} />
-                                                            </button>
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                    {gastos.length === 0 && !cargando && (
-                                        <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No hay gastos registrados.</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                </div>
                 <div style={{ height: 32 }} />
             </div>
         </div>
