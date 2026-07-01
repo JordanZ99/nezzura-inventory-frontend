@@ -1,40 +1,67 @@
 "use client"
 // ==============================================================================
 // src/components/AppShell.tsx
-// Shell del layout: sidebar, bottom-nav y botón logout.
+// Shell del layout: sidebar con submenú en Gastos, bottom-nav y botón logout.
 // Se oculta completamente en /login para mostrar la pantalla limpia.
 // ==============================================================================
 
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import Icon from "@/components/ui/Icon"
 import { supabase } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
 
-const NAV = [
+type NavChild = {
+    href: string
+    icon: string
+    label: string
+}
+
+type NavItem = {
+    href: string
+    icon: string
+    label: string
+    children?: NavChild[]
+}
+
+const NAV: NavItem[] = [
     { href: "/", icon: "ShoppingCart", label: "Punto de Venta" },
     { href: "/inventario", icon: "Package", label: "Inventario" },
     { href: "/estadisticas", icon: "ChartPie", label: "Estadísticas" },
-    { href: "/gastos", icon: "DollarSign", label: "Gastos" },
-    { href: "/gastos/programados", icon: "CalendarClock", label: "Gastos Prog." },
+    {
+        href: "/gastos",
+        icon: "DollarSign",
+        label: "Gastos",
+        children: [
+            { href: "/gastos", icon: "ListChecks", label: "Movimientos" },
+            { href: "/gastos/programados", icon: "CalendarClock", label: "Gastos Programados" },
+        ]
+    },
     { href: "/personalizacion", icon: "UserRoundPen", label: "Ajustes" }
 ]
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const router = useRouter()
+    const [submenuOpen, setSubmenuOpen] = useState<string | null>(null)
 
     // Re-aplica el tema guardado tras la hidratación de React.
-    // React reconcilia <html> contra su VDOM (sin data-theme, porque el server
-    // no conoce localStorage) y puede eliminar el atributo que puso el script
-    // inline. Este useEffect lo restaura una vez que la hidratación termina.
     useEffect(() => {
         try {
             const tema = localStorage.getItem('tema') || 'default'
             document.documentElement.setAttribute('data-theme', tema)
         } catch (e) { }
     }, [])
+
+    // Abrir submenú automáticamente si la ruta activa está dentro de él
+    useEffect(() => {
+        const parent = NAV.find(n => n.children?.some(c => pathname === c.href))
+        if (parent) {
+            setSubmenuOpen(parent.href)
+        }
+    }, [pathname])
+
     const isLoginPage = pathname === "/login"
     const { tenant } = useTenant()
 
@@ -44,6 +71,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     async function handleLogout() {
         await supabase.auth.signOut()
         router.replace("/login")
+    }
+
+    function isActive(href: string): boolean {
+        return pathname === href
+    }
+
+    function isChildActive(item: NavItem): boolean {
+        if (!item.children) return isActive(item.href)
+        return item.children.some(c => isActive(c.href))
     }
 
     // En la página de login renderizamos solo los children (sin sidebar)
@@ -126,37 +162,120 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     Menú principal
                 </div>
 
-                {/* Links de navegación */}
+                {/* Links de navegación con submenú en Gastos */}
                 <nav style={{
                     display: "flex",
                     flexDirection: "column",
                     gap: 2,
                     padding: "0 12px",
                 }}>
-                    {NAV.map(item => (
-                        <Link key={item.href} href={item.href}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "11px 16px",
-                                borderRadius: 12,
-                                color: pathname === item.href ? "var(--primary-dark)" : "var(--primary-icons)",
-                                background: pathname === item.href
-                                    ? "var(--primary-layout)"
-                                    : "transparent",
-                                textDecoration: "none",
-                                fontSize: "0.875rem",
-                                fontWeight: pathname === item.href ? 700 : 600,
-                                transition: "background 0.15s, color 0.15s",
-                                letterSpacing: 0.1,
-                            }}
-                            className="nav-link"
-                        >
-                            <Icon name={item.icon as any} size={20} />
-                            {item.label}
-                        </Link>
-                    ))}
+                    {NAV.map(item => {
+                        const hasChildren = item.children && item.children.length > 0
+                        const active = hasChildren ? isChildActive(item) : isActive(item.href)
+                        const expanded = submenuOpen === item.href
+
+                        return (
+                            <div key={item.href}>
+                                {hasChildren ? (
+                                    // ── Botón padre con submenú ──
+                                    <button
+                                        onClick={() => setSubmenuOpen(expanded ? null : item.href)}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 10,
+                                            padding: "11px 16px",
+                                            borderRadius: 12,
+                                            width: "100%",
+                                            border: "none",
+                                            background: active
+                                                ? "var(--primary-layout)"
+                                                : "transparent",
+                                            color: active ? "var(--primary-dark)" : "var(--primary-icons)",
+                                            textDecoration: "none",
+                                            fontSize: "0.875rem",
+                                            fontWeight: active ? 700 : 600,
+                                            cursor: "pointer",
+                                            transition: "background 0.15s, color 0.15s",
+                                            letterSpacing: 0.1,
+                                        }}
+                                        className="nav-link"
+                                    >
+                                        <Icon name={item.icon as any} size={20} />
+                                        {item.label}
+                                        <span style={{ marginLeft: "auto", display: "flex", transition: "transform 0.2s", transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+                                            <Icon name="ChevronDown" size={14} />
+                                        </span>
+                                    </button>
+                                ) : (
+                                    // ── Link simple ──
+                                    <Link href={item.href}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 10,
+                                            padding: "11px 16px",
+                                            borderRadius: 12,
+                                            color: active ? "var(--primary-dark)" : "var(--primary-icons)",
+                                            background: active
+                                                ? "var(--primary-layout)"
+                                                : "transparent",
+                                            textDecoration: "none",
+                                            fontSize: "0.875rem",
+                                            fontWeight: active ? 700 : 600,
+                                            transition: "background 0.15s, color 0.15s",
+                                            letterSpacing: 0.1,
+                                        }}
+                                        className="nav-link"
+                                    >
+                                        <Icon name={item.icon as any} size={20} />
+                                        {item.label}
+                                    </Link>
+                                )}
+
+                                {/* ── Submenú colapsable ── */}
+                                {hasChildren && expanded && (
+                                    <div style={{
+                                        paddingLeft: 12,
+                                        marginTop: 2,
+                                        marginBottom: 2,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 1,
+                                    }}>
+                                        {item.children!.map(child => {
+                                            const childActive = isActive(child.href)
+                                            return (
+                                                <Link key={child.href} href={child.href}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 10,
+                                                        padding: "9px 16px",
+                                                        borderRadius: 10,
+                                                        color: childActive ? "var(--primary-dark)" : "var(--primary-icons)",
+                                                        background: childActive
+                                                            ? "var(--primary-layout)"
+                                                            : "transparent",
+                                                        textDecoration: "none",
+                                                        fontSize: "0.8rem",
+                                                        fontWeight: childActive ? 700 : 500,
+                                                        transition: "background 0.15s, color 0.15s",
+                                                        borderLeft: childActive ? "3px solid var(--primary-mid)" : "3px solid transparent",
+                                                        marginLeft: 4,
+                                                    }}
+                                                    className="nav-link"
+                                                >
+                                                    <Icon name={child.icon as any} size={16} />
+                                                    {child.label}
+                                                </Link>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
                 </nav>
 
                 {/* Footer con logout */}
@@ -220,61 +339,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 position: "fixed",
                 bottom: 0, left: 0, right: 0,
                 background: "var(--bg-card)",
-                //borderTop: "1.5px solid var(--border-primary)",
                 justifyContent: "space-around",
                 alignItems: "center",
                 height: 64,
                 zIndex: 200,
                 boxShadow: "0 -4px 20px rgba(47, 24, 194, 0.08)",
             }}>
-                {NAV.map(item => (
-                    <Link key={item.href} href={item.href} style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 3,
-                        textDecoration: "none",
-                        flex: 1,
-                        padding: "8px 0",
-                    }}>
-                        <Icon name={item.icon as any} size={22}
-                            color={pathname === item.href ? "var(--primary-mid)" : "var(--primary-icons)"}
-                        />
-                        <span style={{
-                            fontSize: "0.6rem",
-                            fontWeight: 700,
-                            color: pathname === item.href ? "var(--primary-mid)" : "var(--primary-icons)",
-                            letterSpacing: 0.3,
+                {NAV.map(item => {
+                    // En móvil: los items con submenú apuntan a la ruta principal
+                    const href = item.children ? item.children[0].href : item.href
+                    const icon = item.children ? item.children[0].icon : item.icon
+                    const label = item.label.split(" ")[0]
+                    const active = isActive(href) || (item.children?.some(c => isActive(c.href)) ?? false)
+
+                    return (
+                        <Link key={item.href} href={href} style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 3,
+                            textDecoration: "none",
+                            flex: 1,
+                            padding: "8px 0",
                         }}>
-                            {item.label.split(" ")[0]}
-                        </span>
-                    </Link>
-                ))}
-                {/* Logout en móvil */}
-                {/*<button
-                    onClick={handleLogout}
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 3,
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        flex: 1,
-                        padding: "8px 0",
-                    }}
-                >
-                    <Icon name="LogOut" size={22} color="var(--primary-icons)" />
-                    <span style={{
-                        fontSize: "0.6rem",
-                        fontWeight: 700,
-                        color: "var(--primary-icons)",
-                        letterSpacing: 0.3,
-                    }}>
-                        Salir
-                    </span>
-                </button>*/}
+                            <Icon name={icon as any} size={22}
+                                color={active ? "var(--primary-mid)" : "var(--primary-icons)"}
+                            />
+                            <span style={{
+                                fontSize: "0.6rem",
+                                fontWeight: 700,
+                                color: active ? "var(--primary-mid)" : "var(--primary-icons)",
+                                letterSpacing: 0.3,
+                            }}>
+                                {label}
+                            </span>
+                        </Link>
+                    )
+                })}
             </nav>
 
         </div>
