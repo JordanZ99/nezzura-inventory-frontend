@@ -358,7 +358,7 @@ export default function GastosProgramados() {
                                                 </span>
                                             </td>
                                             <td style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                                                {new Date(g.proxima_fecha).toLocaleDateString()}
+                                                {g.proxima_fecha.split('-').reverse().join('/')}
                                             </td>
                                             <td style={{ padding: "12px 14px" }}>
                                                 <button

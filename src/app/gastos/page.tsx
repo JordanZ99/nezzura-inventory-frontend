@@ -248,7 +248,7 @@ export default function Gastos() {
                                                 transition: "background 0.15s",
                                             }} className={esPendiente ? "" : "hover:bg-primary-50/20"}>
                                                 <td style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                                                    {new Date(g.fecha).toLocaleDateString()}
+                                                    {(g.fecha || '').split('T')[0].split('-').reverse().join('/') || '—'}
                                                 </td>
                                                 <td style={{ padding: "12px 14px" }}>
                                                     {editandoId === g.id ? (
