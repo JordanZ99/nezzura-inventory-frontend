@@ -69,6 +69,12 @@ export default function GaleriaProducto({
     const pendingFileRef = useRef<File | null>(null)
 
     const lugarLibre = fotos.length < maxFotos
+    // Índice máximo del carrusel: si hay lugar libre, permitimos navegar
+    // una posición extra (fotos.length) que corresponde al slot vacío
+    // "Añade una foto". Si no hay lugar, el máximo es la última foto real.
+    const indiceMaximo = lugarLibre ? fotos.length : fotos.length - 1
+    // True cuando el carrusel está mostrando el slot vacío
+    const esSlotVacio = carouselIndex === fotos.length && lugarLibre
 
     // ── Helpers ──
 
@@ -225,8 +231,8 @@ export default function GaleriaProducto({
                 {fotos.length === 0 && " — La primera que subas será la foto principal"}
             </p>
 
-            {/* ── Carrusel con flechas (si hay fotos) ── */}
-            {fotos.length > 0 && (
+            {/* ── Carrusel con flechas (siempre visible si hay fotos o slot vacío) ── */}
+            {(fotos.length > 0 || lugarLibre) && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {/* Flecha izquierda */}
                     <button type="button"
@@ -245,9 +251,35 @@ export default function GaleriaProducto({
                         <Icon name="ChevronLeft" size={18} />
                     </button>
 
-                    {/* Imagen actual del carrusel — cliqueable para cambiar */}
-                    <div onClick={() => handleReplaceClick(carouselIndex)}
-                        title="Haz clic para cambiar esta foto"
+                    {/* Contenedor central: foto real o slot vacío "Añade una foto" */}
+                    {esSlotVacio ? (
+                        /* Slot vacío: contenedor dashed cliqueable que abre la galería */
+                        <div onClick={handleGalleryClick}
+                            title="Haz clic para añadir una foto"
+                            style={{
+                                flex: 1, position: "relative", borderRadius: 12,
+                                background: "var(--bg-card2)", aspectRatio: "1",
+                                border: "2px dashed var(--primary-mid)",
+                                cursor: disabled ? "not-allowed" : "pointer",
+                                display: "flex", flexDirection: "column",
+                                alignItems: "center", justifyContent: "center", gap: 10,
+                                transition: "border-color 0.2s, background 0.2s",
+                            }}
+                            onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = "var(--primary-dark)"; e.currentTarget.style.background = "var(--border-light)" } }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--primary-mid)"; e.currentTarget.style.background = "var(--bg-card2)" }}
+                        >
+                            <Icon name="ImagePlus" size={36} color="var(--primary-mid)" />
+                            <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--primary-mid)" }}>
+                                Añade una foto
+                            </span>
+                            <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                Foto {carouselIndex + 1} de {maxFotos}
+                            </span>
+                        </div>
+                    ) : (
+                        /* Foto real — cliqueable para cambiar */
+                        <div onClick={() => handleReplaceClick(carouselIndex)}
+                            title="Haz clic para cambiar esta foto"
                         style={{
                             flex: 1, position: "relative", borderRadius: 12, overflow: "hidden",
                             background: "var(--bg-card2)", aspectRatio: "1",
@@ -317,17 +349,18 @@ export default function GaleriaProducto({
                             }
                         </span>
                     </div>
+                    )}
 
                     {/* Flecha derecha */}
                     <button type="button"
-                        onClick={() => setCarouselIndex(i => Math.min(fotos.length - 1, i + 1))}
-                        disabled={disabled || carouselIndex >= fotos.length - 1}
+                        onClick={() => setCarouselIndex(i => Math.min(indiceMaximo, i + 1))}
+                        disabled={disabled || carouselIndex >= indiceMaximo}
                         title="Foto siguiente"
                         style={{
                             flexShrink: 0, width: 32, height: 32, borderRadius: 10,
                             border: "1px solid var(--border-primary)", background: "var(--bg-card2)",
-                            color: carouselIndex >= fotos.length - 1 ? "var(--text-muted)" : "var(--primary-mid)",
-                            cursor: carouselIndex >= fotos.length - 1 ? "not-allowed" : "pointer",
+                            color: carouselIndex >= indiceMaximo ? "var(--text-muted)" : "var(--primary-mid)",
+                            cursor: carouselIndex >= indiceMaximo ? "not-allowed" : "pointer",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             transition: "all 0.15s", opacity: disabled ? 0.5 : 1,
                         }}
@@ -338,8 +371,9 @@ export default function GaleriaProducto({
             )}
 
             {/* ── Dots de navegación ── */}
-            {fotos.length > 1 && (
+            {(fotos.length > 1 || (lugarLibre && fotos.length > 0)) && (
                 <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
+                    {/* Dots para cada foto real */}
                     {fotos.map((_, i) => (
                         <button key={i} type="button"
                             onClick={() => setCarouselIndex(i)}
@@ -351,6 +385,18 @@ export default function GaleriaProducto({
                             }}
                         />
                     ))}
+                    {/* Dot extra para el slot vacío si hay lugar */}
+                    {lugarLibre && (
+                        <button key="empty" type="button"
+                            onClick={() => setCarouselIndex(fotos.length)}
+                            style={{
+                                width: carouselIndex === fotos.length ? 18 : 7, height: 7, borderRadius: 4,
+                                border: "none", cursor: "pointer",
+                                background: carouselIndex === fotos.length ? "var(--primary-mid)" : "var(--border-light)",
+                                transition: "all 0.2s",
+                            }}
+                        />
+                    )}
                 </div>
             )}
 
