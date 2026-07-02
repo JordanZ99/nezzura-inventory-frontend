@@ -8,7 +8,9 @@ import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/ap
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import ImagePicker from "@/components/ui/ImagePicker"
-import { comprimirImagen } from "@/lib/image-utils"
+// Nota: comprimirImagen de image-utils ya no se usa aquí.
+// El ImageCropperModal entrega el JPEG ya recortado y comprimido,
+// y Cloudinary aplica optimización automática adicional en el backend.
 import ScrollableTable from "@/components/ui/ScrollableTable"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
@@ -187,21 +189,18 @@ export default function Inventario() {
             await api.initDB()
             let imagen = "No hay foto"
             if (nuevaFoto) {
-                let imgAEnviar = nuevaFoto
-                try {
-                    imgAEnviar = await comprimirImagen(nuevaFoto)
-                } catch (compErr: unknown) {
-                    const msgErr = compErr instanceof Error ? compErr.message : "Error al comprimir"
-                    // Si es un error de validación (tamaño), abortar la subida
-                    if (msgErr.includes("MB")) {
-                        mostrarMsg(false, `${msgErr}`)
-                        setGuardando(false)
-                        return
-                    }
-                    // Otro error de compresión: intentar subir el original
-                    console.warn("Compresión falló, se envía el original:", msgErr)
+                // El archivo ya viene recortado y comprimido en JPEG desde
+                // ImageCropperModal (canvas.toBlob quality=0.92).
+                // No hacemos doble compresión aquí: Cloudinary aplica su
+                // propia optimización con quality="auto:best" en el backend.
+                // Solo validamos tamaño máximo como red de seguridad.
+                const sizeMB = nuevaFoto.size / (1024 * 1024)
+                if (sizeMB > 10) {
+                    mostrarMsg(false, `La imagen pesa ${sizeMB.toFixed(1)} MB. El máximo es 10 MB.`)
+                    setGuardando(false)
+                    return
                 }
-                const r = await api.subirFoto(form.producto, imgAEnviar)
+                const r = await api.subirFoto(form.producto, nuevaFoto)
                 imagen = r.ruta
             }
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen, codigo_interno: form.codigo_interno || undefined, codigo_barras: form.codigo_barras || undefined, ubicacion: form.ubicacion || undefined })
@@ -233,21 +232,16 @@ export default function Inventario() {
         try {
             let nuevaImagen: string | undefined = undefined
             if (editFoto) {
-                let imgAEnviar = editFoto
-                try {
-                    imgAEnviar = await comprimirImagen(editFoto)
-                } catch (compErr: unknown) {
-                    const msgErr = compErr instanceof Error ? compErr.message : "Error al comprimir"
-                    // Si es un error de validación (tamaño), abortar la subida
-                    if (msgErr.includes("MB")) {
-                        mostrarMsg(false, `${msgErr}`)
-                        setGuardando(false)
-                        return
-                    }
-                    // Otro error de compresión: intentar subir el original
-                    console.warn("Compresión falló, se envía el original:", msgErr)
+                // El archivo ya viene recortado y comprimido en JPEG desde
+                // ImageCropperModal. No hacemos doble compresión aquí.
+                // Cloudinary aplica su propia optimización en el backend.
+                const sizeMB = editFoto.size / (1024 * 1024)
+                if (sizeMB > 10) {
+                    mostrarMsg(false, `La imagen pesa ${sizeMB.toFixed(1)} MB. El máximo es 10 MB.`)
+                    setGuardando(false)
+                    return
                 }
-                const r = await api.subirFoto(prodEditar, imgAEnviar)
+                const r = await api.subirFoto(prodEditar, editFoto)
                 nuevaImagen = r.ruta
             } else if (editFotoRemovida) {
                 nuevaImagen = "No hay foto"
@@ -793,7 +787,9 @@ export default function Inventario() {
                                                 {prod.imagen && prod.imagen !== "No hay foto" ? (
                                                     <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
                                                         alt={prod.producto}
-                                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }} />
+                                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
+                                                        onError={(e) => { e.currentTarget.style.display = "none" }}
+                                                        loading="lazy" />
                                                 ) : (
                                                     <Icon name="Package" size={32} color="var(--text-muted)" />
                                                 )}
