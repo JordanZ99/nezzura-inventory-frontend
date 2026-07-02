@@ -225,4 +225,8 @@ export const api = {
         request("/gastos_programados", { method: "POST", body: JSON.stringify(data) }),
     ejecutarGastoProgramado: (id: string) =>
         request<{ ok: boolean; monto: number; nombre: string; mensaje: string }>(`/gastos_programados/${id}/ejecutar`, { method: "POST" }),
+    actualizarGastoProgramado: (id: string, data: { nombre?: string; tipo?: string; valor?: number; frecuencia?: string; proxima_fecha?: string }) =>
+        request<{ ok: boolean; mensaje: string }>(`/gastos_programados/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    eliminarGastoProgramado: (id: string) =>
+        request<{ ok: boolean; mensaje: string }>(`/gastos_programados/${id}`, { method: "DELETE" }),
 }
