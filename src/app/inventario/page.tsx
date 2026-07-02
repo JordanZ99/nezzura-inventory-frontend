@@ -7,13 +7,11 @@ import { useState, useEffect } from "react"
 import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/api"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
-import ImagePicker from "@/components/ui/ImagePicker"
-// comprimirImagen se usa para comprimir las imágenes extra de la galería
-// Plan Plus antes de subirlas, evitando que el backend rechace archivos pesados.
+import GaleriaProducto, { type FotoGaleria } from "@/components/ui/GaleriaProducto"
+// comprimirImagen se usa para comprimir las imágenes antes de subirlas
 import { comprimirImagen } from "@/lib/image-utils"
 import ScrollableTable from "@/components/ui/ScrollableTable"
 import { useTenant } from "@/contexts/TenantContext"
-import type { ImagenProducto } from "@/lib/api"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -39,7 +37,6 @@ function Pill({ children, color = "primary" }: { children: React.ReactNode; colo
 
 export default function Inventario() {
     const { tenant } = useTenant()
-    const esPlanPlus = tenant?.plan === "plus"
 
     const [lotes, setLotes] = useState<Lote[]>([])
     const [inv, setInv] = useState<Producto[]>([])
@@ -48,21 +45,16 @@ export default function Inventario() {
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "" })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
-    const [nuevaFoto, setNuevaFoto] = useState<File | null>(null)
-    const [editFoto, setEditFoto] = useState<File | null>(null)
-    const [editFotoRemovida, setEditFotoRemovida] = useState(false)
+    const [nuevasFotos, setNuevasFotos] = useState<FotoGaleria[]>([])
+    const [editFotos, setEditFotos] = useState<FotoGaleria[]>([])
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
     const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "" })
 
-    // ── Galería de imágenes (Plan Plus) ──
-    // imágenes extra del producto que se está editando
-    const [galeriaImagenes, setGaleriaImagenes] = useState<ImagenProducto[]>([])
-    // índice activo del carousel (0 = imagen principal, 1+ = imágenes extra)
-    const [carouselIndex, setCarouselIndex] = useState(0)
-    // estado de carga al subir/eliminando imagen extra
-    const [galeriaCargando, setGaleriaCargando] = useState(false)
+    // ── Galería unificada de fotos (principal + extras) ──
+    // Ahora la foto principal es simplemente la primera del array (índice 0).
+    // El componente GaleriaProducto maneja el carrusel, subida, reemplazo y eliminación.
 
     // Estado para editar lotes individuales dentro del formulario Editar Prod.
     const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
@@ -201,26 +193,41 @@ export default function Inventario() {
         try {
             // Ensure tables exist before creating a product
             await api.initDB()
+
+            // ── Foto principal: la primera del array (índice 0) ──
             let imagen = "No hay foto"
-            if (nuevaFoto) {
-                // El archivo ya viene recortado y comprimido en JPEG desde
-                // ImageCropperModal (canvas.toBlob quality=0.92).
-                // No hacemos doble compresión aquí: Cloudinary aplica su
-                // propia optimización con quality="auto:best" en el backend.
-                // Solo validamos tamaño máximo como red de seguridad.
-                const sizeMB = nuevaFoto.size / (1024 * 1024)
+            const principal = nuevasFotos[0]
+            if (principal?.file) {
+                const sizeMB = principal.file.size / (1024 * 1024)
                 if (sizeMB > 10) {
                     mostrarMsg(false, `La imagen pesa ${sizeMB.toFixed(1)} MB. El máximo es 10 MB.`)
                     setGuardando(false)
                     return
                 }
-                const r = await api.subirFoto(form.producto, nuevaFoto)
+                const r = await api.subirFoto(form.producto, principal.file)
                 imagen = r.ruta
             }
+
+            // Crear el producto con la foto principal
             await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen, codigo_interno: form.codigo_interno || undefined, codigo_barras: form.codigo_barras || undefined, ubicacion: form.ubicacion || undefined })
             mostrarMsg(true, `${form.producto} registrado`)
+
+            // ── Subir fotos adicionales (índices 1+) si hay ──
+            const extras = nuevasFotos.slice(1)
+            for (const extra of extras) {
+                if (!extra.file) continue
+                try {
+                    let imgAEnviar = extra.file
+                    try { imgAEnviar = await comprimirImagen(extra.file) }
+                    catch { /* enviar original si falla */ }
+                    await api.subirImagenExtra(form.producto, imgAEnviar)
+                } catch {
+                    console.warn("Error subiendo imagen extra para", form.producto)
+                }
+            }
+
+            setNuevasFotos([])
             setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "" })
-            setNuevaFoto(null)
             recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -244,20 +251,21 @@ export default function Inventario() {
         if (!prodEditar || guardando) return
         setGuardando(true)
         try {
+            // ── Foto principal: la primera del array editFotos ──
             let nuevaImagen: string | undefined = undefined
-            if (editFoto) {
-                // El archivo ya viene recortado y comprimido en JPEG desde
-                // ImageCropperModal. No hacemos doble compresión aquí.
-                // Cloudinary aplica su propia optimización en el backend.
-                const sizeMB = editFoto.size / (1024 * 1024)
+            const principalEdit = editFotos[0]
+            if (principalEdit?.file) {
+                // Reemplazo de foto principal → subir nueva
+                const sizeMB = principalEdit.file.size / (1024 * 1024)
                 if (sizeMB > 10) {
                     mostrarMsg(false, `La imagen pesa ${sizeMB.toFixed(1)} MB. El máximo es 10 MB.`)
                     setGuardando(false)
                     return
                 }
-                const r = await api.subirFoto(prodEditar, editFoto)
+                const r = await api.subirFoto(prodEditar, principalEdit.file)
                 nuevaImagen = r.ruta
-            } else if (editFotoRemovida) {
+            } else if (editFotos.length === 0 && editProdVal.imagen !== "No hay foto") {
+                // Se eliminaron todas las fotos → quitar foto principal
                 nuevaImagen = "No hay foto"
             }
 
@@ -273,8 +281,32 @@ export default function Inventario() {
             }
             await api.editarProducto(prodEditar, payload)
 
+            // ── Sincronizar fotos extras (índices 1+) ──
+            // Eliminar fotos que ya no están en el array
+            const fotosActuales = await api.getImagenesProducto(prodEditar)
+            for (const existente of fotosActuales) {
+                const sigueEnArray = editFotos.some(f => f.id === existente.id)
+                if (!sigueEnArray) {
+                    try { await api.eliminarImagenExtra(existente.id) }
+                    catch { /* ignorar error al eliminar */ }
+                }
+            }
+            // Subir nuevas fotos extras
+            const nuevosExtras = editFotos.slice(1).filter(f => f.file)
+            for (const extra of nuevosExtras) {
+                if (!extra.file) continue
+                try {
+                    let imgAEnviar = extra.file
+                    try { imgAEnviar = await comprimirImagen(extra.file) }
+                    catch { /* enviar original */ }
+                    await api.subirImagenExtra(prodEditar, imgAEnviar)
+                } catch {
+                    console.warn("Error subiendo imagen extra para", prodEditar)
+                }
+            }
+
             mostrarMsg(true, "Producto actualizado")
-            setProdEditar(""); setEditProdNombre(""); setEditFoto(null); setEditFotoRemovida(false); setGaleriaImagenes([]); setCarouselIndex(0); recargar()
+            setProdEditar(""); setEditProdNombre(""); setEditFotos([]); recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -502,7 +534,13 @@ export default function Inventario() {
                                     </button>
                                 </div>
                             </div>
-                            <ImagePicker onImageSelected={setNuevaFoto} />
+                            <GaleriaProducto
+                                fotos={nuevasFotos}
+                                onChange={setNuevasFotos}
+                                maxFotos={5}
+                                disabled={guardando}
+                                label="Fotos del producto"
+                            />
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                                 <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
                                 <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
@@ -776,9 +814,7 @@ export default function Inventario() {
                                                 setProdEditar(prod.producto)
                                                 setEditProdNombre(prod.producto)
                                                 setLoteEditandoId(null)
-                                                setEditFoto(null)
-                                                setEditFotoRemovida(false)
-                                                setCarouselIndex(0) // reset carousel al cambiar de producto
+                                                setEditFotos([]) // reset al cambiar de producto
                                                 setEditProdVal({
                                                     descripcion: prod.descripcion ?? "",
                                                     estado: prod.estado ?? "Activo",
@@ -788,14 +824,17 @@ export default function Inventario() {
                                                     codigo_barras: prod.codigo_barras ?? "",
                                                     ubicacion: prod.ubicacion ?? "",
                                                 })
-                                                // Cargar galería de imágenes extra (Plan Plus)
-                                                if (tenant?.plan === "plus") {
-                                                    api.getImagenesProducto(prod.producto)
-                                                        .then(setGaleriaImagenes)
-                                                        .catch(() => setGaleriaImagenes([]))
-                                                } else {
-                                                    setGaleriaImagenes([])
+                                                // Cargar todas las fotos del producto (principal + extras) en editFotos
+                                                const fotos: FotoGaleria[] = []
+                                                if (prod.imagen && prod.imagen !== "No hay foto") {
+                                                    fotos.push({ url: prod.imagen }) // foto principal en índice 0
                                                 }
+                                                api.getImagenesProducto(prod.producto)
+                                                    .then(extras => {
+                                                        const todas = [...fotos, ...extras.map(e => ({ url: e.url, id: e.id }))]
+                                                        setEditFotos(todas)
+                                                    })
+                                                    .catch(() => setEditFotos(fotos))
                                             }}
                                             onMouseEnter={e => {
                                                 e.currentTarget.style.transform = "translateY(-3px)"
@@ -836,7 +875,7 @@ export default function Inventario() {
                         <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                                 <button
-                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null); setEditFoto(null); setEditFotoRemovida(false); setGaleriaImagenes([]); setCarouselIndex(0) }}
+                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null); setEditFotos([]) }}
                                     style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
                                 >
                                     <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
@@ -869,202 +908,13 @@ export default function Inventario() {
                             </div>
                             <Input label="Descripción" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
-                            {/* ── Foto principal (siempre visible) ── */}
-                            <ImagePicker
-                                onImageSelected={(file) => {
-                                    setEditFoto(file)
-                                    if (file) setEditFotoRemovida(false)
-                                }}
-                                currentImageUrl={editProdVal.imagen !== "No hay foto" ? editProdVal.imagen : undefined}
-                                label="Foto Principal"
+                            <GaleriaProducto
+                                fotos={editFotos}
+                                onChange={setEditFotos}
+                                maxFotos={5}
+                                disabled={guardando}
+                                label="Fotos del producto"
                             />
-
-                            {/* ── Galería de imágenes extra (solo Plan Plus) ── */}
-                            {esPlanPlus && (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>
-                                        Galería Adicional (Plan Plus)
-                                    </label>
-
-                                    {/* Contador de imágenes extra */}
-                                    <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
-                                        {galeriaImagenes.length}/5 imágenes extra
-                                    </p>
-
-                                    {/* Carousel con flechas de navegación */}
-                                    {galeriaImagenes.length > 0 && (
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                            {/* Flecha izquierda */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setCarouselIndex(i => Math.max(0, i - 1))}
-                                                disabled={carouselIndex === 0}
-                                                title="Imagen anterior"
-                                                style={{
-                                                    flexShrink: 0, width: 36, height: 36, borderRadius: 10,
-                                                    border: "1px solid var(--border-primary)", background: "var(--bg-card2)",
-                                                    color: carouselIndex === 0 ? "var(--text-muted)" : "var(--primary-mid)",
-                                                    cursor: carouselIndex === 0 ? "not-allowed" : "pointer",
-                                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                                    transition: "all 0.15s",
-                                                }}
-                                            >
-                                                <Icon name="ChevronLeft" size={20} />
-                                            </button>
-
-                                            {/* Imagen actual del carousel */}
-                                            <div style={{
-                                                flex: 1, position: "relative", borderRadius: 12, overflow: "hidden",
-                                                background: "var(--bg-card2)", aspectRatio: "1",
-                                                display: "flex", alignItems: "center", justifyContent: "center",
-                                                border: "1px solid var(--border-light)",
-                                            }}>
-                                                <img
-                                                    src={galeriaImagenes[carouselIndex]?.url}
-                                                    alt={`Imagen ${carouselIndex + 1}`}
-                                                    style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
-                                                    onError={e => { e.currentTarget.style.display = "none" }}
-                                                    loading="lazy"
-                                                />
-                                                {/* Botón eliminar imagen extra */}
-                                                <button
-                                                    type="button"
-                                                    onClick={async () => {
-                                                        const img = galeriaImagenes[carouselIndex]
-                                                        if (!img) return
-                                                        if (!confirm("¿Eliminar esta imagen de la galería?")) return
-                                                        setGaleriaCargando(true)
-                                                        try {
-                                                            await api.eliminarImagenExtra(img.id)
-                                                            const nuevas = galeriaImagenes.filter(g => g.id !== img.id)
-                                                            setGaleriaImagenes(nuevas)
-                                                            setCarouselIndex(i => Math.max(0, Math.min(i, nuevas.length - 1)))
-                                                            mostrarMsg(true, "🗑️ Imagen eliminada de la galería")
-                                                        } catch (e: unknown) {
-                                                            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
-                                                        } finally {
-                                                            setGaleriaCargando(false)
-                                                        }
-                                                    }}
-                                                    disabled={galeriaCargando}
-                                                    title="Eliminar imagen"
-                                                    style={{
-                                                        position: "absolute", top: 6, right: 6, width: 30, height: 30,
-                                                        borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.6)",
-                                                        color: "#fff", cursor: "pointer", display: "flex",
-                                                        alignItems: "center", justifyContent: "center", zIndex: 2,
-                                                    }}
-                                                >
-                                                    <Icon name="Trash2" size={16} color="#fff" />
-                                                </button>
-                                            </div>
-
-                                            {/* Flecha derecha */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setCarouselIndex(i => Math.min(galeriaImagenes.length - 1, i + 1))}
-                                                disabled={carouselIndex >= galeriaImagenes.length - 1}
-                                                title="Imagen siguiente"
-                                                style={{
-                                                    flexShrink: 0, width: 36, height: 36, borderRadius: 10,
-                                                    border: "1px solid var(--border-primary)", background: "var(--bg-card2)",
-                                                    color: carouselIndex >= galeriaImagenes.length - 1 ? "var(--text-muted)" : "var(--primary-mid)",
-                                                    cursor: carouselIndex >= galeriaImagenes.length - 1 ? "not-allowed" : "pointer",
-                                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                                    transition: "all 0.15s",
-                                                }}
-                                            >
-                                                <Icon name="ChevronRight" size={20} />
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* Indicadores de posición (dots) */}
-                                    {galeriaImagenes.length > 1 && (
-                                        <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
-                                            {galeriaImagenes.map((_, i) => (
-                                                <button
-                                                    key={i}
-                                                    type="button"
-                                                    onClick={() => setCarouselIndex(i)}
-                                                    style={{
-                                                        width: carouselIndex === i ? 20 : 8, height: 8, borderRadius: 4,
-                                                        border: "none", cursor: "pointer",
-                                                        background: carouselIndex === i ? "var(--primary-mid)" : "var(--border-light)",
-                                                        transition: "all 0.2s",
-                                                    }}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Botón para añadir imagen extra (si hay menos de 5) */}
-                                    {galeriaImagenes.length < 5 && (
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            style={{ display: "none" }}
-                                            id="input-galeria-extra"
-                                            onChange={async (e) => {
-                                                const file = e.target.files?.[0]
-                                                if (!file) return
-                                                // Validar tamaño máximo del original (10 MB)
-                                                const sizeMB = file.size / (1024 * 1024)
-                                                if (sizeMB > 10) {
-                                                    mostrarMsg(false, `La imagen pesa ${sizeMB.toFixed(1)} MB. Máximo 10 MB.`)
-                                                    return
-                                                }
-                                                setGaleriaCargando(true)
-                                                try {
-                                                    // Comprimir la imagen antes de subir.
-                                                    // comprimirImagen redimensiona a 600px y comprime a ~80KB
-                                                    // con calidad progresiva (0.5 -> 0.15). Esto evita que el
-                                                    // backend rechace la imagen por superar 1MB, y el usuario
-                                                    // no tiene que preocuparse por el tamaño de la foto.
-                                                    let imgAEnviar: File = file
-                                                    try {
-                                                        imgAEnviar = await comprimirImagen(file)
-                                                    } catch (compErr: unknown) {
-                                                        // Si la compresión falla por formato no soportado,
-                                                        // intentamos subir el original — el backend validará.
-                                                        console.warn("Compresión falló, se envía original:", compErr)
-                                                    }
-                                                    await api.subirImagenExtra(prodEditar, imgAEnviar)
-                                                    // Recargar galería
-                                                    const nuevas = await api.getImagenesProducto(prodEditar)
-                                                    setGaleriaImagenes(nuevas)
-                                                    setCarouselIndex(nuevas.length - 1) // ir a la nueva imagen
-                                                    mostrarMsg(true, "✅ Imagen añadida a la galería")
-                                                } catch (e: unknown) {
-                                                    mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
-                                                } finally {
-                                                    setGaleriaCargando(false)
-                                                    // Limpiar input para permitir re-subir el mismo archivo
-                                                    e.target.value = ""
-                                                }
-                                            }}
-                                        />
-                                    )}
-                                    {galeriaImagenes.length < 5 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => document.getElementById("input-galeria-extra")?.click()}
-                                            disabled={galeriaCargando}
-                                            style={{
-                                                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                                                padding: "10px 16px", borderRadius: 12,
-                                                border: "1.5px dashed var(--primary-mid)",
-                                                background: "transparent", color: "var(--primary-mid)",
-                                                fontWeight: 700, fontSize: "0.8rem", cursor: galeriaCargando ? "not-allowed" : "pointer",
-                                                transition: "all 0.15s", opacity: galeriaCargando ? 0.5 : 1,
-                                            }}
-                                        >
-                                            <Icon name={galeriaCargando ? "Loader" : "ImagePlus"} size={18} className={galeriaCargando ? "animate-spin" : ""} />
-                                            {galeriaCargando ? "Subiendo..." : "Añadir imagen"}
-                                        </button>
-                                    )}
-                                </div>
-                            )}
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
