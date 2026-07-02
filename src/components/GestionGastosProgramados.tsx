@@ -23,6 +23,9 @@ const ETIQUETAS: Record<string, string> = {
 
 export default function GestionGastosProgramados() {
     const [reglas, setReglas] = useState<GastoProgramado[]>([])
+    // Estimaciones de monto por regla: { [regla_id]: monto_estimado }
+    // Se cargan al listar reglas para mostrar siempre el valor que se descontará.
+    const [estimaciones, setEstimaciones] = useState<Record<string, number>>({})
     const [cargando, setCargando] = useState(true)
     const [guardando, setGuardando] = useState(false)
     const [ejecutando, setEjecutando] = useState<string | null>(null)
@@ -42,6 +45,23 @@ export default function GestionGastosProgramados() {
         // reglas "desaparecían" de la UI aunque seguían en la base de datos.
         const r = await api.getGastosProgramados()
         setReglas(r)
+
+        // Cargar estimaciones de monto para cada regla porcentual.
+        // Esto permite mostrar siempre el valor que se descontará al pagar,
+        // incluso si la fecha aún no ha llegado o si el monto es $0.
+        const nuevasEstimaciones: Record<string, number> = {}
+        await Promise.all(r.map(async (regla) => {
+            try {
+                const est = await api.estimarMontoGastoProgramado(regla.id)
+                if (est.ok) {
+                    nuevasEstimaciones[regla.id] = est.monto
+                }
+            } catch {
+                // Si la estimación falla, usamos ultimo_monto o 0
+                nuevasEstimaciones[regla.id] = regla.ultimo_monto ?? 0
+            }
+        }))
+        setEstimaciones(nuevasEstimaciones)
     }
 
     useEffect(() => {
@@ -59,6 +79,25 @@ export default function GestionGastosProgramados() {
 
     async function ejecutarRegla(id: string, nombre: string) {
         if (ejecutando) return
+
+        // Obtener la regla para saber la fecha y el monto estimado
+        const regla = reglas.find(r => r.id === id)
+        if (!regla) return
+
+        const montoEstimado = estimaciones[id] ?? regla.ultimo_monto ?? 0
+        const fechaPago = regla.proxima_fecha.split('-').reverse().join('/')
+
+        // Popup de confirmación: siempre se muestra, con la fecha y el monto.
+        // Si la fecha ya venció, el mensaje es directo. Si es anticipada,
+        // se le hace saber al usuario que está pagando antes de tiempo.
+        const hoy = new Date().toISOString().substring(0, 10)
+        const esAnticipado = regla.proxima_fecha > hoy
+        const mensajeConfirm = esAnticipado
+            ? `¿Estás seguro de pagar "${nombre}" hoy?\n\nLa fecha programada es el ${fechaPago} (aún no llega).\nSe descontarán $${montoEstimado.toFixed(2)} de tu ganancia neta del período.`
+            : `¿Estás seguro de pagar "${nombre}"?\n\nSe descontarán $${montoEstimado.toFixed(2)} de tu ganancia neta del período.`
+
+        if (!confirm(mensajeConfirm)) return
+
         setEjecutando(id)
         try {
             const res = await api.ejecutarGastoProgramado(id)
@@ -107,12 +146,11 @@ export default function GestionGastosProgramados() {
 
     function valorMostrado(g: GastoProgramado) {
         if (g.tipo === "porcentaje") {
-            // Si es porcentual, mostrar el último monto descontado en $.
-            // Si nunca se ha ejecutado, mostrar "Pendiente" en vez de $0.
-            if (g.ultimo_monto != null && g.ultimo_monto > 0) {
-                return `$${g.ultimo_monto.toFixed(2)}`
-            }
-            return "Pendiente"
+            // Mostrar siempre el monto estimado en $, nunca "Pendiente".
+            // La estimación se calcula contra la ganancia neta del período actual.
+            // Si es $0 (sin ganancias), mostramos $0.00 — es información útil.
+            const estimado = estimaciones[g.id] ?? g.ultimo_monto ?? 0
+            return `$${estimado.toFixed(2)}`
         }
         return `$${g.valor.toFixed(2)}`
     }
