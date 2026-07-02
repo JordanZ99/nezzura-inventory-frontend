@@ -36,7 +36,14 @@ interface ImageCropperModalProps {
 function cargarImagen(url: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = new Image()
-        img.setAttribute("crossOrigin", "anonymous")
+        // Solo setear crossOrigin si NO es blob URL.
+        // Las blob URLs son same-origin por definición, y setear crossOrigin
+        // en ellas puede causar que el canvas se marque como "tainted" en
+        // algunos navegadores (Safari móvil, ciertas versiones de Chrome),
+        // lo que hace que canvas.toBlob() produzca un blob vacío o falle.
+        if (!url.startsWith("blob:")) {
+            img.setAttribute("crossOrigin", "anonymous")
+        }
         img.onload = () => resolve(img)
         img.onerror = () => reject(new Error("No se pudo cargar la imagen para recortar"))
         img.src = url
@@ -124,6 +131,10 @@ export default function ImageCropperModal({
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
+    // Ref espejo de croppedAreaPixels para acceso síncrono dentro de handleAccept.
+    // Necesario porque el callback de espera (polling) no ve el estado actualizado
+    // hasta el siguiente render, pero la ref sí se actualiza inmediatamente.
+    const croppedAreaPixelsRef = useRef<Area | null>(null)
     const [procesando, setProcesando] = useState(false)
 
     // ── Dimensiones naturales de la imagen ──
@@ -132,6 +143,11 @@ export default function ImageCropperModal({
 
     useEffect(() => {
         let cancel = false
+        // Reset del área de recorte al cambiar de imagen.
+        // Sin esto, croppedAreaPixelsRef podría tener el valor de la imagen
+        // anterior, y handleAccept usaría coordenadas viejas para la nueva imagen.
+        croppedAreaPixelsRef.current = null
+        setCroppedAreaPixels(null)
         const img = new Image()
         // Solo ponemos crossOrigin si NO es blob URL (las blob son mismo origen)
         if (!imageUrl.startsWith("blob:")) {
@@ -181,6 +197,7 @@ export default function ImageCropperModal({
     const onCropAreaComplete = useCallback(
         (_: Area, croppedPixels: Area) => {
             setCroppedAreaPixels(croppedPixels)
+            croppedAreaPixelsRef.current = croppedPixels // sincronizar ref para handleAccept
         },
         [],
     )
@@ -197,9 +214,60 @@ export default function ImageCropperModal({
         [],
     )
 
+    const [errorRecorte, setErrorRecorte] = useState<string | null>(null)
+
     const handleAccept = useCallback(async () => {
-        if (!croppedAreaPixels || procesando) return
+        if (procesando) return
+
+        // ── Bug fix: croppedAreaPixels puede ser null si la imagen del cropper
+        // aún no ha terminado de cargar y computar el área de recorte.
+        // Antes esto causaba un return silencioso: el modal no se cerraba,
+        // no se añadía la foto, y el usuario no sabía qué pasó.
+        // Ahora esperamos hasta 3 segundos a que croppedAreaPixels esté listo.
+        // Si no llega, mostramos un error visible en lugar de fallar en silencio.
+        // ──
+        if (!croppedAreaPixels) {
+            // Reintentar: esperar a que react-easy-crop dispare onCropComplete
+            setProcesando(true)
+            setErrorRecorte(null)
+            const inicio = Date.now()
+            const esperar = (): Promise<Area | null> => {
+                return new Promise(resolve => {
+                    const check = () => {
+                        // croppedAreaPixels se actualiza via setCroppedAreaPixels
+                        // en onCropAreaComplete. Lo leemos del estado actual.
+                        if (croppedAreaPixelsRef.current) {
+                            resolve(croppedAreaPixelsRef.current)
+                        } else if (Date.now() - inicio > 3000) {
+                            resolve(null) // timeout: la imagen no cargó
+                        } else {
+                            setTimeout(check, 50)
+                        }
+                    }
+                    check()
+                })
+            }
+            const area = await esperar()
+            setProcesando(false)
+            if (!area) {
+                setErrorRecorte("La imagen no terminó de cargar. Intenta de nuevo o usa otra foto.")
+                return
+            }
+            // Si llegamos aquí, area ya está disponible. Continuar con el recorte.
+            setProcesando(true)
+            try {
+                const blob = await getCroppedImg(imageUrl, area)
+                onCropComplete(blob)
+            } catch (e) {
+                console.error("Error al recortar imagen:", e)
+                setErrorRecorte("Error al procesar la imagen. Intenta con otra foto.")
+                setProcesando(false)
+            }
+            return
+        }
+
         setProcesando(true)
+        setErrorRecorte(null)
         try {
             const blob = await getCroppedImg(imageUrl, croppedAreaPixels)
             onCropComplete(blob)
@@ -211,7 +279,8 @@ export default function ImageCropperModal({
                 const blob = await resp.blob()
                 onCropComplete(blob)
             } catch {
-                onCancel()
+                setErrorRecorte("Error al procesar la imagen. Intenta con otra foto.")
+                setProcesando(false)
             }
         }
     }, [imageUrl, croppedAreaPixels, onCropComplete, onCancel, procesando])
@@ -360,6 +429,25 @@ export default function ImageCropperModal({
                             <>{zoomLabel}</>
                         )}
                     </p>
+
+                    {/* Mensaje de error visible si el recorte falló */}
+                    {errorRecorte && (
+                        <div style={{
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            background: "#fef2f2",
+                            border: "1px solid #fecaca",
+                            color: "#b91c1c",
+                            fontSize: "0.78rem",
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                        }}>
+                            <Icon name="TriangleAlert" size={18} color="#b91c1c" />
+                            {errorRecorte}
+                        </div>
+                    )}
 
                     {/* Botones */}
                     <div style={{ display: "flex", gap: 10 }}>
