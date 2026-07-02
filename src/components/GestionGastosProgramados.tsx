@@ -37,6 +37,9 @@ export default function GestionGastosProgramados() {
     })
 
     async function recargar() {
+        // Si el fetch falla, no limpiamos las reglas existentes.
+        // Antes, un error 500 del backend dejaba el array vacío y las
+        // reglas "desaparecían" de la UI aunque seguían en la base de datos.
         const r = await api.getGastosProgramados()
         setReglas(r)
     }
@@ -64,11 +67,13 @@ export default function GestionGastosProgramados() {
             } else {
                 mostrarMsg(false, `❌ ${res.mensaje || "Error al ejecutar"}`)
             }
-            await recargar()
         } catch (e: unknown) {
             mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al ejecutar la regla"}`)
         } finally {
             setEjecutando(null)
+            // Recargar en finally para que se ejecute tanto en éxito como en error.
+            // Si recargar falla, no limpiamos las reglas existentes (ya manejado en recargar()).
+            recargar().catch(() => {})
         }
     }
 
