@@ -101,8 +101,24 @@ export default function GestionGastosProgramados() {
     }
 
     function valorMostrado(g: GastoProgramado) {
-        if (g.tipo === "porcentaje") return `${g.valor}%`
+        if (g.tipo === "porcentaje") {
+            // Si es porcentual, mostrar el último monto descontado en $.
+            // Si nunca se ha ejecutado, mostrar "Pendiente" en vez de $0.
+            if (g.ultimo_monto != null && g.ultimo_monto > 0) {
+                return `$${g.ultimo_monto.toFixed(2)}`
+            }
+            return "Pendiente"
+        }
         return `$${g.valor.toFixed(2)}`
+    }
+
+    // Etiqueta dinámica del tipo: incluye el valor del porcentaje si aplica.
+    // Ej: "Porcentaje (10%)" en vez de solo "Porcentaje (%)"
+    function tipoLabel(g: GastoProgramado) {
+        if (g.tipo === "porcentaje") {
+            return `Porcentaje (${g.valor}%)`
+        }
+        return ETIQUETAS[g.tipo] || g.tipo
     }
 
     function frecuenciaLabel(f: string) {
@@ -304,7 +320,7 @@ export default function GestionGastosProgramados() {
                                     <tr key={g.id} style={{ borderBottom: "1px solid var(--bg-card)" }} className="hover:bg-primary-50/20">
                                         <td style={{ padding: "12px 14px", fontWeight: 600 }}>{g.nombre}</td>
                                         <td style={{ padding: "12px 14px", color: "var(--text-muted)" }}>
-                                            {ETIQUETAS[g.tipo] || g.tipo}
+                                            {tipoLabel(g)}
                                         </td>
                                         <td style={{ padding: "12px 14px", fontWeight: 700 }}>
                                             {valorMostrado(g)}
