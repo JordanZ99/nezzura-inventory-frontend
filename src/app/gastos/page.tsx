@@ -155,7 +155,7 @@ export default function Gastos() {
                 </div>
             </div>
 
-            <div style={{ padding: "0 16px", marginTop: -60 }}>
+            <div style={{ padding: "0 16px", marginTop: -60, position: "relative", zIndex: 1 }}>
 
                 {/* ── Tabs (patrón Inventario) ── */}
                 <div className="card" style={{ display: "flex", padding: 6, gap: 4, marginBottom: 20, flexWrap: "wrap" }}>

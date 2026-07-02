@@ -43,7 +43,7 @@ export default function GastosProgramadosPage() {
                 </div>
             </div>
 
-            <div style={{ padding: "0 16px", marginTop: -60 }}>
+            <div style={{ padding: "0 16px", marginTop: -60, position: "relative", zIndex: 1 }}>
                 <GestionGastosProgramados />
                 <div style={{ height: 48 }} />
             </div>
