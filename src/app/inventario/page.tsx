@@ -8,9 +8,9 @@ import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/ap
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import ImagePicker from "@/components/ui/ImagePicker"
-// Nota: comprimirImagen de image-utils ya no se usa aquí.
-// El ImageCropperModal entrega el JPEG ya recortado y comprimido,
-// y Cloudinary aplica optimización automática adicional en el backend.
+// comprimirImagen se usa para comprimir las imágenes extra de la galería
+// Plan Plus antes de subirlas, evitando que el backend rechace archivos pesados.
+import { comprimirImagen } from "@/lib/image-utils"
 import ScrollableTable from "@/components/ui/ScrollableTable"
 import { useTenant } from "@/contexts/TenantContext"
 import type { ImagenProducto } from "@/lib/api"
@@ -1008,7 +1008,7 @@ export default function Inventario() {
                                             onChange={async (e) => {
                                                 const file = e.target.files?.[0]
                                                 if (!file) return
-                                                // Validar tamaño (10 MB max)
+                                                // Validar tamaño máximo del original (10 MB)
                                                 const sizeMB = file.size / (1024 * 1024)
                                                 if (sizeMB > 10) {
                                                     mostrarMsg(false, `La imagen pesa ${sizeMB.toFixed(1)} MB. Máximo 10 MB.`)
@@ -1016,7 +1016,20 @@ export default function Inventario() {
                                                 }
                                                 setGaleriaCargando(true)
                                                 try {
-                                                    await api.subirImagenExtra(prodEditar, file)
+                                                    // Comprimir la imagen antes de subir.
+                                                    // comprimirImagen redimensiona a 600px y comprime a ~80KB
+                                                    // con calidad progresiva (0.5 -> 0.15). Esto evita que el
+                                                    // backend rechace la imagen por superar 1MB, y el usuario
+                                                    // no tiene que preocuparse por el tamaño de la foto.
+                                                    let imgAEnviar: File = file
+                                                    try {
+                                                        imgAEnviar = await comprimirImagen(file)
+                                                    } catch (compErr: unknown) {
+                                                        // Si la compresión falla por formato no soportado,
+                                                        // intentamos subir el original — el backend validará.
+                                                        console.warn("Compresión falló, se envía original:", compErr)
+                                                    }
+                                                    await api.subirImagenExtra(prodEditar, imgAEnviar)
                                                     // Recargar galería
                                                     const nuevas = await api.getImagenesProducto(prodEditar)
                                                     setGaleriaImagenes(nuevas)
