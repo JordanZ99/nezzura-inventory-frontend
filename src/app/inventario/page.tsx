@@ -12,6 +12,8 @@ import ImagePicker from "@/components/ui/ImagePicker"
 // El ImageCropperModal entrega el JPEG ya recortado y comprimido,
 // y Cloudinary aplica optimización automática adicional en el backend.
 import ScrollableTable from "@/components/ui/ScrollableTable"
+import { useTenant } from "@/contexts/TenantContext"
+import type { ImagenProducto } from "@/lib/api"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -36,6 +38,9 @@ function Pill({ children, color = "primary" }: { children: React.ReactNode; colo
 }
 
 export default function Inventario() {
+    const { tenant } = useTenant()
+    const esPlanPlus = tenant?.plan === "plus"
+
     const [lotes, setLotes] = useState<Lote[]>([])
     const [inv, setInv] = useState<Producto[]>([])
     const [tab, setTab] = useState<Tab>("nuevo")
@@ -50,6 +55,15 @@ export default function Inventario() {
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
     const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "" })
+
+    // ── Galería de imágenes (Plan Plus) ──
+    // imágenes extra del producto que se está editando
+    const [galeriaImagenes, setGaleriaImagenes] = useState<ImagenProducto[]>([])
+    // índice activo del carousel (0 = imagen principal, 1+ = imágenes extra)
+    const [carouselIndex, setCarouselIndex] = useState(0)
+    // estado de carga al subir/eliminando imagen extra
+    const [galeriaCargando, setGaleriaCargando] = useState(false)
+
     // Estado para editar lotes individuales dentro del formulario Editar Prod.
     const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
     const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
@@ -260,7 +274,7 @@ export default function Inventario() {
             await api.editarProducto(prodEditar, payload)
 
             mostrarMsg(true, "Producto actualizado")
-            setProdEditar(""); setEditProdNombre(""); setEditFoto(null); setEditFotoRemovida(false); recargar()
+            setProdEditar(""); setEditProdNombre(""); setEditFoto(null); setEditFotoRemovida(false); setGaleriaImagenes([]); setCarouselIndex(0); recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -764,6 +778,7 @@ export default function Inventario() {
                                                 setLoteEditandoId(null)
                                                 setEditFoto(null)
                                                 setEditFotoRemovida(false)
+                                                setCarouselIndex(0) // reset carousel al cambiar de producto
                                                 setEditProdVal({
                                                     descripcion: prod.descripcion ?? "",
                                                     estado: prod.estado ?? "Activo",
@@ -773,6 +788,14 @@ export default function Inventario() {
                                                     codigo_barras: prod.codigo_barras ?? "",
                                                     ubicacion: prod.ubicacion ?? "",
                                                 })
+                                                // Cargar galería de imágenes extra (Plan Plus)
+                                                if (tenant?.plan === "plus") {
+                                                    api.getImagenesProducto(prod.producto)
+                                                        .then(setGaleriaImagenes)
+                                                        .catch(() => setGaleriaImagenes([]))
+                                                } else {
+                                                    setGaleriaImagenes([])
+                                                }
                                             }}
                                             onMouseEnter={e => {
                                                 e.currentTarget.style.transform = "translateY(-3px)"
@@ -813,7 +836,7 @@ export default function Inventario() {
                         <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                                 <button
-                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null); setEditFoto(null); setEditFotoRemovida(false) }}
+                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null); setEditFoto(null); setEditFotoRemovida(false); setGaleriaImagenes([]); setCarouselIndex(0) }}
                                     style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
                                 >
                                     <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
@@ -846,14 +869,189 @@ export default function Inventario() {
                             </div>
                             <Input label="Descripción" value={editProdVal.descripcion} onChange={e => setEditProdVal(p => ({ ...p, descripcion: e.target.value }))} />
 
+                            {/* ── Foto principal (siempre visible) ── */}
                             <ImagePicker
                                 onImageSelected={(file) => {
                                     setEditFoto(file)
                                     if (file) setEditFotoRemovida(false)
                                 }}
                                 currentImageUrl={editProdVal.imagen !== "No hay foto" ? editProdVal.imagen : undefined}
-                                label="Actualizar Foto (Opcional)"
+                                label="Foto Principal"
                             />
+
+                            {/* ── Galería de imágenes extra (solo Plan Plus) ── */}
+                            {esPlanPlus && (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                                        Galería Adicional (Plan Plus)
+                                    </label>
+
+                                    {/* Contador de imágenes extra */}
+                                    <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
+                                        {galeriaImagenes.length}/5 imágenes extra
+                                    </p>
+
+                                    {/* Carousel con flechas de navegación */}
+                                    {galeriaImagenes.length > 0 && (
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            {/* Flecha izquierda */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setCarouselIndex(i => Math.max(0, i - 1))}
+                                                disabled={carouselIndex === 0}
+                                                title="Imagen anterior"
+                                                style={{
+                                                    flexShrink: 0, width: 36, height: 36, borderRadius: 10,
+                                                    border: "1px solid var(--border-primary)", background: "var(--bg-card2)",
+                                                    color: carouselIndex === 0 ? "var(--text-muted)" : "var(--primary-mid)",
+                                                    cursor: carouselIndex === 0 ? "not-allowed" : "pointer",
+                                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                                    transition: "all 0.15s",
+                                                }}
+                                            >
+                                                <Icon name="ChevronLeft" size={20} />
+                                            </button>
+
+                                            {/* Imagen actual del carousel */}
+                                            <div style={{
+                                                flex: 1, position: "relative", borderRadius: 12, overflow: "hidden",
+                                                background: "var(--bg-card2)", aspectRatio: "1",
+                                                display: "flex", alignItems: "center", justifyContent: "center",
+                                                border: "1px solid var(--border-light)",
+                                            }}>
+                                                <img
+                                                    src={galeriaImagenes[carouselIndex]?.url}
+                                                    alt={`Imagen ${carouselIndex + 1}`}
+                                                    style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
+                                                    onError={e => { e.currentTarget.style.display = "none" }}
+                                                    loading="lazy"
+                                                />
+                                                {/* Botón eliminar imagen extra */}
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        const img = galeriaImagenes[carouselIndex]
+                                                        if (!img) return
+                                                        if (!confirm("¿Eliminar esta imagen de la galería?")) return
+                                                        setGaleriaCargando(true)
+                                                        try {
+                                                            await api.eliminarImagenExtra(img.id)
+                                                            const nuevas = galeriaImagenes.filter(g => g.id !== img.id)
+                                                            setGaleriaImagenes(nuevas)
+                                                            setCarouselIndex(i => Math.max(0, Math.min(i, nuevas.length - 1)))
+                                                            mostrarMsg(true, "🗑️ Imagen eliminada de la galería")
+                                                        } catch (e: unknown) {
+                                                            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+                                                        } finally {
+                                                            setGaleriaCargando(false)
+                                                        }
+                                                    }}
+                                                    disabled={galeriaCargando}
+                                                    title="Eliminar imagen"
+                                                    style={{
+                                                        position: "absolute", top: 6, right: 6, width: 30, height: 30,
+                                                        borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.6)",
+                                                        color: "#fff", cursor: "pointer", display: "flex",
+                                                        alignItems: "center", justifyContent: "center", zIndex: 2,
+                                                    }}
+                                                >
+                                                    <Icon name="Trash2" size={16} color="#fff" />
+                                                </button>
+                                            </div>
+
+                                            {/* Flecha derecha */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setCarouselIndex(i => Math.min(galeriaImagenes.length - 1, i + 1))}
+                                                disabled={carouselIndex >= galeriaImagenes.length - 1}
+                                                title="Imagen siguiente"
+                                                style={{
+                                                    flexShrink: 0, width: 36, height: 36, borderRadius: 10,
+                                                    border: "1px solid var(--border-primary)", background: "var(--bg-card2)",
+                                                    color: carouselIndex >= galeriaImagenes.length - 1 ? "var(--text-muted)" : "var(--primary-mid)",
+                                                    cursor: carouselIndex >= galeriaImagenes.length - 1 ? "not-allowed" : "pointer",
+                                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                                    transition: "all 0.15s",
+                                                }}
+                                            >
+                                                <Icon name="ChevronRight" size={20} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Indicadores de posición (dots) */}
+                                    {galeriaImagenes.length > 1 && (
+                                        <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
+                                            {galeriaImagenes.map((_, i) => (
+                                                <button
+                                                    key={i}
+                                                    type="button"
+                                                    onClick={() => setCarouselIndex(i)}
+                                                    style={{
+                                                        width: carouselIndex === i ? 20 : 8, height: 8, borderRadius: 4,
+                                                        border: "none", cursor: "pointer",
+                                                        background: carouselIndex === i ? "var(--primary-mid)" : "var(--border-light)",
+                                                        transition: "all 0.2s",
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Botón para añadir imagen extra (si hay menos de 5) */}
+                                    {galeriaImagenes.length < 5 && (
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: "none" }}
+                                            id="input-galeria-extra"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0]
+                                                if (!file) return
+                                                // Validar tamaño (10 MB max)
+                                                const sizeMB = file.size / (1024 * 1024)
+                                                if (sizeMB > 10) {
+                                                    mostrarMsg(false, `La imagen pesa ${sizeMB.toFixed(1)} MB. Máximo 10 MB.`)
+                                                    return
+                                                }
+                                                setGaleriaCargando(true)
+                                                try {
+                                                    await api.subirImagenExtra(prodEditar, file)
+                                                    // Recargar galería
+                                                    const nuevas = await api.getImagenesProducto(prodEditar)
+                                                    setGaleriaImagenes(nuevas)
+                                                    setCarouselIndex(nuevas.length - 1) // ir a la nueva imagen
+                                                    mostrarMsg(true, "✅ Imagen añadida a la galería")
+                                                } catch (e: unknown) {
+                                                    mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+                                                } finally {
+                                                    setGaleriaCargando(false)
+                                                    // Limpiar input para permitir re-subir el mismo archivo
+                                                    e.target.value = ""
+                                                }
+                                            }}
+                                        />
+                                    )}
+                                    {galeriaImagenes.length < 5 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => document.getElementById("input-galeria-extra")?.click()}
+                                            disabled={galeriaCargando}
+                                            style={{
+                                                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                                                padding: "10px 16px", borderRadius: 12,
+                                                border: "1.5px dashed var(--primary-mid)",
+                                                background: "transparent", color: "var(--primary-mid)",
+                                                fontWeight: 700, fontSize: "0.8rem", cursor: galeriaCargando ? "not-allowed" : "pointer",
+                                                transition: "all 0.15s", opacity: galeriaCargando ? 0.5 : 1,
+                                            }}
+                                        >
+                                            <Icon name={galeriaCargando ? "Loader" : "ImagePlus"} size={18} className={galeriaCargando ? "animate-spin" : ""} />
+                                            {galeriaCargando ? "Subiendo..." : "Añadir imagen"}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>

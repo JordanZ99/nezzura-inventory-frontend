@@ -100,6 +100,16 @@ export interface Categoria {
 }
 
 /**
+ * Representa una imagen extra en la galería de un producto (Plan Plus).
+ * La imagen principal sigue siendo productos.imagen; estas son adicionales.
+ */
+export interface ImagenProducto {
+    id: number;
+    url: string;
+    orden: number;
+}
+
+/**
  * Obtiene el token JWT de la sesión activa de Supabase.
  * Si no hay sesión, devuelve null y el backend rechazará la petición.
  */
@@ -172,6 +182,28 @@ export const api = {
 
     // Perfil
     getPerfil: () => request<{ tenant_id: string }>("/inventario/me"),
+
+    // Galería de imágenes (Plan Plus) — hasta 5 imágenes extra por producto
+    getImagenesProducto: (producto: string) =>
+        request<ImagenProducto[]>(`/inventario/imagenes/${encodeURIComponent(producto)}`),
+    subirImagenExtra: async (producto: string, file: File): Promise<{ ok: boolean; url: string; orden: number }> => {
+        const authHeaders = await getAuthHeaders()
+        const formData = new FormData()
+        formData.append("foto", file)
+        const res = await fetch(`${BASE_URL}/inventario/imagenes/${encodeURIComponent(producto)}`, {
+            method: "POST",
+            headers: authHeaders,
+            body: formData,
+        })
+        if (!res.ok) {
+            let detail = "Error al subir imagen"
+            try { const err = await res.json(); detail = err.detail || detail } catch { }
+            throw new Error(detail)
+        }
+        return res.json()
+    },
+    eliminarImagenExtra: (imagenId: number) =>
+        request<{ ok: boolean; id: number }>(`/inventario/imagenes/${imagenId}`, { method: "DELETE" }),
 
     // Ventas
     getVentas: () => request<Venta[]>("/ventas/"),
