@@ -142,7 +142,7 @@ export const api = {
     getLotes: () => request<Lote[]>("/inventario/lotes"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string }) => request(`/inventario/${prod}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
     // Categorías
     getCategorias: () => request<Categoria[]>("/inventario/categorias"),
     crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),
@@ -154,7 +154,7 @@ export const api = {
         const authHeaders = await getAuthHeaders()
         const formData = new FormData()
         formData.append("foto", file)
-        const res = await fetch(`${BASE_URL}/inventario/foto/${producto}`, {
+        const res = await fetch(`${BASE_URL}/inventario/foto/${encodeURIComponent(producto)}`, {
             method: "POST",
             headers: authHeaders,
             body: formData,
@@ -175,14 +175,14 @@ export const api = {
 
     // Ventas
     getVentas: () => request<Venta[]>("/ventas/"),
-    cobrarCarrito: (items: ItemCarrito[]) => request<{ total_cobrado: number }>("/ventas/cobrar", { method: "POST", body: JSON.stringify({ items }) }),
+    cobrarCarrito: (items: ItemCarrito[]) => request<{ ok: boolean; ventas: number; total_cobrado: number }>("/ventas/cobrar", { method: "POST", body: JSON.stringify({ items }) }),
     actualizarVenta: (id: number, data: { fecha?: string; precio_real?: number; cantidad?: number; total_venta?: number; ganancia_bruta?: number }) => request(`/ventas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarVenta: (id: number) => request(`/ventas/${id}`, { method: "DELETE" }),
 
     // Gastos
     getGastos: () => request<Gasto[]>("/gastos/"),
     crearGasto: (data: { fecha: string; categoria: string; descripcion: string; monto: number; estado?: string; gasto_programado_id?: string }) => request("/gastos/", { method: "POST", body: JSON.stringify(data) }),
-    actualizarGasto: (id: number, data: { monto: number; categoria: string; descripcion: string }) => request(`/gastos/${id}`, { method: "PUT", body: JSON.stringify({ ...data, fecha: "" }) }),
+    actualizarGasto: (id: number, data: { monto: number; categoria: string; descripcion: string }) => request(`/gastos/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     confirmarGasto: (id: number) => request(`/gastos/${id}/confirmar`, { method: "PUT" }),
     descartarGasto: (id: number) => request(`/gastos/${id}/descartar`, { method: "PUT" }),
     eliminarGasto: (id: number) => request(`/gastos/${id}`, { method: "DELETE" }),
