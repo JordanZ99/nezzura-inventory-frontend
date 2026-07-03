@@ -187,22 +187,27 @@ export const api = {
     // Galería de imágenes (Plan Plus) — hasta 5 imágenes extra por producto
     getImagenesProducto: (producto: string) =>
         request<ImagenProducto[]>(`/inventario/imagenes/${encodeURIComponent(producto)}`),
-    subirImagenExtra: async (producto: string, file: File): Promise<{ ok: boolean; url: string; orden: number }> => {
-        const authHeaders = await getAuthHeaders()
-        const formData = new FormData()
-        formData.append("foto", file)
-        const res = await fetch(`${BASE_URL}/inventario/imagenes/${encodeURIComponent(producto)}`, {
-            method: "POST",
-            headers: authHeaders,
-            body: formData,
-        })
-        if (!res.ok) {
-            let detail = "Error al subir imagen"
-            try { const err = await res.json(); detail = err.detail || detail } catch { }
-            throw new Error(detail)
-        }
-        return res.json()
-    },
+    subirImagenExtra: async (producto: string, file: File, ordenTarget?: number): Promise<{ ok: boolean; url: string; orden: number }> => {
+            const authHeaders = await getAuthHeaders()
+            const formData = new FormData()
+            formData.append("foto", file)
+            // Si ordenTarget se envía, el backend reemplaza la imagen en ese orden
+            // (borra la anterior de Cloudinary + DB). Si es undefined, añade una nueva.
+            if (ordenTarget !== undefined) {
+                formData.append("orden_target", String(ordenTarget))
+            }
+            const res = await fetch(`${BASE_URL}/inventario/imagenes/${encodeURIComponent(producto)}`, {
+                method: "POST",
+                headers: authHeaders,
+                body: formData,
+            })
+            if (!res.ok) {
+                let detail = "Error al subir imagen"
+                try { const err = await res.json(); detail = err.detail || detail } catch { }
+                throw new Error(detail)
+            }
+            return res.json()
+        },
     eliminarImagenExtra: (imagenId: number) =>
         request<{ ok: boolean; id: number }>(`/inventario/imagenes/${imagenId}`, { method: "DELETE" }),
 
