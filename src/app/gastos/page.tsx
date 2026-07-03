@@ -42,6 +42,8 @@ export default function Gastos() {
 
     // ── Estado para categorías de gasto editables ──
     const [categoriasGasto, setCategoriasGasto] = useState<string[]>(["Otros"])
+    const [catColapsado, setCatColapsado] = useState(true)
+    const [esMobile, setEsMobile] = useState(true) // mobile-first para evitar flash de contenido
     const [cargandoCats, setCargandoCats] = useState(false)
     const [nuevaCatNombre, setNuevaCatNombre] = useState("")
     const [catEditandoNombre, setCatEditandoNombre] = useState<string | null>(null)
@@ -142,6 +144,14 @@ export default function Gastos() {
         const g = await api.getGastos()
         setGastos(g)
     }
+    useEffect(() => {
+        // Detectar si es mobile para el colapsable de categorías
+        const mql = window.matchMedia('(max-width: 767px)')
+        setEsMobile(mql.matches)
+        const handler = (e: MediaQueryListEvent) => setEsMobile(e.matches)
+        mql.addEventListener('change', handler)
+        return () => mql.removeEventListener('change', handler)
+    }, [])
     useEffect(() => { Promise.all([recargar(), cargarCategoriasGasto()]).finally(() => setCargando(false)) }, [])
 
     function mostrarMsg(ok: boolean, texto: string) {
@@ -346,12 +356,51 @@ export default function Gastos() {
                                     </div>
                                 </div>
 
-                                {/* ── Card: Gestionar Categorías ── */}
+                                {/* ── Card: Gestionar Categorías (colapsable en mobile) ── */}
                                 <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-                                    <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
-                                        <Icon name="Tags" size={20} color="var(--primary-mid)" />
-                                        Gestionar Categorías
-                                    </h2>
+                                    <div
+                                        onClick={() => { if (esMobile) setCatColapsado(c => !c) }}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 8,
+                                            cursor: esMobile ? "pointer" : "default",
+                                            userSelect: "none",
+                                        }}
+                                    >
+                                        <h2 style={{
+                                            margin: 0,
+                                            fontSize: "1rem",
+                                            fontWeight: 800,
+                                            color: "var(--text-main)",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 8,
+                                            flex: 1
+                                        }}>
+                                            <Icon name="Tags" size={20} color="var(--primary-mid)" />
+                                            Gestionar Categorías
+                                        </h2>
+                                        {esMobile && (
+                                            <span style={{
+                                                transition: "transform 0.25s ease",
+                                                transform: catColapsado ? "rotate(0deg)" : "rotate(180deg)",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                color: "var(--text-muted)",
+                                                opacity: 0.6
+                                            }}>
+                                                <Icon name="ChevronDown" size={20} />
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Contenido colapsable: solo se oculta en mobile cuando está colapsado */}
+                                    <div style={{
+                                        display: esMobile && catColapsado ? "none" : "flex",
+                                        flexDirection: "column",
+                                        gap: 14
+                                    }}>
                                     <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 600, flexShrink: 0 }}>
                                         Crea, renombra o elimina las categorías de gasto.
                                     </p>
@@ -513,6 +562,7 @@ export default function Gastos() {
                                             })}
                                         </div>
                                     )}
+                                    </div>{/* fin contenido colapsable */}
                                 </div>
                             </div>
 
