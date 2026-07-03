@@ -30,6 +30,17 @@ export default function GestionGastosProgramados() {
     const [guardando, setGuardando] = useState(false)
     const [ejecutando, setEjecutando] = useState<string | null>(null)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+    /**
+     * Estado para el modal de confirmación de pago de gasto programado.
+     * Cuando no es null, se muestra un modal en lugar del confirm() nativo.
+     */
+    const [pagoConfirmar, setPagoConfirmar] = useState<{
+        id: string
+        nombre: string
+        montoEstimado: number
+        fechaPago: string
+        esAnticipado: boolean
+    } | null>(null)
 
     const [form, setForm] = useState({
         nombre: "",
@@ -77,28 +88,32 @@ export default function GestionGastosProgramados() {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
     }
 
-    async function ejecutarRegla(id: string, nombre: string) {
-        if (ejecutando) return
-
-        // Obtener la regla para saber la fecha y el monto estimado
+    /**
+     * Abre el modal de confirmación en lugar del confirm() nativo.
+     * Prepara los datos necesarios y los guarda en el estado pagoConfirmar.
+     */
+    function abrirModalConfirmacion(id: string, nombre: string) {
         const regla = reglas.find(r => r.id === id)
         if (!regla) return
 
         const montoEstimado = estimaciones[id] ?? regla.ultimo_monto ?? 0
         const fechaPago = regla.proxima_fecha.split('-').reverse().join('/')
-
-        // Popup de confirmación: siempre se muestra, con la fecha y el monto.
-        // Si la fecha ya venció, el mensaje es directo. Si es anticipada,
-        // se le hace saber al usuario que está pagando antes de tiempo.
         const hoy = new Date().toISOString().substring(0, 10)
         const esAnticipado = regla.proxima_fecha > hoy
-        const mensajeConfirm = esAnticipado
-            ? `¿Estás seguro de pagar "${nombre}" hoy?\n\nLa fecha programada es el ${fechaPago} (aún no llega).\nSe descontarán $${montoEstimado.toFixed(2)} de tu ganancia neta del período.`
-            : `¿Estás seguro de pagar "${nombre}"?\n\nSe descontarán $${montoEstimado.toFixed(2)} de tu ganancia neta del período.`
 
-        if (!confirm(mensajeConfirm)) return
+        setPagoConfirmar({ id, nombre, montoEstimado, fechaPago, esAnticipado })
+    }
 
+    /**
+     * Ejecuta la regla luego de que el usuario confirma en el modal.
+     * Llama a la API y muestra el resultado.
+     */
+    async function ejecutarReglaConfirmada() {
+        if (ejecutando || !pagoConfirmar) return
+
+        const { id } = pagoConfirmar
         setEjecutando(id)
+        setPagoConfirmar(null) // cerrar modal
         try {
             const res = await api.ejecutarGastoProgramado(id)
             if (res.ok) {
@@ -383,7 +398,7 @@ export default function GestionGastosProgramados() {
                                         <td style={{ padding: "12px 14px" }}>
                                             <button
                                                 type="button"
-                                                onClick={() => ejecutarRegla(g.id, g.nombre)}
+                                                onClick={() => abrirModalConfirmacion(g.id, g.nombre)}
                                                 disabled={ejecutando === g.id}
                                                 title={g.tipo === "porcentaje"
                                                     ? "Calcular porcentaje sobre la ganancia neta del período"
@@ -429,6 +444,116 @@ export default function GestionGastosProgramados() {
                     </div>
                 </div>
             </div>
+
+            {/* ── Modal de confirmación para pagar gasto programado ── */}
+            {pagoConfirmar && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 9999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+                    padding: 24
+                }}>
+                    <div className="card" style={{
+                        maxWidth: 440, width: "100%", padding: 28, gap: 20,
+                        display: "flex", flexDirection: "column",
+                        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                        border: "1px solid var(--border-light)"
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{
+                                width: 44, height: 44, borderRadius: 12,
+                                background: "#e0f2fe", display: "flex",
+                                alignItems: "center", justifyContent: "center", flexShrink: 0
+                            }}>
+                                <Icon name="DollarSign" size={24} color="#0284c7" />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                    Pagar gasto programado
+                                </h3>
+                                <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                    {pagoConfirmar.nombre}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style={{
+                            padding: "16px 20px", borderRadius: 10,
+                            background: "var(--bg-card2)", border: "1px solid var(--border-light)",
+                            display: "flex", flexDirection: "column", gap: 10
+                        }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-muted)" }}>Monto a descontar</span>
+                                <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                    ${pagoConfirmar.montoEstimado.toFixed(2)}
+                                </span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-muted)" }}>Fecha programada</span>
+                                <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--text-main)" }}>
+                                    {pagoConfirmar.fechaPago}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Advertencia si es un pago anticipado */}
+                        {pagoConfirmar.esAnticipado && (
+                            <div style={{
+                                padding: "12px 16px", borderRadius: 10,
+                                background: "#fff4e5", border: "1px solid #ffd699",
+                                display: "flex", gap: 10, alignItems: "flex-start"
+                            }}>
+                                <div style={{ flexShrink: 0, marginTop: 2 }}>
+                                    <Icon name="TriangleAlert" size={20} color="#cc7a00" />
+                                </div>
+                                <div>
+                                    <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#8a5e00" }}>
+                                        Pago anticipado
+                                    </p>
+                                    <p style={{ margin: "4px 0 0", fontSize: "0.78rem", color: "#8a5e00", fontWeight: 500 }}>
+                                        La fecha programada es el <strong>{pagoConfirmar.fechaPago}</strong> (aún no llega).
+                                        Se descontarán <strong>${pagoConfirmar.montoEstimado.toFixed(2)}</strong> de tu ganancia neta del período.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                            <button
+                                onClick={() => setPagoConfirmar(null)}
+                                disabled={ejecutando !== null}
+                                style={{
+                                    padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                                    background: "var(--bg-card2)", color: "var(--text-main)",
+                                    fontWeight: 700, fontSize: "0.82rem", cursor: ejecutando !== null ? "not-allowed" : "pointer",
+                                    transition: "all 0.15s"
+                                }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={ejecutarReglaConfirmada}
+                                disabled={ejecutando !== null}
+                                style={{
+                                    padding: "10px 20px", borderRadius: 10, border: "none",
+                                    background: ejecutando !== null ? "#ccc" : "var(--primary-mid)",
+                                    color: ejecutando !== null ? "#999" : "#fff",
+                                    fontWeight: 700, fontSize: "0.82rem",
+                                    cursor: ejecutando !== null ? "not-allowed" : "pointer",
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    transition: "all 0.15s"
+                                }}
+                            >
+                                {ejecutando !== null ? (
+                                    <><Icon name="Hourglass" size={16} color="#999" /> Procesando...</>
+                                ) : (
+                                    <><Icon name="DollarSign" size={16} color="#fff" /> Sí, pagar</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }
