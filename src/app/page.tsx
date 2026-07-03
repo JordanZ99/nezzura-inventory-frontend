@@ -398,7 +398,7 @@ export default function PuntoDeVenta() {
                                          * Se agrega un padding sutil para evitar que la imagen toque
                                          * los bordes del contenedor cuadrado.
                                          */
-                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }} />
+                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8, borderRadius: 12 }} />
                                             ) : (
                                                 <span style={{ fontSize: "2rem" }}>🛍️</span>
                                             )}
