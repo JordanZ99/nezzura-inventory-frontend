@@ -233,6 +233,12 @@ export const api = {
         request<{ ok: boolean; monto: number; nombre: string; mensaje: string }>(`/gastos_programados/${id}/ejecutar`, { method: "POST" }),
     estimarMontoGastoProgramado: (id: string) =>
         request<{ ok: boolean; monto: number; tipo: string; nombre: string; proxima_fecha: string; ganancia_bruta: number; ganancia_neta: number; total_gastos: number }>(`/gastos_programados/${id}/estimacion`),
+    // Categorías de gasto (editables)
+    getCategoriasGasto: () => request<{ id: string; nombre: string }[]>("/gastos/categorias"),
+    crearCategoriaGasto: (nombre: string) => request<{ ok: boolean; categoria: { id: string; nombre: string }; mensaje: string }>("/gastos/categorias", { method: "POST", body: JSON.stringify({ nombre }) }),
+    editarCategoriaGasto: (viejoNombre: string, nuevoNombre: string) => request<{ ok: boolean; categoria: { id: string; nombre: string } }>(`/gastos/categorias/${encodeURIComponent(viejoNombre)}`, { method: "PUT", body: JSON.stringify({ nuevo_nombre: nuevoNombre }) }),
+    eliminarCategoriaGasto: (categoria: string) => request<{ ok: boolean; categoria_eliminada: string }>(`/gastos/categorias/${encodeURIComponent(categoria)}`, { method: "DELETE" }),
+
     actualizarGastoProgramado: (id: string, data: { nombre?: string; tipo?: string; valor?: number; frecuencia?: string; proxima_fecha?: string }) =>
         request<{ ok: boolean; mensaje: string }>(`/gastos_programados/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     eliminarGastoProgramado: (id: string) =>

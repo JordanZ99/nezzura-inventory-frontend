@@ -35,13 +35,107 @@ export default function Gastos() {
     const [editCategoria, setEditCategoria] = useState("Otros")
     const [editDescripcion, setEditDescripcion] = useState("")
 
-    const CATEGORIAS = ["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"]
+    // ── Estado para categorías de gasto editables ──
+    const [categoriasGasto, setCategoriasGasto] = useState<string[]>(["Otros"])
+    const [cargandoCats, setCargandoCats] = useState(false)
+    const [nuevaCatNombre, setNuevaCatNombre] = useState("")
+    const [catEditandoNombre, setCatEditandoNombre] = useState<string | null>(null)
+    const [catEditandoVal, setCatEditandoVal] = useState("")
+    const [guardandoCat, setGuardandoCat] = useState(false)
+
+    /**
+     * Carga la lista de categorías de gasto desde la API.
+     * Si el tenant no tiene categorías (primer inicio), siembra las categorías
+     * por defecto para que el usuario no vea una lista vacía.
+     */
+    async function cargarCategoriasGasto() {
+        setCargandoCats(true)
+        try {
+            const cats = await api.getCategoriasGasto()
+            if (cats.length === 0) {
+                // Seed inicial: crear las categorías por defecto
+                const defaults = ["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"]
+                await Promise.all(defaults.map(n => api.crearCategoriaGasto(n).catch(() => {})))
+                const cats2 = await api.getCategoriasGasto()
+                setCategoriasGasto(cats2.map(c => c.nombre))
+            } else {
+                setCategoriasGasto(cats.map(c => c.nombre))
+            }
+        } catch {
+            // Si falla la API, usamos las categorías por defecto como fallback
+            setCategoriasGasto(["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"])
+        } finally {
+            setCargandoCats(false)
+        }
+    }
+
+    async function guardarNuevaCategoriaGasto() {
+        const nombre = nuevaCatNombre.trim()
+        if (!nombre || guardandoCat) return
+        setGuardandoCat(true)
+        try {
+            await api.crearCategoriaGasto(nombre)
+            setNuevaCatNombre("")
+            await cargarCategoriasGasto()
+            mostrarMsg(true, `✅ Categoría "${nombre}" creada`)
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al crear categoría"}`)
+        } finally {
+            setGuardandoCat(false)
+        }
+    }
+
+    function iniciarEditarCategoriaGasto(nombre: string) {
+        setCatEditandoNombre(nombre)
+        setCatEditandoVal(nombre)
+    }
+
+    async function guardarEditarCategoriaGasto(viejoNombre: string) {
+        const nuevo = catEditandoVal.trim()
+        if (!nuevo || nuevo === viejoNombre || guardandoCat) {
+            cancelarEditarCategoriaGasto()
+            return
+        }
+        setGuardandoCat(true)
+        try {
+            await api.editarCategoriaGasto(viejoNombre, nuevo)
+            cancelarEditarCategoriaGasto()
+            await cargarCategoriasGasto()
+            // Actualizar también el form y edit si estaban usando el nombre viejo
+            if (form.categoria === viejoNombre) setForm(f => ({ ...f, categoria: nuevo }))
+            if (editCategoria === viejoNombre) setEditCategoria(nuevo)
+            mostrarMsg(true, `✅ Categoría renombrada a "${nuevo}"`)
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al renombrar"}`)
+        } finally {
+            setGuardandoCat(false)
+        }
+    }
+
+    function cancelarEditarCategoriaGasto() {
+        setCatEditandoNombre(null)
+        setCatEditandoVal("")
+    }
+
+    async function eliminarCategoriaGasto(nombre: string) {
+        if (!confirm(`¿Eliminar la categoría "${nombre}"? Los gastos existentes se reasignarán a "Otros".`)) return
+        try {
+            await api.eliminarCategoriaGasto(nombre)
+            await cargarCategoriasGasto()
+            // Si el form o edit usaban esta categoría, reasignar a Otros
+            if (form.categoria === nombre) setForm(f => ({ ...f, categoria: "Otros" }))
+            if (editCategoria === nombre) setEditCategoria("Otros")
+            mostrarMsg(true, `🗑️ Categoría "${nombre}" eliminada`)
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al eliminar categoría"}`)
+        }
+    }
 
     async function recargar() {
         const g = await api.getGastos()
         setGastos(g)
     }
-    useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
+    useEffect(() => { Promise.all([recargar(), cargarCategoriasGasto()]).finally(() => setCargando(false)) }, [])
 
     function mostrarMsg(ok: boolean, texto: string) {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
@@ -226,7 +320,7 @@ export default function Gastos() {
                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                         <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Categoría</label>
                                         <select className="input-primary" value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
-                                            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                            {categoriasGasto.map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -241,6 +335,176 @@ export default function Gastos() {
                                         Añadir Gasto
                                     </button>
                                 </div>
+                            </div>
+
+                            {/* ── Card: Gestionar Categorías ── */}
+                            <div className="card fade-up" style={{ padding: 20, flex: "1 1 300px", maxWidth: 400, display: "flex", flexDirection: "column", gap: 14 }}>
+                                <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Icon name="Tags" size={20} color="var(--primary-mid)" />
+                                    Gestionar Categorías
+                                </h2>
+                                <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 600, flexShrink: 0 }}>
+                                    Crea, renombra o elimina las categorías de gasto.
+                                </p>
+
+                                {/* Input para crear nueva categoría */}
+                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Nombre de la nueva categoría..."
+                                        value={nuevaCatNombre}
+                                        onChange={e => setNuevaCatNombre(e.target.value)}
+                                        onKeyDown={e => { if (e.key === "Enter") guardarNuevaCategoriaGasto() }}
+                                        style={{
+                                            flex: 1,
+                                            padding: "8px 12px",
+                                            borderRadius: 10,
+                                            border: "1px solid var(--border-primary)",
+                                            fontSize: "0.8rem",
+                                            outline: "none",
+                                            background: "var(--bg-card2)",
+                                            color: "var(--text-main)"
+                                        }}
+                                    />
+                                    <button
+                                        onClick={guardarNuevaCategoriaGasto}
+                                        disabled={!nuevaCatNombre.trim() || guardandoCat}
+                                        style={{
+                                            background: nuevaCatNombre.trim() && !guardandoCat ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: nuevaCatNombre.trim() && !guardandoCat ? "#fff" : "var(--text-muted)",
+                                            border: "none", borderRadius: 10,
+                                            padding: "8px 16px", fontWeight: 700, fontSize: "0.78rem",
+                                            cursor: nuevaCatNombre.trim() && !guardandoCat ? "pointer" : "not-allowed",
+                                            transition: "all 0.15s",
+                                            whiteSpace: "nowrap",
+                                            display: "flex", alignItems: "center", gap: 6
+                                        }}
+                                    >
+                                        <Icon name="Plus" size={16} color={nuevaCatNombre.trim() && !guardandoCat ? "#fff" : "var(--text-muted)"} /> Crear
+                                    </button>
+                                </div>
+
+                                {/* Separador */}
+                                <div style={{ height: 1, background: "var(--border-light)", margin: "4px 0", flexShrink: 0 }} />
+
+                                {/* Lista de categorías */}
+                                {cargandoCats ? (
+                                    <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 20, fontSize: "0.8rem" }}>
+                                        Cargando categorías...
+                                    </p>
+                                ) : (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto", flex: 1, minHeight: 0, scrollbarWidth: "thin" }}>
+                                        {categoriasGasto.map(cat => {
+                                            const editando = catEditandoNombre === cat
+                                            return (
+                                                <div
+                                                    key={cat}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 8,
+                                                        padding: "8px 12px",
+                                                        borderRadius: 10,
+                                                        background: "var(--bg-card2)",
+                                                        transition: "all 0.15s"
+                                                    }}
+                                                    onMouseEnter={e => { if (!editando) e.currentTarget.style.background = "var(--border-light)" }}
+                                                    onMouseLeave={e => { if (!editando) e.currentTarget.style.background = "var(--bg-card2)" }}
+                                                >
+                                                    {editando ? (
+                                                        <>
+                                                            <input
+                                                                type="text"
+                                                                value={catEditandoVal}
+                                                                onChange={e => setCatEditandoVal(e.target.value)}
+                                                                onKeyDown={e => {
+                                                                    if (e.key === "Enter") guardarEditarCategoriaGasto(cat)
+                                                                    if (e.key === "Escape") cancelarEditarCategoriaGasto()
+                                                                }}
+                                                                autoFocus
+                                                                style={{
+                                                                    flex: 1,
+                                                                    padding: "4px 8px",
+                                                                    borderRadius: 6,
+                                                                    border: "2px solid var(--primary-mid)",
+                                                                    fontSize: "0.78rem",
+                                                                    outline: "none",
+                                                                    background: "var(--bg-app)",
+                                                                    color: "var(--text-main)"
+                                                                }}
+                                                            />
+                                                            <button
+                                                                onClick={() => guardarEditarCategoriaGasto(cat)}
+                                                                disabled={guardandoCat || !catEditandoVal.trim()}
+                                                                style={{
+                                                                    background: "var(--primary-mid)", color: "#fff",
+                                                                    border: "none", borderRadius: 8,
+                                                                    padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700,
+                                                                    cursor: guardandoCat || !catEditandoVal.trim() ? "not-allowed" : "pointer",
+                                                                    display: "flex", alignItems: "center", gap: 4
+                                                                }}
+                                                            >
+                                                                <Icon name="Check" size={14} color="#fff" />
+                                                            </button>
+                                                            <button
+                                                                onClick={cancelarEditarCategoriaGasto}
+                                                                style={{
+                                                                    background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                                    border: "none", borderRadius: 8,
+                                                                    padding: "4px 10px", fontSize: "0.7rem", fontWeight: 700,
+                                                                    cursor: "pointer"
+                                                                }}
+                                                            >
+                                                                <Icon name="X" size={14} color="var(--text-muted)" />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Icon name="Tag" size={16} color="var(--primary-mid)" />
+                                                            <span style={{ flex: 1, fontWeight: 600, fontSize: "0.8rem", color: "var(--text-main)" }}>
+                                                                {cat}
+                                                            </span>
+                                                            {cat !== "Otros" && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => iniciarEditarCategoriaGasto(cat)}
+                                                                        title={`Renombrar "${cat}"`}
+                                                                        style={{
+                                                                            background: "none", border: "none",
+                                                                            cursor: "pointer", padding: 4,
+                                                                            borderRadius: 6,
+                                                                            display: "flex", alignItems: "center",
+                                                                            opacity: 0.5, transition: "opacity 0.15s"
+                                                                        }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.opacity = "1" }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.opacity = "0.5" }}
+                                                                    >
+                                                                        <Icon name="Pencil" size={14} color="var(--primary-mid)" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => eliminarCategoriaGasto(cat)}
+                                                                        title={`Eliminar "${cat}"`}
+                                                                        style={{
+                                                                            background: "none", border: "none",
+                                                                            cursor: "pointer", padding: 4,
+                                                                            borderRadius: 6,
+                                                                            display: "flex", alignItems: "center",
+                                                                            opacity: 0.4, transition: "opacity 0.15s"
+                                                                        }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = "#e74c3c" }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.opacity = "0.4"; e.currentTarget.style.color = "" }}
+                                                                    >
+                                                                        <Icon name="Trash2" size={14} color="#e74c3c" />
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Lista / Tabla */}
@@ -281,7 +545,7 @@ export default function Gastos() {
                                                             {editandoId === g.id ? (
                                                                 <select className="input-primary" style={{ padding: "4px 8px", fontSize: "0.75rem", fontWeight: 600 }}
                                                                     value={editCategoria} onChange={e => setEditCategoria(e.target.value)}>
-                                                                    {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                                                    {categoriasGasto.map(c => <option key={c} value={c}>{c}</option>)}
                                                                 </select>
                                                             ) : (
                                                                 <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
