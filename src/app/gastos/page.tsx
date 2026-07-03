@@ -35,6 +35,11 @@ export default function Gastos() {
     const [editCategoria, setEditCategoria] = useState("Otros")
     const [editDescripcion, setEditDescripcion] = useState("")
 
+    // ── Estados para modales de confirmación ──
+    const [confirmEliminarGastoId, setConfirmEliminarGastoId] = useState<number | null>(null)
+    const [confirmDescartarGastoId, setConfirmDescartarGastoId] = useState<number | null>(null)
+    const [confirmEliminarCatGasto, setConfirmEliminarCatGasto] = useState<string | null>(null)
+
     // ── Estado para categorías de gasto editables ──
     const [categoriasGasto, setCategoriasGasto] = useState<string[]>(["Otros"])
     const [cargandoCats, setCargandoCats] = useState(false)
@@ -117,8 +122,10 @@ export default function Gastos() {
         setCatEditandoVal("")
     }
 
-    async function eliminarCategoriaGasto(nombre: string) {
-        if (!confirm(`¿Eliminar la categoría "${nombre}"? Los gastos existentes se reasignarán a "Otros".`)) return
+    async function confirmarEliminarCategoriaGasto() {
+        const nombre = confirmEliminarCatGasto
+        if (!nombre) return
+        setConfirmEliminarCatGasto(null)
         try {
             await api.eliminarCategoriaGasto(nombre)
             await cargarCategoriasGasto()
@@ -158,7 +165,7 @@ export default function Gastos() {
     }
 
     async function eliminar(id: number) {
-        if (!confirm("¿Eliminar este gasto?")) return
+        setConfirmEliminarGastoId(null)
         try {
             await api.eliminarGasto(id)
             mostrarMsg(true, "🗑️ Gasto eliminado")
@@ -175,7 +182,7 @@ export default function Gastos() {
     }
 
     async function descartar(id: number) {
-        if (!confirm("¿Descartar este gasto pendiente?")) return
+        setConfirmDescartarGastoId(null)
         try {
             await api.descartarGasto(id)
             mostrarMsg(true, "🗑️ Gasto descartado")
@@ -480,9 +487,7 @@ export default function Gastos() {
                                                                         onMouseLeave={e => { e.currentTarget.style.opacity = "0.5" }}
                                                                     >
                                                                         <Icon name="Pencil" size={14} color="var(--primary-mid)" />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => eliminarCategoriaGasto(cat)}
+                                                                    </button>                                                                    <button onClick={() => setConfirmEliminarCatGasto(cat)}
                                                                         title={`Eliminar "${cat}"`}
                                                                         style={{
                                                                             background: "none", border: "none",
@@ -600,7 +605,7 @@ export default function Gastos() {
                                                                         onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-success)"; e.currentTarget.style.color = "#16a34a" }}>
                                                                         <Icon name="Check" size={16} />
                                                                     </button>
-                                                                    <button onClick={() => descartar(g.id)} title="Descartar gasto"
+                                                                    <button onClick={() => setConfirmDescartarGastoId(g.id)} title="Descartar gasto"
                                                                         style={{ background: "transparent", border: "1.5px solid var(--border-primary)", borderRadius: 8, padding: "6px 8px", cursor: "pointer", color: "var(--text-muted)", display: "inline-flex", alignItems: "center" }}
                                                                         onMouseEnter={e => { e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.borderColor = "#9ca3af" }}
                                                                         onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-primary)" }}>
@@ -615,7 +620,7 @@ export default function Gastos() {
                                                                         onMouseLeave={e => { e.currentTarget.style.opacity = "0.35"; e.currentTarget.style.background = "transparent" }}>
                                                                         <Icon name="Pencil" size={16} />
                                                                     </button>
-                                                                    <button onClick={() => eliminar(g.id)} title="Eliminar gasto"
+                                                                    <button onClick={() => setConfirmEliminarGastoId(g.id)} title="Eliminar gasto"
                                                                         style={{ background: "none", border: "none", cursor: "pointer", opacity: 0.3, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px", borderRadius: 8, minWidth: 32, minHeight: 32, transition: "opacity 0.15s, background 0.15s" }}
                                                                         onMouseEnter={e => { e.currentTarget.style.opacity = "0.6"; e.currentTarget.style.background = "var(--bg-card2)" }}
                                                                         onMouseLeave={e => { e.currentTarget.style.opacity = "0.3"; e.currentTarget.style.background = "transparent" }}>
@@ -643,7 +648,138 @@ export default function Gastos() {
                     <GestionGastosProgramados />
                 )}
 
+                {/* ── Modal: Confirmar eliminar gasto ── */}
+                {confirmEliminarGastoId !== null && (
+                    <ModalConfirmacion
+                        icon="Trash2"
+                        iconBg="#ffeef0"
+                        iconColor="#ad4955ff"
+                        titulo="Eliminar gasto"
+                        mensaje="¿Estás seguro de eliminar este gasto? Esta acción no se puede deshacer."
+                        btnConfirmar="Sí, eliminar"
+                        btnColor="#ad4955ff"
+                        onCancelar={() => setConfirmEliminarGastoId(null)}
+                        onConfirmar={() => eliminar(confirmEliminarGastoId)}
+                    />
+                )}
+
+                {/* ── Modal: Confirmar descartar gasto pendiente ── */}
+                {confirmDescartarGastoId !== null && (
+                    <ModalConfirmacion
+                        icon="X"
+                        iconBg="#f3f4f6"
+                        iconColor="#6b7280"
+                        titulo="Descartar gasto pendiente"
+                        mensaje="¿Estás seguro de descartar este gasto pendiente? El gasto se marcará como descartado y no contará en las estadísticas."
+                        btnConfirmar="Sí, descartar"
+                        btnColor="#6b7280"
+                        onCancelar={() => setConfirmDescartarGastoId(null)}
+                        onConfirmar={() => descartar(confirmDescartarGastoId)}
+                    />
+                )}
+
+                {/* ── Modal: Confirmar eliminar categoría de gasto ── */}
+                {confirmEliminarCatGasto !== null && (
+                    <ModalConfirmacion
+                        icon="Trash2"
+                        iconBg="#ffeef0"
+                        iconColor="#ad4955ff"
+                        titulo="Eliminar categoría"
+                        mensaje={`¿Eliminar la categoría "${confirmEliminarCatGasto}"? Los gastos existentes se reasignarán a "Otros".`}
+                        btnConfirmar="Sí, eliminar"
+                        btnColor="#ad4955ff"
+                        onCancelar={() => setConfirmEliminarCatGasto(null)}
+                        onConfirmar={confirmarEliminarCategoriaGasto}
+                    />
+                )}
+
                 <div style={{ height: 32 }} />
+            </div>
+        </div>
+    )
+}
+
+// =============================================================================
+// Componente reutilizable: Modal de confirmación
+// =============================================================================
+function ModalConfirmacion({
+    icon,
+    iconBg,
+    iconColor,
+    titulo,
+    mensaje,
+    btnConfirmar,
+    btnColor,
+    onCancelar,
+    onConfirmar,
+}: {
+    icon: string
+    iconBg: string
+    iconColor: string
+    titulo: string
+    mensaje: string
+    btnConfirmar: string
+    btnColor: string
+    onCancelar: () => void
+    onConfirmar: () => void
+}) {
+    return (
+        <div style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+            padding: 24
+        }}>
+            <div className="card" style={{
+                maxWidth: 440, width: "100%", padding: 28, gap: 20,
+                display: "flex", flexDirection: "column",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                border: "1px solid var(--border-light)"
+            }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{
+                        width: 44, height: 44, borderRadius: 12,
+                        background: iconBg, display: "flex",
+                        alignItems: "center", justifyContent: "center", flexShrink: 0
+                    }}>
+                        <Icon name={icon as any} size={24} color={iconColor} />
+                    </div>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                            {titulo}
+                        </h3>
+                    </div>
+                </div>
+
+                <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--text-main)", lineHeight: 1.5, fontWeight: 500 }}>
+                    {mensaje}
+                </p>
+
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                    <button onClick={onCancelar}
+                        style={{
+                            padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                            background: "var(--bg-card2)", color: "var(--text-main)",
+                            fontWeight: 700, fontSize: "0.82rem", cursor: "pointer",
+                            transition: "all 0.15s"
+                        }}
+                    >
+                        Cancelar
+                    </button>
+                    <button onClick={onConfirmar}
+                        style={{
+                            padding: "10px 20px", borderRadius: 10, border: "none",
+                            background: btnColor,
+                            color: "#fff",
+                            fontWeight: 700, fontSize: "0.82rem",
+                            cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 8,
+                            transition: "all 0.15s"
+                        }}
+                    >
+                        <Icon name={icon as any} size={16} color="#fff" /> {btnConfirmar}
+                    </button>
+                </div>
             </div>
         </div>
     )
