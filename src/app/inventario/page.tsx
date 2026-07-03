@@ -73,6 +73,7 @@ export default function Inventario() {
     const [catEditandoId, setCatEditandoId] = useState<string | null>(null)
     const [catEditandoNombre, setCatEditandoNombre] = useState("")
     const [cargandoCats, setCargandoCats] = useState(false)
+    const [confirmEliminarCat, setConfirmEliminarCat] = useState<string | null>(null)
 
     function agregarCategoria() {
         const cat = nuevaCategoria.trim()
@@ -351,8 +352,14 @@ export default function Inventario() {
         }
     }
 
+    function confirmarEliminarCategoria() {
+        const cat = confirmEliminarCat
+        if (!cat) return
+        setConfirmEliminarCat(null)
+        eliminarCategoria(cat)
+    }
+
     async function eliminarCategoria(cat: string) {
-        if (!confirm(`¿Estás seguro de eliminar la categoría "${cat}"? Se eliminará de todos los productos.`)) return
         try {
             const res = await api.eliminarCategoria(cat) as { productos_actualizados: number }
             mostrarMsg(true, `Categoría "${cat}" eliminada de ${res.productos_actualizados} producto(s)`)
@@ -716,7 +723,7 @@ export default function Inventario() {
                                                             <Icon name="Pencil" size={14} color="var(--primary-mid)" />
                                                         </button>
                                                         <button
-                                                            onClick={() => eliminarCategoria(cat.nombre)}
+                                                            onClick={() => setConfirmEliminarCat(cat.nombre)}
                                                             title={`Eliminar "${cat.nombre}"`}
                                                             style={{
                                                                 background: "none", border: "none",
@@ -1134,6 +1141,66 @@ export default function Inventario() {
                             )
                         })()}
                     </>
+                )}
+
+                {/* ── Modal: Confirmar eliminar categoría ── */}
+                {confirmEliminarCat !== null && (
+                    <div style={{
+                        position: "fixed", inset: 0, zIndex: 9999,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+                        padding: 24
+                    }}>
+                        <div className="card" style={{
+                            maxWidth: 440, width: "100%", padding: 28, gap: 20,
+                            display: "flex", flexDirection: "column",
+                            boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                            border: "1px solid var(--border-light)"
+                        }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                <div style={{
+                                    width: 44, height: 44, borderRadius: 12,
+                                    background: "#ffeef0", display: "flex",
+                                    alignItems: "center", justifyContent: "center", flexShrink: 0
+                                }}>
+                                    <Icon name="TriangleAlert" size={24} color="#ad4955ff" />
+                                </div>
+                                <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                    Eliminar categoría
+                                </h3>
+                            </div>
+
+                            <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--text-main)", lineHeight: 1.5, fontWeight: 500 }}>
+                                ¿Estás seguro de eliminar la categoría <strong>"{confirmEliminarCat}"</strong>? Se eliminará de todos los productos.
+                            </p>
+
+                            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                                <button onClick={() => setConfirmEliminarCat(null)}
+                                    style={{
+                                        padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                                        background: "var(--bg-card2)", color: "var(--text-main)",
+                                        fontWeight: 700, fontSize: "0.82rem", cursor: "pointer",
+                                        transition: "all 0.15s"
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                                <button onClick={confirmarEliminarCategoria}
+                                    style={{
+                                        padding: "10px 20px", borderRadius: 10, border: "none",
+                                        background: "#ad4955ff",
+                                        color: "#fff",
+                                        fontWeight: 700, fontSize: "0.82rem",
+                                        cursor: "pointer",
+                                        display: "flex", alignItems: "center", gap: 8,
+                                        transition: "all 0.15s"
+                                    }}
+                                >
+                                    <Icon name="Trash2" size={16} color="#fff" /> Sí, eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 <div style={{ height: 20 }} />
