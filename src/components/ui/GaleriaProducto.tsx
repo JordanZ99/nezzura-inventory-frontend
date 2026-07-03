@@ -31,6 +31,8 @@ export interface FotoGaleria {
     file?: File
     /** ID en la tabla producto_imagenes (solo para fotos existentes) */
     id?: number
+    /** Orden en la galería del backend (1-5, solo para fotos existentes) */
+    orden?: number
 }
 
 // ── Props ──

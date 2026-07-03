@@ -291,19 +291,22 @@ export default function Inventario() {
                     catch { /* ignorar error al eliminar */ }
                 }
             }
-            // Subir nuevas fotos extras
-            const nuevosExtras = editFotos.slice(1).filter(f => f.file)
-            for (const extra of nuevosExtras) {
-                if (!extra.file) continue
-                try {
-                    let imgAEnviar = extra.file
-                    try { imgAEnviar = await comprimirImagen(extra.file) }
-                    catch { /* enviar original */ }
-                    await api.subirImagenExtra(prodEditar, imgAEnviar)
-                } catch {
-                    console.warn("Error subiendo imagen extra para", prodEditar)
-                }
-            }
+            // Subir nuevas fotos extras + reemplazadas
+                        // Para cada foto del array que tenga file (es nueva/cambiada):
+                        //   - Si tiene orden, reemplazar en ese orden (backend borra la vieja)
+                        //   - Si no tiene orden, insercion nueva
+                        const nuevosExtras = editFotos.slice(1).filter(f => f.file)
+                        for (const extra of nuevosExtras) {
+                            if (!extra.file) continue
+                            try {
+                                let imgAEnviar = extra.file
+                                try { imgAEnviar = await comprimirImagen(extra.file) }
+                                catch { /* enviar original */ }
+                                await api.subirImagenExtra(prodEditar, imgAEnviar, extra.orden)
+                            } catch {
+                                console.warn("Error subiendo imagen extra para", prodEditar)
+                            }
+                        }
 
             mostrarMsg(true, "Producto actualizado")
             setProdEditar(""); setEditProdNombre(""); setEditFotos([]); recargar()
@@ -827,11 +830,11 @@ export default function Inventario() {
                                                 // Cargar todas las fotos del producto (principal + extras) en editFotos
                                                 const fotos: FotoGaleria[] = []
                                                 if (prod.imagen && prod.imagen !== "No hay foto") {
-                                                    fotos.push({ url: prod.imagen }) // foto principal en índice 0
+                                                    fotos.push({ url: prod.imagen, orden: 1 }) // principal = orden 1
                                                 }
                                                 api.getImagenesProducto(prod.producto)
                                                     .then(extras => {
-                                                        const todas = [...fotos, ...extras.map(e => ({ url: e.url, id: e.id }))]
+                                                        const todas = [...fotos, ...extras.map(e => ({ url: e.url, id: e.id, orden: e.orden }))]
                                                         setEditFotos(todas)
                                                     })
                                                     .catch(() => setEditFotos(fotos))
