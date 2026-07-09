@@ -368,8 +368,11 @@ export default function PuntoDeVenta() {
                                     onChange={e => setOrdenamiento(e.target.value)}
                                 >
                                     <option value="stock-desc">Por stock</option>
+                                    <option value="stock-asc">Por stock</option>
                                     <option value="precio-desc">Por precio</option>
+                                    <option value="precio-asc">Por precio</option>
                                     <option value="alfabetico">Alfabético</option>
+                                    <option value="alfabetico-desc">Alfabético</option>
                                 </select>
                             </div>
                         </div>
