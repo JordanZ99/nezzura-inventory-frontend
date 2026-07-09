@@ -1243,6 +1243,14 @@ export default function Inventario() {
                 {kpiExplicacion && (() => {
                     const info = explicacionesKPI[kpiExplicacion]
                     if (!info) return null
+                    // Mapa de íconos para cada KPI
+                    const iconosKPI: Record<string, string> = {
+                        "Productos activos": "PackagePlus",
+                        "Valor del inventario": "PiggyBank",
+                        "Ganancia potencial": "Banknote",
+                        "Stock descuadrado": "TriangleAlert",
+                    }
+                    const iconoKPI = iconosKPI[kpiExplicacion] || "Info"
                     return (
                         <div
                             style={{
@@ -1277,7 +1285,7 @@ export default function Inventario() {
                                         display: "flex",
                                         alignItems: "center", justifyContent: "center", flexShrink: 0
                                     }}>
-                                        <Icon name="Info" size={24} color="var(--primary-soft)" />
+                                        <Icon name={iconoKPI as any} size={24} color="var(--primary-soft)" />
                                     </div>
                                     <div>
                                         <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: "var(--text-main)" }}>
