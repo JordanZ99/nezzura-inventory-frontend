@@ -477,11 +477,7 @@ export default function Inventario() {
                             <div style={{ flex: 1 }}>
                                 <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{m.label}</p>
                                 <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--text-main)" }}>{m.valor}</p>
-                            </div>
-                            <div style={{ opacity: 0.5, display: "flex", alignItems: "center" }}>
-                                <Icon name="Info" size={16} color="var(--text-muted)" />
-                            </div>
-                        </div>
+                            </div>                        </div>
                     ))}
                 </div>
 
