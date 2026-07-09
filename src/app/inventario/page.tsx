@@ -849,8 +849,8 @@ export default function Inventario() {
                                             setRestock(r => ({
                                                 ...r,
                                                 producto: prod.producto,
-                                                costo: prod.costo_promedio ?? 0,
-                                                precio_venta: prod.precio_venta ?? 0
+                                                costo: Number(prod.costo_promedio ?? 0).toFixed(2),
+                                                precio_venta: Number(prod.precio_venta ?? 0).toFixed(2)
                                             }))
                                         }}
                                         onMouseEnter={e => {
