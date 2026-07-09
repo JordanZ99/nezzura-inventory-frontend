@@ -40,6 +40,9 @@ export default function Gastos() {
     const [confirmDescartarGastoId, setConfirmDescartarGastoId] = useState<number | null>(null)
     const [confirmEliminarCatGasto, setConfirmEliminarCatGasto] = useState<string | null>(null)
 
+    // ── Estado para filtrar solo pendientes ──
+    const [filtroPendientes, setFiltroPendientes] = useState(false)
+
     // ── Estado para categorías de gasto editables ──
     const [categoriasGasto, setCategoriasGasto] = useState<string[]>(["Otros"])
     const [catColapsado, setCatColapsado] = useState(true)
@@ -225,7 +228,12 @@ export default function Gastos() {
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
     }
 
-    // ── Stats: solo gastos pagados ──
+    // ── Gastos visibles según filtro ──
+    const gastosVisibles = filtroPendientes
+        ? gastos.filter(g => g.estado === "pendiente")
+        : gastos
+
+    // ── Stats ──
     const pagados = gastos.filter(g => g.estado !== "pendiente" && g.estado !== "descartado")
     const totalPagado = pagados.reduce((a, g) => a + g.monto, 0)
     const numPagados = pagados.length
@@ -287,8 +295,13 @@ export default function Gastos() {
                 {/* ── Tab: Movimientos ── */}
                 {tab === "movimientos" && (
                     <>
-                        {/* Stats cards: solo pagados */}
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+                        {/* Stats cards: en mobile Pendientes abajo y estirado */}
+                        <div style={{
+                            display: "grid",
+                            gridTemplateColumns: esMobile ? "1fr 1fr" : "1fr 1fr 1fr",
+                            gap: 12,
+                            marginBottom: 20
+                        }}>
                             <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
                                 <Icon name="BanknoteArrowDown" size={32} color="var(--primary-alter)" />
                                 <div>
@@ -303,14 +316,40 @@ export default function Gastos() {
                                     <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-pale)" }}>{numPagados}</p>
                                 </div>
                             </div>
-                            <div className="card fade-up" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+                            {/* Pendientes: en mobile ocupa todo el ancho debajo */}
+                            <div
+                                className="card fade-up"
+                                onClick={() => setFiltroPendientes(prev => !prev)}
+                                style={{
+                                    padding: "16px 20px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 12,
+                                    cursor: "pointer",
+                                    gridColumn: esMobile ? "1 / -1" : undefined,
+                                    border: filtroPendientes ? "2px solid var(--primary-dark)" : "2px solid transparent",
+                                    transition: "all 0.2s",
+                                    background: filtroPendientes ? "var(--bg-warning)" : undefined
+                                }}
+                            >
                                 <Icon name="Clock" size={32} color="var(--primary-dark)" />
-                                <div>
-                                    <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Pendientes</p>
+                                <div style={{ flex: 1 }}>
+                                    <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>
+                                        Pendientes {filtroPendientes ? "(filtrado)" : ""}
+                                    </p>
                                     <p style={{ margin: 0, fontWeight: 800, fontSize: "1.25rem", color: "var(--primary-dark)" }}>
                                         {pendientes.length > 0 ? `${pendientes.length} ($${totalPendiente.toFixed(0)})` : "0"}
                                     </p>
                                 </div>
+                                {filtroPendientes && (
+                                    <span style={{
+                                        fontSize: "0.65rem", fontWeight: 700, color: "var(--primary-dark)",
+                                        background: "rgba(0,0,0,0.08)", borderRadius: 8,
+                                        padding: "4px 8px", whiteSpace: "nowrap"
+                                    }}>
+                                        ✕ Quitar filtro
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -586,7 +625,7 @@ export default function Gastos() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {gastos.map(g => {
+                                            {gastosVisibles.map(g => {
                                                 const esPendiente = g.estado === "pendiente"
                                                 const badge = estadoBadge(g.estado)
                                                 return (
@@ -686,8 +725,8 @@ export default function Gastos() {
                                                     </tr>
                                                 )
                                             })}
-                                            {gastos.length === 0 && !cargando && (
-                                                <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No hay gastos registrados.</td></tr>
+                                            {gastosVisibles.length === 0 && !cargando && (
+                                                <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>{filtroPendientes ? "No hay gastos pendientes." : "No hay gastos registrados."}</td></tr>
                                             )}
                                         </tbody>
                                     </table>
