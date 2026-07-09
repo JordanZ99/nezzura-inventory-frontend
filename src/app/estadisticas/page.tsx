@@ -137,11 +137,18 @@ export default function Estadisticas() {
     // --- Catálogo de productos ---
     const categoriasCatalogo = ["Todas", ...Array.from(new Set(productos.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()]
 
-    // Conteo de ventas por producto (para ordenar por Más/Menos ventas)
-    const ventasPorProducto = ventas
+    // Unidades totales vendidas por producto (suma de cantidades)
+    const unidadesPorProducto = ventas
         .filter(v => v.estado !== "Inactivo")
         .reduce((acc, v) => {
-            acc[v.producto] = (acc[v.producto] || 0) + 1
+            acc[v.producto] = (acc[v.producto] || 0) + v.cantidad
+            return acc
+        }, {} as Record<string, number>)
+    // Ganancia bruta total por producto
+    const gananciaPorProducto = ventas
+        .filter(v => v.estado !== "Inactivo")
+        .reduce((acc, v) => {
+            acc[v.producto] = (acc[v.producto] || 0) + v.ganancia_bruta
             return acc
         }, {} as Record<string, number>)
 
@@ -161,8 +168,10 @@ export default function Estadisticas() {
             case "precio-asc": return a.precio_venta - b.precio_venta
             case "stock-desc": return b.stock_total - a.stock_total
             case "stock-asc": return a.stock_total - b.stock_total
-            case "ventas-desc": return (ventasPorProducto[b.producto] || 0) - (ventasPorProducto[a.producto] || 0)
-            case "ventas-asc": return (ventasPorProducto[a.producto] || 0) - (ventasPorProducto[b.producto] || 0)
+            case "ventas-desc": return (unidadesPorProducto[b.producto] || 0) - (unidadesPorProducto[a.producto] || 0)
+            case "ventas-asc": return (unidadesPorProducto[a.producto] || 0) - (unidadesPorProducto[b.producto] || 0)
+            case "ganancia-desc": return (gananciaPorProducto[b.producto] || 0) - (gananciaPorProducto[a.producto] || 0)
+            case "ganancia-asc": return (gananciaPorProducto[a.producto] || 0) - (gananciaPorProducto[b.producto] || 0)
             case "alfabetico":
             default: return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
         }
@@ -726,11 +735,12 @@ export default function Estadisticas() {
                                 <option value="stock-desc">Mayor stock</option>
                                 <option value="stock-asc">Menor stock</option>
                                 <option value="precio-desc">Mayor precio</option>
-                                <option value="precio-asc">Menor precio</option>
-                                <option value="ventas-desc">Más ventas</option>
-                                <option value="ventas-asc">Menos ventas</option>
-                                <option value="alfabetico">Alfabético A-Z</option>
-                                <option value="alfabetico-desc">Alfabético Z-A</option>
+                                <option value="precio-asc">Menor precio</option>                                        <option value="ventas-desc">Más ventas</option>
+                                        <option value="ventas-asc">Menos ventas</option>
+                                        <option value="ganancia-desc">Más ganancia</option>
+                                        <option value="ganancia-asc">Menos ganancia</option>
+                                        <option value="alfabetico">Alfabético A-Z</option>
+                                        <option value="alfabetico-desc">Alfabético Z-A</option>
                             </select>
                         </div>
                     </div>
