@@ -56,6 +56,11 @@ export default function Estadisticas() {
     // Catálogo de productos en estadísticas
     const [productos, setProductos] = useState<Producto[]>([])
     const [busquedaProd, setBusquedaProd] = useState("")
+    const [busquedaProdDebounced, setBusquedaProdDebounced] = useState("")
+    useEffect(() => {
+        const timer = setTimeout(() => setBusquedaProdDebounced(busquedaProd), 300)
+        return () => clearTimeout(timer)
+    }, [busquedaProd])
     const [catSelecProd, setCatSelecProd] = useState("Todas")
     const [ordenProd, setOrdenProd] = useState("alfabetico")
     const [prodSeleccionado, setProdSeleccionado] = useState<Producto | null>(null)
@@ -141,14 +146,17 @@ export default function Estadisticas() {
         }, {} as Record<string, number>)
 
     const productosFiltrados = productos.filter(p => {
-        const q = busquedaProd.toLowerCase()
+        const q = busquedaProdDebounced.toLowerCase()
         const porBusqueda = !q || p.producto.toLowerCase().includes(q) ||
             p.descripcion?.toLowerCase().includes(q) ||
+            p.codigo_interno?.toLowerCase().includes(q) ||
+            p.codigo_barras?.toLowerCase().includes(q) ||
             (p.categoria || ["General"]).join(" ").toLowerCase().includes(q)
         const porCategoria = catSelecProd === "Todas" || (p.categoria || ["General"]).includes(catSelecProd)
         return porBusqueda && porCategoria
     }).sort((a, b) => {
         switch (ordenProd) {
+            case "alfabetico-desc": return b.producto.localeCompare(a.producto, "es", { sensitivity: "base" })
             case "precio-desc": return b.precio_venta - a.precio_venta
             case "precio-asc": return a.precio_venta - b.precio_venta
             case "stock-desc": return b.stock_total - a.stock_total
@@ -675,55 +683,55 @@ export default function Estadisticas() {
                                 ))}
                             </div>
 
-                            {/* Buscador + Orden */}
-                            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                                <div style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 10, padding: "0 12px", border: "1px solid var(--border-primary)" }}>
-                                    <Icon name="Search" size={16} color="var(--text-muted)" />
+                            {/* Buscador + Orden — réplica del diseño de Restock */}
+                            <div style={{ padding: "12px 0", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                                <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, minWidth: 200 }}>
+                                    <Icon name="Search" size={20} color="var(--text-muted)" />
                                     <input
-                                        type="text"
-                                        placeholder="Buscar producto..."
+                                        className="input-primary"
+                                        style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
+                                        placeholder="Buscar por nombre, código o categoría..."
                                         value={busquedaProd}
                                         onChange={e => setBusquedaProd(e.target.value)}
-                                        style={{
-                                            flex: 1,
-                                            border: "none",
-                                            background: "transparent",
-                                            padding: "8px 0",
-                                            fontSize: "0.82rem",
-                                            outline: "none",
-                                            color: "var(--text-main)"
-                                        }}
                                     />
-                                    {busquedaProd && (
-                                        <button onClick={() => setBusquedaProd("")} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--text-muted)" }}>
-                                            <Icon name="X" size={14} />
-                                        </button>
-                                    )}
                                 </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    <Icon name="ArrowUpDown" size={16} color="var(--text-muted)" />
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
+                                    <button
+                                        onClick={() => {
+                                            setOrdenProd(prev => {
+                                                if (prev === "alfabetico") return "alfabetico-desc"
+                                                if (prev === "alfabetico-desc") return "alfabetico"
+                                                if (prev.endsWith("-asc")) return prev.replace("-asc", "-desc")
+                                                if (prev.endsWith("-desc")) return prev.replace("-desc", "-asc")
+                                                return prev
+                                            })
+                                        }}
+                                        title="Invertir orden"
+                                        style={{
+                                            background: "none", border: "none",
+                                            cursor: "pointer", padding: 4,
+                                            borderRadius: 6, display: "flex", alignItems: "center",
+                                            transition: "all 0.15s"
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-card2)" }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = "none" }}
+                                    >
+                                        <Icon name="ArrowUpDown" size={20} color="var(--text-muted)" />
+                                    </button>
                                     <select
+                                        className="input-primary"
+                                        style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--primary-dark)" }}
                                         value={ordenProd}
                                         onChange={e => setOrdenProd(e.target.value)}
-                                        style={{
-                                            padding: "8px 12px",
-                                            borderRadius: 10,
-                                            border: "1px solid var(--border-primary)",
-                                            background: "var(--bg-card2)",
-                                            color: "var(--text-main)",
-                                            fontSize: "0.78rem",
-                                            fontWeight: 600,
-                                            outline: "none",
-                                            cursor: "pointer"
-                                        }}
                                     >
-                                        <option value="alfabetico">Alfabético</option>
-                                        <option value="precio-desc">Mayor precio</option>
-                                        <option value="precio-asc">Menor precio</option>
                                         <option value="stock-desc">Mayor stock</option>
                                         <option value="stock-asc">Menor stock</option>
+                                        <option value="precio-desc">Mayor precio</option>
+                                        <option value="precio-asc">Menor precio</option>
                                         <option value="ventas-desc">Más ventas</option>
                                         <option value="ventas-asc">Menos ventas</option>
+                                        <option value="alfabetico">Alfabético A-Z</option>
+                                        <option value="alfabetico-desc">Alfabético Z-A</option>
                                     </select>
                                 </div>
                             </div>
