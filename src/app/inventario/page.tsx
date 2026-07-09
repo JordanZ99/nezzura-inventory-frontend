@@ -240,7 +240,13 @@ export default function Inventario() {
                     setGuardando(false)
                     return
                 }
-                const r = await api.subirFoto(form.producto, principal.file)
+                let imgAEnviar = principal.file
+                try {
+                    imgAEnviar = await comprimirImagen(principal.file)
+                } catch (err) {
+                    console.warn("Fallo al comprimir foto principal nueva:", err)
+                }
+                const r = await api.subirFoto(form.producto, imgAEnviar)
                 imagen = r.ruta
             }
 
@@ -299,7 +305,13 @@ export default function Inventario() {
                     setGuardando(false)
                     return
                 }
-                const r = await api.subirFoto(prodEditar, principalEdit.file)
+                let imgAEnviar = principalEdit.file
+                try {
+                    imgAEnviar = await comprimirImagen(principalEdit.file)
+                } catch (err) {
+                    console.warn("Fallo al comprimir foto principal editada:", err)
+                }
+                const r = await api.subirFoto(prodEditar, imgAEnviar)
                 nuevaImagen = r.ruta
             } else if (editFotos.length === 0 && editProdVal.imagen !== "No hay foto") {
                 // Se eliminaron todas las fotos → quitar foto principal
