@@ -62,7 +62,7 @@ export default function Estadisticas() {
         return () => clearTimeout(timer)
     }, [busquedaProd])
     const [catSelecProd, setCatSelecProd] = useState("Todas")
-    const [ordenProd, setOrdenProd] = useState("alfabetico")
+    const [ordenProd, setOrdenProd] = useState("ventas-desc")
     const [prodSeleccionado, setProdSeleccionado] = useState<Producto | null>(null)
     const logoSrc = tenant?.logo || "/logo.png"
     const empresa = tenant?.empresa || "..."
@@ -655,7 +655,7 @@ export default function Estadisticas() {
                 {/* ── Estadísticas por Producto ── */}
                 <div style={{ marginTop: 32 }}>
                     {/* Heading */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                    <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                         <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
                             <Icon name="ChartBar" size={20} color="var(--primary-mid)" />
                             Estadísticas por Producto
