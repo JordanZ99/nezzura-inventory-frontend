@@ -73,6 +73,12 @@ export default function Inventario() {
     const [restockProdSeleccionado, setRestockProdSeleccionado] = useState<Producto | null>(null)
     // ── Ordenamiento del grid de Restock (default: menor stock primero) ──
     const [restockOrdenamiento, setRestockOrdenamiento] = useState("stock-desc")
+    // ── Debounce del buscador: retrasa el filtrado 300ms para no recalcular en cada tecla ──
+    const [restockBuscadorDebounced, setRestockBuscadorDebounced] = useState("")
+    useEffect(() => {
+        const timer = setTimeout(() => setRestockBuscadorDebounced(restockBuscador), 300)
+        return () => clearTimeout(timer)
+    }, [restockBuscador])
 
     // Estado para la gestión de categorías
     const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -423,7 +429,7 @@ export default function Inventario() {
     })
     // Productos filtrados y ordenados para el Restock
     const productosRestock = inv.filter(p => {
-        const b = restockBuscador.toLowerCase()
+        const b = restockBuscadorDebounced.toLowerCase()
         const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
             p.descripcion?.toLowerCase().includes(b) ||
             p.codigo_interno?.toLowerCase().includes(b) ||
@@ -955,6 +961,7 @@ export default function Inventario() {
                                 onClick={() => {
                                     setRestockProdSeleccionado(null)
                                     setRestockBuscador("")
+                                    setRestockBuscadorDebounced("")
                                     setRestockCatSelec("Todas")
                                     setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
                                 }}
