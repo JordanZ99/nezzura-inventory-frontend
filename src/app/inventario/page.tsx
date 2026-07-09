@@ -426,6 +426,8 @@ export default function Inventario() {
         const b = restockBuscador.toLowerCase()
         const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
             p.descripcion?.toLowerCase().includes(b) ||
+            p.codigo_interno?.toLowerCase().includes(b) ||
+            p.codigo_barras?.toLowerCase().includes(b) ||
             (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
         const porCategoria = restockCatSelec === "Todas" || (p.categoria || ["General"]).includes(restockCatSelec)
         return porBusqueda && porCategoria
@@ -842,13 +844,32 @@ export default function Inventario() {
                                 <input
                                     className="input-primary"
                                     style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
-                                    placeholder="Buscar producto para añadir stock..."
+                                    placeholder="Buscar por nombre, código o categoría..."
                                     value={restockBuscador}
                                     onChange={e => setRestockBuscador(e.target.value)}
                                 />
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
-                                <Icon name="ArrowUpDown" size={20} color="var(--text-muted)" />
+                                <button
+                                    onClick={() => {
+                                        setRestockOrdenamiento(prev => {
+                                            if (prev.endsWith("-asc")) return prev.replace("-asc", "-desc")
+                                            if (prev.endsWith("-desc")) return prev.replace("-desc", "-asc")
+                                            return prev // alfabetico stays as-is
+                                        })
+                                    }}
+                                    title="Invertir orden"
+                                    style={{
+                                        background: "none", border: "none",
+                                        cursor: "pointer", padding: 4,
+                                        borderRadius: 6, display: "flex", alignItems: "center",
+                                        transition: "all 0.15s"
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-card2)" }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "none" }}
+                                >
+                                    <Icon name="ArrowUpDown" size={20} color="var(--text-muted)" />
+                                </button>
                                 <select
                                     className="input-primary"
                                     style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--primary-dark)" }}
