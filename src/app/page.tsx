@@ -111,15 +111,14 @@ export default function PuntoDeVenta() {
         switch (ordenamiento) {
             case "precio-desc":
                 return b.precio_venta - a.precio_venta
-            case "precio-asc":
-                return a.precio_venta - b.precio_venta
             case "stock-desc":
                 return b.stock_total - a.stock_total
-            case "stock-asc":
-                return a.stock_total - b.stock_total
             case "alfabetico":
-            default:
                 return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
+            case "alfabetico-desc":
+                return b.producto.localeCompare(a.producto, "es", { sensitivity: "base" })
+            default:
+                return a.stock_total - b.stock_total
         }
     })
 
@@ -340,18 +339,37 @@ export default function PuntoDeVenta() {
                                 />
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
-                                <Icon name="ArrowUpDown" size={20} color="var(--text-muted)" />
+                                <button
+                                    onClick={() => {
+                                        setOrdenamiento(prev => {
+                                            if (prev === "alfabetico") return "alfabetico-desc"
+                                            if (prev === "alfabetico-desc") return "alfabetico"
+                                            if (prev.endsWith("-asc")) return prev.replace("-asc", "-desc")
+                                            if (prev.endsWith("-desc")) return prev.replace("-desc", "-asc")
+                                            return prev
+                                        })
+                                    }}
+                                    title="Invertir orden"
+                                    style={{
+                                        background: "none", border: "none",
+                                        cursor: "pointer", padding: 4,
+                                        borderRadius: 6, display: "flex", alignItems: "center",
+                                        transition: "all 0.15s"
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-card2)" }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "none" }}
+                                >
+                                    <Icon name="ArrowUpDown" size={20} color="var(--text-muted)" />
+                                </button>
                                 <select
                                     className="input-primary"
                                     style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--primary-dark)" }}
                                     value={ordenamiento}
                                     onChange={e => setOrdenamiento(e.target.value)}
                                 >
+                                    <option value="stock-desc">Por stock</option>
+                                    <option value="precio-desc">Por precio</option>
                                     <option value="alfabetico">Alfabético</option>
-                                    <option value="precio-desc">Mayor precio</option>
-                                    <option value="precio-asc">Menor precio</option>
-                                    <option value="stock-desc">Mayor stock</option>
-                                    <option value="stock-asc">Menor stock</option>
                                 </select>
                             </div>
                         </div>

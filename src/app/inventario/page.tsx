@@ -877,8 +877,8 @@ export default function Inventario() {
                                     value={restockOrdenamiento}
                                     onChange={e => setRestockOrdenamiento(e.target.value)}
                                 >
-                                    <option value="stock-desc">Mayor stock</option>
-                                    <option value="precio-desc">Mayor precio</option>
+                                    <option value="stock-desc">Por stock</option>
+                                    <option value="precio-desc">Por precio</option>
                                     <option value="alfabetico">Alfabético</option>
                                 </select>
                             </div>
