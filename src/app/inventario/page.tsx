@@ -72,7 +72,7 @@ export default function Inventario() {
     const [restockCatSelec, setRestockCatSelec] = useState("Todas")
     const [restockProdSeleccionado, setRestockProdSeleccionado] = useState<Producto | null>(null)
     // ── Ordenamiento del grid de Restock (default: menor stock primero) ──
-    const [restockOrdenamiento, setRestockOrdenamiento] = useState("stock-asc")
+    const [restockOrdenamiento, setRestockOrdenamiento] = useState("stock-desc")
 
     // Estado para la gestión de categorías
     const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -435,13 +435,12 @@ export default function Inventario() {
         switch (restockOrdenamiento) {
             case "precio-desc":
                 return b.precio_venta - a.precio_venta
-            case "precio-asc":
-                return a.precio_venta - b.precio_venta
             case "stock-desc":
                 return b.stock_total - a.stock_total
             case "alfabetico":
                 return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
-            case "stock-asc":
+            case "alfabetico-desc":
+                return b.producto.localeCompare(a.producto, "es", { sensitivity: "base" })
             default:
                 return a.stock_total - b.stock_total
         }
@@ -853,9 +852,11 @@ export default function Inventario() {
                                 <button
                                     onClick={() => {
                                         setRestockOrdenamiento(prev => {
+                                            if (prev === "alfabetico") return "alfabetico-desc"
+                                            if (prev === "alfabetico-desc") return "alfabetico"
                                             if (prev.endsWith("-asc")) return prev.replace("-asc", "-desc")
                                             if (prev.endsWith("-desc")) return prev.replace("-desc", "-asc")
-                                            return prev // alfabetico stays as-is
+                                            return prev
                                         })
                                     }}
                                     title="Invertir orden"
@@ -876,10 +877,8 @@ export default function Inventario() {
                                     value={restockOrdenamiento}
                                     onChange={e => setRestockOrdenamiento(e.target.value)}
                                 >
-                                    <option value="stock-asc">Menor stock</option>
                                     <option value="stock-desc">Mayor stock</option>
                                     <option value="precio-desc">Mayor precio</option>
-                                    <option value="precio-asc">Menor precio</option>
                                     <option value="alfabetico">Alfabético</option>
                                 </select>
                             </div>
