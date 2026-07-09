@@ -71,6 +71,8 @@ export default function Inventario() {
     const [restockBuscador, setRestockBuscador] = useState("")
     const [restockCatSelec, setRestockCatSelec] = useState("Todas")
     const [restockProdSeleccionado, setRestockProdSeleccionado] = useState<Producto | null>(null)
+    // ── Ordenamiento del grid de Restock (default: menor stock primero) ──
+    const [restockOrdenamiento, setRestockOrdenamiento] = useState("stock-asc")
 
     // Estado para la gestión de categorías
     const [categorias, setCategorias] = useState<Categoria[]>([])
@@ -419,7 +421,7 @@ export default function Inventario() {
         const porCategoria = catSelecEditar === "Todas" || (p.categoria || ["General"]).includes(catSelecEditar)
         return porBusqueda && porCategoria
     })
-    // Productos filtrados para el Restock (mismo patrón que Editar)
+    // Productos filtrados y ordenados para el Restock
     const productosRestock = inv.filter(p => {
         const b = restockBuscador.toLowerCase()
         const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
@@ -427,6 +429,20 @@ export default function Inventario() {
             (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
         const porCategoria = restockCatSelec === "Todas" || (p.categoria || ["General"]).includes(restockCatSelec)
         return porBusqueda && porCategoria
+    }).sort((a, b) => {
+        switch (restockOrdenamiento) {
+            case "precio-desc":
+                return b.precio_venta - a.precio_venta
+            case "precio-asc":
+                return a.precio_venta - b.precio_venta
+            case "stock-desc":
+                return b.stock_total - a.stock_total
+            case "alfabetico":
+                return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
+            case "stock-asc":
+            default:
+                return a.stock_total - b.stock_total
+        }
     })
 
     return (
@@ -820,15 +836,32 @@ export default function Inventario() {
                             ))}
                         </div>
 
-                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
-                            <Icon name="Search" size={20} color="var(--text-muted)" />
-                            <input
-                                className="input-primary"
-                                style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
-                                placeholder="Buscar producto para añadir stock..."
-                                value={restockBuscador}
-                                onChange={e => setRestockBuscador(e.target.value)}
-                            />
+                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, minWidth: 200 }}>
+                                <Icon name="Search" size={20} color="var(--text-muted)" />
+                                <input
+                                    className="input-primary"
+                                    style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
+                                    placeholder="Buscar producto para añadir stock..."
+                                    value={restockBuscador}
+                                    onChange={e => setRestockBuscador(e.target.value)}
+                                />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
+                                <Icon name="ArrowUpDown" size={20} color="var(--text-muted)" />
+                                <select
+                                    className="input-primary"
+                                    style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--primary-dark)" }}
+                                    value={restockOrdenamiento}
+                                    onChange={e => setRestockOrdenamiento(e.target.value)}
+                                >
+                                    <option value="stock-asc">Menor stock</option>
+                                    <option value="stock-desc">Mayor stock</option>
+                                    <option value="precio-desc">Mayor precio</option>
+                                    <option value="precio-asc">Menor precio</option>
+                                    <option value="alfabetico">Alfabético</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
