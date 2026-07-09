@@ -67,6 +67,11 @@ export default function Inventario() {
     const [buscadorEditar, setBuscadorEditar] = useState("")
     const [catSelecEditar, setCatSelecEditar] = useState("Todas")
 
+    // ── Estados para el Restock con buscador (como Editar Prod.) ──
+    const [restockBuscador, setRestockBuscador] = useState("")
+    const [restockCatSelec, setRestockCatSelec] = useState("Todas")
+    const [restockProdSeleccionado, setRestockProdSeleccionado] = useState<Producto | null>(null)
+
     // Estado para la gestión de categorías
     const [categorias, setCategorias] = useState<Categoria[]>([])
     const [nuevaCatNombre, setNuevaCatNombre] = useState("")
@@ -265,6 +270,7 @@ export default function Inventario() {
             await api.restockear({ ...restock, costo: Number(restock.costo), stock: Number(restock.stock), precio_venta: precio })
             mostrarMsg(true, `+${Number(restock.stock)} a ${restock.producto}`)
             recargar()
+            setRestockProdSeleccionado(null)
             setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -411,6 +417,15 @@ export default function Inventario() {
             p.descripcion?.toLowerCase().includes(b) ||
             (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
         const porCategoria = catSelecEditar === "Todas" || (p.categoria || ["General"]).includes(catSelecEditar)
+        return porBusqueda && porCategoria
+    })
+    // Productos filtrados para el Restock (mismo patrón que Editar)
+    const productosRestock = inv.filter(p => {
+        const b = restockBuscador.toLowerCase()
+        const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
+            p.descripcion?.toLowerCase().includes(b) ||
+            (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
+        const porCategoria = restockCatSelec === "Todas" || (p.categoria || ["General"]).includes(restockCatSelec)
         return porBusqueda && porCategoria
     })
 
@@ -784,22 +799,152 @@ export default function Inventario() {
                     </div>
                 )}
 
-                {/* Restock */}
-                {tab === "restock" && (
-                    <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
-                        <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}> Añadir stock</h2>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Producto</label>
-                            <select className="input-primary" value={restock.producto}
-                                onChange={e => {
-                                    const p = inv.find(x => x.producto === e.target.value)
-                                    setRestock(r => ({ ...r, producto: e.target.value, costo: p?.costo_promedio ?? 0, precio_venta: p?.precio_venta ?? 0 }))
-                                }}>
-                                <option value="">— Selecciona —</option>
-                                {productos.map(p => <option key={p} value={p}>{p}</option>)}
-                            </select>
+                {/* ── Restock: buscador + grid (como Editar Prod.) ── */}
+                {tab === "restock" && !restockProdSeleccionado && (
+                    <>
+                        {/* Categorías */}
+                        <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, marginBottom: 8, scrollbarWidth: "none" }}>
+                            {["Todas", ...categoriasExistentes].map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setRestockCatSelec(cat)}
+                                    style={{
+                                        padding: "6px 14px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: "0.8rem", whiteSpace: "nowrap", cursor: "pointer", transition: "all 0.2s",
+                                        background: restockCatSelec === cat ? "var(--gradient-1)" : "var(--bg-card2)",
+                                        color: restockCatSelec === cat ? "#fff" : "var(--primary-dark)",
+                                        boxShadow: restockCatSelec === cat ? "0 2px 6px var(--primary-glow)" : "none"
+                                    }}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
                         </div>
-                        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>Costo y precio prellenados del último lote. Cámbialos si el nuevo lote es diferente.</p>
+
+                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
+                            <Icon name="Search" size={20} color="var(--text-muted)" />
+                            <input
+                                className="input-primary"
+                                style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
+                                placeholder="Buscar producto para añadir stock..."
+                                value={restockBuscador}
+                                onChange={e => setRestockBuscador(e.target.value)}
+                            />
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+                            {productosRestock.length === 0 ? (
+                                <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
+                                    <span style={{ fontSize: "4rem", display: "block", marginBottom: 16, opacity: 0.3 }}>—</span>
+                                    <h2 style={{ fontSize: "1.5rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 8px" }}>Sin resultados</h2>
+                                    <p style={{ fontSize: "1rem", color: "var(--text-main)", fontWeight: 600, margin: 0 }}>Intenta con otra búsqueda o categoría</p>
+                                </div>
+                            ) : (
+                                productosRestock.map(prod => (
+                                    <div
+                                        key={prod.producto}
+                                        className="card fade-up"
+                                        style={{ padding: 12, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
+                                        onClick={() => {
+                                            setRestockProdSeleccionado(prod)
+                                            setRestock(r => ({
+                                                ...r,
+                                                producto: prod.producto,
+                                                costo: prod.costo_promedio ?? 0,
+                                                precio_venta: prod.precio_venta ?? 0
+                                            }))
+                                        }}
+                                        onMouseEnter={e => {
+                                            e.currentTarget.style.transform = "translateY(-3px)"
+                                            e.currentTarget.style.boxShadow = "0 8px 30px var(--primary-glow)"
+                                        }}
+                                        onMouseLeave={e => {
+                                            e.currentTarget.style.transform = ""
+                                            e.currentTarget.style.boxShadow = ""
+                                        }}
+                                    >
+                                        <div style={{ aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            {prod.imagen && prod.imagen !== "No hay foto" ? (
+                                                <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
+                                                    alt={prod.producto}
+                                                    style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
+                                                    onError={(e) => { e.currentTarget.style.display = "none" }}
+                                                    loading="lazy" />
+                                            ) : (
+                                                <Icon name="PackagePlus" size={32} color="var(--primary-mid)" />
+                                            )}
+                                        </div>
+                                        <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prod.producto}</p>
+                                        <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>${prod.precio_venta.toFixed(2)}</p>
+                                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px" }}>{(prod.categoria || ["General"]).join(", ")}</span>
+                                            <span style={{
+                                                fontSize: "0.62rem", fontWeight: 700,
+                                                color: prod.stock_total < 0 ? "#b71c1c" : "#2e7d32",
+                                                background: prod.stock_total < 0 ? "#ffeef0" : "#e8f5e9",
+                                                borderRadius: 6, padding: "2px 6px"
+                                            }}>Stock: {prod.stock_total}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </>
+                )}
+
+                {/* ── Restock: formulario para el producto seleccionado ── */}
+                {tab === "restock" && restockProdSeleccionado && (
+                    <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                            <button
+                                onClick={() => {
+                                    setRestockProdSeleccionado(null)
+                                    setRestockBuscador("")
+                                    setRestockCatSelec("Todas")
+                                    setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
+                                }}
+                                style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
+                            >
+                                <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
+                            </button>
+                            <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-muted)" }}>
+                                Añadir stock a: <strong style={{ color: "var(--text-main)" }}>{restockProdSeleccionado.producto}</strong>
+                            </span>
+                        </div>
+
+                        {/* Resumen del producto */}
+                        <div style={{
+                            padding: "12px 16px",
+                            borderRadius: 12,
+                            background: "var(--bg-card2)",
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: 8
+                        }}>
+                            <div>
+                                <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Stock actual</p>
+                                <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "var(--text-main)" }}>{restockProdSeleccionado.stock_total}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Precio venta</p>
+                                <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)" }}>${restockProdSeleccionado.precio_venta.toFixed(2)}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Costo promedio</p>
+                                <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "var(--text-main)" }}>${(restockProdSeleccionado.costo_promedio ?? 0).toFixed(2)}</p>
+                            </div>
+                            <div>
+                                <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Margen</p>
+                                <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: restockProdSeleccionado.precio_venta > (restockProdSeleccionado.costo_promedio ?? 0) ? "#2e7d32" : "#b71c1c" }}>
+                                    {restockProdSeleccionado.precio_venta > 0
+                                        ? `${(((restockProdSeleccionado.precio_venta - (restockProdSeleccionado.costo_promedio ?? 0)) / restockProdSeleccionado.precio_venta) * 100).toFixed(1)}%`
+                                        : "—"}
+                                </p>
+                            </div>
+                        </div>
+
+                        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>
+                            Costo y precio prellenados según el producto. Ajústalos si este nuevo lote tiene valores diferentes.
+                        </p>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                             <Input label="Cantidad" type="number" min={1} placeholder="1" value={restock.stock} onChange={e => setRestock(r => ({ ...r, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
