@@ -144,6 +144,26 @@ async function request<T = unknown>(path: string, options: RequestInit = {}): Pr
     return res.json()
 }
 
+/**
+ * Llama al endpoint público del catálogo (NO requiere autenticación).
+ * El slug es un UUID v4 único que identifica al tenant.
+ * Devuelve la config del catálogo + productos activos (solo campos públicos).
+ */
+export async function fetchCatalogoPublico<T = unknown>(slug: string): Promise<T> {
+    const res = await fetch(`${BASE_URL}/public/catalogo/${encodeURIComponent(slug)}`)
+    if (!res.ok) {
+        let errStr = "Error al cargar el catálogo"
+        try {
+            const err = await res.json()
+            errStr = err.detail || JSON.stringify(err)
+        } catch {
+            // ignore
+        }
+        throw new Error(errStr)
+    }
+    return res.json()
+}
+
 export const api = {
     // Inicialización
     initDB: () => request<{ ok: boolean; mensaje: string }>("/init-db"),
