@@ -74,6 +74,28 @@ export default function Inventario() {
     const [catEditandoNombre, setCatEditandoNombre] = useState("")
     const [cargandoCats, setCargandoCats] = useState(false)
     const [confirmEliminarCat, setConfirmEliminarCat] = useState<string | null>(null)
+    // ── Estado para la explicación de cada KPI (popup informativo) ──
+    const [kpiExplicacion, setKpiExplicacion] = useState<string | null>(null)
+
+    // ── Explicaciones de cada KPI en lenguaje entendible ──
+    const explicacionesKPI: Record<string, { descripcion: string; formula: string }> = {
+        "Productos activos": {
+            descripcion: "Son los productos que actualmente tienen existencia en tu inventario, es decir, su stock es mayor a 0. No importa si tienen poco o mucho, mientras tengan al menos 1 unidad cuentan como activos.",
+            formula: "Productos con stock > 0"
+        },
+        "Valor del inventario": {
+            descripcion: "Es el valor total de todo tu inventario si vendieras cada producto a su precio actual. Se calcula sumando el precio de venta de cada unidad que tienes en existencia.",
+            formula: "Suma de (stock actual × precio de venta) de cada producto"
+        },
+        "Ganancia potencial": {
+            descripcion: "Es la ganancia que obtendrías si lograras vender todo tu inventario actual al precio de venta. No considera gastos operativos, solo la diferencia entre lo que pagaste por los productos (costo promedio) y lo que los vendes.",
+            formula: "Suma de [stock × (precio de venta − costo promedio)]"
+        },
+        "Stock descuadrado": {
+            descripcion: "Son los productos que tienen stock en 0 o incluso negativo. Stock negativo significa que se vendieron más unidades de las que había registradas. Revisa estos productos para corregir su inventario.",
+            formula: "Productos con stock ≤ 0"
+        }
+    }
 
     function agregarCategoria() {
         const cat = nuevaCategoria.trim()
@@ -425,7 +447,7 @@ export default function Inventario() {
             </div>
 
             <div style={{ padding: "0 24px", marginTop: -60, overflowX: "hidden" }}>
-                {/* Stat cards */}
+                {/* Stat cards — clickeables para ver explicación */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-4">
                     {[
                         { label: "Productos activos", valor: totalActivos, icon: "PackagePlus" },
@@ -433,13 +455,31 @@ export default function Inventario() {
                         { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "Banknote" },
                         { label: "Stock descuadrado", valor: stockDesc, icon: "TriangleAlert" },
                     ].map(m => (
-                        <div key={m.label} className="card fade-up" style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                        <div
+                            key={m.label}
+                            className="card fade-up"
+                            onClick={() => setKpiExplicacion(m.label)}
+                            style={{
+                                padding: "14px 16px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                                cursor: "pointer",
+                                transition: "all 0.15s",
+                                border: kpiExplicacion === m.label ? "2px solid var(--primary-mid)" : "2px solid transparent"
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 4px 16px var(--primary-glow)" }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "" }}
+                        >
                             <div style={{ background: "var(--gradient-1)", borderRadius: 12, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.1rem" }}>
                                 <Icon name={m.icon as any} size={24} color="var(--primary-soft)" />
                             </div>
-                            <div>
+                            <div style={{ flex: 1 }}>
                                 <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{m.label}</p>
                                 <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--text-main)" }}>{m.valor}</p>
+                            </div>
+                            <div style={{ opacity: 0.5, display: "flex", alignItems: "center" }}>
+                                <Icon name="Info" size={16} color="var(--text-muted)" />
                             </div>
                         </div>
                     ))}
@@ -1202,6 +1242,116 @@ export default function Inventario() {
                         </div>
                     </div>
                 )}
+
+                {/* ── Popup de explicación de KPI ── */}
+                {kpiExplicacion && (() => {
+                    const info = explicacionesKPI[kpiExplicacion]
+                    if (!info) return null
+                    return (
+                        <div
+                            style={{
+                                position: "fixed", inset: 0, zIndex: 9999,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+                                padding: 24
+                            }}
+                            onClick={() => setKpiExplicacion(null)}
+                        >
+                            <div
+                                className="fade-up"
+                                onClick={e => e.stopPropagation()}
+                                style={{
+                                    maxWidth: 480,
+                                    width: "100%",
+                                    padding: 28,
+                                    borderRadius: 20,
+                                    background: "var(--bg-card)",
+                                    boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                                    border: "1px solid var(--border-primary)",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 16
+                                }}
+                            >
+                                {/* Header */}
+                                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                    <div style={{
+                                        width: 44, height: 44, borderRadius: 12,
+                                        background: "var(--gradient-1)",
+                                        display: "flex",
+                                        alignItems: "center", justifyContent: "center", flexShrink: 0
+                                    }}>
+                                        <Icon name="Info" size={24} color="var(--primary-soft)" />
+                                    </div>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                            ¿Qué significa?
+                                        </h3>
+                                        <p style={{ margin: "2px 0 0", fontSize: "0.85rem", fontWeight: 700, color: "var(--primary-mid)" }}>
+                                            {kpiExplicacion}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Descripción */}
+                                <div style={{
+                                    padding: "16px 20px",
+                                    borderRadius: 12,
+                                    background: "var(--bg-card2)",
+                                    lineHeight: 1.6,
+                                    fontSize: "0.88rem",
+                                    color: "var(--text-main)",
+                                    fontWeight: 500
+                                }}>
+                                    {info.descripcion}
+                                </div>
+
+                                {/* Fórmula */}
+                                <div style={{
+                                    padding: "12px 16px",
+                                    borderRadius: 10,
+                                    background: "var(--primary-bg)",
+                                    border: "1px solid var(--border-primary)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10
+                                }}>
+                                    <Icon name="Calculator" size={18} color="var(--primary-mid)" />
+                                    <span style={{
+                                        fontSize: "0.82rem",
+                                        fontWeight: 700,
+                                        color: "var(--primary-dark)",
+                                        fontFamily: "monospace"
+                                    }}>
+                                        {info.formula}
+                                    </span>
+                                </div>
+
+                                {/* Botón cerrar */}
+                                <button
+                                    onClick={() => setKpiExplicacion(null)}
+                                    style={{
+                                        alignSelf: "flex-end",
+                                        padding: "10px 24px",
+                                        borderRadius: 10,
+                                        border: "none",
+                                        background: "var(--gradient-1)",
+                                        color: "#fff",
+                                        fontWeight: 700,
+                                        fontSize: "0.85rem",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                        transition: "all 0.15s"
+                                    }}
+                                >
+                                    Entendido
+                                </button>
+                            </div>
+                        </div>
+                    )
+                })()}
 
                 <div style={{ height: 20 }} />
             </div>
