@@ -469,7 +469,7 @@ export default function Estadisticas() {
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
                                 <thead>
                                     <tr style={{ background: "var(--bg-card2)", color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
-                                        {["ID", "Fecha", "Productos", "Precio unitario", "Precio Total", "Ganancia", "Estado"].map(h => (
+                                        {["ID", "Fecha", "Productos", "Costo Total", "Precio Total", "Ganancia", "Estado"].map(h => (
                                             <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase" }}>{h}</th>
                                         ))}
                                     </tr>
@@ -506,7 +506,7 @@ export default function Estadisticas() {
                                             <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>PRECIO UNIT.</span>
+                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>P. UNIT.</span>
                                                         <input type="number" step="0.01" value={editVal.precio_real} onChange={e => {
                                                             const prec = +e.target.value;
                                                             setEditVal(p => ({
@@ -517,7 +517,7 @@ export default function Estadisticas() {
                                                             }))
                                                         }} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                     </div>
-                                                ) : `$${v.precio_real.toFixed(2)}`}
+                                                ) : `$${((v.total_venta || 0) - (v.ganancia_bruta || 0)).toFixed(2)}`}
                                             </td>
                                             <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
                                                 {editando === v.id ? (
