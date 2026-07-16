@@ -531,7 +531,7 @@ export default function Estadisticas() {
                                                                 costo_unitario: p.cantidad > 0 ? nuevoCostoTotal / p.cantidad : 0,
                                                                 ganancia_bruta: p.total_venta - nuevoCostoTotal
                                                             }))
-                                                        }} className="input-primary" style={{ width: 80, padding: 4 }} />
+                                                        }} className="input-primary" style={{ width: 80, padding: 4, background: "#f5f5f5" }} />
                                                     </div>
                                                 ) : `$${((v.total_venta || 0) - (v.ganancia_bruta || 0)).toFixed(2)}`}
                                             </td>
@@ -547,7 +547,7 @@ export default function Estadisticas() {
                                                                 total_venta: nuevoPrecioTotal,
                                                                 ganancia_bruta: nuevoPrecioTotal - (p.costo_unitario * p.cantidad)
                                                             }))
-                                                        }} className="input-primary" style={{ width: 80, padding: 4 }} />
+                                                        }} className="input-primary" style={{ width: 80, padding: 4, background: "#f5f5f5" }} />
                                                     </div>
                                                 ) : `$${(v.total_venta || 0).toFixed(2)}`}
                                             </td>
@@ -555,7 +555,7 @@ export default function Estadisticas() {
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>GANANCIA</span>
-                                                        <input type="number" step="0.01" value={editVal.ganancia_bruta} disabled className="input-primary" style={{ width: 80, padding: 4, background: "#f5f5f5", cursor: "not-allowed" }} />
+                                                        <input type="number" step="0.01" value={editVal.ganancia_bruta} disabled className="input-primary" style={{ width: 80, padding: 4 }} />
                                                     </div>
                                                 ) : <Pill color="green">${(v.ganancia_bruta || 0).toFixed(2)}</Pill>}
                                             </td>
