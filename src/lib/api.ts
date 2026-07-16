@@ -234,7 +234,7 @@ export const api = {
     // Ventas
     getVentas: () => request<Venta[]>("/ventas/"),
     cobrarCarrito: (items: ItemCarrito[]) => request<{ ok: boolean; ventas: number; total_cobrado: number }>("/ventas/cobrar", { method: "POST", body: JSON.stringify({ items }) }),
-    actualizarVenta: (id: number, data: { fecha?: string; precio_real?: number; cantidad?: number; total_venta?: number; ganancia_bruta?: number }) => request(`/ventas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    actualizarVenta: (id: number, data: { fecha?: string; precio_real?: number; costo_unitario?: number; cantidad?: number; total_venta?: number; ganancia_bruta?: number }) => request(`/ventas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarVenta: (id: number) => request(`/ventas/${id}`, { method: "DELETE" }),
 
     // Gastos

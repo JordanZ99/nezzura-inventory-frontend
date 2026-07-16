@@ -87,8 +87,7 @@ export default function Estadisticas() {
         if (editando === null || guardando) return
         setGuardando(true)
         try {
-            const { costo_unitario: _, ...dataVenta } = editVal;
-            await api.actualizarVenta(editando, dataVenta)
+            await api.actualizarVenta(editando, editVal)
             mostrarMsg(true, "✅ Venta actualizada")
             setEditando(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
@@ -524,24 +523,29 @@ export default function Estadisticas() {
                                             <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>COSTO U.</span>
-                                                        <span style={{ fontWeight: 700, padding: "4px 8px", fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                                                            ${(editVal.costo_unitario || 0).toFixed(2)}
-                                                        </span>
+                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>COSTO TOTAL</span>
+                                                        <input type="number" step="0.01" value={(editVal.costo_unitario * editVal.cantidad) || 0} onChange={e => {
+                                                            const nuevoCostoTotal = +e.target.value;
+                                                            setEditVal(p => ({
+                                                                ...p,
+                                                                costo_unitario: p.cantidad > 0 ? nuevoCostoTotal / p.cantidad : 0,
+                                                                ganancia_bruta: p.total_venta - nuevoCostoTotal
+                                                            }))
+                                                        }} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                     </div>
                                                 ) : `$${((v.total_venta || 0) - (v.ganancia_bruta || 0)).toFixed(2)}`}
                                             </td>
                                             <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>P. UNIT.</span>
-                                                        <input type="number" step="0.01" value={editVal.precio_real} onChange={e => {
-                                                            const prec = +e.target.value;
+                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>PRECIO TOTAL</span>
+                                                        <input type="number" step="0.01" value={editVal.total_venta} onChange={e => {
+                                                            const nuevoPrecioTotal = +e.target.value;
                                                             setEditVal(p => ({
                                                                 ...p,
-                                                                precio_real: prec,
-                                                                total_venta: prec * p.cantidad,
-                                                                ganancia_bruta: (prec - p.costo_unitario) * p.cantidad
+                                                                precio_real: p.cantidad > 0 ? nuevoPrecioTotal / p.cantidad : 0,
+                                                                total_venta: nuevoPrecioTotal,
+                                                                ganancia_bruta: nuevoPrecioTotal - (p.costo_unitario * p.cantidad)
                                                             }))
                                                         }} className="input-primary" style={{ width: 80, padding: 4 }} />
                                                     </div>
