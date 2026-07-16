@@ -636,6 +636,7 @@ export default function Inventario() {
                                 maxFotos={5}
                                 disabled={guardando}
                                 label="Fotos del producto"
+                                planLocked={tenant?.plan === "basico"}
                             />
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                                 <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
@@ -1180,6 +1181,7 @@ export default function Inventario() {
                                 maxFotos={5}
                                 disabled={guardando}
                                 label="Fotos del producto"
+                                planLocked={tenant?.plan === "basico"}
                             />
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

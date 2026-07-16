@@ -48,13 +48,48 @@ interface GaleriaProductoProps {
     disabled?: boolean
     /** Etiqueta opcional sobre el componente */
     label?: string
+    /** Si el tenant está en plan básico, oculta el carrusel y muestra un mensaje de upgrade */
+    planLocked?: boolean
 }
 
 // ── Componente ──
 
 export default function GaleriaProducto({
-    fotos, onChange, maxFotos = 5, disabled = false, label = "Fotos del producto"
+    fotos, onChange, maxFotos = 5, disabled = false, label = "Fotos del producto", planLocked = false
 }: GaleriaProductoProps) {
+    // Si el plan es básico, mostrar un bloqueo visual con mensaje de upgrade
+    if (planLocked) {
+        return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <label style={{
+                    fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)",
+                    textTransform: "uppercase", letterSpacing: 0.8
+                }}>
+                    {label}
+                </label>
+                <div style={{
+                    padding: "24px 20px",
+                    borderRadius: 12,
+                    background: "var(--bg-card2)",
+                    border: "1.5px dashed var(--border-primary)",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 10,
+                    textAlign: "center",
+                }}>
+                    <Icon name="Lock" size={28} color="var(--text-muted)" />
+                    <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--text-main)" }}>
+                        Fotos bloqueadas
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500, lineHeight: 1.4 }}>
+                        La función de fotos está disponible solo en el plan Plus. Actualiza tu plan para poder subir imágenes de tus productos.
+                    </span>
+                </div>
+            </div>
+        )
+    }
+
 
     // ── Estados internos ──
     const [carouselIndex, setCarouselIndex] = useState(0)
