@@ -4,7 +4,7 @@
 // ==============================================================================
 
 import { useState, useEffect } from "react"
-import { api, Producto, ItemCarrito } from "@/lib/api"
+import { api, Producto, ItemCarrito, Lote } from "@/lib/api"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import { supabase } from "@/lib/supabase"
@@ -14,6 +14,7 @@ const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: fal
 
 export default function PuntoDeVenta() {
     const [productos, setProductos] = useState<Producto[]>([])
+    const [lotes, setLotes] = useState<Lote[]>([])
     const [carrito, setCarrito] = useState<ItemCarrito[]>(() => {
         try {
             const saved = localStorage.getItem("pos_carrito")
@@ -85,6 +86,10 @@ export default function PuntoDeVenta() {
                 }
             })
             .finally(() => setCargando(false))
+
+        api.getLotes()
+            .then(data => setLotes(data))
+            .catch(() => {})
     }, [])
 
     // Persistir carrito en localStorage al cambiar de sección
@@ -121,6 +126,17 @@ export default function PuntoDeVenta() {
                 return a.stock_total - b.stock_total
         }
     })
+
+    function lotesParaProducto(producto: string): Lote[] {
+        return lotes.filter(l => l.producto === producto && l.stock_lote > 0)
+            .sort((a, b) => new Date(a.fecha_entrada).getTime() - new Date(b.fecha_entrada).getTime())
+    }
+
+    function cambiarLoteCarrito(producto: string, id_lote: string | undefined) {
+        setCarrito(prev => prev.map(i =>
+            i.producto === producto ? { ...i, id_lote } : i
+        ))
+    }
 
     function agregarAlCarrito(prod: Producto) {
         setCarrito(prev => {
@@ -221,15 +237,30 @@ export default function PuntoDeVenta() {
         if (carrito.length === 0) return
         setCobrando(true); setMensaje(null)
         try {
-            const res = await api.cobrarCarrito(carrito)
+            // Limpiar id_lote vacío/indefinido antes de enviar
+            const itemsParaCobro = carrito.map(i => ({
+                ...i,
+                id_lote: i.id_lote || undefined
+            }))
+            const res = await api.cobrarCarrito(itemsParaCobro)
             setMensaje({ tipo: "ok", texto: `✅ Venta registrada — $${res.total_cobrado.toFixed(2)}` })
             setCarrito([]); setPrecios({}); setCarritoAbierto(false);
             localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
             const data = await api.getInventario()
             setProductos(data)
+            api.getLotes().then(setLotes).catch(() => {})
         } catch (e: unknown) {
             setMensaje({ tipo: "error", texto: `❌ ${e instanceof Error ? e.message : "Error"}` })
         } finally { setCobrando(false) }
+    }
+
+    function nombreLote(lote: Lote): string {
+        const fecha = new Date(lote.fecha_entrada).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "2-digit" })
+        return `${fecha} — $${lote.costo.toFixed(2)} — ${lote.stock_lote}uds`
+    }
+
+    function lotePorId(id: string): Lote | undefined {
+        return lotes.find(l => l.id_lote === id)
     }
 
     const totalCarrito = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_real, 0)
@@ -515,6 +546,8 @@ export default function PuntoDeVenta() {
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                     {carrito.map(item => {
                                         const prod = productos.find(p => p.producto === item.producto)
+                                        const lotesProd = lotesParaProducto(item.producto)
+                                        const loteSel = item.id_lote ? lotePorId(item.id_lote) : null
                                         return (
                                             <div key={item.producto} style={{ padding: 10, background: "var(--bg-card)", borderRadius: 12, border: "var(--bg-card)" }}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -547,7 +580,36 @@ export default function PuntoDeVenta() {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+
+                                                {/* ── Selector de lote ── */}
+                                                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                                                    <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#999", whiteSpace: "nowrap" }}>LOTE:</span>
+                                                    <select
+                                                        value={item.id_lote || ""}
+                                                        onChange={e => cambiarLoteCarrito(item.producto, e.target.value || undefined)}
+                                                        style={{
+                                                            flex: 1,
+                                                            fontSize: "0.65rem",
+                                                            padding: "3px 6px",
+                                                            borderRadius: 6,
+                                                            border: "1px solid var(--border-primary)",
+                                                            background: "var(--bg-card2)",
+                                                            color: "var(--text-main)",
+                                                            outline: "none",
+                                                            cursor: "pointer",
+                                                            fontWeight: 600
+                                                        }}
+                                                    >
+                                                        <option value="">PEPS (más antiguo)</option>
+                                                        {lotesProd.map(l => (
+                                                            <option key={l.id_lote} value={l.id_lote}>
+                                                                {nombreLote(l)}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 2 }}>
                                                     <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700, textAlign: "right" }}>SUBTOTAL</span>
                                                     {modoDescuento ? (
                                                         <input
@@ -625,50 +687,82 @@ export default function PuntoDeVenta() {
                                 <button style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }} onClick={() => setCarritoAbierto(false)}>✕</button>
                             </div>
                         </div>
-                        {carrito.map(item => (
-                            <div key={item.producto} style={{ padding: "10px 0", borderBottom: "1px solid #fce4ec" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                    <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{item.producto}</span>
-                                    <button onClick={() => quitarDelCarrito(item.producto)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc" }}>✕</button>
-                                </div>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "center" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fdf6f9", borderRadius: 8, padding: "4px 10px" }}>
-                                        <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
-                                        <input
-                                            type="number" min="1"
-                                            value={item.cantidad}
-                                            onChange={e => {
-                                                cambiarCantidad(item.producto, Math.max(1, +e.target.value));
-                                            }}
-                                            style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent" }}
-                                        />
-                                        <button onClick={() => {
-                                            cambiarCantidad(item.producto, item.cantidad + 1);
-                                        }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>+</button>
+                        {carrito.map(item => {
+                            const lotesProd = lotesParaProducto(item.producto)
+                            return (
+                                <div key={item.producto} style={{ padding: "10px 0", borderBottom: "1px solid #fce4ec" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                                        <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{item.producto}</span>
+                                        <button onClick={() => quitarDelCarrito(item.producto)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc" }}>✕</button>
                                     </div>
-                                    <input type="text" inputMode="decimal"
-                                        value={precios[item.producto] ?? item.precio_real.toString()}
-                                        onChange={e => cambiarPrecio(item.producto, e.target.value)}
-                                        style={{ width: "100%", border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none" }}
-                                    />
-                                </div>
-                                <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <span style={{ fontSize: "0.7rem", color: "#999", fontWeight: 700 }}>{modoDescuento ? "EDITAR TOTAL:" : "SUBTOTAL:"}</span>
-                                    {modoDescuento ? (
-                                        <input
-                                            type="text" inputMode="decimal"
-                                            defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
-                                            onBlur={e => cambiarTotal(item.producto, e.target.value)}
-                                            style={{ width: "100px", border: "1px solid var(--primary-mid)", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--primary-dark)" }}
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "center" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fdf6f9", borderRadius: 8, padding: "4px 10px" }}>
+                                            <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
+                                            <input
+                                                type="number" min="1"
+                                                value={item.cantidad}
+                                                onChange={e => {
+                                                    cambiarCantidad(item.producto, Math.max(1, +e.target.value));
+                                                }}
+                                                style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent" }}
+                                            />
+                                            <button onClick={() => {
+                                                cambiarCantidad(item.producto, item.cantidad + 1);
+                                            }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>+</button>
+                                        </div>
+                                        <input type="text" inputMode="decimal"
+                                            value={precios[item.producto] ?? item.precio_real.toString()}
+                                            onChange={e => cambiarPrecio(item.producto, e.target.value)}
+                                            style={{ width: "100%", border: "1px solid #fce4ec", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none" }}
                                         />
-                                    ) : (
-                                        <span style={{ fontSize: "1rem", color: "var(--primary-dark)", fontWeight: 800 }}>
-                                            ${(item.cantidad * item.precio_real).toFixed(2)}
-                                        </span>
-                                    )}
+                                    </div>
+
+                                    {/* ── Selector de lote (móvil) ── */}
+                                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#999", whiteSpace: "nowrap" }}>LOTE:</span>
+                                        <select
+                                            value={item.id_lote || ""}
+                                            onChange={e => cambiarLoteCarrito(item.producto, e.target.value || undefined)}
+                                            style={{
+                                                flex: 1,
+                                                fontSize: "0.75rem",
+                                                padding: "4px 8px",
+                                                borderRadius: 8,
+                                                border: "1px solid #fce4ec",
+                                                background: "#fdf6f9",
+                                                color: "var(--text-main)",
+                                                outline: "none",
+                                                cursor: "pointer",
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <option value="">PEPS (más antiguo)</option>
+                                            {lotesProd.map(l => (
+                                                <option key={l.id_lote} value={l.id_lote}>
+                                                    {nombreLote(l)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <span style={{ fontSize: "0.7rem", color: "#999", fontWeight: 700 }}>{modoDescuento ? "EDITAR TOTAL:" : "SUBTOTAL:"}</span>
+                                        {modoDescuento ? (
+                                            <input
+                                                type="text" inputMode="decimal"
+                                                defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
+                                                onBlur={e => cambiarTotal(item.producto, e.target.value)}
+                                                style={{ width: "100px", border: "1px solid var(--primary-mid)", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--primary-dark)" }}
+                                            />
+                                        ) : (
+                                            <span style={{ fontSize: "1rem", color: "var(--primary-dark)", fontWeight: 800 }}>
+                                                ${(item.cantidad * item.precio_real).toFixed(2)}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                         <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.1rem", marginBottom: 16 }}>
                             <span>Total</span>
                             <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
