@@ -497,7 +497,7 @@ export default function Estadisticas() {
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.n_ticket || v.id}</td>
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>
                                                 {editando === v.id ? (
-                                                    <input type="date" value={editVal.fecha.substring(0, 10)} onChange={e => setEditVal(p => ({ ...p, fecha: e.target.value + "T12:00:00.000Z" }))} className="input-primary" style={{ width: 120, padding: 4, background: "#f5f5f5" }} />
+                                                    <input type="date" value={editVal.fecha.substring(0, 10)} onChange={e => setEditVal(p => ({ ...p, fecha: e.target.value + "T12:00:00.000Z" }))} className="input-primary" style={{ width: 120, padding: 4, background: "var(--bg-card2)" }} />
                                                 ) : new Date(v.fecha).toLocaleDateString()}
                                             </td>
                                             <td style={{ padding: "12px 16px" }}>
@@ -511,7 +511,7 @@ export default function Estadisticas() {
                                                                 total_venta: cant * p.precio_real,
                                                                 ganancia_bruta: (p.precio_real - p.costo_unitario) * cant
                                                             }))
-                                                        }} className="input-primary" style={{ width: 60, padding: 4, background: "#f5f5f5" }} />
+                                                        }} className="input-primary" style={{ width: 60, padding: 4, background: "var(--bg-card2)" }} />
                                                         <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>x {v.producto}</span>
                                                     </div>
                                                 ) : (
@@ -531,7 +531,7 @@ export default function Estadisticas() {
                                                                 costo_unitario: p.cantidad > 0 ? nuevoCostoTotal / p.cantidad : 0,
                                                                 ganancia_bruta: p.total_venta - nuevoCostoTotal
                                                             }))
-                                                        }} className="input-primary" style={{ width: 80, padding: 4, background: "#f5f5f5" }} />
+                                                        }} className="input-primary" style={{ width: 80, padding: 4, background: "var(--bg-card2)" }} />
                                                     </div>
                                                 ) : `$${((v.total_venta || 0) - (v.ganancia_bruta || 0)).toFixed(2)}`}
                                             </td>
@@ -547,7 +547,7 @@ export default function Estadisticas() {
                                                                 total_venta: nuevoPrecioTotal,
                                                                 ganancia_bruta: nuevoPrecioTotal - (p.costo_unitario * p.cantidad)
                                                             }))
-                                                        }} className="input-primary" style={{ width: 80, padding: 4, background: "#f5f5f5" }} />
+                                                        }} className="input-primary" style={{ width: 80, padding: 4, background: "var(--bg-card2)" }} />
                                                     </div>
                                                 ) : `$${(v.total_venta || 0).toFixed(2)}`}
                                             </td>
