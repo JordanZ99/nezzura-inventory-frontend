@@ -25,6 +25,7 @@ export interface ItemCarrito {
     producto: string;
     cantidad: number;
     precio_real: number;
+    id_lote?: string;
 }
 
 export interface Lote {
