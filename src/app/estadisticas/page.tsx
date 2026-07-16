@@ -87,7 +87,8 @@ export default function Estadisticas() {
         if (editando === null || guardando) return
         setGuardando(true)
         try {
-            await api.actualizarVenta(editando, editVal)
+            const { costo_unitario: _, ...dataVenta } = editVal;
+            await api.actualizarVenta(editando, dataVenta)
             mostrarMsg(true, "✅ Venta actualizada")
             setEditando(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
@@ -523,6 +524,16 @@ export default function Estadisticas() {
                                             <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
                                                 {editando === v.id ? (
                                                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>COSTO U.</span>
+                                                        <span style={{ fontWeight: 700, padding: "4px 8px", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                                                            ${(editVal.costo_unitario || 0).toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                ) : `$${((v.total_venta || 0) - (v.ganancia_bruta || 0)).toFixed(2)}`}
+                                            </td>
+                                            <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
+                                                {editando === v.id ? (
+                                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>P. UNIT.</span>
                                                         <input type="number" step="0.01" value={editVal.precio_real} onChange={e => {
                                                             const prec = +e.target.value;
@@ -533,14 +544,6 @@ export default function Estadisticas() {
                                                                 ganancia_bruta: (prec - p.costo_unitario) * p.cantidad
                                                             }))
                                                         }} className="input-primary" style={{ width: 80, padding: 4 }} />
-                                                    </div>
-                                                ) : `$${((v.total_venta || 0) - (v.ganancia_bruta || 0)).toFixed(2)}`}
-                                            </td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 700, color: "var(--primary-dark)" }}>
-                                                {editando === v.id ? (
-                                                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                                        <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>TOTAL</span>
-                                                        <input type="number" step="0.01" value={editVal.total_venta} disabled className="input-primary" style={{ width: 80, padding: 4, background: "#f5f5f5", cursor: "not-allowed" }} />
                                                     </div>
                                                 ) : `$${(v.total_venta || 0).toFixed(2)}`}
                                             </td>
@@ -580,7 +583,7 @@ export default function Estadisticas() {
                                         </tr>
                                     ))}
                                     {ventasFiltradas.length === 0 && (
-                                        <tr><td colSpan={6} style={{ padding: 24, textAlign: "center", color: "var(--text-muted)" }}>No hay ventas registradas en este período.</td></tr>
+                                        <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: "var(--text-muted)" }}>No hay ventas registradas en este período.</td></tr>
                                     )}
                                 </tbody>
                             </table>
