@@ -648,7 +648,7 @@ export default function Gastos() {
                                                                     {categoriasGasto.map(c => <option key={c} value={c}>{c}</option>)}
                                                                 </select>
                                                             ) : (
-                                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "#fdf2f8", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
+                                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "var(--bg-card2)", color: "var(--primary-text)", padding: "3px 8px", borderRadius: 12 }}>
                                                                     {g.categoria}
                                                                 </span>
                                                             )}
