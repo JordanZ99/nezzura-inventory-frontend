@@ -132,7 +132,7 @@
   --error-bg: hsl(0, 35%, 18%);
 
   /* --- UI / NEUTRALS --- */
-  --white: hsl(0, 0%, 100%);
+  --white: hsl(212, 14%, 18%);
   --bg-app: hsl(214, 16%, 11%);
   /* Fondo principal — no negro puro, tiene calor */
   --bg-card: hsl(213, 17%, 15%);
@@ -444,7 +444,7 @@ body {
 }
 
 .input-primary {
-  border: 1.5px solid var(--border-light);
+  border: 1.5px solid var(--white);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 0.875rem;
