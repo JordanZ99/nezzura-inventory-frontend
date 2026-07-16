@@ -87,9 +87,9 @@ export default function Gastos() {
             await api.crearCategoriaGasto(nombre)
             setNuevaCatNombre("")
             await cargarCategoriasGasto()
-            mostrarMsg(true, `✅ Categoría "${nombre}" creada`)
+            mostrarMsg(true, `Categoría "${nombre}" creada`)
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al crear categoría"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al crear categoría"}`)
         } finally {
             setGuardandoCat(false)
         }
@@ -114,9 +114,9 @@ export default function Gastos() {
             // Actualizar también el form y edit si estaban usando el nombre viejo
             if (form.categoria === viejoNombre) setForm(f => ({ ...f, categoria: nuevo }))
             if (editCategoria === viejoNombre) setEditCategoria(nuevo)
-            mostrarMsg(true, `✅ Categoría renombrada a "${nuevo}"`)
+            mostrarMsg(true, `Categoría renombrada a "${nuevo}"`)
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al renombrar"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al renombrar"}`)
         } finally {
             setGuardandoCat(false)
         }
@@ -137,9 +137,9 @@ export default function Gastos() {
             // Si el form o edit usaban esta categoría, reasignar a Otros
             if (form.categoria === nombre) setForm(f => ({ ...f, categoria: "Otros" }))
             if (editCategoria === nombre) setEditCategoria("Otros")
-            mostrarMsg(true, `🗑️ Categoría "${nombre}" eliminada`)
+            mostrarMsg(true, `Categoría "${nombre}" eliminada`)
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al eliminar categoría"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al eliminar categoría"}`)
         }
     }
 
@@ -171,36 +171,36 @@ export default function Gastos() {
                 descripcion: form.descripcion,
                 monto
             })
-            mostrarMsg(true, `✅ Gasto registrado: $${monto.toFixed(2)}`)
+            mostrarMsg(true, `Gasto registrado: $${monto.toFixed(2)}`)
             setForm(f => ({ ...f, descripcion: "", monto: "" }))
             recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function eliminar(id: number) {
         setConfirmEliminarGastoId(null)
         try {
             await api.eliminarGasto(id)
-            mostrarMsg(true, "🗑️ Gasto eliminado")
+            mostrarMsg(true, "Gasto eliminado")
             recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function confirmar(id: number) {
         try {
             await api.confirmarGasto(id)
-            mostrarMsg(true, "✅ Gasto confirmado como pagado")
+            mostrarMsg(true, "Gasto confirmado como pagado")
             recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
     async function descartar(id: number) {
         setConfirmDescartarGastoId(null)
         try {
             await api.descartarGasto(id)
-            mostrarMsg(true, "🗑️ Gasto descartado")
+            mostrarMsg(true, "Gasto descartado")
             recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
     function iniciarEdicion(g: Gasto) {
@@ -222,10 +222,10 @@ export default function Gastos() {
         if (isNaN(monto) || monto <= 0) return
         try {
             await api.actualizarGasto(id, { monto, categoria: editCategoria, descripcion: editDescripcion })
-            mostrarMsg(true, "✅ Gasto actualizado")
+            mostrarMsg(true, "Gasto actualizado")
             cancelarEdicion()
             recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
     // ── Gastos visibles según filtro ──
@@ -358,8 +358,10 @@ export default function Gastos() {
                                 padding: "12px 16px", marginBottom: 16,
                                 borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#ef4444"}`,
                                 color: msg.ok ? "#2e7d32" : "#b91c1c",
-                                fontSize: "0.9rem", fontWeight: 700
+                                fontSize: "0.9rem", fontWeight: 700,
+                                display: "flex", alignItems: "center", gap: 8
                             }}>
+                                <Icon name={msg.ok ? "CircleCheck" : "CircleX"} size={18} color={msg.ok ? "#2e7d32" : "#b91c1c"} />
                                 {msg.texto}
                             </div>
                         )}
