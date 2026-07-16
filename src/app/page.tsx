@@ -600,7 +600,7 @@ export default function PuntoDeVenta() {
                                                             fontWeight: 600
                                                         }}
                                                     >
-                                                        <option value="">PEPS (más antiguo)</option>
+                                                        <option value="">Más antiguo</option>
                                                         {lotesProd.map(l => (
                                                             <option key={l.id_lote} value={l.id_lote}>
                                                                 {nombreLote(l)}
@@ -736,7 +736,7 @@ export default function PuntoDeVenta() {
                                                 fontWeight: 600
                                             }}
                                         >
-                                            <option value="">PEPS (más antiguo)</option>
+                                            <option value="">Más antiguo</option>
                                             {lotesProd.map(l => (
                                                 <option key={l.id_lote} value={l.id_lote}>
                                                     {nombreLote(l)}
