@@ -243,14 +243,14 @@ export default function PuntoDeVenta() {
                 id_lote: i.id_lote || undefined
             }))
             const res = await api.cobrarCarrito(itemsParaCobro)
-            setMensaje({ tipo: "ok", texto: `✅ Venta registrada — $${res.total_cobrado.toFixed(2)}` })
+            setMensaje({ tipo: "ok", texto: `Venta registrada — $${res.total_cobrado.toFixed(2)}` })
             setCarrito([]); setPrecios({}); setCarritoAbierto(false);
             localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
             const data = await api.getInventario()
             setProductos(data)
             api.getLotes().then(setLotes).catch(() => {})
         } catch (e: unknown) {
-            setMensaje({ tipo: "error", texto: `❌ ${e instanceof Error ? e.message : "Error"}` })
+            setMensaje({ tipo: "error", texto: `${e instanceof Error ? e.message : "Error"}` })
         } finally { setCobrando(false) }
     }
 
@@ -321,7 +321,9 @@ export default function PuntoDeVenta() {
                         borderLeft: `4px solid ${mensaje.tipo === "ok" ? "#4caf50" : "#f44336"}`,
                         color: mensaje.tipo === "ok" ? "#2e7d32" : "#b71c1c",
                         fontSize: "0.875rem", fontWeight: 600,
+                        display: "flex", alignItems: "center", gap: 8
                     }}>
+                        <Icon name={mensaje.tipo === "ok" ? "CircleCheck" : "CircleX"} size={18} color={mensaje.tipo === "ok" ? "#2e7d32" : "#b71c1c"} />
                         {mensaje.texto}
                     </div>
                 )}
@@ -819,7 +821,7 @@ export default function PuntoDeVenta() {
                             margin: "0 auto 16px",
                             fontSize: "2rem",
                         }}>
-                            ⚠️
+                            <Icon name="TriangleAlert" size={32} color="var(--error-text)" />
                         </div>
 
                         <h3 style={{

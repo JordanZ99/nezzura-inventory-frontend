@@ -88,9 +88,9 @@ export default function Estadisticas() {
         setGuardando(true)
         try {
             await api.actualizarVenta(editando, editVal)
-            mostrarMsg(true, "✅ Venta actualizada")
+            mostrarMsg(true, "Venta actualizada")
             setEditando(null); recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
 
@@ -98,9 +98,9 @@ export default function Estadisticas() {
         setConfirmAnularVentaId(null)
         try {
             await api.eliminarVenta(id)
-            mostrarMsg(true, "🚫 Venta anulada")
+            mostrarMsg(true, "Venta anulada")
             setEditando(null); recargar()
-        } catch (e: unknown) { mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
     // --- Filtrado ---
@@ -345,7 +345,7 @@ export default function Estadisticas() {
                         alignItems: "center",
                         gap: 12
                     }}>
-                        <span style={{ fontSize: "1.2rem" }}>{msg.ok ? "✅" : "⚠️"}</span>
+                        <Icon name={msg.ok ? "CircleCheck" : "TriangleAlert"} size={20} color={msg.ok ? "#2e7d32" : "#d97706"} />
                         {msg.texto}
                     </div>
                 )}

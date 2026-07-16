@@ -15,6 +15,7 @@
 import { useState, useEffect } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import { useRouter } from "next/navigation"
+import Icon from "@/components/ui/Icon"
 
 // ── Tipos ──
 
@@ -132,8 +133,7 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
     if (error || !datos) {
         return (
             <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f3f8" }}>
-                <div style={{ textAlign: "center", maxWidth: 400, padding: 40 }}>
-                    <div style={{ fontSize: "3rem", marginBottom: 16 }}>🏪</div>
+                <div style={{ textAlign: "center", maxWidth: 400, padding: 40 }}>                        <Icon name="Store" size={48} color="var(--primary-dark)" />
                     <h1 style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b", margin: "0 0 8px" }}>Catálogo no disponible</h1>
                     <p style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>{error || "No se pudo cargar el catálogo."}</p>
                 </div>
@@ -259,7 +259,9 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
                                                 onError={e => { e.currentTarget.style.display = "none" }}
                                             />
                                         ) : (
-                                            <span style={{ fontSize: "2.5rem", opacity: 0.2 }}>📦</span>
+                                            <div style={{ opacity: 0.2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                <Icon name="Package" size={40} color="var(--text-muted)" />
+                                            </div>
                                         )}
                                         {/* Badge de stock */}
                                         {config.mostrar_stock && agotado && (
