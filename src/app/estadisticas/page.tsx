@@ -827,7 +827,7 @@ export default function Estadisticas() {
                                             <img
                                                 src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
                                                 alt={prod.producto}
-                                                style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
+                                                style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8, borderRadius: 12 }}
                                             />
                                         ) : (
                                             <Icon name="Package" size={32} color="var(--text-muted)" />
