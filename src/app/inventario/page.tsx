@@ -15,16 +15,6 @@ import { useTenant } from "@/contexts/TenantContext"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
-/** Descarga una imagen desde una URL con el nombre del producto */
-function descargarImagen(url: string, nombre: string) {
-    const a = document.createElement("a")
-    a.href = url
-    a.download = nombre.replace(/[^a-zA-Z0-9áéíóúñ\s-]/g, "").trim() || "imagen"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-}
-
 type Tab = "nuevo" | "restock" | "editar"
 
 function Input({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
@@ -947,32 +937,13 @@ export default function Inventario() {
                                             e.currentTarget.style.boxShadow = ""
                                         }}
                                     >
-                                        <div style={{ position: "relative", aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <div style={{ aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                             {prod.imagen && prod.imagen !== "No hay foto" ? (
-                                                <>
-                                                    <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
-                                                        alt={prod.producto}
-                                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
-                                                        onError={(e) => { e.currentTarget.style.display = "none" }}
-                                                        loading="lazy" />
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); descargarImagen(prod.imagen, prod.producto) }}
-                                                        title="Descargar imagen"
-                                                        style={{
-                                                            position: "absolute", top: 6, right: 6,
-                                                            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
-                                                            border: "none", borderRadius: 8, width: 30, height: 30,
-                                                            display: "flex", alignItems: "center", justifyContent: "center",
-                                                            cursor: "pointer", opacity: 0,
-                                                            transition: "opacity 0.2s", color: "#fff"
-                                                        }}
-                                                        className="btn-descargar-imagen"
-                                                        onMouseEnter={e => { e.currentTarget.style.opacity = "1" }}
-                                                        onMouseLeave={e => { e.currentTarget.style.opacity = "0" }}
-                                                    >
-                                                        <Icon name="Download" size={15} color="#fff" />
-                                                    </button>
-                                                </>
+                                                <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
+                                                    alt={prod.producto}
+                                                    style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
+                                                    onError={(e) => { e.currentTarget.style.display = "none" }}
+                                                    loading="lazy" />
                                             ) : (
                                                 <Icon name="PackagePlus" size={32} color="var(--primary-mid)" />
                                             )}
@@ -1141,32 +1112,13 @@ export default function Inventario() {
                                                 e.currentTarget.style.boxShadow = ""
                                             }}
                                         >
-                                            <div style={{ position: "relative", aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            <div style={{ aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                 {prod.imagen && prod.imagen !== "No hay foto" ? (
-                                                    <>
-                                                        <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
-                                                            alt={prod.producto}
-                                                            style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
-                                                            onError={(e) => { e.currentTarget.style.display = "none" }}
-                                                            loading="lazy" />
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); descargarImagen(prod.imagen, prod.producto) }}
-                                                            title="Descargar imagen"
-                                                            style={{
-                                                                position: "absolute", top: 6, right: 6,
-                                                                background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
-                                                                border: "none", borderRadius: 8, width: 30, height: 30,
-                                                                display: "flex", alignItems: "center", justifyContent: "center",
-                                                                cursor: "pointer", opacity: 0,
-                                                                transition: "opacity 0.2s", color: "#fff"
-                                                            }}
-                                                            className="btn-descargar-imagen"
-                                                            onMouseEnter={e => { e.currentTarget.style.opacity = "1" }}
-                                                            onMouseLeave={e => { e.currentTarget.style.opacity = "0" }}
-                                                        >
-                                                            <Icon name="Download" size={15} color="#fff" />
-                                                        </button>
-                                                    </>
+                                                    <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
+                                                        alt={prod.producto}
+                                                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8 }}
+                                                        onError={(e) => { e.currentTarget.style.display = "none" }}
+                                                        loading="lazy" />
                                                 ) : (
                                                     <Icon name="Package" size={32} color="var(--text-muted)" />
                                                 )}
