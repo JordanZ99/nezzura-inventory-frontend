@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { api, Producto } from "@/lib/api"
+import { api, Producto, type Categoria } from "@/lib/api"
 import { supabase } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
 import dynamic from "next/dynamic"
@@ -53,6 +53,11 @@ export default function Personalizacion() {
     const [linkCopiado, setLinkCopiado] = useState(false)
     const [qrDescargado, setQrDescargado] = useState(false)
     const qrCanvasRef = useRef<HTMLCanvasElement>(null)
+
+    // Estados para visibilidad de categorías en el catálogo
+    const [categoriasCatalogo, setCategoriasCatalogo] = useState<Categoria[]>([])
+    const [cargandoCategorias, setCargandoCategorias] = useState(false)
+    const [categoriaToggling, setCategoriaToggling] = useState<string | null>(null)
 
     // Estado para mostrar el nombre del tema actual en el Hero
     const [temaActual, setTemaActual] = useState<string>("Steel Slate")
@@ -164,8 +169,12 @@ export default function Personalizacion() {
         async function loadCatalogo() {
             setCargandoCatalogo(true)
             try {
-                const config = await api.getConfigCatalogo()
+                const [config, cats] = await Promise.all([
+                    api.getConfigCatalogo(),
+                    api.getCategorias()
+                ])
                 setCatalogoConfig(config)
+                setCategoriasCatalogo(cats)
             } catch (e) {
                 console.error("Error cargando config del catálogo:", e)
             } finally {
@@ -174,6 +183,27 @@ export default function Personalizacion() {
         }
         if (tab === "catalogo") loadCatalogo()
     }, [tab])
+
+    // ── Alternar visibilidad de una categoría ──
+    async function toggleCategoria(categoria: string) {
+        setCategoriaToggling(categoria)
+        try {
+            const res = await api.toggleVisibilidadCategoria(categoria)
+            // Actualizar la lista local
+            setCategoriasCatalogo(prev =>
+                prev.map(c =>
+                    c.nombre === categoria
+                        ? { ...c, visible_en_catalogo: res.visible_en_catalogo }
+                        : c
+                )
+            )
+            mostrarMsg(true, res.mensaje)
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error al cambiar visibilidad"}`)
+        } finally {
+            setCategoriaToggling(null)
+        }
+    }
 
     // ── Guardar configuración del catálogo ──
     async function guardarConfigCatalogo(data: {
@@ -706,6 +736,67 @@ export default function Personalizacion() {
                                                 ))}
                                             </div>
                                         </div>
+
+                                        {/* ── Visibilidad de categorías ── */}
+                                        {categoriasCatalogo.length > 0 && (
+                                            <div>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>
+                                                    Categorías visibles
+                                                </span>
+                                                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px", fontWeight: 500 }}>
+                                                    Las categorías que ocultes no se mostrarán en el catálogo público.
+                                                </p>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                    {categoriasCatalogo.map(cat => {
+                                                        const visible = cat.visible_en_catalogo !== false
+                                                        return (
+                                                            <button
+                                                                key={cat.id}
+                                                                onClick={() => toggleCategoria(cat.nombre)}
+                                                                disabled={categoriaToggling === cat.nombre}
+                                                                style={{
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "space-between",
+                                                                    padding: "12px 14px",
+                                                                    borderRadius: 10,
+                                                                    border: `1.5px solid ${visible ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                                    background: visible ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                                    cursor: categoriaToggling === cat.nombre ? "wait" : "pointer",
+                                                                    textAlign: "left",
+                                                                    transition: "all 0.15s",
+                                                                    width: "100%",
+                                                                    opacity: visible ? 1 : 0.6,
+                                                                }}
+                                                            >
+                                                                <div>
+                                                                    <span style={{
+                                                                        fontWeight: 700,
+                                                                        fontSize: "0.82rem",
+                                                                        color: visible ? "var(--text-main)" : "var(--text-muted)",
+                                                                    }}>
+                                                                        {cat.nombre}
+                                                                    </span>
+                                                                    <span style={{
+                                                                        fontSize: "0.7rem",
+                                                                        color: "var(--text-muted)",
+                                                                        marginLeft: 8,
+                                                                        fontWeight: 500,
+                                                                    }}>
+                                                                        ({cat.total_productos} productos)
+                                                                    </span>
+                                                                </div>
+                                                                <Icon
+                                                                    name={visible ? "Eye" : "EyeOff"}
+                                                                    size={18}
+                                                                    color={visible ? "var(--primary-mid)" : "var(--text-muted)"}
+                                                                />
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Guardar */}
                                         <button
