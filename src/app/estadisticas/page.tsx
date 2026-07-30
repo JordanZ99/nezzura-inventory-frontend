@@ -74,6 +74,8 @@ export default function Estadisticas() {
     const [catSelecProd, setCatSelecProd] = useState("Todas")
     const [ordenProd, setOrdenProd] = useState("ventas-desc")
     const [prodSeleccionado, setProdSeleccionado] = useState<Producto | null>(null)
+    const [fotosModal, setFotosModal] = useState<{ url: string; orden: number }[]>([])
+    const [indiceFoto, setIndiceFoto] = useState(0)
     const logoSrc = tenant?.logo || "/logo.png"
     const empresa = tenant?.empresa || "..."
 
@@ -88,6 +90,25 @@ export default function Estadisticas() {
         }
     }
     useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
+
+    // Cargar todas las imágenes del producto al abrir el modal
+    useEffect(() => {
+        if (!prodSeleccionado) {
+            setFotosModal([])
+            setIndiceFoto(0)
+            return
+        }
+        setIndiceFoto(0)
+        const fotos: { url: string; orden: number }[] = []
+        if (prodSeleccionado.imagen && prodSeleccionado.imagen !== "No hay foto") {
+            fotos.push({ url: prodSeleccionado.imagen, orden: 1 })
+        }
+        api.getImagenesProducto(prodSeleccionado.producto)
+            .then(extras => {
+                setFotosModal([...fotos, ...extras.map(e => ({ url: e.url, orden: e.orden }))])
+            })
+            .catch(() => setFotosModal(fotos))
+    }, [prodSeleccionado])
 
     function mostrarMsg(ok: boolean, texto: string) {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 3500)
@@ -876,19 +897,70 @@ export default function Estadisticas() {
                                     overflow: "hidden",
                                     borderRadius: "20px 20px 0 0"
                                 }}>
-                                    {prod.imagen && prod.imagen !== "No hay foto" ? (
-                                        <img
-                                            src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
-                                            alt={prod.producto}
-                                            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", padding: 16 }}
-                                        />
+                                    {fotosModal.length > 0 ? (
+                                        <>
+                                            <img
+                                                src={fotosModal[indiceFoto].url.startsWith("http") ? fotosModal[indiceFoto].url : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${fotosModal[indiceFoto].url}`}
+                                                alt={prod.producto}
+                                                style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", padding: 16 }}
+                                            />
+                                            {/* Flecha izquierda */}
+                                            {indiceFoto > 0 && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setIndiceFoto(i => i - 1) }}
+                                                    style={{
+                                                        position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+                                                        width: 32, height: 32, borderRadius: "50%",
+                                                        background: "rgba(0,0,0,0.5)", border: "none",
+                                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                                        cursor: "pointer", backdropFilter: "blur(4px)",
+                                                        transition: "all 0.15s"
+                                                    }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.5)" }}
+                                                >
+                                                    <Icon name="ChevronLeft" size={18} color="#fff" />
+                                                </button>
+                                            )}
+                                            {/* Flecha derecha */}
+                                            {indiceFoto < fotosModal.length - 1 && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setIndiceFoto(i => i + 1) }}
+                                                    style={{
+                                                        position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                                                        width: 32, height: 32, borderRadius: "50%",
+                                                        background: "rgba(0,0,0,0.5)", border: "none",
+                                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                                        cursor: "pointer", backdropFilter: "blur(4px)",
+                                                        transition: "all 0.15s"
+                                                    }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.5)" }}
+                                                >
+                                                    <Icon name="ChevronRight" size={18} color="#fff" />
+                                                </button>
+                                            )}
+                                            {/* Contador */}
+                                            {fotosModal.length > 1 && (
+                                                <div style={{
+                                                    position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
+                                                    background: "rgba(0,0,0,0.5)", borderRadius: 10,
+                                                    padding: "2px 10px", fontSize: "0.7rem", fontWeight: 700,
+                                                    color: "#fff", backdropFilter: "blur(4px)"
+                                                }}>
+                                                    {indiceFoto + 1} / {fotosModal.length}
+                                                </div>
+                                            )}
+                                        </>
                                     ) : (
                                         <Icon name="Package" size={64} color="var(--text-muted)" />
                                     )}
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation()
-                                            if (prod.imagen && prod.imagen !== "No hay foto") {
+                                            if (fotosModal.length > 0) {
+                                                descargarImagen(fotosModal[indiceFoto].url, prod.producto)
+                                            } else if (prod.imagen && prod.imagen !== "No hay foto") {
                                                 descargarImagen(prod.imagen, prod.producto)
                                             }
                                         }}
