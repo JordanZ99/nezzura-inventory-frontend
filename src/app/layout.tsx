@@ -15,7 +15,7 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-    title: "Goyangi Store",
+    title: "Nezzura Digital",
     description: "Gestor de inventario y punto de venta",
     icons: {
         icon: "/logo.png",

@@ -88,7 +88,7 @@ export default function Personalizacion() {
                 // Obtener datos del usuario autenticado
                 const { data: { user } } = await supabase.auth.getUser()
                 if (user) {
-                    setUserEmail(user.email ?? "Usuario Goyangi")
+                    setUserEmail(user.email ?? "Usuario Nezzura Digital")
                 }
                 const inv = await api.getInventario()
                 setProductos(inv)
@@ -256,7 +256,7 @@ export default function Personalizacion() {
                         {/* Info de la sesión */}
                         <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 320px", maxWidth: 460 }}>
                             <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Información de la Cuenta</h2>
-                            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Detalles del administrador de Goyangi Store.</p>
+                            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Detalles del administrador de Nezzura Digital.</p>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                                 <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
@@ -382,7 +382,7 @@ export default function Personalizacion() {
                                     <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Nombre del Negocio</span>
                                     <input
                                         className="input-primary"
-                                        placeholder="Ej: Goyangi Store"
+                                        placeholder="Ej: Nezzura Digital"
                                         value={empresa}
                                         onChange={e => setEmpresa(e.target.value)}
                                         maxLength={60}
