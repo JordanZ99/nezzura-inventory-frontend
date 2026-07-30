@@ -33,6 +33,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         } catch (e) { }
     }, [])
     const isLoginPage = pathname === "/login"
+    const isCatalogo = pathname.startsWith("/catalogo")
     const { tenant } = useTenant()
 
     const logoSrc = tenant?.logo || "/logo.png"
@@ -43,8 +44,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         router.replace("/login")
     }
 
-    // En la página de login renderizamos solo los children (sin sidebar)
-    if (isLoginPage) {
+    // En login y catálogo público renderizamos solo los children (sin sidebar)
+    if (isLoginPage || isCatalogo) {
         return <>{children}</>
     }
 
