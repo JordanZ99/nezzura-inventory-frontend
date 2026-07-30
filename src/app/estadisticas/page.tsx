@@ -14,6 +14,16 @@ import { useTenant } from "@/contexts/TenantContext"
 // Dynamic import to avoid SSR issues with Three.js
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
+/** Descarga una imagen desde una URL con el nombre del producto */
+function descargarImagen(url: string, nombre: string) {
+    const a = document.createElement("a")
+    a.href = url
+    a.download = nombre.replace(/[^a-zA-Z0-9áéíóúñ\s-]/g, "").trim() || "imagen"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+}
+
 function Pill({ children, color = "primary" }: { children: React.ReactNode; color?: "primary" | "green" | "red" | "gray" }) {
     const map = { primary: "stat-pill-primary", green: "stat-pill-green", red: "stat-pill-red", gray: "stat-pill-gray" }
     return (
@@ -875,6 +885,31 @@ export default function Estadisticas() {
                                     ) : (
                                         <Icon name="Package" size={64} color="var(--text-muted)" />
                                     )}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            if (prod.imagen && prod.imagen !== "No hay foto") {
+                                                descargarImagen(prod.imagen, prod.producto)
+                                            }
+                                        }}
+                                        title="Descargar imagen"
+                                        style={{
+                                            position: "absolute", top: 12, left: 12,
+                                            width: 32, height: 32,
+                                            borderRadius: "50%",
+                                            background: "rgba(0,0,0,0.4)",
+                                            border: "none",
+                                            color: "#fff",
+                                            fontSize: "1.1rem",
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            backdropFilter: "blur(4px)"
+                                        }}
+                                    >
+                                        <Icon name="Download" size={15} color="#fff" />
+                                    </button>
                                     <button
                                         onClick={() => setProdSeleccionado(null)}
                                         style={{
