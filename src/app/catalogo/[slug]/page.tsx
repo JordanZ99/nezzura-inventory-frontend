@@ -10,12 +10,16 @@
 //
 // El diseño usa los mismos 4 temas predefinidos del gestor pero aplicados
 // de forma independiente con CSS inline para no heredar globals.css.
+//
+// Sistema de templates: el backend devuelve config.template y la página
+// renderiza el componente correspondiente (grid-clasico, menu-carta, etc.)
 // ==============================================================================
 
 import { useState, useEffect } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
-import { useRouter } from "next/navigation"
 import Icon from "@/components/ui/Icon"
+import CatalogoGridClasico from "@/components/CatalogoGridClasico"
+import CatalogoMenuCarta from "@/components/CatalogoMenuCarta"
 
 // ── Tipos ──
 
@@ -30,6 +34,7 @@ interface ProductoPublico {
 
 interface ConfigCatalogo {
     tema: string
+    template: string
     titulo: string
     subtitulo: string
     mostrar_precios: boolean
@@ -101,8 +106,20 @@ const TEMAS: Record<string, PaletaTema> = {
     },
 }
 
+// ── Mapa de templates ──
+// Asocia cada nombre de template con su componente React.
+// Si el backend devuelve un template no registrado, usa grid-clasico como fallback.
+const TEMPLATES: Record<string, React.FC<{
+    productos: ProductoPublico[]
+    config: ConfigCatalogo
+    tema: PaletaTema
+    busqueda: string
+}>> = {
+    "grid-clasico": CatalogoGridClasico,
+    "menu-carta": CatalogoMenuCarta,
+}
+
 export default function CatalogoPublico({ params }: { params: { slug: string } }) {
-    const router = useRouter()
     const [datos, setDatos] = useState<RespuestaCatalogo | null>(null)
     const [cargando, setCargando] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -133,7 +150,8 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
     if (error || !datos) {
         return (
             <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f3f8" }}>
-                <div style={{ textAlign: "center", maxWidth: 400, padding: 40 }}>                        <Icon name="Store" size={48} color="var(--primary-dark)" />
+                <div style={{ textAlign: "center", maxWidth: 400, padding: 40 }}>
+                    <Icon name="Store" size={48} color="var(--primary-dark)" />
                     <h1 style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b", margin: "0 0 8px" }}>Catálogo no disponible</h1>
                     <p style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>{error || "No se pudo cargar el catálogo."}</p>
                 </div>
@@ -144,6 +162,9 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
     // ── Aplicar tema ──
     const tema = TEMAS[datos.config.tema] || TEMAS.default
     const { config } = datos
+
+    // ── Resolver template ──
+    const TemplateComponent = TEMPLATES[config.template] || TEMPLATES["grid-clasico"]
 
     // ── Filtrar productos ──
     const categorias = config.mostrar_categorias
@@ -192,8 +213,8 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
                     onBlur={e => e.currentTarget.style.borderColor = tema.border}
                 />
 
-                {/* Filtros de categoría */}
-                {config.mostrar_categorias && categorias.length > 2 && (
+                {/* Filtros de categoría (solo para grid-clasico) */}
+                {config.mostrar_categorias && categorias.length > 2 && config.template === "grid-clasico" && (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
                         {categorias.map(cat => (
                             <button
@@ -216,136 +237,13 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
                 )}
             </div>
 
-            {/* ── Grid de productos ── */}
-            <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 60px" }}>
-                {productosFiltrados.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
-                        <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
-                    </div>
-                ) : (
-                    <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                        gap: 20,
-                    }}>
-                        {productosFiltrados.map(p => {
-                            const agotado = p.stock_total <= 0
-                            return (
-                                <div
-                                    key={p.producto}
-                                    style={{
-                                        background: tema.bgCard,
-                                        borderRadius: 16,
-                                        overflow: "hidden",
-                                        border: `1px solid ${tema.border}`,
-                                        transition: "transform 0.2s, box-shadow 0.2s",
-                                        display: "flex", flexDirection: "column",
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)" }}
-                                    onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "" }}
-                                >
-                                    {/* Imagen del producto */}
-                                    <div style={{
-                                        aspectRatio: "1", background: tema.bg,
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        position: "relative", overflow: "hidden",
-                                    }}>
-                                        {p.imagen && p.imagen !== "No hay foto" ? (
-                                            <img
-                                                src={p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`}
-                                                alt={p.producto}
-                                                style={{ width: "100%", height: "100%", objectFit: "contain", padding: 12 }}
-                                                loading="lazy"
-                                                onError={e => { e.currentTarget.style.display = "none" }}
-                                            />
-                                        ) : (
-                                            <div style={{ opacity: 0.2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <Icon name="Package" size={40} color="var(--text-muted)" />
-                                            </div>
-                                        )}
-                                        {/* Badge de stock */}
-                                        {config.mostrar_stock && agotado && (
-                                            <span style={{
-                                                position: "absolute", top: 10, right: 10,
-                                                background: "rgba(239,68,68,0.95)", color: "#fff",
-                                                fontSize: "0.7rem", fontWeight: 800,
-                                                padding: "4px 10px", borderRadius: 12,
-                                            }}>
-                                                Agotado
-                                            </span>
-                                        )}
-                                        {config.mostrar_stock && !agotado && p.stock_total <= 5 && (
-                                            <span style={{
-                                                position: "absolute", top: 10, right: 10,
-                                                background: "rgba(245,158,11,0.95)", color: "#fff",
-                                                fontSize: "0.7rem", fontWeight: 800,
-                                                padding: "4px 10px", borderRadius: 12,
-                                            }}>
-                                                ¡Últimas {p.stock_total}!
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Info del producto */}
-                                    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-                                        {/* Categoría */}
-                                        {config.mostrar_categorias && (p.categoria || []).length > 0 && (
-                                            <span style={{
-                                                fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase",
-                                                color: tema.primary, letterSpacing: 0.8,
-                                            }}>
-                                                {(p.categoria || ["Otros"]).join(", ")}
-                                            </span>
-                                        )}
-                                        {/* Nombre */}
-                                        <h3 style={{
-                                            fontSize: "0.95rem", fontWeight: 700, margin: 0,
-                                            color: tema.text, lineHeight: 1.3,
-                                            display: "-webkit-box", WebkitLineClamp: 2,
-                                            WebkitBoxOrient: "vertical", overflow: "hidden",
-                                        }}>
-                                            {p.producto}
-                                        </h3>
-                                        {/* Descripción */}
-                                        {p.descripcion && (
-                                            <p style={{
-                                                fontSize: "0.78rem", color: tema.textMuted, margin: 0,
-                                                lineHeight: 1.4, fontWeight: 500,
-                                                display: "-webkit-box", WebkitLineClamp: 2,
-                                                WebkitBoxOrient: "vertical", overflow: "hidden",
-                                            }}>
-                                                {p.descripcion}
-                                            </p>
-                                        )}
-                                        {/* Precio + stock */}
-                                        <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 8 }}>
-                                            {config.mostrar_precios ? (
-                                                <span style={{
-                                                    fontSize: "1.15rem", fontWeight: 800,
-                                                    color: tema.primaryDark,
-                                                }}>
-                                                    ${p.precio_venta.toFixed(2)}
-                                                </span>
-                                            ) : (
-                                                <span />
-                                            )}
-                                            {config.mostrar_stock && !agotado && (
-                                                <span style={{
-                                                    fontSize: "0.7rem", fontWeight: 600,
-                                                    color: tema.textMuted,
-                                                    background: tema.bg, padding: "3px 8px", borderRadius: 8,
-                                                }}>
-                                                    {p.stock_total} en stock
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
-                )}
-            </main>
+            {/* ── Render del template activo ── */}
+            <TemplateComponent
+                productos={productosFiltrados}
+                config={config}
+                tema={tema}
+                busqueda={busqueda}
+            />
 
             {/* ── Footer ── */}
             <footer style={{
@@ -355,4 +253,5 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
                 <p style={{ margin: 0 }}>Catálogo digital · Nezzura Digital</p>
             </footer>
         </div>
-    )}
+    )
+}
