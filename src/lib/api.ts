@@ -94,6 +94,23 @@ export interface GastoProgramado {
     ultimo_monto?: number | null;  // monto del último gasto generado por esta regla
 }
 
+/**
+ * Configuración del catálogo público de un tenant.
+ */
+export interface CatalogoConfig {
+    id: number;
+    slug: string;
+    activo: boolean;
+    tema: string;
+    template: string;  // 'grid-clasico' | 'menu-carta'
+    titulo: string;
+    subtitulo: string;
+    mostrar_precios: boolean;
+    mostrar_stock: boolean;
+    mostrar_categorias: boolean;
+    created_at?: string;
+}
+
 export interface Categoria {
     id: string;
     nombre: string;
@@ -264,4 +281,22 @@ export const api = {
         request<{ ok: boolean; mensaje: string }>(`/gastos_programados/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     eliminarGastoProgramado: (id: string) =>
         request<{ ok: boolean; mensaje: string }>(`/gastos_programados/${id}`, { method: "DELETE" }),
+
+    // Catálogo público (gestión privada — requiere JWT)
+    getConfigCatalogo: () =>
+        request<CatalogoConfig>("/catalogo_gestion"),
+    actualizarConfigCatalogo: (data: {
+        activo?: boolean;
+        tema?: string;
+        template?: string;
+        titulo?: string;
+        subtitulo?: string;
+        mostrar_precios?: boolean;
+        mostrar_stock?: boolean;
+        mostrar_categorias?: boolean;
+    }) =>
+        request<{ ok: boolean; mensaje: string }>("/catalogo_gestion", {
+            method: "PUT",
+            body: JSON.stringify(data),
+        }),
 }

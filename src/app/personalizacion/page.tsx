@@ -7,6 +7,8 @@ import { useTenant } from "@/contexts/TenantContext"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import { usePathname, useRouter } from "next/navigation"
+import { QRCodeSVG, QRCodeCanvas } from "qrcode.react"
+import type { CatalogoConfig } from "@/lib/api"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -43,6 +45,14 @@ export default function Personalizacion() {
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const inputFileRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
+
+    // Estados para la configuración del catálogo público
+    const [catalogoConfig, setCatalogoConfig] = useState<CatalogoConfig | null>(null)
+    const [cargandoCatalogo, setCargandoCatalogo] = useState(false)
+    const [guardandoCatalogo, setGuardandoCatalogo] = useState(false)
+    const [linkCopiado, setLinkCopiado] = useState(false)
+    const [qrDescargado, setQrDescargado] = useState(false)
+    const qrCanvasRef = useRef<HTMLCanvasElement>(null)
 
     // Estado para mostrar el nombre del tema actual en el Hero
     const [temaActual, setTemaActual] = useState<string>("Steel Slate")
@@ -148,6 +158,131 @@ export default function Personalizacion() {
             setGuardando(false)
         }
     }
+
+    // ── Cargar configuración del catálogo ──
+    useEffect(() => {
+        async function loadCatalogo() {
+            setCargandoCatalogo(true)
+            try {
+                const config = await api.getConfigCatalogo()
+                setCatalogoConfig(config)
+            } catch (e) {
+                console.error("Error cargando config del catálogo:", e)
+            } finally {
+                setCargandoCatalogo(false)
+            }
+        }
+        if (tab === "catalogo") loadCatalogo()
+    }, [tab])
+
+    // ── Guardar configuración del catálogo ──
+    async function guardarConfigCatalogo(data: {
+        activo?: boolean
+        tema?: string
+        template?: string
+        titulo?: string
+        subtitulo?: string
+        mostrar_precios?: boolean
+        mostrar_stock?: boolean
+        mostrar_categorias?: boolean
+    }) {
+        setGuardandoCatalogo(true)
+        try {
+            const res = await api.actualizarConfigCatalogo(data)
+            // Recargar la config para tener los datos actualizados
+            const config = await api.getConfigCatalogo()
+            setCatalogoConfig(config)
+            mostrarMsg(true, "✅ Configuración del catálogo guardada")
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error guardando configuración"}`)
+        } finally {
+            setGuardandoCatalogo(false)
+        }
+    }
+
+    // ── Copiar link del catálogo ──
+    async function copiarLink(slug: string) {
+        const url = `${window.location.origin}/catalogo/${slug}`
+        try {
+            await navigator.clipboard.writeText(url)
+            setLinkCopiado(true)
+            setTimeout(() => setLinkCopiado(false), 2500)
+        } catch {
+            // Fallback para navegadores sin clipboard API
+            const textarea = document.createElement("textarea")
+            textarea.value = url
+            document.body.appendChild(textarea)
+            textarea.select()
+            document.execCommand("copy")
+            document.body.removeChild(textarea)
+            setLinkCopiado(true)
+            setTimeout(() => setLinkCopiado(false), 2500)
+        }
+    }
+
+    // ── Descargar QR como PNG ──
+    async function descargarQR() {
+        const canvas = qrCanvasRef.current
+        if (!canvas) return
+
+        try {
+            // Convertir canvas a Blob (PNG)
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/png"))
+            if (!blob) return
+
+            // Crear URL temporal y disparar descarga
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = `catalogo-${catalogoConfig?.slug || "qr"}.png`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+
+            // Limpiar la URL temporal
+            setTimeout(() => URL.revokeObjectURL(url), 5000)
+
+            setQrDescargado(true)
+            setTimeout(() => setQrDescargado(false), 2500)
+        } catch (e) {
+            console.error("Error descargando QR:", e)
+        }
+    }
+
+    // ── Compartir link (nativo) ──
+    async function compartirLink() {
+        if (!CATALOGO_LINK) return
+
+        const shareData = {
+            title: catalogoConfig?.titulo || "Catálogo",
+            text: `¡Mira el catálogo de ${catalogoConfig?.titulo || "Nezzura Digital"}!`,
+            url: CATALOGO_LINK,
+        }
+
+        // navigator.share() solo disponible en HTTPS y moviles
+        if (typeof navigator !== "undefined" && navigator.share) {
+            try {
+                await navigator.share(shareData)
+            } catch (e: any) {
+                // Si el usuario cancela, no hacer nada
+                if (e.name !== "AbortError") {
+                    console.error("Error al compartir:", e)
+                }
+            }
+        } else {
+            // Fallback: copiar al portapapeles y mostrar mensaje
+            await copiarLink(catalogoConfig!.slug)
+        }
+    }
+
+    const CATALOGO_LINK = catalogoConfig?.slug
+        ? `${typeof window !== "undefined" ? window.location.origin : ""}/catalogo/${catalogoConfig.slug}`
+        : ""
+
+    const TEMPLATES_OPTS = [
+        { value: "grid-clasico", label: "Grid Clásico", icon: "LayoutGrid", desc: "Tarjetas con imagen, nombre y precio. Ideal para tiendas." },
+        { value: "menu-carta", label: "Menú Carta", icon: "NotebookText", desc: "Lista agrupada por categorías. Ideal para restaurantes." },
+    ]
 
     const TABS: { id: Tab; label: string; icon: string }[] = [
         { id: "cuenta", label: "Mi Cuenta", icon: "User" },
@@ -406,50 +541,379 @@ export default function Personalizacion() {
                 )}
 
                 {tab === "catalogo" && (
-                    <div className="card fade-up" style={{ padding: "20px 24px", overflow: "hidden" }}>
-                        <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Catálogo de Productos</h2>
-                        <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>Visualiza el catálogo de productos disponibles en el inventario.</p>
+                    <>
+                        {cargandoCatalogo ? (
+                            <div className="card fade-up" style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
+                                Cargando configuración...
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
 
-                        <div style={{ overflowX: "auto" }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
-                                <thead>
-                                    <tr style={{ color: "var(--text-muted)", borderBottom: "1.5px solid var(--border-primary)" }}>
-                                        {["Imagen", "Producto", "Categoría", "Stock Total", "Precio"].map(h => (
-                                            <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase" }}>{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {productos.map(p => (
-                                        <tr key={p.producto} style={{ borderBottom: "1px solid var(--border-light)" }}>
-                                            <td style={{ padding: "12px 16px" }}>
-                                                {p.imagen ? (
-                                                    <img src={p.imagen} alt={p.producto} style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover" }} />
-                                                ) : (
-                                                    <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--bg-app)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                        <Icon name="Package" size={18} color="var(--text-muted)" />
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 700 }}>{p.producto}</td>
-                                            <td style={{ padding: "12px 16px" }}>
-                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, background: "var(--bg-app)", color: "var(--primary-dark)", padding: "3px 8px", borderRadius: 12 }}>
-                                                    {(p.categoria || ["Otros"]).join(", ")}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 800 }}>{p.stock_total} uds</td>
-                                            <td style={{ padding: "12px 16px", fontWeight: 800, color: "var(--primary-dark)" }}>${p.precio_venta.toFixed(2)}</td>
-                                        </tr>
-                                    ))}
-                                    {productos.length === 0 && !cargando && (
-                                        <tr>
-                                            <td colSpan={5} style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }}>No hay productos en el catálogo.</td>
-                                        </tr>
+                                {/* ── Configuración del Catálogo ── */}
+                                <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 400px", maxWidth: 520 }}>
+                                    <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Configuración del Catálogo</h2>
+                                    <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>
+                                        Personaliza la apariencia y el contenido de tu catálogo público.
+                                    </p>
+
+                                    {msg && (
+                                        <div style={{
+                                            padding: "10px 14px", marginBottom: 16,
+                                            borderRadius: 10, fontSize: "0.82rem", fontWeight: 700,
+                                            background: msg.ok ? "rgba(76,175,80,0.1)" : "rgba(244,67,54,0.1)",
+                                            color: msg.ok ? "#2e7d32" : "#c62828",
+                                            borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#f44336"}`
+                                        }}>
+                                            {msg.texto}
+                                        </div>
                                     )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                                        {/* Activar / Desactivar */}
+                                        <div style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                        }}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Catálogo público</span>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                    {catalogoConfig?.activo ? "Tu catálogo es visible para cualquier persona con el link." : "Actívalo para que tus clientes puedan verlo."}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => guardarConfigCatalogo({ activo: !catalogoConfig?.activo })}
+                                                disabled={guardandoCatalogo}
+                                                style={{
+                                                    position: "relative",
+                                                    width: 52, height: 28,
+                                                    borderRadius: 14,
+                                                    border: "none",
+                                                    cursor: guardandoCatalogo ? "not-allowed" : "pointer",
+                                                    background: catalogoConfig?.activo ? "var(--primary-mid)" : "var(--border-primary)",
+                                                    transition: "background 0.25s",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: 3, left: catalogoConfig?.activo ? 26 : 3,
+                                                    width: 22, height: 22,
+                                                    borderRadius: "50%",
+                                                    background: "#fff",
+                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                    transition: "left 0.25s",
+                                                }} />
+                                            </button>
+                                        </div>
+
+                                        {/* Título */}
+                                        <div>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Título del Catálogo</span>
+                                            <input
+                                                className="input-primary"
+                                                placeholder="Ej: Nuestros productos"
+                                                value={catalogoConfig?.titulo || ""}
+                                                onChange={e => setCatalogoConfig(prev => prev ? { ...prev, titulo: e.target.value } : null)}
+                                                maxLength={60}
+                                                style={{ fontSize: "0.85rem" }}
+                                            />
+                                        </div>
+
+                                        {/* Subtítulo */}
+                                        <div>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Subtítulo</span>
+                                            <input
+                                                className="input-primary"
+                                                placeholder="Ej: Los mejores productos de la región"
+                                                value={catalogoConfig?.subtitulo || ""}
+                                                onChange={e => setCatalogoConfig(prev => prev ? { ...prev, subtitulo: e.target.value } : null)}
+                                                maxLength={120}
+                                                style={{ fontSize: "0.85rem" }}
+                                            />
+                                        </div>
+
+                                        {/* Selector de Template */}
+                                        <div>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Plantilla Visual</span>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                                {TEMPLATES_OPTS.map(t => (
+                                                    <button
+                                                        key={t.value}
+                                                        onClick={() => setCatalogoConfig(prev => prev ? { ...prev, template: t.value } : null)}
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: 14,
+                                                            padding: "14px 16px",
+                                                            borderRadius: 12,
+                                                            border: `2px solid ${catalogoConfig?.template === t.value ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                            background: catalogoConfig?.template === t.value ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                            cursor: "pointer",
+                                                            textAlign: "left",
+                                                            transition: "all 0.2s",
+                                                            width: "100%",
+                                                        }}
+                                                    >
+                                                        <Icon name={t.icon as any} size={24} color={catalogoConfig?.template === t.value ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                                        <div>
+                                                            <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>{t.label}</span>
+                                                            <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500 }}>{t.desc}</p>
+                                                        </div>
+                                                        {catalogoConfig?.template === t.value && (
+                                                            <div style={{ marginLeft: "auto" }}>
+                                                                <Icon name="CircleCheck" size={20} color="var(--primary-mid)" />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Tema de colores */}
+                                        <div>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Tema de Colores</span>
+                                            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                                                {[
+                                                    { key: "default", label: "Steel Slate", colors: ["#3a7dbf", "#5e87a4"] },
+                                                    { key: "midnightBlack", label: "Midnight Black", colors: ["#1f2321", "#1e6456"] },
+                                                    { key: "strawberry", label: "Strawberry Pink", colors: ["#f33376", "#fa30df"] },
+                                                    { key: "cozyYellow", label: "Cozy Yellow", colors: ["#ffd05b", "#eb7456"] },
+                                                ].map(t => (
+                                                    <button
+                                                        key={t.key}
+                                                        onClick={() => setCatalogoConfig(prev => prev ? { ...prev, tema: t.key } : null)}
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: 8,
+                                                            padding: "8px 14px",
+                                                            borderRadius: 10,
+                                                            border: `2px solid ${catalogoConfig?.tema === t.key ? "var(--primary-mid)" : "transparent"}`,
+                                                            background: "var(--bg-card2)",
+                                                            cursor: "pointer",
+                                                            transition: "all 0.15s",
+                                                        }}
+                                                    >
+                                                        <div style={{
+                                                            width: 22, height: 22,
+                                                            borderRadius: "50%",
+                                                            background: `linear-gradient(135deg, ${t.colors[0]}, ${t.colors[1]})`,
+                                                            border: "2px solid rgba(255,255,255,0.5)",
+                                                            flexShrink: 0,
+                                                        }} />
+                                                        <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)" }}>{t.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Guardar */}
+                                        <button
+                                            className="btn-primary"
+                                            onClick={() => guardarConfigCatalogo({
+                                                titulo: catalogoConfig?.titulo,
+                                                subtitulo: catalogoConfig?.subtitulo,
+                                                template: catalogoConfig?.template,
+                                                tema: catalogoConfig?.tema,
+                                            })}
+                                            disabled={guardandoCatalogo}
+                                            style={{ marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                                        >
+                                            <Icon name="Save" size={16} />
+                                            {guardandoCatalogo ? "Guardando..." : "Guardar Cambios"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* ── Compartir Catálogo ── */}
+                                <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 300px", maxWidth: 380 }}>
+                                    <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Compartir</h2>
+                                    <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 20px" }}>
+                                        Comparte tu catálogo con tus clientes.
+                                    </p>
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center" }}>
+                                        {/* Estado del catálogo */}
+                                        <div style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 8,
+                                            padding: "8px 16px",
+                                            borderRadius: 20,
+                                            background: catalogoConfig?.activo ? "rgba(76,175,80,0.1)" : "rgba(244,67,54,0.08)",
+                                            color: catalogoConfig?.activo ? "#2e7d32" : "#c62828",
+                                            fontWeight: 700,
+                                            fontSize: "0.8rem",
+                                        }}>
+                                            <div style={{
+                                                width: 8, height: 8,
+                                                borderRadius: "50%",
+                                                background: catalogoConfig?.activo ? "#4caf50" : "#f44336",
+                                                animation: catalogoConfig?.activo ? "pulse 2s infinite" : "none",
+                                            }} />
+                                            {catalogoConfig?.activo ? "Catálogo activo" : "Catálogo inactivo"}
+                                            <style>{`@keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.5 } }`}</style>
+                                        </div>
+
+                                        {/* QR Code */}
+                                        {catalogoConfig?.slug && (
+                                            <>
+                                                {/* QR visible (SVG) */}
+                                                <div style={{
+                                                    background: "#fff",
+                                                    padding: 16,
+                                                    borderRadius: 16,
+                                                    boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                }}>
+                                                    <QRCodeSVG
+                                                        value={CATALOGO_LINK}
+                                                        size={180}
+                                                        bgColor="#ffffff"
+                                                        fgColor="#000000"
+                                                        level="M"
+                                                    />
+                                                </div>
+
+                                                {/* QR canvas (oculto, solo para descargar PNG) */}
+                                                <div style={{ display: "none" }}>
+                                                    <QRCodeCanvas
+                                                        ref={qrCanvasRef}
+                                                        value={CATALOGO_LINK}
+                                                        size={512} // Alta resolución para descarga
+                                                        bgColor="#ffffff"
+                                                        fgColor="#000000"
+                                                        level="M"
+                                                    />
+                                                </div>
+
+                                                {/* Botones de acción */}
+                                                <div style={{
+                                                    display: "flex",
+                                                    gap: 8,
+                                                    width: "100%",
+                                                    flexWrap: "wrap",
+                                                    justifyContent: "center",
+                                                }}>
+                                                    {/* Descargar QR */}
+                                                    <button
+                                                        onClick={descargarQR}
+                                                        className="btn-primary"
+                                                        style={{
+                                                            flex: 1,
+                                                            minWidth: 120,
+                                                            padding: "10px 14px",
+                                                            fontSize: "0.78rem",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            gap: 6,
+                                                        }}
+                                                    >
+                                                        <Icon name={qrDescargado ? "Check" : "Download"} size={14} />
+                                                        {qrDescargado ? "Descargado" : "Descargar QR"}
+                                                    </button>
+
+                                                    {/* Compartir nativo */}
+                                                    <button
+                                                        onClick={compartirLink}
+                                                        className="btn-primary"
+                                                        style={{
+                                                            flex: 1,
+                                                            minWidth: 120,
+                                                            padding: "10px 14px",
+                                                            fontSize: "0.78rem",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            gap: 6,
+                                                        }}
+                                                    >
+                                                        <Icon name="Share2" size={14} />
+                                                        Compartir
+                                                    </button>
+                                                </div>
+
+                                                {/* Link directo WhatsApp */}
+                                                <a
+                                                    href={`https://wa.me/?text=${encodeURIComponent(CATALOGO_LINK + " — " + (catalogoConfig?.titulo || "Catálogo"))}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        gap: 8,
+                                                        padding: "10px 14px",
+                                                        borderRadius: 12,
+                                                        background: "rgba(37,211,102,0.1)",
+                                                        color: "#25d366",
+                                                        fontSize: "0.82rem",
+                                                        fontWeight: 700,
+                                                        textDecoration: "none",
+                                                        width: "100%",
+                                                        transition: "background 0.15s",
+                                                    }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = "rgba(37,211,102,0.2)"}
+                                                    onMouseLeave={e => e.currentTarget.style.background = "rgba(37,211,102,0.1)"}
+                                                >
+                                                    <svg viewBox="0 0 24 24" width={18} height={18} fill="#25d366">
+                                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                                    </svg>
+                                                    Compartir por WhatsApp
+                                                </a>
+                                            </>
+                                        )}
+
+                                        {/* Link */}
+                                        {catalogoConfig?.slug && (
+                                            <div style={{ width: "100%" }}>
+                                                <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Enlace público</span>
+                                                <div style={{ display: "flex", gap: 8 }}>
+                                                    <input
+                                                        readOnly
+                                                        value={CATALOGO_LINK}
+                                                        onClick={e => (e.target as HTMLInputElement).select()}
+                                                        className="input-primary"
+                                                        style={{
+                                                            flex: 1,
+                                                            fontSize: "0.75rem",
+                                                            fontFamily: "monospace",
+                                                            cursor: "text",
+                                                        }}
+                                                    />
+                                                    <button
+                                                        onClick={() => copiarLink(catalogoConfig!.slug)}
+                                                        className="btn-primary"
+                                                        style={{
+                                                            padding: "8px 14px",
+                                                            fontSize: "0.78rem",
+                                                            whiteSpace: "nowrap",
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: 6,
+                                                        }}
+                                                    >
+                                                        <Icon name={linkCopiado ? "Check" : "Copy"} size={14} />
+                                                        {linkCopiado ? "Copiado" : "Copiar"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {!catalogoConfig?.slug && (
+                                            <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", textAlign: "center" }}>
+                                                Guarda la configuración para generar el link de tu catálogo.
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
             <div style={{ height: 32 }} />
