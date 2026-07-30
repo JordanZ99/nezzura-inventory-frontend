@@ -116,6 +116,7 @@ export interface Categoria {
     nombre: string;
     slug: string;
     total_productos: number;
+    visible_en_catalogo?: boolean;
 }
 
 /**
@@ -197,6 +198,11 @@ export const api = {
     crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),
     editarCategoria: (viejoNombre: string, nuevoNombre: string) => request<{ ok: boolean; categoria: Categoria }>(`/inventario/categoria/${encodeURIComponent(viejoNombre)}`, { method: "PATCH", body: JSON.stringify({ nuevo_nombre: nuevoNombre }) }),
     eliminarCategoria: (categoria: string) => request(`/inventario/categoria/${encodeURIComponent(categoria)}`, { method: "DELETE" }),
+    toggleVisibilidadCategoria: (categoria: string) =>
+        request<{ ok: boolean; categoria: string; visible_en_catalogo: boolean; mensaje: string }>(
+            `/inventario/categoria/${encodeURIComponent(categoria)}/visibilidad`,
+            { method: "PATCH" }
+        ),
     editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarLote: (id: string) => request<{ ok: boolean; producto: string; producto_desactivado: boolean }>(`/inventario/lote/${id}`, { method: "DELETE" }),
     subirFoto: async (producto: string, file: File): Promise<{ ruta: string }> => {
