@@ -112,7 +112,7 @@ export default function LoginPage() {
                             marginBottom: 16,
                             boxShadow: "0 4px 20px rgba(104,65,210,0.2)",
                         }}>
-                            <img src="/logo.png" alt="Goyangi"
+                            <img src="/logo.png" alt="Nezzura Digital"
                                 style={{ width: 52, height: 52, borderRadius: "50%", objectFit: "contain" }}
                             />
                         </div>
@@ -123,7 +123,7 @@ export default function LoginPage() {
                             color: "#fff",
                             letterSpacing: -0.3,
                         }}>
-                            Goyangi Gestor
+                            Nezzura Digital
                         </h1>
                         <p style={{
                             margin: "6px 0 0",
@@ -338,7 +338,7 @@ export default function LoginPage() {
                         color: "rgba(255,255,255,0.5)",
                         fontWeight: 500,
                     }}>
-                        Goyangi Store · Panel privado
+                        Nezzura Digital · Panel privado
                     </p>
                 </div>
             </BorderGlow>

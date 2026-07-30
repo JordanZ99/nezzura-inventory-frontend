@@ -44,7 +44,7 @@ export default function PuntoDeVenta() {
     const [userId, setUserId] = useState<string>("Cargando...");
     const { tenant } = useTenant()
     const logoSrc = tenant?.logo || "/logo.png"
-    const empresa = tenant?.empresa || "Goyangi Store"
+    const empresa = tenant?.empresa || "Nezzura Digital"
 
 
     function manejarToggleDescuento() {
