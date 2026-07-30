@@ -76,12 +76,13 @@ export default function CatalogoGridClasico({ productos, config, tema }: Props) 
                                     aspectRatio: "1", background: tema.bg,
                                     display: "flex", alignItems: "center", justifyContent: "center",
                                     position: "relative", overflow: "hidden",
+                                    borderRadius: 12,
                                 }}>
                                     {p.imagen && p.imagen !== "No hay foto" ? (
                                         <img
                                             src={p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`}
                                             alt={p.producto}
-                                            style={{ width: "100%", height: "100%", objectFit: "contain", padding: 12 }}
+                                            style={{ width: "100%", height: "100%", objectFit: "contain", padding: 12, borderRadius: 12 }}
                                             loading="lazy"
                                             onError={e => { e.currentTarget.style.display = "none" }}
                                         />

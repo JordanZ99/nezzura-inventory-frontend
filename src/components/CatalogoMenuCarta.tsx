@@ -157,7 +157,7 @@ export default function CatalogoMenuCarta({ productos, config, tema }: Props) {
                                                 {p.imagen && p.imagen !== "No hay foto" && (
                                                     <div style={{
                                                         width: 52, height: 52,
-                                                        borderRadius: 10,
+                                                        borderRadius: 12,
                                                         overflow: "hidden",
                                                         flexShrink: 0,
                                                         background: tema.bg,
