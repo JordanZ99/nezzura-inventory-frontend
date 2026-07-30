@@ -40,6 +40,7 @@ interface ConfigCatalogo {
     mostrar_precios: boolean
     mostrar_stock: boolean
     mostrar_categorias: boolean
+    logo: string
 }
 
 interface RespuestaCatalogo {
@@ -126,12 +127,28 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
     const [busqueda, setBusqueda] = useState("")
     const [catFiltro, setCatFiltro] = useState("Todas")
 
+    // ── Cargar datos del catálogo ──
     useEffect(() => {
         fetchCatalogoPublico<RespuestaCatalogo>(params.slug)
             .then(d => setDatos(d))
             .catch(() => setError("Este catálogo no está disponible o no ha sido activado."))
             .finally(() => setCargando(false))
     }, [params.slug])
+
+    // ── Favicon dinámico: usa el logo del tenant ──
+    useEffect(() => {
+        const logoUrl = datos?.config?.logo
+        if (!logoUrl) return
+
+        // Buscar o crear el elemento link del favicon
+        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement
+        if (!link) {
+            link = document.createElement('link')
+            link.rel = 'icon'
+            document.head.appendChild(link)
+        }
+        link.href = logoUrl
+    }, [datos?.config?.logo])
 
     // ── Loading ──
     if (cargando) {
