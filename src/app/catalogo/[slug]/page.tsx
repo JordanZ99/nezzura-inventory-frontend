@@ -40,6 +40,9 @@ interface ConfigCatalogo {
     mostrar_precios: boolean
     mostrar_stock: boolean
     mostrar_categorias: boolean
+    banner_url?: string
+    hero_estilo?: string      // 'gradiente' | 'imagen'
+    anuncio_texto?: string
     logo: string
 }
 
@@ -196,20 +199,81 @@ export default function CatalogoPublico({ params }: { params: { slug: string } }
 
     return (
         <div style={{ minHeight: "100vh", background: tema.bg, color: tema.text, fontFamily: "system-ui, -apple-system, sans-serif" }}>
-            {/* ── Header con gradiente del tema ── */}
-            <header style={{ background: tema.gradient, padding: "48px 24px 40px", textAlign: "center", color: "#fff" }}>
-                <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5 }}>
-                    {config.titulo || "Catálogo"}
-                </h1>
-                {config.subtitulo && (
-                    <p style={{ fontSize: "0.95rem", opacity: 0.85, margin: 0, fontWeight: 500 }}>
-                        {config.subtitulo}
-                    </p>
-                )}
-                <p style={{ fontSize: "0.75rem", opacity: 0.6, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5 }}>
-                    {datos.productos.length} productos
-                </p>
-            </header>
+            {/* ── Barra de anuncios (opcional) ── */}
+            {config.anuncio_texto && (
+                <div style={{
+                    background: tema.primary,
+                    color: "#fff",
+                    textAlign: "center",
+                    padding: "10px 20px",
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    letterSpacing: 0.3,
+                }}>
+                    {config.anuncio_texto}
+                </div>
+            )}
+
+            {/* ── Header / Hero ── */}
+            {config.hero_estilo === "imagen" && config.banner_url ? (
+                /* Hero con banner como fondo de imagen */
+                <header style={{
+                    position: "relative",
+                    backgroundImage: `url(${config.banner_url})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    padding: "84px 24px",
+                    textAlign: "center",
+                    color: "#fff",
+                }}>
+                    {/* Overlay oscuro para legibilidad */}
+                    <div style={{
+                        position: "absolute", inset: 0,
+                        background: "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.55))",
+                        zIndex: 0,
+                    }} />
+                    <div style={{ position: "relative", zIndex: 1 }}>
+                        <h1 style={{ fontSize: "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>
+                            {config.titulo || "Catálogo"}
+                        </h1>
+                        {config.subtitulo && (
+                            <p style={{ fontSize: "0.95rem", opacity: 0.9, margin: 0, fontWeight: 500, textShadow: "0 1px 6px rgba(0,0,0,0.4)" }}>
+                                {config.subtitulo}
+                            </p>
+                        )}
+                        <p style={{ fontSize: "0.75rem", opacity: 0.75, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5 }}>
+                            {datos.productos.length} productos
+                        </p>
+                    </div>
+                </header>
+            ) : (
+                /* Modo gradiente: banner arriba (opcional) + header con gradiente */
+                <>
+                    {config.banner_url && (
+                        <div style={{ width: "100%", maxHeight: 280, overflow: "hidden", background: tema.bg }}>
+                            <img
+                                src={config.banner_url}
+                                alt="Banner del catálogo"
+                                style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }}
+                                loading="lazy"
+                            />
+                        </div>
+                    )}
+                    <header style={{ background: tema.gradient, padding: "48px 24px 40px", textAlign: "center", color: "#fff" }}>
+                        <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5 }}>
+                            {config.titulo || "Catálogo"}
+                        </h1>
+                        {config.subtitulo && (
+                            <p style={{ fontSize: "0.95rem", opacity: 0.85, margin: 0, fontWeight: 500 }}>
+                                {config.subtitulo}
+                            </p>
+                        )}
+                        <p style={{ fontSize: "0.75rem", opacity: 0.6, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5 }}>
+                            {datos.productos.length} productos
+                        </p>
+                    </header>
+                </>
+            )}
 
             {/* ── Buscador + filtros ── */}
             <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 0" }}>
