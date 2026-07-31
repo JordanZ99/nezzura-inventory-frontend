@@ -109,6 +109,9 @@ export interface CatalogoConfig {
     mostrar_precios: boolean;
     mostrar_stock: boolean;
     mostrar_categorias: boolean;
+    banner_url?: string;
+    hero_estilo?: string;      // 'gradiente' | 'imagen'
+    anuncio_texto?: string;
     created_at?: string;
 }
 
@@ -306,6 +309,9 @@ export const api = {
         mostrar_precios?: boolean;
         mostrar_stock?: boolean;
         mostrar_categorias?: boolean;
+        banner_url?: string;
+        hero_estilo?: string;
+        anuncio_texto?: string;
     }) =>
         request<{ ok: boolean; mensaje: string }>("/catalogo_gestion", {
             method: "PUT",

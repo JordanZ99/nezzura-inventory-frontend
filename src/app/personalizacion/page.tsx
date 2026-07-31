@@ -9,6 +9,7 @@ import Icon from "@/components/ui/Icon"
 import { usePathname, useRouter } from "next/navigation"
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react"
 import type { CatalogoConfig } from "@/lib/api"
+import { comprimirImagen } from "@/lib/image-utils"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -44,6 +45,8 @@ export default function Personalizacion() {
     const [subiendoLogo, setSubiendoLogo] = useState(false)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const inputFileRef = useRef<HTMLInputElement>(null)
+    const bannerInputRef = useRef<HTMLInputElement>(null)
+    const [subiendoBanner, setSubiendoBanner] = useState(false)
     const router = useRouter()
 
     // Estados para la configuración del catálogo público
@@ -141,6 +144,29 @@ export default function Personalizacion() {
         }
     }
 
+    // ── Subir banner/hero del catálogo ──
+    async function handleBannerFile(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0]
+        if (!file || !tenant?.tenant_id) return
+        try {
+            setSubiendoBanner(true)
+            const nombreClave = `_banner_${tenant.tenant_id.slice(0, 8)}`
+            // Comprimir antes de subir: el endpoint tiene límite de 1MB y los
+            // banners de alta resolución lo superan fácilmente
+            let imgAEnviar = file
+            try { imgAEnviar = await comprimirImagen(file) }
+            catch { /* enviar original si falla la compresión */ }
+            const { ruta } = await api.subirFoto(nombreClave, imgAEnviar)
+            setCatalogoConfig(prev => prev ? { ...prev, banner_url: ruta } : null)
+            mostrarMsg(true, "🖼️ Banner subido — Haz clic en Guardar Cambios para aplicarlo")
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error al subir banner"}`)
+        } finally {
+            setSubiendoBanner(false)
+            if (bannerInputRef.current) bannerInputRef.current.value = ""
+        }
+    }
+
     // Guarda empresa y logo en Supabase
     async function guardarCambios() {
         if (!empresa.trim()) {
@@ -215,6 +241,9 @@ export default function Personalizacion() {
         mostrar_precios?: boolean
         mostrar_stock?: boolean
         mostrar_categorias?: boolean
+        banner_url?: string
+        hero_estilo?: string
+        anuncio_texto?: string
     }) {
         setGuardandoCatalogo(true)
         try {
@@ -662,6 +691,116 @@ export default function Personalizacion() {
                                             />
                                         </div>
 
+                                        {/* ── Barra de anuncios ── */}
+                                        <div>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Barra de anuncios</span>
+                                            <input
+                                                className="input-primary"
+                                                placeholder="Ej: 🚚 Envíos gratis desde $500"
+                                                value={catalogoConfig?.anuncio_texto || ""}
+                                                onChange={e => setCatalogoConfig(prev => prev ? { ...prev, anuncio_texto: e.target.value } : null)}
+                                                maxLength={120}
+                                                style={{ fontSize: "0.85rem" }}
+                                            />
+                                            <p style={{ margin: "4px 0 0", fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                Franja que aparece arriba del catálogo. Vacío = oculta.
+                                            </p>
+                                        </div>
+
+                                        {/* ── Banner / Hero ── */}
+                                        <div>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Banner / Imagen de portada</span>
+                                            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                                                {/* Vista previa */}
+                                                <div style={{
+                                                    width: 120, height: 68,
+                                                    borderRadius: 10, overflow: "hidden", flexShrink: 0,
+                                                    background: "var(--bg-app)",
+                                                    border: "2px dashed var(--border-primary)",
+                                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                                }}>
+                                                    {catalogoConfig?.banner_url ? (
+                                                        <img
+                                                            src={catalogoConfig.banner_url}
+                                                            alt="Banner del catálogo"
+                                                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                            onError={e => { e.currentTarget.style.display = "none" }}
+                                                        />
+                                                    ) : (
+                                                        <Icon name="ImagePlus" size={24} color="var(--text-muted)" />
+                                                    )}
+                                                </div>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                                                    <input
+                                                        ref={bannerInputRef}
+                                                        type="file"
+                                                        accept="image/*"
+                                                        style={{ display: "none" }}
+                                                        onChange={handleBannerFile}
+                                                    />
+                                                    <button
+                                                        onClick={() => bannerInputRef.current?.click()}
+                                                        disabled={subiendoBanner}
+                                                        className="btn-primary"
+                                                        style={{ fontSize: "0.78rem", padding: "8px 14px", width: "fit-content" }}
+                                                    >
+                                                        {subiendoBanner ? "Subiendo..." : <><Icon name="Upload" size={14} /> Subir imagen</>}
+                                                    </button>
+                                                    {catalogoConfig?.banner_url && (
+                                                        <button
+                                                            onClick={() => setCatalogoConfig(prev => prev ? { ...prev, banner_url: "" } : null)}
+                                                            style={{
+                                                                fontSize: "0.72rem", fontWeight: 700, padding: "6px 12px",
+                                                                borderRadius: 8, border: "1px solid var(--border-primary)",
+                                                                background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                                cursor: "pointer", width: "fit-content",
+                                                            }}
+                                                        >
+                                                            Quitar banner
+                                                        </button>
+                                                    )}
+                                                    <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                                                        Tamaño recomendado: 1200×400 px
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* ── Estilo del hero ── */}
+                                        <div>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Estilo de la portada</span>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                                {[
+                                                    { key: "gradiente", label: "Gradiente", desc: "Fondo con degradado del tema + banner arriba (recomendado)" },
+                                                    { key: "imagen", label: "Imagen de fondo", desc: "El banner cubre toda la portada con el título encima" },
+                                                ].map(h => (
+                                                    <button
+                                                        key={h.key}
+                                                        onClick={() => setCatalogoConfig(prev => prev ? { ...prev, hero_estilo: h.key } : null)}
+                                                        style={{
+                                                            display: "flex", alignItems: "center", gap: 14,
+                                                            padding: "12px 14px", borderRadius: 12,
+                                                            border: `2px solid ${(catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                            background: (catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                            cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                                                            width: "100%",
+                                                        }}
+                                                    >
+                                                        <Icon name={h.key === "imagen" ? "Image" : "Palette"} size={20} color={(catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                                        <div>
+                                                            <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>{h.label}</span>
+                                                            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>{h.desc}</p>
+                                                        </div>
+                                                        {(catalogoConfig?.hero_estilo || "gradiente") === h.key && (
+                                                            <div style={{ marginLeft: "auto" }}>
+                                                                <Icon name="CircleCheck" size={18} color="var(--primary-mid)" />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
                                         {/* Selector de Template */}
                                         <div>
                                             <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Plantilla Visual</span>
@@ -806,6 +945,9 @@ export default function Personalizacion() {
                                                 subtitulo: catalogoConfig?.subtitulo,
                                                 template: catalogoConfig?.template,
                                                 tema: catalogoConfig?.tema,
+                                                banner_url: catalogoConfig?.banner_url,
+                                                hero_estilo: catalogoConfig?.hero_estilo,
+                                                anuncio_texto: catalogoConfig?.anuncio_texto,
                                             })}
                                             disabled={guardandoCatalogo}
                                             style={{ marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
