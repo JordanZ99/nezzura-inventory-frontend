@@ -339,8 +339,7 @@ export default function Inventario() {
                     try { await api.eliminarImagenExtra(existente.id) }
                     catch { /* ignorar error al eliminar */ }
                 }
-            }
-            // Subir nuevas fotos extras + reemplazadas
+            }                        // Subir nuevas fotos extras + reemplazadas
                         // Para cada foto del array que tenga file (es nueva/cambiada):
                         //   - Si tiene orden, reemplazar en ese orden (backend borra la vieja)
                         //   - Si no tiene orden, insercion nueva
@@ -354,6 +353,16 @@ export default function Inventario() {
                                 await api.subirImagenExtra(prodEditar, imgAEnviar, extra.orden)
                             } catch {
                                 console.warn("Error subiendo imagen extra para", prodEditar)
+                            }
+                        }
+
+                        // ── Reordenar imágenes existentes si el orden cambió ──
+                        const idsEnOrden = editFotos.map(f => f.id).filter((id): id is number => id !== undefined)
+                        if (idsEnOrden.length >= 2) {
+                            try {
+                                await api.reordenarImagenes(prodEditar, idsEnOrden)
+                            } catch (err) {
+                                console.warn("Error reordenando imágenes:", err)
                             }
                         }
 

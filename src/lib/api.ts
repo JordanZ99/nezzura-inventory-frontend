@@ -254,6 +254,11 @@ export const api = {
         },
     eliminarImagenExtra: (imagenId: number) =>
         request<{ ok: boolean; id: number }>(`/inventario/imagenes/${imagenId}`, { method: "DELETE" }),
+    reordenarImagenes: (producto: string, ids: number[]) =>
+        request<{ ok: boolean; mensaje: string }>(
+            `/inventario/imagenes/${encodeURIComponent(producto)}/reordenar`,
+            { method: "PATCH", body: JSON.stringify({ ids }) }
+        ),
 
     // Ventas
     getVentas: () => request<Venta[]>("/ventas/"),

@@ -15,9 +15,18 @@
 //   - Botón eliminar en cada foto
 //   - Botones "Subir foto" (galería) y "Tomar foto" (cámara) cuando < 5 fotos
 //   - Vista previa con hora de carga cuando aún no hay fotos
+//   - **Drag & Drop**: botón "Reordenar" que activa grid de miniaturas arrastrables
 // ==============================================================================
 
 import { useRef, useState, useCallback } from "react"
+import {
+    DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+    type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+    SortableContext, useSortable, arrayMove, rectSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import Icon from "./Icon"
 import ImageCropperModal from "./ImageCropperModal"
 
@@ -33,6 +42,157 @@ export interface FotoGaleria {
     id?: number
     /** Orden en la galería del backend (1-5, solo para fotos existentes) */
     orden?: number
+}
+
+// ── Componente SortablePhoto para DnD ──
+
+interface SortablePhotoProps {
+    id: string  // ID estable para DnD (no basado en índice)
+    foto: FotoGaleria
+    index: number
+    disabled?: boolean
+    onDelete: (index: number) => void
+}
+
+function SortablePhoto({ id, foto, index, disabled, onDelete }: SortablePhotoProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id })
+
+    const style: React.CSSProperties = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        position: "relative",
+        borderRadius: 12,
+        overflow: "hidden",
+        background: "var(--bg-card2)",
+        aspectRatio: "1",
+        border: index === 0 ? "2px solid #f59e0b" : "2px solid var(--border-light)",
+        cursor: disabled ? "not-allowed" : "grab",
+        touchAction: "manipulation",
+        zIndex: isDragging ? 10 : 1,
+        boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.25)" : "none",
+    }
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes}>
+            {/* Handle de arrastre */}
+            <div
+                {...listeners}
+                style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 1,
+                    cursor: disabled ? "not-allowed" : "grab",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}
+                title="Arrastrar para reordenar"
+            >
+                <img
+                    src={foto.url}
+                    alt={`Foto ${index + 1}`}
+                    style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        padding: 6,
+                        pointerEvents: "none",
+                    }}
+                    onError={e => { e.currentTarget.style.display = "none" }}
+                    loading="lazy"
+                />
+            </div>
+
+            {/* Badge de orden */}
+            <span style={{
+                position: "absolute",
+                top: 6,
+                left: 6,
+                background: index === 0 ? "#f59e0b" : "var(--primary-mid)",
+                color: "#fff",
+                fontSize: "0.6rem",
+                fontWeight: 800,
+                padding: "2px 7px",
+                borderRadius: 8,
+                zIndex: 2,
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+            }}>
+                {index === 0 ? (
+                    <><Icon name="Star" size={9} color="#fff" /> Principal</>
+                ) : (
+                    <>#{index + 1}</>
+                )}
+            </span>
+
+            {/* Botón eliminar */}
+            <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onDelete(index) }}
+                disabled={disabled}
+                title="Eliminar foto"
+                style={{
+                    position: "absolute",
+                    top: 6,
+                    right: 6,
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "rgba(0,0,0,0.6)",
+                    color: "#fff",
+                    cursor: disabled ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 3,
+                    transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = "rgba(0,0,0,0.85)" }}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.6)" }}
+            >
+                <Icon name="Trash2" size={13} color="#fff" />
+            </button>
+
+            {/* Indicador de arrastre */}
+            {!disabled && !isDragging && (
+                <div style={{
+                    position: "absolute",
+                    bottom: 6,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "rgba(0,0,0,0.5)",
+                    borderRadius: 6,
+                    padding: "2px 8px",
+                    zIndex: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    opacity: 0,
+                    transition: "opacity 0.2s",
+                }}
+                    className="drag-handle-hint"
+                    onMouseEnter={e => { e.currentTarget.style.opacity = "1" }}
+                    onMouseLeave={e => { e.currentTarget.style.opacity = "0" }}
+                >
+                    <Icon name="GripVertical" size={12} color="#fff" />
+                    <span style={{ fontSize: "0.55rem", color: "#fff", fontWeight: 700 }}>Arrastrar</span>
+                </div>
+            )}
+        </div>
+    )
 }
 
 // ── Props ──
@@ -93,6 +253,16 @@ export default function GaleriaProducto({
 
     // ── Estados internos ──
     const [carouselIndex, setCarouselIndex] = useState(0)
+    const [modoReordenar, setModoReordenar] = useState(false)
+
+    // Sensores para DnD (PointerSensor para mouse + tacto)
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // 8px de movimiento antes de activar drag
+            },
+        })
+    )
 
     // Referencias para los inputs ocultos: galería y cámara
     const galleryRef = useRef<HTMLInputElement>(null)
@@ -104,6 +274,42 @@ export default function GaleriaProducto({
     /** Índice de la foto que se está reemplazando, o -1 si es nueva */
     const replaceIndexRef = useRef(-1)
     const pendingFileRef = useRef<File | null>(null)
+
+    // ── Función helper: ID estable para DnD ──
+    // Las fotos existentes (con id) usan "img-{id}".
+    // Las fotos nuevas (sin id) usan "new-{hash}" basado en la URL (blob URL única).
+    // NO se incluye el índice, para que el ID no cambie al reordenar.
+    const getItemId = useCallback((foto: FotoGaleria): string => {
+        if (foto.id !== undefined) return `img-${foto.id}`
+        // Para fotos nuevas, usar un hash estable de la URL (blob URL única por creation)
+        const urlHash = foto.url.slice(-16)
+        return `new-${urlHash}`
+    }, [])
+
+    // Items estables para SortableContext
+    const sortableItems = fotos.map(foto => getItemId(foto))
+
+    // ── Handlers de DnD ──
+
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
+        const { active, over } = event
+        if (!over || active.id === over.id) return
+
+        // Buscar índices reales usando los IDs estables
+        const activeId = active.id as string
+        const overId = over.id as string
+
+        const oldIndex = fotos.findIndex(f => getItemId(f) === activeId)
+        const newIndex = fotos.findIndex(f => getItemId(f) === overId)
+
+        if (oldIndex === -1 || newIndex === -1) return
+
+        const reordenadas = arrayMove(fotos, oldIndex, newIndex)
+        onChange(reordenadas)
+
+        // Al reordenar, resetear carrusel al inicio para evitar confusión visual
+        setCarouselIndex(0)
+    }, [fotos, onChange, getItemId])
 
     const lugarLibre = fotos.length < maxFotos
     // Índice máximo del carrusel: si hay lugar libre, permitimos navegar
@@ -262,14 +468,95 @@ export default function GaleriaProducto({
                 />
             )}
 
-            {/* ── Contador ── */}
-            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
-                Fotos {fotos.length}/{maxFotos}
-                {fotos.length === 0 && " — La primera que subas será la foto principal"}
-            </p>
+            {/* ── Contador + Botón Reordenar ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
+                    Fotos {fotos.length}/{maxFotos}
+                    {fotos.length === 0 && " — La primera que subas será la foto principal"}
+                </p>
+                {fotos.length >= 2 && !modoReordenar && (
+                    <button type="button"
+                        onClick={() => setModoReordenar(true)}
+                        disabled={disabled}
+                        title="Reordenar fotos arrastrando"
+                        style={{
+                            display: "flex", alignItems: "center", gap: 4,
+                            padding: "3px 10px", borderRadius: 8,
+                            border: "1px solid var(--border-primary)",
+                            background: "var(--bg-card2)",
+                            color: "var(--primary-mid)",
+                            fontWeight: 700, fontSize: "0.65rem",
+                            cursor: disabled ? "not-allowed" : "pointer",
+                            transition: "all 0.15s",
+                        }}
+                        onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = "var(--border-light)"; e.currentTarget.style.borderColor = "var(--primary-mid)" } }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.borderColor = "var(--border-primary)" }}
+                    >
+                        <Icon name="ArrowUpDown" size={14} color="var(--primary-mid)" />
+                        Reordenar
+                    </button>
+                )}
+                {modoReordenar && (
+                    <button type="button"
+                        onClick={() => setModoReordenar(false)}
+                        style={{
+                            display: "flex", alignItems: "center", gap: 4,
+                            padding: "3px 10px", borderRadius: 8,
+                            border: "none",
+                            background: "var(--primary-mid)",
+                            color: "#fff",
+                            fontWeight: 700, fontSize: "0.65rem",
+                            cursor: "pointer",
+                            transition: "all 0.15s",
+                        }}
+                    >
+                        <Icon name="Check" size={14} color="#fff" />
+                        Hecho
+                    </button>
+                )}
+            </div>
 
-            {/* ── Carrusel con flechas (siempre visible si hay fotos o slot vacío) ── */}
-            {(fotos.length > 0 || lugarLibre) && (
+            {/* ── MODO REORDENAR: Grid DnD ── */}
+            {modoReordenar && fotos.length >= 2 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <p style={{ fontSize: "0.65rem", color: "var(--text-muted)", margin: 0, fontWeight: 600 }}>
+                        Arrastra las fotos para reordenarlas. La primera será la principal.
+                    </p>
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext
+                            items={sortableItems}
+                            strategy={rectSortingStrategy}
+                        >
+                            <div style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+                                gap: 10,
+                            }}>
+                                {fotos.map((foto, i) => {
+                                    const stableId = getItemId(foto)
+                                    return (
+                                        <SortablePhoto
+                                            key={stableId}
+                                            id={stableId}
+                                            foto={foto}
+                                            index={i}
+                                            disabled={disabled}
+                                            onDelete={handleDelete}
+                                        />
+                                    )
+                                })}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
+                </div>
+            )}
+
+            {/* ── MODO CARRUSEL (solo cuando NO estamos en reordenar) ── */}
+            {!modoReordenar && (fotos.length > 0 || lugarLibre) && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {/* Flecha izquierda */}
                     <button type="button"
@@ -407,8 +694,8 @@ export default function GaleriaProducto({
                 </div>
             )}
 
-            {/* ── Dots de navegación ── */}
-            {(fotos.length > 1 || (lugarLibre && fotos.length > 0)) && (
+            {/* ── Dots de navegación (solo en modo carrusel) ── */}
+            {!modoReordenar && (fotos.length > 1 || (lugarLibre && fotos.length > 0)) && (
                 <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
                     {/* Dots para cada foto real */}
                     {fotos.map((_, i) => (
@@ -437,8 +724,8 @@ export default function GaleriaProducto({
                 </div>
             )}
 
-            {/* ── Botones Subir foto + Tomar foto (si hay lugar) ── */}
-            {lugarLibre && (
+            {/* ── Botones Subir foto + Tomar foto (solo en modo carrusel) ── */}
+            {!modoReordenar && lugarLibre && (
                 <div style={{ display: "flex", gap: 8 }}>
                     <button type="button" onClick={handleGalleryClick} disabled={disabled}
                         style={{
