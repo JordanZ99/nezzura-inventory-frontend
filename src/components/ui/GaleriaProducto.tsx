@@ -64,6 +64,9 @@ function SortablePhoto({ id, foto, index, disabled, onDelete }: SortablePhotoPro
         isDragging,
     } = useSortable({ id })
 
+    // Un solo elemento raíz: todos los eventos de arrastre + ref + atributos de accesibilidad
+    // en el mismo div. Esto es lo que @dnd-kit espera para funcionar correctamente
+    // tanto en desktop (mouse) como en móvil (touch).
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition,
@@ -75,44 +78,40 @@ function SortablePhoto({ id, foto, index, disabled, onDelete }: SortablePhotoPro
         aspectRatio: "1",
         border: index === 0 ? "2px solid #f59e0b" : "2px solid var(--border-light)",
         cursor: disabled ? "not-allowed" : "grab",
-        touchAction: "manipulation",
+        // ⚠️ CRÍTICO: touch-action: none es OBLIGATORIO para que PointerSensor
+        // funcione en dispositivos táctiles. Sin esto, el navegador intercepta
+        // el touch para hacer scroll y el drag nunca se activa.
+        touchAction: "none",
         zIndex: isDragging ? 10 : 1,
         boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.25)" : "none",
+        // La imagen entera es el handle de arrastre (height 100% hereda de aspect-ratio)
     }
 
     return (
-        <div ref={setNodeRef} style={style} {...attributes}>
-            {/* Handle de arrastre */}
-            <div
-                {...listeners}
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            title="Arrastrar para reordenar"
+        >
+            <img
+                src={foto.url}
+                alt={`Foto ${index + 1}`}
                 style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 1,
-                    cursor: disabled ? "not-allowed" : "grab",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    padding: 6,
+                    // La imagen NO debe interceptar eventos para que el drag funcione
+                    pointerEvents: "none",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
                 }}
-                title="Arrastrar para reordenar"
-            >
-                <img
-                    src={foto.url}
-                    alt={`Foto ${index + 1}`}
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "contain",
-                        padding: 6,
-                        pointerEvents: "none",
-                    }}
-                    onError={e => { e.currentTarget.style.display = "none" }}
-                    loading="lazy"
-                />
-            </div>
+                onError={e => { e.currentTarget.style.display = "none" }}
+                loading="lazy"
+                draggable={false}
+            />
 
             {/* Badge de orden */}
             <span style={{
@@ -126,6 +125,8 @@ function SortablePhoto({ id, foto, index, disabled, onDelete }: SortablePhotoPro
                 padding: "2px 7px",
                 borderRadius: 8,
                 zIndex: 2,
+                // El badge no debe interceptar eventos de pointer
+                pointerEvents: "none",
                 display: "flex",
                 alignItems: "center",
                 gap: 3,
@@ -141,6 +142,7 @@ function SortablePhoto({ id, foto, index, disabled, onDelete }: SortablePhotoPro
             <button
                 type="button"
                 onClick={e => { e.stopPropagation(); onDelete(index) }}
+                onPointerDown={e => e.stopPropagation() /* evitar que el click active el drag */}
                 disabled={disabled}
                 title="Eliminar foto"
                 style={{
@@ -166,27 +168,23 @@ function SortablePhoto({ id, foto, index, disabled, onDelete }: SortablePhotoPro
                 <Icon name="Trash2" size={13} color="#fff" />
             </button>
 
-            {/* Indicador de arrastre */}
+            {/* Indicador visual de que se puede arrastrar (siempre visible en grid) */}
             {!disabled && !isDragging && (
                 <div style={{
                     position: "absolute",
                     bottom: 6,
                     left: "50%",
                     transform: "translateX(-50%)",
-                    background: "rgba(0,0,0,0.5)",
+                    background: "rgba(0,0,0,0.55)",
                     borderRadius: 6,
                     padding: "2px 8px",
                     zIndex: 2,
                     display: "flex",
                     alignItems: "center",
                     gap: 3,
-                    opacity: 0,
-                    transition: "opacity 0.2s",
-                }}
-                    className="drag-handle-hint"
-                    onMouseEnter={e => { e.currentTarget.style.opacity = "1" }}
-                    onMouseLeave={e => { e.currentTarget.style.opacity = "0" }}
-                >
+                    // Siempre visible para que el usuario sepa que puede arrastrar
+                    opacity: 0.85,
+                }}>
                     <Icon name="GripVertical" size={12} color="#fff" />
                     <span style={{ fontSize: "0.55rem", color: "#fff", fontWeight: 700 }}>Arrastrar</span>
                 </div>
@@ -259,7 +257,7 @@ export default function GaleriaProducto({
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8, // 8px de movimiento antes de activar drag
+                distance: 4, // 4px — más responsive en móvil, evita drags accidentales
             },
         })
     )
