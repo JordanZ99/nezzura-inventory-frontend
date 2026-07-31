@@ -17,6 +17,7 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
     title: "Nezzura Digital",
     description: "Gestor de inventario y punto de venta",
+    manifest: "/manifest.json",
     icons: {
         icon: "/logo.png",
         shortcut: "/logo.png",
@@ -36,6 +37,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             document.documentElement.setAttribute('data-theme', tema);
                         } catch(e) {}
                     })();
+                `}} />
+                <script dangerouslySetInnerHTML={{
+                    __html: `
+                    if ('serviceWorker' in navigator) {
+                        window.addEventListener('load', function() {
+                            navigator.serviceWorker.register('/sw.js');
+                        });
+                    }
                 `}} />
             </head>
             <body className={jakarta.className} style={{ margin: 0 }}>
