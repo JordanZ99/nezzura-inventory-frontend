@@ -444,7 +444,7 @@ body {
 }
 
 .input-primary {
-  border: 1.5px solid var(--white);
+  border: 1.5px solid var(--border-light);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 0.875rem;
