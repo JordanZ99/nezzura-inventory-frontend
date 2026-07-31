@@ -937,24 +937,37 @@ export default function Personalizacion() {
                                             </div>
                                         )}
 
-                                        {/* Guardar */}
-                                        <button
-                                            className="btn-primary"
-                                            onClick={() => guardarConfigCatalogo({
-                                                titulo: catalogoConfig?.titulo,
-                                                subtitulo: catalogoConfig?.subtitulo,
-                                                template: catalogoConfig?.template,
-                                                tema: catalogoConfig?.tema,
-                                                banner_url: catalogoConfig?.banner_url,
-                                                hero_estilo: catalogoConfig?.hero_estilo,
-                                                anuncio_texto: catalogoConfig?.anuncio_texto,
-                                            })}
-                                            disabled={guardandoCatalogo}
-                                            style={{ marginTop: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-                                        >
-                                            <Icon name="Save" size={16} />
-                                            {guardandoCatalogo ? "Guardando..." : "Guardar Cambios"}
-                                        </button>
+                                        {/* Guardar — barra sticky: siempre visible aunque haya muchas categorías */}
+                                        <div style={{
+                                            position: "sticky",
+                                            bottom: -12,
+                                            marginTop: 8,
+                                            marginBottom: -24,
+                                            padding: "12px 4px",
+                                            background: "var(--bg-card2)",
+                                            borderTop: "1px solid var(--border-light)",
+                                            borderBottomLeftRadius: 14,
+                                            borderBottomRightRadius: 14,
+                                            zIndex: 5,
+                                        }}>
+                                            <button
+                                                className="btn-primary"
+                                                onClick={() => guardarConfigCatalogo({
+                                                    titulo: catalogoConfig?.titulo,
+                                                    subtitulo: catalogoConfig?.subtitulo,
+                                                    template: catalogoConfig?.template,
+                                                    tema: catalogoConfig?.tema,
+                                                    banner_url: catalogoConfig?.banner_url,
+                                                    hero_estilo: catalogoConfig?.hero_estilo,
+                                                    anuncio_texto: catalogoConfig?.anuncio_texto,
+                                                })}
+                                                disabled={guardandoCatalogo}
+                                                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+                                            >
+                                                <Icon name="Save" size={16} />
+                                                {guardandoCatalogo ? "Guardando..." : "Guardar Cambios"}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
