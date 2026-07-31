@@ -50,7 +50,7 @@ export default function Inventario() {
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "" })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true })
 
     // ── Galería unificada de fotos (principal + extras) ──
     // Ahora la foto principal es simplemente la primera del array (índice 0).
@@ -327,6 +327,7 @@ export default function Inventario() {
                 codigo_interno: editProdVal.codigo_interno || undefined,
                 codigo_barras: editProdVal.codigo_barras || undefined,
                 ubicacion: editProdVal.ubicacion || undefined,
+                visible_en_catalogo: editProdVal.visible_en_catalogo,
             }
             await api.editarProducto(prodEditar, payload)
 
@@ -1099,6 +1100,7 @@ export default function Inventario() {
                                                     codigo_interno: prod.codigo_interno ?? "",
                                                     codigo_barras: prod.codigo_barras ?? "",
                                                     ubicacion: prod.ubicacion ?? "",
+                                                    visible_en_catalogo: prod.visible_en_catalogo ?? true,
                                                 })
                                                 // Cargar todas las fotos del producto (principal + extras) en editFotos
                                                 const fotos: FotoGaleria[] = []
@@ -1193,12 +1195,44 @@ export default function Inventario() {
                                 planLocked={tenant?.plan === "basico"}
                             />
 
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
-                                <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
-                                    <option value="Activo">Activo</option>
-                                    <option value="Inactivo">Inactivo</option>
-                                </select>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Estado</label>
+                                    <select className="input-primary" value={editProdVal.estado} onChange={e => setEditProdVal(p => ({ ...p, estado: e.target.value }))}>
+                                        <option value="Activo">Activo</option>
+                                        <option value="Inactivo">Inactivo</option>
+                                    </select>
+                                </div>
+
+                                {/* ── Toggle: Visible en catálogo ── */}
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Visible en catálogo</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditProdVal(p => ({ ...p, visible_en_catalogo: !p.visible_en_catalogo }))}
+                                        title={editProdVal.visible_en_catalogo
+                                            ? "Este producto se muestra en tu catálogo público"
+                                            : "Este producto está oculto en tu catálogo público"}
+                                        style={{
+                                            display: "flex", alignItems: "center", gap: 8,
+                                            padding: "8px 12px", borderRadius: 10,
+                                            border: `1.5px solid ${editProdVal.visible_en_catalogo ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                            background: editProdVal.visible_en_catalogo ? "var(--primary-soft)" : "var(--bg-card2)",
+                                            cursor: "pointer", transition: "all 0.15s",
+                                            width: "100%",
+                                        }}
+                                    >
+                                        <Icon name={editProdVal.visible_en_catalogo ? "Eye" : "EyeOff"} size={16} color={editProdVal.visible_en_catalogo ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                        <span style={{ fontSize: "0.72rem", fontWeight: 700, color: editProdVal.visible_en_catalogo ? "var(--text-main)" : "var(--text-muted)" }}>
+                                            {editProdVal.visible_en_catalogo ? "Visible" : "Oculto"}
+                                        </span>
+                                    </button>
+                                    <p style={{ margin: 0, fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                        {editProdVal.visible_en_catalogo
+                                            ? "Se muestra en el catálogo público"
+                                            : "Oculto del catálogo público (sigue vendiéndose)"}
+                                    </p>
+                                </div>
                             </div>
 
                             <button className="btn-primary" onClick={guardarProducto} disabled={guardando}>
