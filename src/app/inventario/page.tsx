@@ -1204,34 +1204,20 @@ export default function Inventario() {
                                     </select>
                                 </div>
 
-                                {/* ── Toggle: Visible en catálogo ── */}
+                                {/* ── Visible en catálogo (select idéntico al de Estado) ── */}
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                     <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Visible en catálogo</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setEditProdVal(p => ({ ...p, visible_en_catalogo: !p.visible_en_catalogo }))}
+                                    <select
+                                        className="input-primary"
+                                        value={editProdVal.visible_en_catalogo ? "true" : "false"}
+                                        onChange={e => setEditProdVal(p => ({ ...p, visible_en_catalogo: e.target.value === "true" }))}
                                         title={editProdVal.visible_en_catalogo
                                             ? "Este producto se muestra en tu catálogo público"
                                             : "Este producto está oculto en tu catálogo público"}
-                                        style={{
-                                            display: "flex", alignItems: "center", gap: 8,
-                                            padding: "8px 12px", borderRadius: 10,
-                                            border: `1.5px solid ${editProdVal.visible_en_catalogo ? "var(--primary-mid)" : "var(--border-primary)"}`,
-                                            background: editProdVal.visible_en_catalogo ? "var(--primary-soft)" : "var(--bg-card2)",
-                                            cursor: "pointer", transition: "all 0.15s",
-                                            width: "100%",
-                                        }}
                                     >
-                                        <Icon name={editProdVal.visible_en_catalogo ? "Eye" : "EyeOff"} size={16} color={editProdVal.visible_en_catalogo ? "var(--primary-mid)" : "var(--text-muted)"} />
-                                        <span style={{ fontSize: "0.72rem", fontWeight: 700, color: editProdVal.visible_en_catalogo ? "var(--text-main)" : "var(--text-muted)" }}>
-                                            {editProdVal.visible_en_catalogo ? "Visible" : "Oculto"}
-                                        </span>
-                                    </button>
-                                    <p style={{ margin: 0, fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                                        {editProdVal.visible_en_catalogo
-                                            ? "Se muestra en el catálogo público"
-                                            : "Oculto del catálogo público (sigue vendiéndose)"}
-                                    </p>
+                                        <option value="true">Visible</option>
+                                        <option value="false">Oculto</option>
+                                    </select>
                                 </div>
                             </div>
 
