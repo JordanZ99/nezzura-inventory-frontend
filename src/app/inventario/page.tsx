@@ -3,7 +3,7 @@
 // src/app/inventario/page.tsx  —  Rediseño Argon primary -Prueba botón de guardado
 // ==============================================================================
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/api"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
@@ -89,6 +89,14 @@ export default function Inventario() {
     const [confirmEliminarCat, setConfirmEliminarCat] = useState<string | null>(null)
     // ── Estado para la explicación de cada KPI (popup informativo) ──
     const [kpiExplicacion, setKpiExplicacion] = useState<string | null>(null)
+
+    // ── Restauración de posición al volver del formulario "Editar Prod." ──
+    // Guarda el scroll Y del grid de productos en el momento exacto en que se
+    // abre el formulario de edición (ANTES de que la vista cambie, porque el
+    // formulario es más corto que el grid y el navegador "sujeta" el scroll).
+    // Al volver (o al guardar), se restaura esa posición para que el usuario
+    // regrese exactamente donde estaba, conservando su contexto visual.
+    const scrollGridEditarRef = useRef<number | null>(null)
 
     // ── Explicaciones de cada KPI en lenguaje entendible ──
     const explicacionesKPI: Record<string, { descripcion: string; formula: string }> = {
@@ -209,6 +217,23 @@ export default function Inventario() {
     }
 
     useEffect(() => { recargar() }, [])
+
+    // Cuando se cierra el formulario de edición (prodEditar pasa a ""),
+    // restauramos el scroll Y guardado del grid de productos para que el
+    // usuario vuelva exactamente donde estaba al entrar a editar.
+    // Usamos doble requestAnimationFrame para esperar a que el grid se monte
+    // y el navegador recalcule la altura del documento antes de hacer scroll.
+    useEffect(() => {
+        if (!prodEditar && scrollGridEditarRef.current !== null) {
+            const pos = scrollGridEditarRef.current
+            scrollGridEditarRef.current = null
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: pos, behavior: "auto" })
+                })
+            })
+        }
+    }, [prodEditar])
 
     // Al cambiar al tab "nuevo", cargamos las categorías si no están
     useEffect(() => {
@@ -1088,6 +1113,9 @@ export default function Inventario() {
                                             className="card fade-up"
                                             style={{ padding: 12, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
                                             onClick={() => {
+                                                // Guardar la posición de scroll Y antes de abrir el formulario,
+                                                // para restaurarla al volver o guardar.
+                                                scrollGridEditarRef.current = window.scrollY
                                                 setProdEditar(prod.producto)
                                                 setEditProdNombre(prod.producto)
                                                 setLoteEditandoId(null)
@@ -1153,7 +1181,9 @@ export default function Inventario() {
                         <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                                 <button
-                                    onClick={() => { setProdEditar(""); setBuscadorEditar(""); setCatSelecEditar("Todas"); setLoteEditandoId(null); setEditFotos([]) }}
+                                    // Al volver: se conserva el buscador y el filtro de categorías
+                                    // (ya NO se limpian) y el scroll se restaura vía useEffect.
+                                    onClick={() => { setProdEditar(""); setLoteEditandoId(null); setEditFotos([]) }}
                                     style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
                                 >
                                     <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
