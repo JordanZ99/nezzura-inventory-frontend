@@ -845,8 +845,8 @@ export default function Estadisticas() {
                                         </span>
                                         <span style={{
                                             fontSize: "0.62rem", fontWeight: 700,
-                                            color: prod.stock_total < 0 ? "#b71c1c" : "#2e7d32",
-                                            background: prod.stock_total < 0 ? "#ffeef0" : "#e8f5e9",
+                                            color: prod.stock_total <= 0 ? "#b71c1c" : "#2e7d32",
+                                            background: prod.stock_total <= 0 ? "#ffeef0" : "#e8f5e9",
                                             borderRadius: 6, padding: "2px 6px"
                                         }}>
                                             Stock: {prod.stock_total}
@@ -1039,7 +1039,7 @@ export default function Estadisticas() {
                                         </div>
                                         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
                                             <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Stock Actual</p>
-                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: prod.stock_total < 0 ? "#b71c1c" : "var(--text-main)" }}>{prod.stock_total}</p>
+                                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1.2rem", color: prod.stock_total <= 0 ? "#b71c1c" : "var(--text-main)" }}>{prod.stock_total}</p>
                                         </div>
                                         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12 }}>
                                             <p style={{ margin: "0 0 2px", fontSize: "0.6rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Margen</p>

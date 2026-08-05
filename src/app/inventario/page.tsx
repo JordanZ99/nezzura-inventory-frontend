@@ -1015,8 +1015,8 @@ export default function Inventario() {
                                             <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px" }}>{(prod.categoria || ["General"]).join(", ")}</span>
                                             <span style={{
                                                 fontSize: "0.62rem", fontWeight: 700,
-                                                color: prod.stock_total < 0 ? "#b71c1c" : "#2e7d32",
-                                                background: prod.stock_total < 0 ? "#ffeef0" : "#e8f5e9",
+                                                color: prod.stock_total <= 0 ? "#b71c1c" : "#2e7d32",
+                                                background: prod.stock_total <= 0 ? "#ffeef0" : "#e8f5e9",
                                                 borderRadius: 6, padding: "2px 6px"
                                             }}>Stock: {prod.stock_total}</span>
                                         </div>
@@ -1231,7 +1231,7 @@ export default function Inventario() {
                                             <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>${prod.precio_venta.toFixed(2)}</p>
                                             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
                                                 <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px" }}>{(prod.categoria || ["General"]).join(", ")}</span>
-                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total < 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total < 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>Stock: {prod.stock_total}</span>
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>Stock: {prod.stock_total}</span>
                                             </div>
                                         </div>
                                     )))}
