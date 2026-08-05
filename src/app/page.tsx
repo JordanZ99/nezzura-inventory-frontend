@@ -116,8 +116,12 @@ export default function PuntoDeVenta() {
         switch (ordenamiento) {
             case "precio-desc":
                 return b.precio_venta - a.precio_venta
+            case "precio-asc":
+                return a.precio_venta - b.precio_venta
             case "stock-desc":
                 return b.stock_total - a.stock_total
+            case "stock-asc":
+                return a.stock_total - b.stock_total
             case "alfabetico":
                 return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
             case "alfabetico-desc":

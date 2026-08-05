@@ -73,6 +73,8 @@ export default function Inventario() {
     const [restockProdSeleccionado, setRestockProdSeleccionado] = useState<Producto | null>(null)
     // ── Ordenamiento del grid de Restock (default: menor stock primero) ──
     const [restockOrdenamiento, setRestockOrdenamiento] = useState("stock-desc")
+    // ── Ordenamiento del grid de "Editar Prod." (default: alfabético, igual que el backend) ──
+    const [editarOrdenamiento, setEditarOrdenamiento] = useState("alfabetico")
     // ── Debounce del buscador: retrasa el filtrado 300ms para no recalcular en cada tecla ──
     const [restockBuscadorDebounced, setRestockBuscadorDebounced] = useState("")
     useEffect(() => {
@@ -473,6 +475,26 @@ export default function Inventario() {
             (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
         const porCategoria = catSelecEditar === "Todas" || (p.categoria || ["General"]).includes(catSelecEditar)
         return porBusqueda && porCategoria
+    }).sort((a, b) => {
+        // Ordenamiento seleccionado por el usuario (mismo control que Punto de Venta y Restock).
+        // Se manejan explícitamente los 6 valores posibles para que cada opción ordene
+        // correctamente en ambas direcciones (asc y desc).
+        switch (editarOrdenamiento) {
+            case "precio-desc":
+                return b.precio_venta - a.precio_venta
+            case "precio-asc":
+                return a.precio_venta - b.precio_venta
+            case "stock-desc":
+                return b.stock_total - a.stock_total
+            case "stock-asc":
+                return a.stock_total - b.stock_total
+            case "alfabetico":
+                return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
+            case "alfabetico-desc":
+                return b.producto.localeCompare(a.producto, "es", { sensitivity: "base" })
+            default:
+                return a.stock_total - b.stock_total
+        }
     })
     // Productos filtrados y ordenados para el Restock
     const productosRestock = inv.filter(p => {
@@ -488,8 +510,12 @@ export default function Inventario() {
         switch (restockOrdenamiento) {
             case "precio-desc":
                 return b.precio_venta - a.precio_venta
+            case "precio-asc":
+                return a.precio_venta - b.precio_venta
             case "stock-desc":
                 return b.stock_total - a.stock_total
+            case "stock-asc":
+                return a.stock_total - b.stock_total
             case "alfabetico":
                 return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
             case "alfabetico-desc":
@@ -1088,15 +1114,54 @@ export default function Inventario() {
                             ))}
                         </div>
 
-                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
-                            <Icon name="Search" size={20} color="var(--text-muted)" />
-                            <input
-                                className="input-primary"
-                                style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
-                                placeholder="Buscar producto por nombre, código o categoría..."
-                                value={buscadorEditar}
-                                onChange={e => setBuscadorEditar(e.target.value)}
-                            />
+                        <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, minWidth: 200 }}>
+                                <Icon name="Search" size={20} color="var(--text-muted)" />
+                                <input
+                                    className="input-primary"
+                                    style={{ border: "none", padding: 0, boxShadow: "none", fontSize: "0.9rem" }}
+                                    placeholder="Buscar producto por nombre, código o categoría..."
+                                    value={buscadorEditar}
+                                    onChange={e => setBuscadorEditar(e.target.value)}
+                                />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
+                                <button
+                                    onClick={() => {
+                                        setEditarOrdenamiento(prev => {
+                                            if (prev === "alfabetico") return "alfabetico-desc"
+                                            if (prev === "alfabetico-desc") return "alfabetico"
+                                            if (prev.endsWith("-asc")) return prev.replace("-asc", "-desc")
+                                            if (prev.endsWith("-desc")) return prev.replace("-desc", "-asc")
+                                            return prev
+                                        })
+                                    }}
+                                    title="Invertir orden"
+                                    style={{
+                                        background: "none", border: "none",
+                                        cursor: "pointer", padding: 4,
+                                        borderRadius: 6, display: "flex", alignItems: "center",
+                                        transition: "all 0.15s"
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-card2)" }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "none" }}
+                                >
+                                    <Icon name="ArrowUpDown" size={20} color="var(--text-muted)" />
+                                </button>
+                                <select
+                                    className="input-primary"
+                                    style={{ border: "none", padding: "4px 8px", fontSize: "0.85rem", background: "transparent", cursor: "pointer", fontWeight: 700, color: "var(--primary-dark)" }}
+                                    value={editarOrdenamiento}
+                                    onChange={e => setEditarOrdenamiento(e.target.value)}
+                                >
+                                    <option value="stock-desc">Mayor stock</option>
+                                    <option value="stock-asc">Menor stock</option>
+                                    <option value="precio-desc">Mayor precio</option>
+                                    <option value="precio-asc">Menor precio</option>
+                                    <option value="alfabetico">Alfabético A-Z</option>
+                                    <option value="alfabetico-desc">Alfabético Z-A</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
