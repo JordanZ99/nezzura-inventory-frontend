@@ -15,7 +15,7 @@
 // renderiza el componente correspondiente (grid-clasico, menu-carta, etc.)
 // ==============================================================================
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import Icon from "@/components/ui/Icon"
 import CatalogoGridClasico from "@/components/CatalogoGridClasico"
@@ -255,12 +255,19 @@ export default function CatalogoView({ slug }: { slug: string }) {
         fontWeight: 600, fontSize: "0.8rem",
         transition: "all 0.15s",
     }
-    const renderAnterior = () => (
+    // En móvil los botones son más grandes para facilitar el toque
+    const estiloNavMovil: React.CSSProperties = {
+        ...estiloNav,
+        padding: "8px 16px",
+        fontSize: "0.9rem",
+        borderRadius: 10,
+    }
+    const renderAnterior = (grande = false) => (
         <button
             onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
             disabled={paginaSegura <= 1}
             style={{
-                ...estiloNav,
+                ...(grande ? estiloNavMovil : estiloNav),
                 color: paginaSegura <= 1 ? tema.textMuted : tema.text,
                 cursor: paginaSegura <= 1 ? "not-allowed" : "pointer",
                 opacity: paginaSegura <= 1 ? 0.5 : 1,
@@ -269,12 +276,12 @@ export default function CatalogoView({ slug }: { slug: string }) {
             ← Anterior
         </button>
     )
-    const renderSiguiente = () => (
+    const renderSiguiente = (grande = false) => (
         <button
             onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
             disabled={paginaSegura >= totalPaginas}
             style={{
-                ...estiloNav,
+                ...(grande ? estiloNavMovil : estiloNav),
                 color: paginaSegura >= totalPaginas ? tema.textMuted : tema.text,
                 cursor: paginaSegura >= totalPaginas ? "not-allowed" : "pointer",
                 opacity: paginaSegura >= totalPaginas ? 0.5 : 1,
@@ -282,6 +289,34 @@ export default function CatalogoView({ slug }: { slug: string }) {
         >
             Siguiente →
         </button>
+    )
+
+    // Páginas mostradas en móvil: si hay 3 o menos se muestran todas (1 2 3);
+    // si hay más, solo primera, actual y última (con … entre los huecos).
+    const paginasMovil = totalPaginas <= 3
+        ? Array.from({ length: totalPaginas }, (_, i) => i + 1)
+        : [...new Set([1, paginaSegura, totalPaginas])].sort((a, b) => a - b)
+
+    const renderPaginaMovil = (p: number, idx: number) => (
+        <Fragment key={p}>
+            {idx > 0 && paginasMovil[idx - 1] + 1 < p && (
+                <span style={{ color: tema.textMuted, fontSize: "0.85rem", padding: "0 2px" }}>…</span>
+            )}
+            <button
+                onClick={() => setPaginaActual(p)}
+                style={{
+                    minWidth: 40, height: 40, borderRadius: 10,
+                    padding: "0 12px",
+                    border: p === paginaSegura ? `2px solid ${tema.primary}` : `1px solid ${tema.border}`,
+                    background: tema.bgCard,
+                    color: p === paginaSegura ? tema.primary : tema.text,
+                    cursor: "pointer", fontWeight: p === paginaSegura ? 800 : 600,
+                    fontSize: "0.9rem", transition: "all 0.15s",
+                }}
+            >
+                {p}
+            </button>
+        </Fragment>
     )
 
     return (
@@ -440,12 +475,10 @@ export default function CatalogoView({ slug }: { slug: string }) {
 
                     {/* Fila 2: controles — móvil usa patrón compacto que nunca desborda */}
                     {esMovil ? (
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 10 }}>
-                            {renderAnterior()}
-                            <span style={{ fontSize: "0.8rem", color: tema.text, fontWeight: 700, padding: "0 4px", whiteSpace: "nowrap" }}>
-                                Página {paginaSegura} de {totalPaginas}
-                            </span>
-                            {renderSiguiente()}
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+                            {renderAnterior(true)}
+                            {paginasMovil.map(renderPaginaMovil)}
+                            {renderSiguiente(true)}
                         </div>
                     ) : (
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
