@@ -1,12 +1,43 @@
 // ==============================================================================
 // src/lib/image-utils.ts
-// Compresión de imágenes en el navegador.
+// Compresión de imágenes en el navegador + optimización de URLs de Cloudinary.
 // Redimensiona y comprime a JPEG (compatible con todos los navegadores)
 // para que las fotos de productos pesen ~40-80 KB.
 // ==============================================================================
 
 /** Tamaño máximo del archivo original que aceptamos (10 MB) */
 const MAX_ORIGINAL_SIZE_MB = 10;
+
+/**
+ * Añade parámetros de optimización de Cloudinary a una URL para reducir el
+ * ancho de banda (Opción A): redimensiona a `ancho` px y entrega en el mejor
+ * formato/calidad automáticos (f_auto,q_auto).
+ *
+ * Ejemplo:
+ *   https://res.cloudinary.com/xx/image/upload/v1/abc.jpg
+ *   → https://res.cloudinary.com/xx/image/upload/w_600,f_auto,q_auto/v1/abc.jpg
+ *
+ * Solo afecta a URLs de res.cloudinary.com. Si la URL ya tiene una cadena de
+ * transformación (p.ej. contiene f_auto o w_), la devuelve intacta para no
+ * duplicar transformaciones. Cualquier otra URL (local, relativa, otro CDN)
+ * también se devuelve sin cambios.
+ */
+export function optimizarImagenCloudinary(url: string | undefined, ancho: number): string {
+    if (!url) return url ?? ""
+    if (!url.includes("res.cloudinary.com")) return url
+    const marker = "/image/upload/"
+    const idx = url.indexOf(marker)
+    if (idx === -1) return url
+
+    // Si ya hay una transformación (f_auto, q_auto, w_, c_, e_, etc.) en
+    // cualquiera de los segmentos de la ruta, no duplicar la cadena.
+    const despues = url.slice(idx + marker.length)
+    const segmentos = despues.split("/")
+    if (segmentos.some(seg => /f_auto|q_auto|\bw_\d|\bc_|\be_|\bt_\w+/i.test(seg))) return url
+
+    const transformacion = `w_${ancho},f_auto,q_auto`
+    return `${url.slice(0, idx + marker.length)}${transformacion}/${despues}`
+}
 
 /**
  * Lee un archivo como Data URL usando FileReader.
