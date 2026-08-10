@@ -353,25 +353,6 @@ export default function CatalogoView({ slug }: { slug: string }) {
 
     return (
         <div style={{ minHeight: "100vh", background: tema.bg, color: tema.text, fontFamily: "system-ui, -apple-system, sans-serif" }}>
-            {/* ── Barra de anuncios (opcional, sticky) ── */}
-            {config.anuncio_texto && (
-                <div style={{
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 50,
-                    background: tema.primary,
-                    color: "#fff",
-                    textAlign: "center",
-                    padding: "10px 20px",
-                    fontSize: "0.82rem",
-                    fontWeight: 700,
-                    letterSpacing: 0.3,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-                }}>
-                    {config.anuncio_texto}
-                </div>
-            )}
-
             {/* ── Header / Hero ── */}
             {config.hero_estilo === "imagen" && bannerUrl ? (
                 /* Hero con banner como fondo de imagen.
@@ -443,6 +424,29 @@ export default function CatalogoView({ slug }: { slug: string }) {
                             {datos.productos.length} productos
                         </p>
                     </header>
+            )}
+
+            {/* ── Barra de anuncios (opcional, sticky) ──
+                Colocada DEBAJO del banner/hero. Con overflow-x: clip en html/body,
+                position: sticky se pega al viewport: queda en su sitio hasta que el
+                scroll la toca y entonces se fija arriba, volviendo a su lugar al
+                hacer scroll hacia arriba. */}
+            {config.anuncio_texto && (
+                <div style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 50,
+                    background: tema.primary,
+                    color: "#fff",
+                    textAlign: "center",
+                    padding: "10px 20px",
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    letterSpacing: 0.3,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                }}>
+                    {config.anuncio_texto}
+                </div>
             )}
 
             {/* ── Buscador + filtros ── */}
