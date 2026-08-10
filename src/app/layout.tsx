@@ -14,7 +14,14 @@ const jakarta = Plus_Jakarta_Sans({
     weight: ["400", "500", "600", "700", "800"],
 })
 
+const ORIGEN_SITIO =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NEXT_PUBLIC_VERCEL_URL
+        ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+        : "https://productos.nezzura.digital")
+
 export const metadata: Metadata = {
+    metadataBase: new URL(ORIGEN_SITIO),
     title: "Nezzura Digital",
     description: "Gestor de inventario y punto de venta",
     manifest: "/manifest.json",
