@@ -51,6 +51,7 @@ interface ConfigCatalogo {
     hero_estilo?: string      // 'gradiente' | 'imagen'
     banner_texto_color?: string
     banner_mostrar_texto?: boolean
+    banner_mostrar_logo?: boolean
     anuncio_texto?: string
     logo: string
 }
@@ -376,6 +377,26 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     overflow: "hidden",
                     color: config.banner_texto_color || "#fff",
                 }}>
+                    {/* Logo sobre el banner (opcional, default activo e independiente del toggle de texto).
+                        Se superpone sin alterar el alto del contenedor: el marco conserva
+                        la relación del crop del banner (WYSIWYG). */}
+                    {config.banner_mostrar_logo !== false && config.logo && (
+                        <img
+                            src={config.logo}
+                            alt={config.titulo || "Logo del catálogo"}
+                            style={{
+                                width: esMovil ? 64 : 88,
+                                height: esMovil ? 64 : 88,
+                                borderRadius: "50%",
+                                objectFit: "cover",
+                                border: "3px solid rgba(255,255,255,0.9)",
+                                display: "block",
+                                margin: "0 auto 12px",
+                                background: "#fff",
+                                boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                            }}
+                        />
+                    )}
                     {config.banner_mostrar_texto !== false && (
                         <div>
                             <h1 style={{ fontSize: esMovil ? "1.35rem" : "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, textShadow: sombraTexto(config.banner_texto_color) }}>

@@ -118,6 +118,7 @@ export interface CatalogoConfig {
     hero_estilo?: string;      // 'gradiente' | 'imagen'
     banner_texto_color?: string;
     banner_mostrar_texto?: boolean;
+    banner_mostrar_logo?: boolean;
     anuncio_texto?: string;
     created_at?: string;
 }
@@ -325,6 +326,7 @@ export const api = {
         hero_estilo?: string;
         banner_texto_color?: string;
         banner_mostrar_texto?: boolean;
+        banner_mostrar_logo?: boolean;
         anuncio_texto?: string;
     }) =>
         request<{ ok: boolean; mensaje: string }>("/catalogo_gestion", {
