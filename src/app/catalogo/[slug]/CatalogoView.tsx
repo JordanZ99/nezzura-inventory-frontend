@@ -384,6 +384,23 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         </div>
                     )}
                     <header style={{ background: tema.gradient, padding: "48px 24px 40px", textAlign: "center", color: "#fff" }}>
+                        {config.logo && (
+                            /* Logo circular con borde blanco, igual que en el preview del link (WhatsApp) */
+                            <img
+                                src={config.logo}
+                                alt={config.titulo || "Logo del catálogo"}
+                                style={{
+                                    width: 96, height: 96,
+                                    borderRadius: "50%",
+                                    objectFit: "cover",
+                                    border: "4px solid rgba(255,255,255,0.92)",
+                                    display: "block",
+                                    margin: "0 auto 14px",
+                                    background: "#fff",
+                                    boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
+                                }}
+                            />
+                        )}
                         <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5 }}>
                             {config.titulo || "Catálogo"}
                         </h1>
