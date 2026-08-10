@@ -112,6 +112,7 @@ export interface CatalogoConfig {
     agrupar_por_categoria?: boolean;
     columnas_movil?: number;
     permitir_descarga?: boolean;
+    ocultar_agotados?: boolean;
     banner_url?: string;
     hero_estilo?: string;      // 'gradiente' | 'imagen'
     anuncio_texto?: string;
@@ -315,6 +316,7 @@ export const api = {
         agrupar_por_categoria?: boolean;
         columnas_movil?: number;
         permitir_descarga?: boolean;
+        ocultar_agotados?: boolean;
         banner_url?: string;
         hero_estilo?: string;
         anuncio_texto?: string;

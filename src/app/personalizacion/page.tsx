@@ -973,67 +973,6 @@ export default function Personalizacion() {
                                             </div>
                                         </div>
 
-                                        {/* ── Visibilidad de categorías ── */}
-                                        {categoriasCatalogo.length > 0 && (
-                                            <div>
-                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>
-                                                    Categorías visibles
-                                                </span>
-                                                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px", fontWeight: 500 }}>
-                                                    Las categorías que ocultes no se mostrarán en el catálogo público.
-                                                </p>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                                    {categoriasCatalogo.map(cat => {
-                                                        const visible = cat.visible_en_catalogo !== false
-                                                        return (
-                                                            <button
-                                                                key={cat.id}
-                                                                onClick={() => toggleCategoria(cat.nombre)}
-                                                                disabled={categoriaToggling === cat.nombre}
-                                                                style={{
-                                                                    display: "flex",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "space-between",
-                                                                    padding: "12px 14px",
-                                                                    borderRadius: 10,
-                                                                    border: `1.5px solid ${visible ? "var(--primary-mid)" : "var(--border-primary)"}`,
-                                                                    background: visible ? "var(--primary-soft)" : "var(--bg-card2)",
-                                                                    cursor: categoriaToggling === cat.nombre ? "wait" : "pointer",
-                                                                    textAlign: "left",
-                                                                    transition: "all 0.15s",
-                                                                    width: "100%",
-                                                                    opacity: visible ? 1 : 0.6,
-                                                                }}
-                                                            >
-                                                                <div>
-                                                                    <span style={{
-                                                                        fontWeight: 700,
-                                                                        fontSize: "0.82rem",
-                                                                        color: visible ? "var(--text-main)" : "var(--text-muted)",
-                                                                    }}>
-                                                                        {cat.nombre}
-                                                                    </span>
-                                                                    <span style={{
-                                                                        fontSize: "0.7rem",
-                                                                        color: "var(--text-muted)",
-                                                                        marginLeft: 8,
-                                                                        fontWeight: 500,
-                                                                    }}>
-                                                                        ({cat.total_productos} productos)
-                                                                    </span>
-                                                                </div>
-                                                                <Icon
-                                                                    name={visible ? "Eye" : "EyeOff"}
-                                                                    size={18}
-                                                                    color={visible ? "var(--primary-mid)" : "var(--text-muted)"}
-                                                                />
-                                                            </button>
-                                                        )
-                                                    })}
-                                                </div>
-                                            </div>
-                                        )}
-
                                         {/* ── Sección: Apariencia ── */}
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
                                             <Icon name="Palette" size={15} color="var(--primary-mid)" />
@@ -1160,6 +1099,161 @@ export default function Personalizacion() {
                                                 ))}
                                             </div>
                                         </div>
+
+                                        {/* ── Sección: Visibilidad ── */}
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                                            <Icon name="Eye" size={15} color="var(--primary-mid)" />
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--primary-mid)", textTransform: "uppercase", letterSpacing: 1.2 }}>
+                                                Visibilidad
+                                            </span>
+                                            <div style={{ flex: 1, height: 1.5, background: "var(--border-primary)", borderRadius: 1 }} />
+                                        </div>
+
+                                        {/* Ocultar stock (guardado como el inverso de mostrar_stock: null/true = visible) */}
+                                        <div style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                        }}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Ocultar stock</span>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                    Los clientes no verán cuántas unidades quedan de cada producto.
+                                                </p>
+                                                {renderGuardado("mostrar_stock")}
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const ocultando = (catalogoConfig?.mostrar_stock ?? true) === false
+                                                    setCatalogoConfig(prev => prev ? { ...prev, mostrar_stock: !ocultando } : prev)
+                                                    autoguardar("mostrar_stock", { mostrar_stock: !ocultando })
+                                                }}
+                                                disabled={campoGuardando === "mostrar_stock"}
+                                                style={{
+                                                    position: "relative",
+                                                    width: 52, height: 28,
+                                                    borderRadius: 14,
+                                                    border: "none",
+                                                    cursor: campoGuardando === "mostrar_stock" ? "not-allowed" : "pointer",
+                                                    background: (catalogoConfig?.mostrar_stock ?? true) === false ? "var(--primary-mid)" : "var(--border-primary)",
+                                                    transition: "background 0.25s",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: 3, left: (catalogoConfig?.mostrar_stock ?? true) === false ? 26 : 3,
+                                                    width: 22, height: 22,
+                                                    borderRadius: "50%",
+                                                    background: "#fff",
+                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                    transition: "left 0.25s",
+                                                }} />
+                                            </button>
+                                        </div>
+
+                                        {/* Ocultar productos agotados */}
+                                        <div style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                        }}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Ocultar productos agotados</span>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                    Los productos sin stock desaparecerán del catálogo.
+                                                </p>
+                                                {renderGuardado("ocultar_agotados")}
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const nuevo = !catalogoConfig?.ocultar_agotados
+                                                    setCatalogoConfig(prev => prev ? { ...prev, ocultar_agotados: nuevo } : prev)
+                                                    autoguardar("ocultar_agotados", { ocultar_agotados: nuevo })
+                                                }}
+                                                disabled={campoGuardando === "ocultar_agotados"}
+                                                style={{
+                                                    position: "relative",
+                                                    width: 52, height: 28,
+                                                    borderRadius: 14,
+                                                    border: "none",
+                                                    cursor: campoGuardando === "ocultar_agotados" ? "not-allowed" : "pointer",
+                                                    background: catalogoConfig?.ocultar_agotados ? "var(--primary-mid)" : "var(--border-primary)",
+                                                    transition: "background 0.25s",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: 3, left: catalogoConfig?.ocultar_agotados ? 26 : 3,
+                                                    width: 22, height: 22,
+                                                    borderRadius: "50%",
+                                                    background: "#fff",
+                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                    transition: "left 0.25s",
+                                                }} />
+                                            </button>
+                                        </div>
+
+                                        {/* ── Visibilidad de categorías ── */}
+                                        {categoriasCatalogo.length > 0 && (
+                                            <div>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>
+                                                    Categorías visibles
+                                                </span>
+                                                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px", fontWeight: 500 }}>
+                                                    Las categorías que ocultes no se mostrarán en el catálogo público.
+                                                </p>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                    {categoriasCatalogo.map(cat => {
+                                                        const visible = cat.visible_en_catalogo !== false
+                                                        return (
+                                                            <button
+                                                                key={cat.id}
+                                                                onClick={() => toggleCategoria(cat.nombre)}
+                                                                disabled={categoriaToggling === cat.nombre}
+                                                                style={{
+                                                                    display: "flex",
+                                                                    alignItems: "center",
+                                                                    justifyContent: "space-between",
+                                                                    padding: "12px 14px",
+                                                                    borderRadius: 10,
+                                                                    border: `1.5px solid ${visible ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                                    background: visible ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                                    cursor: categoriaToggling === cat.nombre ? "wait" : "pointer",
+                                                                    textAlign: "left",
+                                                                    transition: "all 0.15s",
+                                                                    width: "100%",
+                                                                    opacity: visible ? 1 : 0.6,
+                                                                }}
+                                                            >
+                                                                <div>
+                                                                    <span style={{
+                                                                        fontWeight: 700,
+                                                                        fontSize: "0.82rem",
+                                                                        color: visible ? "var(--text-main)" : "var(--text-muted)",
+                                                                    }}>
+                                                                        {cat.nombre}
+                                                                    </span>
+                                                                    <span style={{
+                                                                        fontSize: "0.7rem",
+                                                                        color: "var(--text-muted)",
+                                                                        marginLeft: 8,
+                                                                        fontWeight: 500,
+                                                                    }}>
+                                                                        ({cat.total_productos} productos)
+                                                                    </span>
+                                                                </div>
+                                                                <Icon
+                                                                    name={visible ? "Eye" : "EyeOff"}
+                                                                    size={18}
+                                                                    color={visible ? "var(--primary-mid)" : "var(--text-muted)"}
+                                                                />
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
 
                                     </div>
                                 </div>
