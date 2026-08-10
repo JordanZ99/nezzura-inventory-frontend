@@ -21,6 +21,7 @@ interface ProductoPublico {
     precio_venta: number
     stock_total: number
     categoria: string[]
+    imagenes?: string[]
 }
 
 interface ConfigCatalogo {
@@ -50,9 +51,10 @@ interface Props {
     config: ConfigCatalogo
     tema: PaletaTema
     agrupado?: boolean
+    onAbrirProducto?: (p: ProductoPublico) => void
 }
 
-export default function CatalogoGridClasico({ productos, config, tema, agrupado = false }: Props) {
+export default function CatalogoGridClasico({ productos, config, tema, agrupado = false, onAbrirProducto }: Props) {
     // ── Estado del modo agrupado ──
     const [expandidas, setExpandidas] = useState<Set<string>>(() => new Set())
     const [esMovil, setEsMovil] = useState<boolean>(() =>
@@ -111,6 +113,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
         return (
             <div
                 key={p.producto}
+                onClick={() => onAbrirProducto?.(p)}
                 style={{
                     background: tema.bgCard,
                     borderRadius: 16,
@@ -119,6 +122,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                     transition: "transform 0.2s, box-shadow 0.2s",
                     display: "flex", flexDirection: "column",
                     height: "100%",
+                    cursor: "pointer",
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)" }}
                 onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "" }}
