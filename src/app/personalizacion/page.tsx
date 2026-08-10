@@ -9,7 +9,8 @@ import Icon from "@/components/ui/Icon"
 import { usePathname, useRouter } from "next/navigation"
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react"
 import type { CatalogoConfig } from "@/lib/api"
-import { comprimirImagen } from "@/lib/image-utils"
+import { comprimirBanner } from "@/lib/image-utils"
+import ImageCropperModal from "@/components/ui/ImageCropperModal"
 
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
@@ -46,7 +47,11 @@ export default function Personalizacion() {
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const inputFileRef = useRef<HTMLInputElement>(null)
     const bannerInputRef = useRef<HTMLInputElement>(null)
+    const bannerMovilInputRef = useRef<HTMLInputElement>(null)
     const [subiendoBanner, setSubiendoBanner] = useState(false)
+    const [subiendoBannerMovil, setSubiendoBannerMovil] = useState(false)
+    // Crop del banner: imagen seleccionada esperando recorte (escritorio o móvil)
+    const [bannerCrop, setBannerCrop] = useState<{ url: string; target: "escritorio" | "movil" } | null>(null)
     const router = useRouter()
 
     // Estados para la configuración del catálogo público
@@ -144,28 +149,56 @@ export default function Personalizacion() {
         }
     }
 
-    // ── Subir banner/hero del catálogo ──
-    async function handleBannerFile(e: React.ChangeEvent<HTMLInputElement>) {
+    // ── Subir banner/hero del catálogo (escritorio o móvil) ──
+    // 1) Se elige el archivo → se abre el modal de recorte con la relación correcta.
+    function handleBannerFile(e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil") {
         const file = e.target.files?.[0]
-        if (!file || !tenant?.tenant_id) return
+        if (!file) return
+        setBannerCrop({ url: URL.createObjectURL(file), target })
+        // Permitir volver a seleccionar el mismo archivo
+        ;(e.target as HTMLInputElement).value = ""
+    }
+
+    // 2) El usuario aceptó el recorte → comprimir, subir y guardar según el target.
+    async function handleBannerCropComplete(blob: Blob) {
+        if (!bannerCrop || !tenant?.tenant_id) return
+        const { target, url } = bannerCrop
+        setBannerCrop(null)
+        const esMovil = target === "movil"
         try {
-            setSubiendoBanner(true)
-            const nombreClave = `_banner_${tenant.tenant_id.slice(0, 8)}`
-            // Comprimir antes de subir: el endpoint tiene límite de 1MB y los
-            // banners de alta resolución lo superan fácilmente
-            let imgAEnviar = file
-            try { imgAEnviar = await comprimirImagen(file) }
-            catch { /* enviar original si falla la compresión */ }
-            const { ruta } = await api.subirFoto(nombreClave, imgAEnviar)
-            setCatalogoConfig(prev => prev ? { ...prev, banner_url: ruta } : null)
-            autoguardar("banner_url", { banner_url: ruta })
+            if (esMovil) setSubiendoBannerMovil(true)
+            else setSubiendoBanner(true)
+            const nombreClave = `_banner${esMovil ? "_movil" : ""}_${tenant.tenant_id.slice(0, 8)}`
+            const archivo = new File([blob], `banner-${esMovil ? "movil" : "escritorio"}.jpg`, { type: blob.type || "image/jpeg" })
+            // Comprimir conservando resolución (máx 1920px) antes de subir:
+            // el endpoint tiene límite de 1MB y los banners lo superan fácilmente
+            let imgAEnviar: Blob | File = archivo
+            try { imgAEnviar = await comprimirBanner(archivo) }
+            catch { /* enviar el recorte si falla la compresión */ }
+            const { ruta } = await api.subirFoto(nombreClave, imgAEnviar as File)
+            if (esMovil) {
+                setCatalogoConfig(prev => prev ? { ...prev, banner_url_movil: ruta } : prev)
+                autoguardar("banner_url_movil", { banner_url_movil: ruta })
+            } else {
+                setCatalogoConfig(prev => prev ? { ...prev, banner_url: ruta } : prev)
+                autoguardar("banner_url", { banner_url: ruta })
+            }
             mostrarMsg(true, "🖼️ Banner subido y aplicado")
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error al subir banner"}`)
         } finally {
+            setSubiendoBannerMovil(false)
             setSubiendoBanner(false)
-            if (bannerInputRef.current) bannerInputRef.current.value = ""
+            // Revocar el objectURL una vez el modal ya se desmontó
+            setTimeout(() => URL.revokeObjectURL(url), 0)
         }
+    }
+
+    // ── Quitar banner (escritorio o móvil) ──
+    function quitarBanner(target: "escritorio" | "movil") {
+        const campo = target === "escritorio" ? "banner_url" : "banner_url_movil"
+        setCatalogoConfig(prev => prev ? { ...prev, [campo]: "" } : prev)
+        autoguardar(campo, { [campo]: "" })
     }
 
     // Guarda empresa y logo en Supabase
@@ -781,58 +814,133 @@ export default function Personalizacion() {
                                                 <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Banner / Imagen de portada</span>
                                                 {renderGuardado("banner_url")}
                                             </div>
-                                            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                                                {/* Vista previa */}
-                                                <div style={{
-                                                    width: 120, height: 68,
-                                                    borderRadius: 10, overflow: "hidden", flexShrink: 0,
-                                                    background: "var(--bg-app)",
-                                                    border: "2px dashed var(--border-primary)",
-                                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                                }}>
-                                                    {catalogoConfig?.banner_url ? (
-                                                        <img
-                                                            src={catalogoConfig.banner_url}
-                                                            alt="Banner del catálogo"
-                                                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                                            onError={e => { e.currentTarget.style.display = "none" }}
-                                                        />
-                                                    ) : (
-                                                        <Icon name="ImagePlus" size={24} color="var(--text-muted)" />
-                                                    )}
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                                {/* ── Banner escritorio (1920 × 373) ── */}
+                                                <div style={{ border: "1.5px solid var(--border-light)", borderRadius: 12, padding: 12, background: "var(--bg-card2)" }}>
+                                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                            <Icon name="Monitor" size={16} color="var(--primary-mid)" />
+                                                            <span style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>Banner escritorio</span>
+                                                        </div>
+                                                        {renderGuardado("banner_url")}
+                                                    </div>
+                                                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                                                        <div style={{
+                                                            width: 110, height: 40,
+                                                            borderRadius: 8, overflow: "hidden", flexShrink: 0,
+                                                            background: "var(--bg-app)",
+                                                            border: "2px dashed var(--border-primary)",
+                                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                                        }}>
+                                                            {catalogoConfig?.banner_url ? (
+                                                                <img
+                                                                    src={catalogoConfig.banner_url}
+                                                                    alt="Banner escritorio"
+                                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                                    onError={e => { e.currentTarget.style.display = "none" }}
+                                                                />
+                                                            ) : (
+                                                                <Icon name="ImagePlus" size={20} color="var(--text-muted)" />
+                                                            )}
+                                                        </div>
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                                                            <input
+                                                                ref={bannerInputRef}
+                                                                type="file"
+                                                                accept="image/*"
+                                                                style={{ display: "none" }}
+                                                                onChange={e => handleBannerFile(e, "escritorio")}
+                                                            />
+                                                            <button
+                                                                onClick={() => bannerInputRef.current?.click()}
+                                                                disabled={subiendoBanner}
+                                                                className="btn-primary"
+                                                                style={{ fontSize: "0.75rem", padding: "7px 12px", width: "fit-content" }}
+                                                            >
+                                                                {subiendoBanner ? "Subiendo..." : <><Icon name="Upload" size={13} /> Subir imagen</>}
+                                                            </button>
+                                                            {catalogoConfig?.banner_url && (
+                                                                <button
+                                                                    onClick={() => quitarBanner("escritorio")}
+                                                                    style={{
+                                                                        fontSize: "0.7rem", fontWeight: 700, padding: "5px 10px",
+                                                                        borderRadius: 8, border: "1px solid var(--border-primary)",
+                                                                        background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                                        cursor: "pointer", width: "fit-content",
+                                                                    }}
+                                                                >
+                                                                    Quitar
+                                                                </button>
+                                                            )}
+                                                            <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                                                                Recomendado: <b>1920 × 373 px</b>
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-                                                    <input
-                                                        ref={bannerInputRef}
-                                                        type="file"
-                                                        accept="image/*"
-                                                        style={{ display: "none" }}
-                                                        onChange={handleBannerFile}
-                                                    />
-                                                    <button
-                                                        onClick={() => bannerInputRef.current?.click()}
-                                                        disabled={subiendoBanner}
-                                                        className="btn-primary"
-                                                        style={{ fontSize: "0.78rem", padding: "8px 14px", width: "fit-content" }}
-                                                    >
-                                                        {subiendoBanner ? "Subiendo..." : <><Icon name="Upload" size={14} /> Subir imagen</>}
-                                                    </button>
-                                                    {catalogoConfig?.banner_url && (
-                                                        <button
-                                                            onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, banner_url: "" } : null); autoguardar("banner_url", { banner_url: "" }) }}
-                                                            style={{
-                                                                fontSize: "0.72rem", fontWeight: 700, padding: "6px 12px",
-                                                                borderRadius: 8, border: "1px solid var(--border-primary)",
-                                                                background: "var(--bg-card2)", color: "var(--text-muted)",
-                                                                cursor: "pointer", width: "fit-content",
-                                                            }}
-                                                        >
-                                                            Quitar banner
-                                                        </button>
-                                                    )}
-                                                    <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                                                        Tamaño recomendado: 1200×400 px
-                                                    </span>
+
+                                                {/* ── Banner móvil (750 × 310) ── */}
+                                                <div style={{ border: "1.5px solid var(--border-light)", borderRadius: 12, padding: 12, background: "var(--bg-card2)" }}>
+                                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                            <Icon name="Smartphone" size={16} color="var(--primary-mid)" />
+                                                            <span style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>Banner móvil</span>
+                                                        </div>
+                                                        {renderGuardado("banner_url_movil")}
+                                                    </div>
+                                                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                                                        <div style={{
+                                                            width: 110, height: 46,
+                                                            borderRadius: 8, overflow: "hidden", flexShrink: 0,
+                                                            background: "var(--bg-app)",
+                                                            border: "2px dashed var(--border-primary)",
+                                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                                        }}>
+                                                            {catalogoConfig?.banner_url_movil ? (
+                                                                <img
+                                                                    src={catalogoConfig.banner_url_movil}
+                                                                    alt="Banner móvil"
+                                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                                    onError={e => { e.currentTarget.style.display = "none" }}
+                                                                />
+                                                            ) : (
+                                                                <Icon name="ImagePlus" size={20} color="var(--text-muted)" />
+                                                            )}
+                                                        </div>
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                                                            <input
+                                                                ref={bannerMovilInputRef}
+                                                                type="file"
+                                                                accept="image/*"
+                                                                style={{ display: "none" }}
+                                                                onChange={e => handleBannerFile(e, "movil")}
+                                                            />
+                                                            <button
+                                                                onClick={() => bannerMovilInputRef.current?.click()}
+                                                                disabled={subiendoBannerMovil}
+                                                                className="btn-primary"
+                                                                style={{ fontSize: "0.75rem", padding: "7px 12px", width: "fit-content" }}
+                                                            >
+                                                                {subiendoBannerMovil ? "Subiendo..." : <><Icon name="Upload" size={13} /> Subir imagen</>}
+                                                            </button>
+                                                            {catalogoConfig?.banner_url_movil && (
+                                                                <button
+                                                                    onClick={() => quitarBanner("movil")}
+                                                                    style={{
+                                                                        fontSize: "0.7rem", fontWeight: 700, padding: "5px 10px",
+                                                                        borderRadius: 8, border: "1px solid var(--border-primary)",
+                                                                        background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                                        cursor: "pointer", width: "fit-content",
+                                                                    }}
+                                                                >
+                                                                    Quitar
+                                                                </button>
+                                                            )}
+                                                            <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                                                                Recomendado: <b>750 × 420 px</b>
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1542,6 +1650,18 @@ export default function Personalizacion() {
                     </>
                 )}
             </div>
+
+            {/* ── Modal de recorte del banner (relación según target) ── */}
+            {bannerCrop && (
+                <ImageCropperModal
+                    imageUrl={bannerCrop.url}
+                    aspectRatio={bannerCrop.target === "escritorio" ? 1920 / 373 : 750 / 420}
+                    dimensionLabel={bannerCrop.target === "escritorio" ? "1920 × 373" : "750 × 420"}
+                    onCropComplete={handleBannerCropComplete}
+                    onCancel={() => { URL.revokeObjectURL(bannerCrop.url); setBannerCrop(null) }}
+                />
+            )}
+
             <div style={{ height: 32 }} />
         </div>
     )

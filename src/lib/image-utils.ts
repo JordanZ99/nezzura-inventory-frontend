@@ -157,3 +157,64 @@ export async function comprimirImagen(file: File): Promise<File> {
         lastModified: Date.now(),
     });
 }
+
+/**
+ * Comprime una imagen a JPEG conservando las dimensiones de un banner.
+ *
+ * A diferencia de comprimirImagen (que reduce a 600px y ~80KB para fotos
+ * de producto), esta versión:
+ *   - Redimensiona solo si supera maxWidth×maxHeight (default 1920×800),
+ *     para no perder resolución en un banner de escritorio (1920×373).
+ *   - Comprime hasta pesar menos de ~350 KB (los banners pesan más que una
+ *     foto de producto; el endpoint acepta hasta 1 MB).
+ *
+ * @param file Archivo o recorte (Blob como File) seleccionado por el usuario.
+ * @param maxWidth Ancho máximo tras redimensionar (default 1920).
+ * @param maxHeight Alto máximo tras redimensionar (default 800).
+ * @returns Un File en formato JPEG con calidad suficiente para un banner.
+ */
+export async function comprimirBanner(file: File, maxWidth = 1920, maxHeight = 800): Promise<File> {
+    // Si no es imagen, devolver tal cual
+    if (!file.type.startsWith("image/")) return file
+
+    // Validar tamaño máximo del archivo original
+    const sizeMB = file.size / (1024 * 1024)
+    if (sizeMB > MAX_ORIGINAL_SIZE_MB) {
+        throw new Error(
+            `La imagen pesa ${sizeMB.toFixed(1)} MB. El máximo permitido es ${MAX_ORIGINAL_SIZE_MB} MB. ` +
+            `Intenta con una foto más pequeña.`
+        )
+    }
+
+    const dataUrl = await leerArchivoComoDataURL(file)
+    const img = await cargarImagenDesdeURL(dataUrl)
+    const canvas = redimensionar(img, maxWidth, maxHeight)
+
+    // Compresión progresiva: empieza con 0.7 y baja hasta 0.35
+    const MAX_SIZE_KB = 350
+    let quality = 0.7
+
+    for (let intento = 0; intento < 10; intento++) {
+        const blob = await canvasToBlob(canvas, quality)
+        const kb = blob.size / 1024
+
+        if (kb <= MAX_SIZE_KB || quality <= 0.35) {
+            const nombreBase = file.name.replace(/\.[^.]+$/, "")
+            return new File([blob], `${nombreBase}.jpg`, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+            })
+        }
+
+        // Reducir calidad un escalón
+        quality = Math.max(0.35, quality - 0.05)
+    }
+
+    // Último recurso: calidad 0.35
+    const blob = await canvasToBlob(canvas, 0.35)
+    const nombreBase = file.name.replace(/\.[^.]+$/, "")
+    return new File([blob], `${nombreBase}.jpg`, {
+        type: "image/jpeg",
+        lastModified: Date.now(),
+    })
+}
