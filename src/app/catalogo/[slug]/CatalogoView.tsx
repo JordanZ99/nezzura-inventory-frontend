@@ -332,26 +332,40 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     onBlur={e => e.currentTarget.style.borderColor = tema.border}
                 />
 
-                {/* Filtros de categoría (solo para grid-clasico) */}
+                {/* Filtros de categoría estilo POS: una sola fila scrolleable horizontal (sin flechas) */}
                 {config.mostrar_categorias && categorias.length > 2 && config.template === "grid-clasico" && (
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
-                        {categorias.map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setCatFiltro(cat)}
-                                style={{
-                                    padding: "8px 16px", borderRadius: 20,
-                                    border: "none", cursor: "pointer",
-                                    fontSize: "0.8rem", fontWeight: 700,
-                                    background: catFiltro === cat ? tema.primary : tema.bgCard,
-                                    color: catFiltro === cat ? "#fff" : tema.textMuted,
-                                    transition: "all 0.15s",
-                                    boxShadow: catFiltro === cat ? "none" : `0 1px 3px rgba(0,0,0,0.06)`,
-                                }}
-                            >
-                                {cat}
-                            </button>
-                        ))}
+                    <div style={{ marginTop: 16 }}>
+                        <div
+                            className="catalogo-chips"
+                            style={{
+                                display: "flex",
+                                gap: 8,
+                                overflowX: "auto",
+                                padding: "4px 4px 8px",
+                                scrollbarWidth: "none",
+                                WebkitOverflowScrolling: "touch",
+                            }}
+                        >
+                            <style>{`.catalogo-chips { -ms-overflow-style: none; scrollbar-width: none; } .catalogo-chips::-webkit-scrollbar { display: none; }`}</style>
+                            {categorias.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setCatFiltro(cat)}
+                                    style={{
+                                        padding: "8px 16px", borderRadius: 20,
+                                        border: "none", cursor: "pointer",
+                                        fontSize: "0.8rem", fontWeight: 700,
+                                        whiteSpace: "nowrap",
+                                        background: catFiltro === cat ? tema.primary : tema.bgCard,
+                                        color: catFiltro === cat ? "#fff" : tema.textMuted,
+                                        transition: "all 0.15s",
+                                        boxShadow: catFiltro === cat ? `0 2px 8px ${tema.primary}55` : "0 1px 3px rgba(0,0,0,0.06)",
+                                    }}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
