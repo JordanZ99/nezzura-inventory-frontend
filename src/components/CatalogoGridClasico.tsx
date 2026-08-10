@@ -328,7 +328,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                                                 }}
                                             >
                                                 {items.map(p => (
-                                                    <div key={p.producto} style={{ minWidth: 220, maxWidth: 220, scrollSnapAlign: "start" }}>
+                                                    <div key={p.producto} style={{ flex: "0 0 calc((100% - 60px) / 4)", minWidth: 180, scrollSnapAlign: "start" }}>
                                                         {renderTarjeta(p, true)}
                                                     </div>
                                                 ))}
