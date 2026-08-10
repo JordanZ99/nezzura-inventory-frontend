@@ -808,143 +808,6 @@ export default function Personalizacion() {
                                             </p>
                                         </div>
 
-                                        {/* ── Banner / Hero ── */}
-                                        <div>
-                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
-                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Banner / Imagen de portada</span>
-                                                {renderGuardado("banner_url")}
-                                            </div>
-                                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                                {/* ── Banner escritorio (1920 × 373) ── */}
-                                                <div style={{ border: "1.5px solid var(--border-light)", borderRadius: 12, padding: 12, background: "var(--bg-card2)" }}>
-                                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                            <Icon name="Monitor" size={16} color="var(--primary-mid)" />
-                                                            <span style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>Banner escritorio</span>
-                                                        </div>
-                                                        {renderGuardado("banner_url")}
-                                                    </div>
-                                                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                                                        <div style={{
-                                                            width: 110, height: 40,
-                                                            borderRadius: 8, overflow: "hidden", flexShrink: 0,
-                                                            background: "var(--bg-app)",
-                                                            border: "2px dashed var(--border-primary)",
-                                                            display: "flex", alignItems: "center", justifyContent: "center",
-                                                        }}>
-                                                            {catalogoConfig?.banner_url ? (
-                                                                <img
-                                                                    src={catalogoConfig.banner_url}
-                                                                    alt="Banner escritorio"
-                                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                                                    onError={e => { e.currentTarget.style.display = "none" }}
-                                                                />
-                                                            ) : (
-                                                                <Icon name="ImagePlus" size={20} color="var(--text-muted)" />
-                                                            )}
-                                                        </div>
-                                                        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-                                                            <input
-                                                                ref={bannerInputRef}
-                                                                type="file"
-                                                                accept="image/*"
-                                                                style={{ display: "none" }}
-                                                                onChange={e => handleBannerFile(e, "escritorio")}
-                                                            />
-                                                            <button
-                                                                onClick={() => bannerInputRef.current?.click()}
-                                                                disabled={subiendoBanner}
-                                                                className="btn-primary"
-                                                                style={{ fontSize: "0.75rem", padding: "7px 12px", width: "fit-content" }}
-                                                            >
-                                                                {subiendoBanner ? "Subiendo..." : <><Icon name="Upload" size={13} /> Subir imagen</>}
-                                                            </button>
-                                                            {catalogoConfig?.banner_url && (
-                                                                <button
-                                                                    onClick={() => quitarBanner("escritorio")}
-                                                                    style={{
-                                                                        fontSize: "0.7rem", fontWeight: 700, padding: "5px 10px",
-                                                                        borderRadius: 8, border: "1px solid var(--border-primary)",
-                                                                        background: "var(--bg-card2)", color: "var(--text-muted)",
-                                                                        cursor: "pointer", width: "fit-content",
-                                                                    }}
-                                                                >
-                                                                    Quitar
-                                                                </button>
-                                                            )}
-                                                            <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                                                                Recomendado: <b>1920 × 373 px</b>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* ── Banner móvil (750 × 310) ── */}
-                                                <div style={{ border: "1.5px solid var(--border-light)", borderRadius: 12, padding: 12, background: "var(--bg-card2)" }}>
-                                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                                            <Icon name="Smartphone" size={16} color="var(--primary-mid)" />
-                                                            <span style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>Banner móvil</span>
-                                                        </div>
-                                                        {renderGuardado("banner_url_movil")}
-                                                    </div>
-                                                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                                                        <div style={{
-                                                            width: 110, height: 46,
-                                                            borderRadius: 8, overflow: "hidden", flexShrink: 0,
-                                                            background: "var(--bg-app)",
-                                                            border: "2px dashed var(--border-primary)",
-                                                            display: "flex", alignItems: "center", justifyContent: "center",
-                                                        }}>
-                                                            {catalogoConfig?.banner_url_movil ? (
-                                                                <img
-                                                                    src={catalogoConfig.banner_url_movil}
-                                                                    alt="Banner móvil"
-                                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                                                    onError={e => { e.currentTarget.style.display = "none" }}
-                                                                />
-                                                            ) : (
-                                                                <Icon name="ImagePlus" size={20} color="var(--text-muted)" />
-                                                            )}
-                                                        </div>
-                                                        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
-                                                            <input
-                                                                ref={bannerMovilInputRef}
-                                                                type="file"
-                                                                accept="image/*"
-                                                                style={{ display: "none" }}
-                                                                onChange={e => handleBannerFile(e, "movil")}
-                                                            />
-                                                            <button
-                                                                onClick={() => bannerMovilInputRef.current?.click()}
-                                                                disabled={subiendoBannerMovil}
-                                                                className="btn-primary"
-                                                                style={{ fontSize: "0.75rem", padding: "7px 12px", width: "fit-content" }}
-                                                            >
-                                                                {subiendoBannerMovil ? "Subiendo..." : <><Icon name="Upload" size={13} /> Subir imagen</>}
-                                                            </button>
-                                                            {catalogoConfig?.banner_url_movil && (
-                                                                <button
-                                                                    onClick={() => quitarBanner("movil")}
-                                                                    style={{
-                                                                        fontSize: "0.7rem", fontWeight: 700, padding: "5px 10px",
-                                                                        borderRadius: 8, border: "1px solid var(--border-primary)",
-                                                                        background: "var(--bg-card2)", color: "var(--text-muted)",
-                                                                        cursor: "pointer", width: "fit-content",
-                                                                    }}
-                                                                >
-                                                                    Quitar
-                                                                </button>
-                                                            )}
-                                                            <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                                                                Recomendado: <b>750 × 420 px</b>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
                                         {/* ── Sección: Comportamiento ── */}
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
                                             <Icon name="SlidersHorizontal" size={15} color="var(--primary-mid)" />
@@ -1097,7 +960,7 @@ export default function Personalizacion() {
                                             </div>
                                             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                                 {[
-                                                    { key: "gradiente", label: "Gradiente", desc: "Fondo con degradado del tema + banner arriba (recomendado)" },
+                                                    { key: "gradiente", label: "Gradiente", desc: "Fondo con degradado del tema (recomendado)" },
                                                     { key: "imagen", label: "Imagen de fondo", desc: "El banner cubre toda la portada con el título encima" },
                                                 ].map(h => (
                                                     <button
@@ -1129,6 +992,144 @@ export default function Personalizacion() {
                                             {/* ── Solo modo imagen: color del texto y visibilidad del texto ── */}
                                             {catalogoConfig?.hero_estilo === "imagen" && (
                                                 <>
+                                                    {/* ── Banner / Hero ── */}
+                                                    <div>
+                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Banner / Imagen de portada</span>
+                                                            {renderGuardado("banner_url")}
+                                                        </div>
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                                            {/* ── Banner escritorio (1920 × 373) ── */}
+                                                            <div style={{ border: "1.5px solid var(--border-light)", borderRadius: 12, padding: 12, background: "var(--bg-card2)" }}>
+                                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                                                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                                        <Icon name="Monitor" size={16} color="var(--primary-mid)" />
+                                                                        <span style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>Banner escritorio</span>
+                                                                    </div>
+                                                                    {renderGuardado("banner_url")}
+                                                                </div>
+                                                                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                                                                    <div style={{
+                                                                        width: 110, height: 40,
+                                                                        borderRadius: 8, overflow: "hidden", flexShrink: 0,
+                                                                        background: "var(--bg-app)",
+                                                                        border: "2px dashed var(--border-primary)",
+                                                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                                                    }}>
+                                                                        {catalogoConfig?.banner_url ? (
+                                                                            <img
+                                                                                src={catalogoConfig.banner_url}
+                                                                                alt="Banner escritorio"
+                                                                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                                                onError={e => { e.currentTarget.style.display = "none" }}
+                                                                            />
+                                                                        ) : (
+                                                                            <Icon name="ImagePlus" size={20} color="var(--text-muted)" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                                                                        <input
+                                                                            ref={bannerInputRef}
+                                                                            type="file"
+                                                                            accept="image/*"
+                                                                            style={{ display: "none" }}
+                                                                            onChange={e => handleBannerFile(e, "escritorio")}
+                                                                        />
+                                                                        <button
+                                                                            onClick={() => bannerInputRef.current?.click()}
+                                                                            disabled={subiendoBanner}
+                                                                            className="btn-primary"
+                                                                            style={{ fontSize: "0.75rem", padding: "7px 12px", width: "fit-content" }}
+                                                                        >
+                                                                            {subiendoBanner ? "Subiendo..." : <><Icon name="Upload" size={13} /> Subir imagen</>}
+                                                                        </button>
+                                                                        {catalogoConfig?.banner_url && (
+                                                                            <button
+                                                                                onClick={() => quitarBanner("escritorio")}
+                                                                                style={{
+                                                                                    fontSize: "0.7rem", fontWeight: 700, padding: "5px 10px",
+                                                                                    borderRadius: 8, border: "1px solid var(--border-primary)",
+                                                                                    background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                                                    cursor: "pointer", width: "fit-content",
+                                                                                }}
+                                                                            >
+                                                                                Quitar
+                                                                            </button>
+                                                                        )}
+                                                                        <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                                                                            Recomendado: <b>1920 × 373 px</b>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* ── Banner móvil (750 × 310) ── */}
+                                                            <div style={{ border: "1.5px solid var(--border-light)", borderRadius: 12, padding: 12, background: "var(--bg-card2)" }}>
+                                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                                                                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                                        <Icon name="Smartphone" size={16} color="var(--primary-mid)" />
+                                                                        <span style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>Banner móvil</span>
+                                                                    </div>
+                                                                    {renderGuardado("banner_url_movil")}
+                                                                </div>
+                                                                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                                                                    <div style={{
+                                                                        width: 110, height: 46,
+                                                                        borderRadius: 8, overflow: "hidden", flexShrink: 0,
+                                                                        background: "var(--bg-app)",
+                                                                        border: "2px dashed var(--border-primary)",
+                                                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                                                    }}>
+                                                                        {catalogoConfig?.banner_url_movil ? (
+                                                                            <img
+                                                                                src={catalogoConfig.banner_url_movil}
+                                                                                alt="Banner móvil"
+                                                                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                                                onError={e => { e.currentTarget.style.display = "none" }}
+                                                                            />
+                                                                        ) : (
+                                                                            <Icon name="ImagePlus" size={20} color="var(--text-muted)" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                                                                        <input
+                                                                            ref={bannerMovilInputRef}
+                                                                            type="file"
+                                                                            accept="image/*"
+                                                                            style={{ display: "none" }}
+                                                                            onChange={e => handleBannerFile(e, "movil")}
+                                                                        />
+                                                                        <button
+                                                                            onClick={() => bannerMovilInputRef.current?.click()}
+                                                                            disabled={subiendoBannerMovil}
+                                                                            className="btn-primary"
+                                                                            style={{ fontSize: "0.75rem", padding: "7px 12px", width: "fit-content" }}
+                                                                        >
+                                                                            {subiendoBannerMovil ? "Subiendo..." : <><Icon name="Upload" size={13} /> Subir imagen</>}
+                                                                        </button>
+                                                                        {catalogoConfig?.banner_url_movil && (
+                                                                            <button
+                                                                                onClick={() => quitarBanner("movil")}
+                                                                                style={{
+                                                                                    fontSize: "0.7rem", fontWeight: 700, padding: "5px 10px",
+                                                                                    borderRadius: 8, border: "1px solid var(--border-primary)",
+                                                                                    background: "var(--bg-card2)", color: "var(--text-muted)",
+                                                                                    cursor: "pointer", width: "fit-content",
+                                                                                }}
+                                                                            >
+                                                                                Quitar
+                                                                            </button>
+                                                                        )}
+                                                                        <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                                                                            Recomendado: <b>750 × 420 px</b>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                        
                                                     {/* Color del texto sobre el banner */}
                                                     <div>
                                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
