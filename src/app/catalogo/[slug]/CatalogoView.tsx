@@ -370,19 +370,30 @@ export default function CatalogoView({ slug }: { slug: string }) {
 
             {/* ── Header / Hero ── */}
             {config.hero_estilo === "imagen" && bannerUrl ? (
-                /* Hero con banner como fondo de imagen */
+                /* Hero con banner como fondo de imagen.
+                   El marco SIEMPRE conserva la relación del crop (1920×373 escritorio /
+                   750×420 móvil), con el texto centrado adentro: con o sin título,
+                   el banner mide exactamente lo que se recortó (WYSIWYG). */
                 <header style={{
                     position: "relative",
+                    width: "100%",
+                    aspectRatio: esMovil ? "750 / 420" : "1920 / 373",
+                    boxSizing: "border-box",
                     backgroundImage: `url(${bannerUrl})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
-                    padding: "84px 24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
                     textAlign: "center",
+                    padding: "20px",
+                    overflow: "hidden",
                     color: config.banner_texto_color || "#fff",
                 }}>
                     {config.banner_mostrar_texto !== false && (
                         <div>
-                            <h1 style={{ fontSize: "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, textShadow: sombraTexto(config.banner_texto_color) }}>
+                            <h1 style={{ fontSize: esMovil ? "1.35rem" : "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, textShadow: sombraTexto(config.banner_texto_color) }}>
                                 {config.titulo || "Catálogo"}
                             </h1>
                             {config.subtitulo && (
