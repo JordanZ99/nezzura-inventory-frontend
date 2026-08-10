@@ -48,6 +48,8 @@ interface ConfigCatalogo {
     ocultar_agotados?: boolean
     banner_url?: string
     hero_estilo?: string      // 'gradiente' | 'imagen'
+    banner_texto_color?: string
+    banner_mostrar_texto?: boolean
     anuncio_texto?: string
     logo: string
 }
@@ -129,6 +131,22 @@ const TEMPLATES: Record<string, React.FC<{
 }>> = {
     "grid-clasico": CatalogoGridClasico,
     "menu-carta": CatalogoMenuCarta,
+}
+
+/**
+ * Sombra del texto sobre el banner (modo imagen).
+ * Si el color elegido es claro → sombra oscura (legibilidad sobre fotos claras);
+ * si es oscuro → sombra clara y sutil (no ensucia las fotos oscuras).
+ */
+function sombraTexto(hex?: string): string {
+    if (!hex) return "0 2px 12px rgba(0,0,0,0.4)"
+    const c = hex.replace("#", "")
+    if (c.length < 6) return "0 2px 12px rgba(0,0,0,0.4)"
+    const r = parseInt(c.slice(0, 2), 16)
+    const g = parseInt(c.slice(2, 4), 16)
+    const b = parseInt(c.slice(4, 6), 16)
+    const luminancia = (r * 299 + g * 587 + b * 114) / 1000
+    return luminancia > 150 ? "0 2px 12px rgba(0,0,0,0.35)" : "0 1px 6px rgba(255,255,255,0.45)"
 }
 
 /**
@@ -356,21 +374,23 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     backgroundPosition: "center",
                     padding: "84px 24px",
                     textAlign: "center",
-                    color: "#fff",
+                    color: config.banner_texto_color || "#fff",
                 }}>
-                    <div>
-                        <h1 style={{ fontSize: "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>
-                            {config.titulo || "Catálogo"}
-                        </h1>
-                        {config.subtitulo && (
-                            <p style={{ fontSize: "0.95rem", opacity: 0.9, margin: 0, fontWeight: 500, textShadow: "0 1px 6px rgba(0,0,0,0.4)" }}>
-                                {config.subtitulo}
+                    {config.banner_mostrar_texto !== false && (
+                        <div>
+                            <h1 style={{ fontSize: "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, textShadow: sombraTexto(config.banner_texto_color) }}>
+                                {config.titulo || "Catálogo"}
+                            </h1>
+                            {config.subtitulo && (
+                                <p style={{ fontSize: "0.95rem", opacity: 0.9, margin: 0, fontWeight: 500, textShadow: sombraTexto(config.banner_texto_color) }}>
+                                    {config.subtitulo}
+                                </p>
+                            )}
+                            <p style={{ fontSize: "0.75rem", opacity: 0.75, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, textShadow: sombraTexto(config.banner_texto_color) }}>
+                                {datos.productos.length} productos
                             </p>
-                        )}
-                        <p style={{ fontSize: "0.75rem", opacity: 0.75, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5 }}>
-                            {datos.productos.length} productos
-                        </p>
-                    </div>
+                        </div>
+                    )}
                 </header>
             ) : (
                 /* Modo gradiente: banner arriba (opcional) + header con gradiente */

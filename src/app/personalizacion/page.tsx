@@ -1017,6 +1017,99 @@ export default function Personalizacion() {
                                                     </button>
                                                 ))}
                                             </div>
+
+                                            {/* ── Solo modo imagen: color del texto y visibilidad del texto ── */}
+                                            {catalogoConfig?.hero_estilo === "imagen" && (
+                                                <>
+                                                    {/* Color del texto sobre el banner */}
+                                                    <div>
+                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
+                                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Color del texto</span>
+                                                            {renderGuardado("banner_texto_color")}
+                                                        </div>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                                            <button
+                                                                onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, banner_texto_color: "#ffffff" } : prev); autoguardar("banner_texto_color", { banner_texto_color: "#ffffff" }) }}
+                                                                style={{
+                                                                    display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10, cursor: "pointer",
+                                                                    border: `2px solid ${(catalogoConfig?.banner_texto_color || "#ffffff") === "#ffffff" ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                                    background: "var(--bg-card2)", fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)",
+                                                                    transition: "all 0.15s",
+                                                                }}
+                                                            >
+                                                                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#ffffff", border: "1.5px solid var(--border-primary)", flexShrink: 0 }} />
+                                                                Blanco
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, banner_texto_color: "#1e293b" } : prev); autoguardar("banner_texto_color", { banner_texto_color: "#1e293b" }) }}
+                                                                style={{
+                                                                    display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10, cursor: "pointer",
+                                                                    border: `2px solid ${(catalogoConfig?.banner_texto_color || "#ffffff") === "#1e293b" ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                                    background: "var(--bg-card2)", fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)",
+                                                                    transition: "all 0.15s",
+                                                                }}
+                                                            >
+                                                                <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#1e293b", border: "1.5px solid var(--border-primary)", flexShrink: 0 }} />
+                                                                Negro
+                                                            </button>
+                                                            <label style={{
+                                                                display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 10, cursor: "pointer",
+                                                                border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
+                                                            }}>
+                                                                <input
+                                                                    type="color"
+                                                                    value={catalogoConfig?.banner_texto_color || "#ffffff"}
+                                                                    onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, banner_texto_color: e.target.value } : prev); autoguardarDebounce("banner_texto_color", () => ({ banner_texto_color: e.target.value })) }}
+                                                                    style={{ width: 22, height: 22, border: "none", background: "none", padding: 0, cursor: "pointer" }}
+                                                                />
+                                                                <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)" }}>Otro color</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Mostrar título sobre el banner */}
+                                                    <div style={{
+                                                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                                                        padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                                    }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Mostrar título sobre el banner</span>
+                                                            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                                Apágalo para mostrar solo la imagen del banner, sin texto encima.
+                                                            </p>
+                                                            {renderGuardado("banner_mostrar_texto")}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const nuevo = !(catalogoConfig?.banner_mostrar_texto ?? true)
+                                                                setCatalogoConfig(prev => prev ? { ...prev, banner_mostrar_texto: nuevo } : prev)
+                                                                autoguardar("banner_mostrar_texto", { banner_mostrar_texto: nuevo })
+                                                            }}
+                                                            disabled={campoGuardando === "banner_mostrar_texto"}
+                                                            style={{
+                                                                position: "relative",
+                                                                width: 52, height: 28,
+                                                                borderRadius: 14,
+                                                                border: "none",
+                                                                cursor: campoGuardando === "banner_mostrar_texto" ? "not-allowed" : "pointer",
+                                                                background: (catalogoConfig?.banner_mostrar_texto ?? true) !== false ? "var(--primary-mid)" : "var(--border-primary)",
+                                                                transition: "background 0.25s",
+                                                                flexShrink: 0,
+                                                            }}
+                                                        >
+                                                            <div style={{
+                                                                position: "absolute",
+                                                                top: 3, left: (catalogoConfig?.banner_mostrar_texto ?? true) !== false ? 26 : 3,
+                                                                width: 22, height: 22,
+                                                                borderRadius: "50%",
+                                                                background: "#fff",
+                                                                boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                                transition: "left 0.25s",
+                                                            }} />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
 
                                         {/* Selector de Template */}

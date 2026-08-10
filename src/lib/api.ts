@@ -115,6 +115,8 @@ export interface CatalogoConfig {
     ocultar_agotados?: boolean;
     banner_url?: string;
     hero_estilo?: string;      // 'gradiente' | 'imagen'
+    banner_texto_color?: string;
+    banner_mostrar_texto?: boolean;
     anuncio_texto?: string;
     created_at?: string;
 }
@@ -319,6 +321,8 @@ export const api = {
         ocultar_agotados?: boolean;
         banner_url?: string;
         hero_estilo?: string;
+        banner_texto_color?: string;
+        banner_mostrar_texto?: boolean;
         anuncio_texto?: string;
     }) =>
         request<{ ok: boolean; mensaje: string }>("/catalogo_gestion", {
