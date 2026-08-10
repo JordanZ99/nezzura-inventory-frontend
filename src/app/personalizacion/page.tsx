@@ -1217,6 +1217,48 @@ export default function Personalizacion() {
                                                             }} />
                                                         </button>
                                                     </div>
+
+                                                    {/* Mostrar logo sobre el banner */}
+                                                    <div style={{
+                                                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                                                        padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                                    }}>
+                                                        <div>
+                                                            <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Mostrar logo sobre el banner</span>
+                                                            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                                Muestra el logo del negocio encima del título del banner (por defecto activo).
+                                                            </p>
+                                                            {renderGuardado("banner_mostrar_logo")}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const nuevo = !(catalogoConfig?.banner_mostrar_logo ?? true)
+                                                                setCatalogoConfig(prev => prev ? { ...prev, banner_mostrar_logo: nuevo } : prev)
+                                                                autoguardar("banner_mostrar_logo", { banner_mostrar_logo: nuevo })
+                                                            }}
+                                                            disabled={campoGuardando === "banner_mostrar_logo"}
+                                                            style={{
+                                                                position: "relative",
+                                                                width: 52, height: 28,
+                                                                borderRadius: 14,
+                                                                border: "none",
+                                                                cursor: campoGuardando === "banner_mostrar_logo" ? "not-allowed" : "pointer",
+                                                                background: (catalogoConfig?.banner_mostrar_logo ?? true) !== false ? "var(--primary-mid)" : "var(--border-primary)",
+                                                                transition: "background 0.25s",
+                                                                flexShrink: 0,
+                                                            }}
+                                                        >
+                                                            <div style={{
+                                                                position: "absolute",
+                                                                top: 3, left: (catalogoConfig?.banner_mostrar_logo ?? true) !== false ? 26 : 3,
+                                                                width: 22, height: 22,
+                                                                borderRadius: "50%",
+                                                                background: "#fff",
+                                                                boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                                transition: "left 0.25s",
+                                                            }} />
+                                                        </button>
+                                                    </div>
                                                 </>
                                             )}
                                         </div>
