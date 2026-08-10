@@ -75,14 +75,18 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     const [indice, setIndice] = useState(0)
     const touchX = useRef<number | null>(null)
 
-    // Bloquear el scroll del body y cerrar con la tecla Escape
+    // Bloquear el scroll de la página (body + html) mientras el modal está abierto
+    // y cerrar con la tecla Escape
     useEffect(() => {
-        const prev = document.body.style.overflow
+        const prevBody = document.body.style.overflow
+        const prevHtml = document.documentElement.style.overflow
         document.body.style.overflow = "hidden"
+        document.documentElement.style.overflow = "hidden"
         const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
         window.addEventListener("keydown", onKey)
         return () => {
-            document.body.style.overflow = prev
+            document.body.style.overflow = prevBody
+            document.documentElement.style.overflow = prevHtml
             window.removeEventListener("keydown", onKey)
         }
     }, [onClose])
@@ -289,7 +293,12 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
 
                 {/* ── Cuerpo del post ── */}
                 <div style={{ padding: "14px 18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-                    {/* Precio (protagonista) + stock */}
+                    {/* Nombre (grande, protagonista) */}
+                    <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 800, color: tema.text, lineHeight: 1.25 }}>
+                        {producto.producto}
+                    </h3>
+
+                    {/* Precio + stock */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                         {config.mostrar_precios ? (
                             <span style={{ fontSize: "1.5rem", fontWeight: 800, color: tema.primaryDark, lineHeight: 1 }}>
@@ -327,10 +336,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                     {/* Divisor estilo post */}
                     <div style={{ height: 1, background: tema.border, margin: "2px 0" }} />
 
-                    {/* Caption: nombre + descripción completa */}
-                    <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: tema.text, lineHeight: 1.3 }}>
-                        {producto.producto}
-                    </h3>
+                    {/* Descripción completa */}
                     {producto.descripcion && (
                         <p style={{
                             margin: 0, fontSize: "0.88rem",
