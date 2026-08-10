@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Icon from "@/components/ui/Icon"
+import { optimizarImagenCloudinary } from "@/lib/image-utils"
 
 interface ProductoPublico {
     producto: string
@@ -132,6 +133,9 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
 
     const indiceSeguro = galeria.length > 0 ? Math.min(indice, galeria.length - 1) : 0
     const fotoActual = galeria.length > 0 ? galeria[indiceSeguro] : ""
+    // Versión optimizada SOLO para mostrar (ahorra bandwidth): la descarga
+    // sigue usando fotoActual (URL original en máxima calidad).
+    const fotoActualOptimizada = optimizarImagenCloudinary(fotoActual, 960)
     const agotado = producto.stock_total <= 0
     // Nombre base para los archivos descargados + descarga de todas las fotos
     const nombreBase = (producto.producto || "foto").replace(/[^a-zA-Z0-9áéíóúñÑ\s-]/g, "").trim() || "foto"
@@ -194,7 +198,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                 }}>
                     {config.logo ? (
                         <img
-                            src={resolverImagen(config.logo)}
+                            src={optimizarImagenCloudinary(resolverImagen(config.logo), 100)}
                             alt=""
                             style={{
                                 width: 34, height: 34, borderRadius: "50%",
@@ -259,7 +263,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                 >
                     {fotoActual ? (
                         <img
-                            src={fotoActual}
+                            src={fotoActualOptimizada}
                             alt={producto.producto}
                             style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
                         />

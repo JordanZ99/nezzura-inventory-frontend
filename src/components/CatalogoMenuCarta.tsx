@@ -8,6 +8,7 @@
 
 import Icon from "@/components/ui/Icon"
 import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
+import { optimizarImagenCloudinary } from "@/lib/image-utils"
 
 interface ProductoPublico {
     producto: string
@@ -84,7 +85,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                         justifyContent: "center",
                     }}>
                         <img
-                            src={p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`}
+                            src={optimizarImagenCloudinary(p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`, 200)}
                             alt={p.producto}
                             style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }}
                             loading="lazy"

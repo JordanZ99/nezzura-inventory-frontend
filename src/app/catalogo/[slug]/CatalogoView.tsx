@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useCallback, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
+import { optimizarImagenCloudinary } from "@/lib/image-utils"
 import Icon from "@/components/ui/Icon"
 import CatalogoGridClasico from "@/components/CatalogoGridClasico"
 import CatalogoMenuCarta from "@/components/CatalogoMenuCarta"
@@ -249,7 +250,12 @@ export default function CatalogoView({ slug }: { slug: string }) {
     const { config } = datos
 
     // ── Banner según viewport: en móvil se prefiere banner_url_movil si existe ──
-    const bannerUrl = esMovil && config.banner_url_movil ? config.banner_url_movil : config.banner_url
+    // Se optimiza en Cloudinary (w_ + f_auto + q_auto) para no descargar el
+    // banner a resolución completa: w_1920 en escritorio, w_800 en móvil.
+    const bannerUrl = optimizarImagenCloudinary(
+        esMovil && config.banner_url_movil ? config.banner_url_movil : config.banner_url,
+        esMovil ? 800 : 1920
+    )
 
     // ── Resolver template ──
     const TemplateComponent = TEMPLATES[config.template] || TEMPLATES["grid-clasico"]
@@ -382,7 +388,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         la relación del crop del banner (WYSIWYG). */}
                     {config.banner_mostrar_logo !== false && config.logo && (
                         <img
-                            src={config.logo}
+                            src={optimizarImagenCloudinary(config.logo, 200)}
                             alt={config.titulo || "Logo del catálogo"}
                             style={{
                                 width: esMovil ? 64 : 88,
@@ -419,7 +425,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         {config.logo && (
                             /* Logo circular con borde blanco, igual que en el preview del link (WhatsApp) */
                             <img
-                                src={config.logo}
+                                src={optimizarImagenCloudinary(config.logo, 200)}
                                 alt={config.titulo || "Logo del catálogo"}
                                 style={{
                                     width: 96, height: 96,
