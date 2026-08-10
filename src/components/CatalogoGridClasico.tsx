@@ -5,8 +5,12 @@
 // Soporta dos modos:
 //   - Plano (agrupado=false): grid de tarjetas, paginado por el padre.
 //   - Agrupado (agrupado=true): secciones por categoría con encabezados.
+//     Cada categoría arranca como UNA fila deslizable (carrusel) con flechas
+//     ← → (y swipe en móvil); un acordeón "Ver todos (N)" expande la categoría
+//     al grid completo y "Ver menos" la vuelve a colapsar.
 // ==============================================================================
 
+import { useState, useRef, useCallback, useEffect } from "react"
 import Icon from "@/components/ui/Icon"
 import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
 
@@ -48,7 +52,48 @@ interface Props {
 }
 
 export default function CatalogoGridClasico({ productos, config, tema, agrupado = false }: Props) {
-    // ── Tarjeta de producto (compartida entre modo plano y agrupado) ──
+    // ── Estado del modo agrupado ──
+    const [expandidas, setExpandidas] = useState<Set<string>>(() => new Set())
+    const [desborda, setDesborda] = useState<Record<string, boolean>>({})
+    const filasRef = useRef<Record<string, HTMLDivElement | null>>({})
+
+    // Mide si cada fila de categoría desborda su contenedor (necesita carrusel).
+    // Si todo cabe en la fila, se muestra simple (sin flechas ni acordeón).
+    const medirFilas = useCallback(() => {
+        const nuevo: Record<string, boolean> = {}
+        Object.keys(filasRef.current).forEach(cat => {
+            const el = filasRef.current[cat]
+            if (el) nuevo[cat] = el.scrollWidth > el.clientWidth + 4
+        })
+        setDesborda(prev => {
+            const igual = Object.keys(nuevo).length === Object.keys(prev).length &&
+                Object.keys(nuevo).every(k => nuevo[k] === prev[k])
+            return igual ? prev : nuevo
+        })
+    }, [])
+
+    useEffect(() => {
+        medirFilas()
+        window.addEventListener("resize", medirFilas)
+        return () => window.removeEventListener("resize", medirFilas)
+    }, [medirFilas, productos])
+
+    // Desplaza la fila de una categoría en la dirección indicada
+    const scrollFila = (cat: string, dir: number) => {
+        const el = filasRef.current[cat]
+        if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" })
+    }
+
+    const toggleCategoria = (cat: string) => {
+        setExpandidas(prev => {
+            const nuevo = new Set(prev)
+            if (nuevo.has(cat)) nuevo.delete(cat)
+            else nuevo.add(cat)
+            return nuevo
+        })
+    }
+
+    // ── Tarjeta de producto (compartida entre todos los modos) ──
     const renderTarjeta = (p: ProductoPublico, enSeccion: boolean) => {
         const agotado = p.stock_total <= 0
         return (
@@ -61,6 +106,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                     border: `1px solid ${tema.border}`,
                     transition: "transform 0.2s, box-shadow 0.2s",
                     display: "flex", flexDirection: "column",
+                    height: "100%",
                 }}
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)" }}
                 onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "" }}
@@ -166,41 +212,157 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
         )
     }
 
-    // ── Modo agrupado: secciones por categoría con encabezados ──
+    // ── Modo agrupado: fila deslizable por categoría + acordeón ──
     if (agrupado) {
         const agrupados = agruparPorCategoria(productos)
         const categorias = ordenarCategorias(Object.keys(agrupados))
+
+        const estiloFlecha: React.CSSProperties = {
+            position: "absolute",
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: 36, height: 36,
+            borderRadius: "50%",
+            background: tema.bgCard,
+            border: `1px solid ${tema.border}`,
+            color: tema.text,
+            cursor: "pointer",
+            zIndex: 2,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
+            transition: "all 0.15s",
+        }
+
+        const estiloAcordeon: React.CSSProperties = {
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 18px",
+            borderRadius: 20,
+            border: `1px solid ${tema.border}`,
+            background: tema.bgCard,
+            color: tema.primaryDark,
+            fontWeight: 700,
+            fontSize: "0.78rem",
+            cursor: "pointer",
+            transition: "all 0.15s",
+        }
+
         return (
             <main style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 60px" }}>
+                <style>{`.fila-categoria { -ms-overflow-style: none; scrollbar-width: none; } .fila-categoria::-webkit-scrollbar { display: none; }`}</style>
                 {productos.length === 0 ? (
                     <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
                         <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
                     </div>
                 ) : (
-                    categorias.map(cat => (
-                        <section key={cat}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "60px 0 20px" }}>
-                                <h2 style={{
-                                    margin: 0,
-                                    fontSize: "1.05rem",
-                                    fontWeight: 800,
-                                    color: tema.primaryDark,
-                                    textTransform: "uppercase",
-                                    letterSpacing: 1.2,
-                                }}>
-                                    {cat}
-                                </h2>
-                                <div style={{ flex: 1, height: 1.5, background: tema.border, borderRadius: 1 }} />
-                            </div>
-                            <div style={{
-                                display: "grid",
-                                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                                gap: 20,
-                            }}>
-                                {agrupados[cat].map(p => renderTarjeta(p, true))}
-                            </div>
-                        </section>
-                    ))
+                    categorias.map(cat => {
+                        const items = agrupados[cat]
+                        const expandida = expandidas.has(cat)
+                        const esCarrusel = desborda[cat] === true
+                        return (
+                            <section key={cat}>
+                                {/* Encabezado de categoría */}
+                                <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "60px 0 20px" }}>
+                                    <h2 style={{
+                                        margin: 0,
+                                        fontSize: "1.05rem",
+                                        fontWeight: 800,
+                                        color: tema.primaryDark,
+                                        textTransform: "uppercase",
+                                        letterSpacing: 1.2,
+                                    }}>
+                                        {cat}
+                                    </h2>
+                                    <div style={{ flex: 1, height: 1.5, background: tema.border, borderRadius: 1 }} />
+                                </div>
+
+                                {expandida ? (
+                                    /* ── Expandida: todos los productos en grid ── */
+                                    <>
+                                        <div style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                                            gap: 20,
+                                        }}>
+                                            {items.map(p => renderTarjeta(p, true))}
+                                        </div>
+                                        <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}>
+                                            <button
+                                                onClick={() => toggleCategoria(cat)}
+                                                style={estiloAcordeon}
+                                                onMouseEnter={e => { e.currentTarget.style.background = tema.bg }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard }}
+                                            >
+                                                <Icon name="ChevronUp" size={16} />
+                                                Ver menos
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    /* ── Colapsada: una fila deslizable ── */
+                                    <>
+                                        <div style={{ position: "relative" }}>
+                                            {esCarrusel && (
+                                                <button
+                                                    onClick={() => scrollFila(cat, -1)}
+                                                    aria-label={`Ver anteriores de ${cat}`}
+                                                    style={{ ...estiloFlecha, left: -8 }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = tema.bg }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard }}
+                                                >
+                                                    <Icon name="ChevronLeft" size={20} />
+                                                </button>
+                                            )}
+                                            <div
+                                                ref={el => { filasRef.current[cat] = el }}
+                                                className="fila-categoria"
+                                                style={{
+                                                    display: "flex",
+                                                    gap: 20,
+                                                    overflowX: "auto",
+                                                    scrollSnapType: "x mandatory",
+                                                    paddingBottom: 8,
+                                                }}
+                                            >
+                                                {items.map(p => (
+                                                    <div key={p.producto} style={{ minWidth: 220, maxWidth: 220, scrollSnapAlign: "start" }}>
+                                                        {renderTarjeta(p, true)}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {esCarrusel && (
+                                                <button
+                                                    onClick={() => scrollFila(cat, 1)}
+                                                    aria-label={`Ver siguientes de ${cat}`}
+                                                    style={{ ...estiloFlecha, right: -8 }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = tema.bg }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard }}
+                                                >
+                                                    <Icon name="ChevronRight" size={20} />
+                                                </button>
+                                            )}
+                                        </div>
+                                        {esCarrusel && (
+                                            <div style={{ display: "flex", justifyContent: "center", marginTop: 14 }}>
+                                                <button
+                                                    onClick={() => toggleCategoria(cat)}
+                                                    style={estiloAcordeon}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = tema.bg }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard }}
+                                                >
+                                                    <Icon name="ChevronDown" size={16} />
+                                                    Ver todos ({items.length})
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </section>
+                        )
+                    })
                 )}
             </main>
         )
