@@ -40,6 +40,7 @@ interface ConfigCatalogo {
     mostrar_precios: boolean
     mostrar_stock: boolean
     mostrar_categorias: boolean
+    agrupar_por_categoria?: boolean | null
     banner_url?: string
     hero_estilo?: string      // 'gradiente' | 'imagen'
     anuncio_texto?: string
@@ -118,9 +119,26 @@ const TEMPLATES: Record<string, React.FC<{
     config: ConfigCatalogo
     tema: PaletaTema
     busqueda: string
+    agrupado: boolean
 }>> = {
     "grid-clasico": CatalogoGridClasico,
     "menu-carta": CatalogoMenuCarta,
+}
+
+/**
+ * Rango de páginas visible con truncado inteligente (…).
+ * Siempre incluye la primera y la última página.
+ */
+function rangoPaginas(actual: number, total: number): (number | "…")[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+    const rango: (number | "…")[] = [1]
+    if (actual > 3) rango.push("…")
+    const desde = Math.max(2, actual - 1)
+    const hasta = Math.min(total - 1, actual + 1)
+    for (let p = desde; p <= hasta; p++) rango.push(p)
+    if (actual < total - 2) rango.push("…")
+    rango.push(total)
+    return rango
 }
 
 export default function CatalogoView({ slug }: { slug: string }) {
@@ -129,6 +147,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
     const [error, setError] = useState<string | null>(null)
     const [busqueda, setBusqueda] = useState("")
     const [catFiltro, setCatFiltro] = useState("Todas")
+    const ITEMS_POR_PAGINA = 24
+    const [paginaActual, setPaginaActual] = useState(1)
 
     // ── Cargar datos del catálogo ──
     useEffect(() => {
@@ -152,6 +172,11 @@ export default function CatalogoView({ slug }: { slug: string }) {
         }
         link.href = logoUrl
     }, [datos?.config?.logo])
+
+    // Reiniciar paginación cuando cambian los filtros
+    useEffect(() => {
+        setPaginaActual(1)
+    }, [busqueda, catFiltro])
 
     // ── Loading ──
     if (cargando) {
@@ -196,6 +221,18 @@ export default function CatalogoView({ slug }: { slug: string }) {
         const porCategoria = catFiltro === "Todas" || (p.categoria || ["Otros"]).includes(catFiltro)
         return porBusqueda && porCategoria
     })
+
+    // ── Agrupación por categoría vs paginación ──
+    // Con agrupación activa se muestran TODOS los productos por secciones (sin paginar).
+    // NULL = el tenant no ha tocado el toggle: preserva el comportamiento previo por template
+    // (menu-carta agrupaba siempre; grid-clasico mostraba lista plana)
+    const agrupado = config.agrupar_por_categoria ?? config.template === "menu-carta"
+    const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / ITEMS_POR_PAGINA))
+    const paginaSegura = Math.min(paginaActual, totalPaginas)
+    const inicio = (paginaSegura - 1) * ITEMS_POR_PAGINA
+    const productosVisibles = agrupado
+        ? productosFiltrados
+        : productosFiltrados.slice(inicio, inicio + ITEMS_POR_PAGINA)
 
     return (
         <div style={{ minHeight: "100vh", background: tema.bg, color: tema.text, fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -320,11 +357,77 @@ export default function CatalogoView({ slug }: { slug: string }) {
 
             {/* ── Render del template activo ── */}
             <TemplateComponent
-                productos={productosFiltrados}
+                productos={productosVisibles}
                 config={config}
                 tema={tema}
                 busqueda={busqueda}
+                agrupado={agrupado}
             />
+
+            {/* ── Paginación (solo en modo plano) ── */}
+            {!agrupado && totalPaginas > 1 && (
+                <div style={{
+                    maxWidth: 1200, margin: "0 auto", padding: "8px 20px 0",
+                    display: "flex", justifyContent: "center", alignItems: "center",
+                    gap: 8, flexWrap: "wrap",
+                }}>
+                    <span style={{ fontSize: "0.78rem", color: tema.textMuted, fontWeight: 600, marginRight: 8 }}>
+                        Mostrando {productosVisibles.length} de {productosFiltrados.length} productos
+                    </span>
+                    <button
+                        onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                        disabled={paginaSegura <= 1}
+                        style={{
+                            padding: "6px 14px", borderRadius: 8,
+                            border: `1px solid ${tema.border}`,
+                            background: tema.bgCard,
+                            color: paginaSegura <= 1 ? tema.textMuted : tema.text,
+                            cursor: paginaSegura <= 1 ? "not-allowed" : "pointer",
+                            fontWeight: 600, fontSize: "0.8rem",
+                            opacity: paginaSegura <= 1 ? 0.5 : 1,
+                            transition: "all 0.15s",
+                        }}
+                    >
+                        ← Anterior
+                    </button>
+                    {rangoPaginas(paginaSegura, totalPaginas).map((item, idx) =>
+                        item === "…" ? (
+                            <span key={`ellipsis-${idx}`} style={{ padding: "0 4px", color: tema.textMuted, fontSize: "0.8rem" }}>…</span>
+                        ) : (
+                            <button
+                                key={item}
+                                onClick={() => setPaginaActual(item)}
+                                style={{
+                                    padding: "6px 12px", borderRadius: 6,
+                                    border: item === paginaSegura ? `2px solid ${tema.primary}` : `1px solid ${tema.border}`,
+                                    background: tema.bgCard,
+                                    color: item === paginaSegura ? tema.primary : tema.text,
+                                    cursor: "pointer", fontWeight: item === paginaSegura ? 800 : 600,
+                                    fontSize: "0.8rem", transition: "all 0.15s",
+                                }}
+                            >
+                                {item}
+                            </button>
+                        )
+                    )}
+                    <button
+                        onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                        disabled={paginaSegura >= totalPaginas}
+                        style={{
+                            padding: "6px 14px", borderRadius: 8,
+                            border: `1px solid ${tema.border}`,
+                            background: tema.bgCard,
+                            color: paginaSegura >= totalPaginas ? tema.textMuted : tema.text,
+                            cursor: paginaSegura >= totalPaginas ? "not-allowed" : "pointer",
+                            fontWeight: 600, fontSize: "0.8rem",
+                            opacity: paginaSegura >= totalPaginas ? 0.5 : 1,
+                            transition: "all 0.15s",
+                        }}
+                    >
+                        Siguiente →
+                    </button>
+                </div>
+            )}
 
             {/* ── Footer ── */}
             <footer style={{

@@ -241,6 +241,7 @@ export default function Personalizacion() {
         mostrar_precios?: boolean
         mostrar_stock?: boolean
         mostrar_categorias?: boolean
+        agrupar_por_categoria?: boolean
         banner_url?: string
         hero_estilo?: string
         anuncio_texto?: string
@@ -656,6 +657,43 @@ export default function Personalizacion() {
                                                 <div style={{
                                                     position: "absolute",
                                                     top: 3, left: catalogoConfig?.activo ? 26 : 3,
+                                                    width: 22, height: 22,
+                                                    borderRadius: "50%",
+                                                    background: "#fff",
+                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                    transition: "left 0.25s",
+                                                }} />
+                                            </button>
+                                        </div>
+
+                                        {/* Agrupar por categoría */}
+                                        <div style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                        }}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Agrupar por categoría</span>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                    Separa los productos por secciones ("Peluches", "Bolsas"...). Desactiva la paginación.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => guardarConfigCatalogo({ agrupar_por_categoria: !catalogoConfig?.agrupar_por_categoria })}
+                                                disabled={guardandoCatalogo}
+                                                style={{
+                                                    position: "relative",
+                                                    width: 52, height: 28,
+                                                    borderRadius: 14,
+                                                    border: "none",
+                                                    cursor: guardandoCatalogo ? "not-allowed" : "pointer",
+                                                    background: catalogoConfig?.agrupar_por_categoria ? "var(--primary-mid)" : "var(--border-primary)",
+                                                    transition: "background 0.25s",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: 3, left: catalogoConfig?.agrupar_por_categoria ? 26 : 3,
                                                     width: 22, height: 22,
                                                     borderRadius: "50%",
                                                     background: "#fff",
