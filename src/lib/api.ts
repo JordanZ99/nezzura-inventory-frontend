@@ -114,6 +114,7 @@ export interface CatalogoConfig {
     permitir_descarga?: boolean;
     ocultar_agotados?: boolean;
     banner_url?: string;
+    banner_url_movil?: string;
     hero_estilo?: string;      // 'gradiente' | 'imagen'
     banner_texto_color?: string;
     banner_mostrar_texto?: boolean;
@@ -320,6 +321,7 @@ export const api = {
         permitir_descarga?: boolean;
         ocultar_agotados?: boolean;
         banner_url?: string;
+        banner_url_movil?: string;
         hero_estilo?: string;
         banner_texto_color?: string;
         banner_mostrar_texto?: boolean;

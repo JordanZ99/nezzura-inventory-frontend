@@ -47,6 +47,7 @@ interface ConfigCatalogo {
     permitir_descarga?: boolean
     ocultar_agotados?: boolean
     banner_url?: string
+    banner_url_movil?: string
     hero_estilo?: string      // 'gradiente' | 'imagen'
     banner_texto_color?: string
     banner_mostrar_texto?: boolean
@@ -246,6 +247,9 @@ export default function CatalogoView({ slug }: { slug: string }) {
     const tema = TEMAS[datos.config.tema] || TEMAS.default
     const { config } = datos
 
+    // ── Banner según viewport: en móvil se prefiere banner_url_movil si existe ──
+    const bannerUrl = esMovil && config.banner_url_movil ? config.banner_url_movil : config.banner_url
+
     // ── Resolver template ──
     const TemplateComponent = TEMPLATES[config.template] || TEMPLATES["grid-clasico"]
 
@@ -365,11 +369,11 @@ export default function CatalogoView({ slug }: { slug: string }) {
             )}
 
             {/* ── Header / Hero ── */}
-            {config.hero_estilo === "imagen" && config.banner_url ? (
+            {config.hero_estilo === "imagen" && bannerUrl ? (
                 /* Hero con banner como fondo de imagen */
                 <header style={{
                     position: "relative",
-                    backgroundImage: `url(${config.banner_url})`,
+                    backgroundImage: `url(${bannerUrl})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                     padding: "84px 24px",
@@ -395,10 +399,10 @@ export default function CatalogoView({ slug }: { slug: string }) {
             ) : (
                 /* Modo gradiente: banner arriba (opcional) + header con gradiente */
                 <>
-                    {config.banner_url && (
+                    {bannerUrl && (
                         <div style={{ width: "100%", maxHeight: 280, overflow: "hidden", background: tema.bg }}>
                             <img
-                                src={config.banner_url}
+                                src={bannerUrl}
                                 alt="Banner del catálogo"
                                 style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }}
                                 loading="lazy"

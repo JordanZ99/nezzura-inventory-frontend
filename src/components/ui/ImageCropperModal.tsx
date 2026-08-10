@@ -1,12 +1,14 @@
 // ==============================================================================
 // src/components/ui/ImageCropperModal.tsx
-// Modal con cropper 1:1 para recortar fotos antes de subirlas.
+// Modal con cropper para recortar fotos antes de subirlas.
+// Por defecto el marco es 1:1 (fotos de producto); se puede cambiar la
+// relación con la prop aspectRatio (ej. 1920/373 para banners).
 //
 // Comportamiento del zoom:
 //   - Slider de 0% a 100%, con posición inicial en 50% (centro).
-//   - 50% → zoom por defecto: la imagen cubre todo el marco cuadrado (cover).
+//   - 50% → zoom por defecto: la imagen cubre todo el marco (cover).
 //   - < 50% → zoom out: la imagen se encoge hasta mostrarse COMPLETA
-//              dentro del marco cuadrado (contain), dejando márgenes.
+//              dentro del marco (contain), dejando márgenes.
 //   - > 50% → zoom in: acerca la imagen para ver detalles.
 //   - Snap magnético en 48-52% → salta a 50% automáticamente.
 //   - Drag bounds se adaptan según el zoom.
@@ -27,6 +29,10 @@ interface ImageCropperModalProps {
     onCropComplete: (croppedBlob: Blob) => void
     /** El usuario canceló el recorte */
     onCancel: () => void
+    /** Relación de recorte (ancho/alto). Default 1 (cuadrado) */
+    aspectRatio?: number
+    /** Etiqueta de dimensiones mostrada en el header (ej. "1920 × 373") */
+    dimensionLabel?: string
 }
 
 /**
@@ -127,6 +133,8 @@ export default function ImageCropperModal({
     imageUrl,
     onCropComplete,
     onCancel,
+    aspectRatio = 1,
+    dimensionLabel,
 }: ImageCropperModalProps) {
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
@@ -163,9 +171,10 @@ export default function ImageCropperModal({
                 return
             }
             setImageNaturalSize({ width: w, height: h })
-            // zoomContain = lado más corto / lado más largo
-            // Así se ve la imagen COMPLETA dentro del marco cuadrado
-            const ratio = Math.min(w, h) / Math.max(w, h)
+            // zoomContain = zoom con el que la imagen COMPLETA cabe en el marco
+            // (con aspecto cuadrado se reduce a lado corto / lado largo).
+            const A = aspectRatio
+            const ratio = Math.min((w * A) / h, h / (w * A))
             zoomContainRef.current = Math.max(0.1, ratio)
         }
         img.onerror = () => {
@@ -347,6 +356,15 @@ export default function ImageCropperModal({
                     <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "var(--text-main)" }}>
                         Recortar foto
                     </span>
+                    {dimensionLabel && (
+                        <span style={{
+                            padding: "3px 10px", borderRadius: 999,
+                            background: "var(--primary-soft)", color: "var(--primary-mid)",
+                            fontSize: "0.68rem", fontWeight: 800, letterSpacing: 0.3,
+                        }}>
+                            {dimensionLabel}
+                        </span>
+                    )}
                     <span style={{ marginLeft: "auto", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
                         Arrastra para posicionar
                     </span>
@@ -365,7 +383,7 @@ export default function ImageCropperModal({
                         image={imageUrl}
                         crop={crop}
                         zoom={zoom}
-                        aspect={1}
+                        aspect={aspectRatio}
                         minZoom={zoomContainRef.current}
                         maxZoom={MAX_ZOOM}
                         onCropChange={onCropChange}
@@ -423,7 +441,7 @@ export default function ImageCropperModal({
                     >
                         {esModoContain ? (
                             <>
-                                La imagen se ve completa dentro del marco cuadrado
+                                La imagen se ve completa dentro del marco
                             </>
                         ) : (
                             <>{zoomLabel}</>
