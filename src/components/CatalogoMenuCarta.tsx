@@ -7,7 +7,7 @@
 // ==============================================================================
 
 import Icon from "@/components/ui/Icon"
-import { agruparPorCategoria, ordenarCategorias, emojiParaCategoria } from "@/lib/catalogo-utils"
+import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
 
 interface ProductoPublico {
     producto: string
@@ -182,12 +182,9 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 12,
-                                    margin: "28px 0 12px",
+                                    margin: "52px 0 16px",
                                     paddingLeft: 0,
                                 }}>
-                                    <span style={{ fontSize: "1.2rem", lineHeight: 1 }}>
-                                        {emojiParaCategoria(categoria)}
-                                    </span>
                                     <h2 style={{
                                         margin: 0,
                                         fontSize: "0.85rem",

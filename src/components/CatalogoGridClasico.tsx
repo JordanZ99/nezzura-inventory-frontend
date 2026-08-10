@@ -8,7 +8,7 @@
 // ==============================================================================
 
 import Icon from "@/components/ui/Icon"
-import { agruparPorCategoria, ordenarCategorias, emojiParaCategoria } from "@/lib/catalogo-utils"
+import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
 
 interface ProductoPublico {
     producto: string
@@ -179,10 +179,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                 ) : (
                     categorias.map(cat => (
                         <section key={cat}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "36px 0 16px" }}>
-                                <span style={{ fontSize: "1.3rem", lineHeight: 1 }}>
-                                    {emojiParaCategoria(cat)}
-                                </span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "60px 0 20px" }}>
                                 <h2 style={{
                                     margin: 0,
                                     fontSize: "1.05rem",
