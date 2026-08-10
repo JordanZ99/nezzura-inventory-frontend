@@ -357,13 +357,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     textAlign: "center",
                     color: "#fff",
                 }}>
-                    {/* Overlay oscuro para legibilidad */}
-                    <div style={{
-                        position: "absolute", inset: 0,
-                        background: "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.55))",
-                        zIndex: 0,
-                    }} />
-                    <div style={{ position: "relative", zIndex: 1 }}>
+                    <div>
                         <h1 style={{ fontSize: "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>
                             {config.titulo || "Catálogo"}
                         </h1>
