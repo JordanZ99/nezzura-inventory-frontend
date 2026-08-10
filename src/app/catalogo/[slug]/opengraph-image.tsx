@@ -44,6 +44,30 @@ async function obtenerConfig(slug: string): Promise<ConfigCatalogo | null> {
     }
 }
 
+/**
+ * Satori (el motor de next/og en Next 14) no decodifica WebP. Como el logo
+ * del tenant puede estar en WebP (u otro formato), pedimos a Cloudinary que
+ * lo entregue como PNG al vuelo. Solo aplica a URLs de Cloudinary.
+ */
+function logoComoPng(url: string): string {
+    try {
+        const u = new URL(url)
+        if (!u.hostname.includes("res.cloudinary.com")) return url
+        // f_auto entregaría el formato original: lo quitamos para forzar PNG
+        u.pathname = u.pathname.replace(/f_auto,?|,f_auto/g, "")
+        if (/\.[a-zA-Z0-9]{2,4}$/.test(u.pathname)) {
+            // Cambiar la extensión hace que Cloudinary convierta el formato
+            u.pathname = u.pathname.replace(/\.[a-zA-Z0-9]{2,4}$/, ".png")
+        } else {
+            // Sin extensión: insertamos la transformación f_png
+            u.pathname = u.pathname.replace(/\/image\/upload\//, "/image/upload/f_png/")
+        }
+        return u.toString()
+    } catch {
+        return url
+    }
+}
+
 export default async function ImagenPreview({ params }: { params: { slug: string } }) {
     const config = await obtenerConfig(params.slug)
 
@@ -69,7 +93,7 @@ export default async function ImagenPreview({ params }: { params: { slug: string
                 {logo && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                        src={logo}
+                        src={logoComoPng(logo)}
                         width={150}
                         height={150}
                         alt=""
