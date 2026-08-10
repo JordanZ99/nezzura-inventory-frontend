@@ -109,6 +109,7 @@ export interface CatalogoConfig {
     mostrar_precios: boolean;
     mostrar_stock: boolean;
     mostrar_categorias: boolean;
+    agrupar_por_categoria?: boolean;
     banner_url?: string;
     hero_estilo?: string;      // 'gradiente' | 'imagen'
     anuncio_texto?: string;
@@ -309,6 +310,7 @@ export const api = {
         mostrar_precios?: boolean;
         mostrar_stock?: boolean;
         mostrar_categorias?: boolean;
+        agrupar_por_categoria?: boolean;
         banner_url?: string;
         hero_estilo?: string;
         anuncio_texto?: string;
