@@ -1124,8 +1124,8 @@ export default function Personalizacion() {
                                             <button
                                                 onClick={() => {
                                                     const ocultando = (catalogoConfig?.mostrar_stock ?? true) === false
-                                                    setCatalogoConfig(prev => prev ? { ...prev, mostrar_stock: !ocultando } : prev)
-                                                    autoguardar("mostrar_stock", { mostrar_stock: !ocultando })
+                                                    setCatalogoConfig(prev => prev ? { ...prev, mostrar_stock: ocultando } : prev)
+                                                    autoguardar("mostrar_stock", { mostrar_stock: ocultando })
                                                 }}
                                                 disabled={campoGuardando === "mostrar_stock"}
                                                 style={{
