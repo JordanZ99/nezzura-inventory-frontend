@@ -353,9 +353,12 @@ export default function CatalogoView({ slug }: { slug: string }) {
 
     return (
         <div style={{ minHeight: "100vh", background: tema.bg, color: tema.text, fontFamily: "system-ui, -apple-system, sans-serif" }}>
-            {/* ── Barra de anuncios (opcional) ── */}
+            {/* ── Barra de anuncios (opcional, sticky) ── */}
             {config.anuncio_texto && (
                 <div style={{
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 50,
                     background: tema.primary,
                     color: "#fff",
                     textAlign: "center",
@@ -363,6 +366,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     fontSize: "0.82rem",
                     fontWeight: 700,
                     letterSpacing: 0.3,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
                 }}>
                     {config.anuncio_texto}
                 </div>
