@@ -16,6 +16,7 @@ interface ProductoPublico {
     precio_venta: number
     stock_total: number
     categoria: string[]
+    imagenes?: string[]
 }
 
 interface ConfigCatalogo {
@@ -45,15 +46,17 @@ interface Props {
     tema: PaletaTema
     busqueda: string
     agrupado?: boolean
+    onAbrirProducto?: (p: ProductoPublico) => void
 }
 
-export default function CatalogoMenuCarta({ productos, config, tema, agrupado = true }: Props) {
+export default function CatalogoMenuCarta({ productos, config, tema, agrupado = true, onAbrirProducto }: Props) {
     // ── Fila de producto (compartida entre vista agrupada y plana) ──
     const renderItem = (p: ProductoPublico) => {
         const agotado = p.stock_total <= 0
         return (
             <div
                 key={p.producto}
+                onClick={() => onAbrirProducto?.(p)}
                 style={{
                     display: "flex",
                     gap: 14,
@@ -63,7 +66,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                     border: `1px solid ${tema.border}`,
                     transition: "background 0.15s, border-color 0.15s",
                     opacity: agotado && config.mostrar_stock ? 0.55 : 1,
-                    cursor: "default",
+                    cursor: "pointer",
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = tema.bg }}
                 onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard }}

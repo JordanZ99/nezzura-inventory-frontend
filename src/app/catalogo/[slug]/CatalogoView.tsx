@@ -15,11 +15,12 @@
 // renderiza el componente correspondiente (grid-clasico, menu-carta, etc.)
 // ==============================================================================
 
-import { useState, useEffect, Fragment } from "react"
+import { useState, useEffect, useCallback, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import Icon from "@/components/ui/Icon"
 import CatalogoGridClasico from "@/components/CatalogoGridClasico"
 import CatalogoMenuCarta from "@/components/CatalogoMenuCarta"
+import CatalogoModalProducto from "@/components/CatalogoModalProducto"
 
 // ── Tipos ──
 
@@ -30,6 +31,7 @@ interface ProductoPublico {
     precio_venta: number
     stock_total: number
     categoria: string[]
+    imagenes?: string[]
 }
 
 interface ConfigCatalogo {
@@ -121,6 +123,7 @@ const TEMPLATES: Record<string, React.FC<{
     tema: PaletaTema
     busqueda: string
     agrupado: boolean
+    onAbrirProducto?: (p: ProductoPublico) => void
 }>> = {
     "grid-clasico": CatalogoGridClasico,
     "menu-carta": CatalogoMenuCarta,
@@ -150,6 +153,9 @@ export default function CatalogoView({ slug }: { slug: string }) {
     const [catFiltro, setCatFiltro] = useState("Todas")
     const ITEMS_POR_PAGINA = 24
     const [paginaActual, setPaginaActual] = useState(1)
+    const [productoActivo, setProductoActivo] = useState<ProductoPublico | null>(null)
+    // Identidad estable para evitar que el efecto del modal (scroll-lock + Escape) se re-ejecute en cada render
+    const cerrarProducto = useCallback(() => setProductoActivo(null), [])
     // Detecta móvil (<=899px) para usar la paginación compacta (Anterior/Página/Siguiente)
     const [esMovil, setEsMovil] = useState<boolean>(() =>
         typeof window !== "undefined" && window.matchMedia("(max-width: 899px)").matches)
@@ -480,6 +486,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 tema={tema}
                 busqueda={busqueda}
                 agrupado={agrupado}
+                onAbrirProducto={setProductoActivo}
             />
 
             {/* ── Paginación (solo en modo plano) ── */}
@@ -526,6 +533,16 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* ── Modal de producto (estilo post de Instagram) ── */}
+            {productoActivo && (
+                <CatalogoModalProducto
+                    producto={productoActivo}
+                    config={config}
+                    tema={tema}
+                    onClose={cerrarProducto}
+                />
             )}
 
             {/* ── Footer ── */}
