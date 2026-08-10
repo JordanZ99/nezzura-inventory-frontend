@@ -408,19 +408,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     )}
                 </header>
             ) : (
-                /* Modo gradiente: banner arriba (opcional) + header con gradiente */
-                <>
-                    {bannerUrl && (
-                        <div style={{ width: "100%", maxHeight: 280, overflow: "hidden", background: tema.bg }}>
-                            <img
-                                src={bannerUrl}
-                                alt="Banner del catálogo"
-                                style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }}
-                                loading="lazy"
-                            />
-                        </div>
-                    )}
-                    <header style={{ background: tema.gradient, padding: "48px 24px 40px", textAlign: "center", color: "#fff" }}>
+                /* Modo gradiente: solo header con degradado (el banner es exclusivo del modo imagen) */
+                <header style={{ background: tema.gradient, padding: "48px 24px 40px", textAlign: "center", color: "#fff" }}>
                         {config.logo && (
                             /* Logo circular con borde blanco, igual que en el preview del link (WhatsApp) */
                             <img
@@ -450,7 +439,6 @@ export default function CatalogoView({ slug }: { slug: string }) {
                             {datos.productos.length} productos
                         </p>
                     </header>
-                </>
             )}
 
             {/* ── Buscador + filtros ── */}
