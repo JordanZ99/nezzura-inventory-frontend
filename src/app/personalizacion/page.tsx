@@ -242,6 +242,7 @@ export default function Personalizacion() {
         mostrar_stock?: boolean
         mostrar_categorias?: boolean
         agrupar_por_categoria?: boolean
+        columnas_movil?: number
         banner_url?: string
         hero_estilo?: string
         anuncio_texto?: string
@@ -701,6 +702,46 @@ export default function Personalizacion() {
                                                     transition: "left 0.25s",
                                                 }} />
                                             </button>
+                                        </div>
+
+                                        {/* Productos por fila en móvil */}
+                                        <div>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>
+                                                Productos por fila en móvil
+                                            </span>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                                {[
+                                                    { value: 1, label: "1 por fila", desc: "Un producto grande por fila en celulares. La fila compacta muestra 1 a la vez.", icon: "Smartphone" },
+                                                    { value: 2, label: "2 por fila", desc: "Dos productos por fila en celulares (recomendado).", icon: "LayoutGrid" },
+                                                ].map(op => {
+                                                    const activo = (catalogoConfig?.columnas_movil ?? 2) === op.value
+                                                    return (
+                                                        <button
+                                                            key={op.value}
+                                                            onClick={() => guardarConfigCatalogo({ columnas_movil: op.value })}
+                                                            style={{
+                                                                display: "flex", alignItems: "center", gap: 14,
+                                                                padding: "12px 14px", borderRadius: 12,
+                                                                border: `2px solid ${activo ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                                background: activo ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                                cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                                                                width: "100%",
+                                                            }}
+                                                        >
+                                                            <Icon name={op.icon as any} size={20} color={activo ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                                            <div>
+                                                                <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>{op.label}</span>
+                                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>{op.desc}</p>
+                                                            </div>
+                                                            {activo && (
+                                                                <div style={{ marginLeft: "auto" }}>
+                                                                    <Icon name="CircleCheck" size={18} color="var(--primary-mid)" />
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
                                         </div>
 
                                         {/* Título */}
