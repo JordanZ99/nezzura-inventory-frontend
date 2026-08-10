@@ -247,45 +247,47 @@ export default function CatalogoView({ slug }: { slug: string }) {
         : productosFiltrados.slice(inicio, inicio + ITEMS_POR_PAGINA)
 
     // ── Helpers de la paginación (compartidos entre móvil y escritorio) ──
+    // Estilo idéntico al del Historial de Ventas (estadísticas): padding 6px 14px,
+    // radio 8, hover con cambio de fondo y estado deshabilitado atenuado (opacity 0.5).
     const estiloNav: React.CSSProperties = {
-        padding: "6px 14px", borderRadius: 8,
+        padding: "6px 14px",
+        borderRadius: 8,
         border: `1px solid ${tema.border}`,
         background: tema.bgCard,
-        cursor: "pointer",
-        fontWeight: 600, fontSize: "0.8rem",
+        fontWeight: 600,
+        fontSize: "0.8rem",
         transition: "all 0.15s",
     }
-    // En móvil los botones son más grandes para facilitar el toque
-    const estiloNavMovil: React.CSSProperties = {
-        ...estiloNav,
-        padding: "8px 16px",
-        fontSize: "0.9rem",
-        borderRadius: 10,
-    }
-    const renderAnterior = (grande = false) => (
+    const renderAnterior = () => (
         <button
             onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
             disabled={paginaSegura <= 1}
             style={{
-                ...(grande ? estiloNavMovil : estiloNav),
+                ...estiloNav,
+                background: paginaSegura <= 1 ? tema.border : tema.bgCard,
                 color: paginaSegura <= 1 ? tema.textMuted : tema.text,
                 cursor: paginaSegura <= 1 ? "not-allowed" : "pointer",
                 opacity: paginaSegura <= 1 ? 0.5 : 1,
             }}
+            onMouseOver={e => { if (paginaSegura > 1) e.currentTarget.style.background = tema.border }}
+            onMouseOut={e => { e.currentTarget.style.background = paginaSegura <= 1 ? tema.border : tema.bgCard }}
         >
             ← Anterior
         </button>
     )
-    const renderSiguiente = (grande = false) => (
+    const renderSiguiente = () => (
         <button
             onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
             disabled={paginaSegura >= totalPaginas}
             style={{
-                ...(grande ? estiloNavMovil : estiloNav),
+                ...estiloNav,
+                background: paginaSegura >= totalPaginas ? tema.border : tema.bgCard,
                 color: paginaSegura >= totalPaginas ? tema.textMuted : tema.text,
                 cursor: paginaSegura >= totalPaginas ? "not-allowed" : "pointer",
                 opacity: paginaSegura >= totalPaginas ? 0.5 : 1,
             }}
+            onMouseOver={e => { if (paginaSegura < totalPaginas) e.currentTarget.style.background = tema.border }}
+            onMouseOut={e => { e.currentTarget.style.background = paginaSegura >= totalPaginas ? tema.border : tema.bgCard }}
         >
             Siguiente →
         </button>
@@ -300,18 +302,18 @@ export default function CatalogoView({ slug }: { slug: string }) {
     const renderPaginaMovil = (p: number, idx: number) => (
         <Fragment key={p}>
             {idx > 0 && paginasMovil[idx - 1] + 1 < p && (
-                <span style={{ color: tema.textMuted, fontSize: "0.85rem", padding: "0 2px" }}>…</span>
+                <span style={{ color: tema.textMuted, fontSize: "0.8rem", padding: "0 4px" }}>…</span>
             )}
             <button
                 onClick={() => setPaginaActual(p)}
                 style={{
-                    minWidth: 40, height: 40, borderRadius: 10,
-                    padding: "0 12px",
+                    padding: "6px 12px", borderRadius: 6,
                     border: p === paginaSegura ? `2px solid ${tema.primary}` : `1px solid ${tema.border}`,
-                    background: tema.bgCard,
+                    background: p === paginaSegura ? `${tema.primary}1A` : tema.bgCard,
                     color: p === paginaSegura ? tema.primary : tema.text,
-                    cursor: "pointer", fontWeight: p === paginaSegura ? 800 : 600,
-                    fontSize: "0.9rem", transition: "all 0.15s",
+                    cursor: "pointer",
+                    fontWeight: p === paginaSegura ? 800 : 600,
+                    fontSize: "0.8rem", transition: "all 0.15s",
                 }}
             >
                 {p}
@@ -476,9 +478,9 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     {/* Fila 2: controles — móvil usa patrón compacto que nunca desborda */}
                     {esMovil ? (
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                            {renderAnterior(true)}
+                            {renderAnterior()}
                             {paginasMovil.map(renderPaginaMovil)}
-                            {renderSiguiente(true)}
+                            {renderSiguiente()}
                         </div>
                     ) : (
                         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
@@ -493,7 +495,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                         style={{
                                             padding: "6px 12px", borderRadius: 6,
                                             border: item === paginaSegura ? `2px solid ${tema.primary}` : `1px solid ${tema.border}`,
-                                            background: tema.bgCard,
+                                            background: item === paginaSegura ? `${tema.primary}1A` : tema.bgCard,
                                             color: item === paginaSegura ? tema.primary : tema.text,
                                             cursor: "pointer", fontWeight: item === paginaSegura ? 800 : 600,
                                             fontSize: "0.8rem", transition: "all 0.15s",
