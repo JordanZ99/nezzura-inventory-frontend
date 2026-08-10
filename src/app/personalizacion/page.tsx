@@ -52,7 +52,7 @@ export default function Personalizacion() {
     // Estados para la configuración del catálogo público
     const [catalogoConfig, setCatalogoConfig] = useState<CatalogoConfig | null>(null)
     const [cargandoCatalogo, setCargandoCatalogo] = useState(false)
-    const [guardandoCatalogo, setGuardandoCatalogo] = useState(false)
+    const configCargadaRef = useRef(false)
     const [linkCopiado, setLinkCopiado] = useState(false)
     const [qrDescargado, setQrDescargado] = useState(false)
     const qrCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -158,7 +158,8 @@ export default function Personalizacion() {
             catch { /* enviar original si falla la compresión */ }
             const { ruta } = await api.subirFoto(nombreClave, imgAEnviar)
             setCatalogoConfig(prev => prev ? { ...prev, banner_url: ruta } : null)
-            mostrarMsg(true, "🖼️ Banner subido — Haz clic en Guardar Cambios para aplicarlo")
+            autoguardar("banner_url", { banner_url: ruta })
+            mostrarMsg(true, "🖼️ Banner subido y aplicado")
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error al subir banner"}`)
         } finally {
@@ -207,7 +208,10 @@ export default function Personalizacion() {
                 setCargandoCatalogo(false)
             }
         }
-        if (tab === "catalogo") loadCatalogo()
+        if (tab === "catalogo" && !configCargadaRef.current) {
+            configCargadaRef.current = true
+            loadCatalogo()
+        }
     }, [tab])
 
     // ── Alternar visibilidad de una categoría ──
@@ -231,35 +235,66 @@ export default function Personalizacion() {
         }
     }
 
-    // ── Guardar configuración del catálogo ──
-    async function guardarConfigCatalogo(data: {
-        activo?: boolean
-        tema?: string
-        template?: string
-        titulo?: string
-        subtitulo?: string
-        mostrar_precios?: boolean
-        mostrar_stock?: boolean
-        mostrar_categorias?: boolean
-        agrupar_por_categoria?: boolean
-        columnas_movil?: number
-        permitir_descarga?: boolean
-        banner_url?: string
-        hero_estilo?: string
-        anuncio_texto?: string
-    }) {
-        setGuardandoCatalogo(true)
+    // ── Auto-guardado: cada control se guarda solo al cambiar ──
+    // "campoGuardando" indica qué control se está guardando ahora mismo (spinner).
+    const [campoGuardando, setCampoGuardando] = useState<string | null>(null)
+    const debounceRef = useRef<Record<string, { timer: ReturnType<typeof setTimeout>; data: () => Record<string, any> }>>({})
+
+    async function ejecutarGuardado(campo: string, data: Record<string, any>) {
+        setCampoGuardando(campo)
         try {
-            const res = await api.actualizarConfigCatalogo(data)
-            // Recargar la config para tener los datos actualizados
-            const config = await api.getConfigCatalogo()
-            setCatalogoConfig(config)
-            mostrarMsg(true, "✅ Configuración del catálogo guardada")
+            await api.actualizarConfigCatalogo(data)
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error guardando configuración"}`)
         } finally {
-            setGuardandoCatalogo(false)
+            setCampoGuardando(prev => prev === campo ? null : prev)
         }
+    }
+
+    /** Guarda al instante (toggles y selectores) */
+    function autoguardar(campo: string, data: Record<string, any>) {
+        if (debounceRef.current[campo]) { clearTimeout(debounceRef.current[campo].timer); delete debounceRef.current[campo] }
+        void ejecutarGuardado(campo, data)
+    }
+
+    /** Guarda con debounce (textos: título, subtítulo, anuncio) */
+    function autoguardarDebounce(campo: string, data: () => Record<string, any>) {
+        if (debounceRef.current[campo]) clearTimeout(debounceRef.current[campo].timer)
+        setCampoGuardando(campo)
+        debounceRef.current[campo] = {
+            timer: setTimeout(() => {
+                delete debounceRef.current[campo]
+                void ejecutarGuardado(campo, data())
+            }, 650),
+            data,
+        }
+    }
+
+    // ── Al salir de la página: flushear los guardados pendientes para no perder cambios ──
+    useEffect(() => {
+        return () => {
+            Object.values(debounceRef.current).forEach(({ timer, data }) => {
+                clearTimeout(timer)
+                try { void api.actualizarConfigCatalogo(data()) } catch { /* el unmount ya no puede mostrar errores */ }
+            })
+        }
+    }, [])
+
+    /** Indicador "Guardando…" junto al control que se está guardando */
+    function renderGuardado(campo: string) {
+        if (campoGuardando !== campo) return null
+        return (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: "0.65rem", fontWeight: 700, color: "var(--primary-mid)", whiteSpace: "nowrap" }}>
+                <style>{`@keyframes cataSpin { to { transform: rotate(360deg) } }`}</style>
+                <div style={{
+                    width: 11, height: 11, borderRadius: "50%",
+                    border: "2px solid var(--border-light)",
+                    borderTopColor: "var(--primary-mid)",
+                    animation: "cataSpin 0.8s linear infinite",
+                }} />
+                Guardando…
+            </span>
+        )
     }
 
     // ── Copiar link del catálogo ──
@@ -631,6 +666,14 @@ export default function Personalizacion() {
                                     )}
 
                                     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                                        {/* ── Sección: Estado ── */}
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                                            <Icon name="Power" size={15} color="var(--primary-mid)" />
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--primary-mid)", textTransform: "uppercase", letterSpacing: 1.2 }}>
+                                                Estado
+                                            </span>
+                                            <div style={{ flex: 1, height: 1.5, background: "var(--border-primary)", borderRadius: 1 }} />
+                                        </div>
                                         {/* Activar / Desactivar */}
                                         <div style={{
                                             display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -641,16 +684,21 @@ export default function Personalizacion() {
                                                 <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
                                                     {catalogoConfig?.activo ? "Tu catálogo es visible para cualquier persona con el link." : "Actívalo para que tus clientes puedan verlo."}
                                                 </p>
+                                                {renderGuardado("activo")}
                                             </div>
                                             <button
-                                                onClick={() => guardarConfigCatalogo({ activo: !catalogoConfig?.activo })}
-                                                disabled={guardandoCatalogo}
+                                                onClick={() => {
+                                                    const nuevo = !catalogoConfig?.activo
+                                                    setCatalogoConfig(prev => prev ? { ...prev, activo: nuevo } : prev)
+                                                    autoguardar("activo", { activo: nuevo })
+                                                }}
+                                                disabled={campoGuardando === "activo"}
                                                 style={{
                                                     position: "relative",
                                                     width: 52, height: 28,
                                                     borderRadius: 14,
                                                     border: "none",
-                                                    cursor: guardandoCatalogo ? "not-allowed" : "pointer",
+                                                    cursor: campoGuardando === "activo" ? "not-allowed" : "pointer",
                                                     background: catalogoConfig?.activo ? "var(--primary-mid)" : "var(--border-primary)",
                                                     transition: "background 0.25s",
                                                     flexShrink: 0,
@@ -668,128 +716,25 @@ export default function Personalizacion() {
                                             </button>
                                         </div>
 
-                                        {/* Agrupar por categoría */}
-                                        <div style={{
-                                            display: "flex", justifyContent: "space-between", alignItems: "center",
-                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
-                                        }}>
-                                            <div>
-                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Agrupar por categoría</span>
-                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                                                    Separa los productos por secciones ("Peluches", "Bolsas"...). Desactiva la paginación.
-                                                </p>
-                                            </div>
-                                            <button
-                                                onClick={() => guardarConfigCatalogo({ agrupar_por_categoria: !catalogoConfig?.agrupar_por_categoria })}
-                                                disabled={guardandoCatalogo}
-                                                style={{
-                                                    position: "relative",
-                                                    width: 52, height: 28,
-                                                    borderRadius: 14,
-                                                    border: "none",
-                                                    cursor: guardandoCatalogo ? "not-allowed" : "pointer",
-                                                    background: catalogoConfig?.agrupar_por_categoria ? "var(--primary-mid)" : "var(--border-primary)",
-                                                    transition: "background 0.25s",
-                                                    flexShrink: 0,
-                                                }}
-                                            >
-                                                <div style={{
-                                                    position: "absolute",
-                                                    top: 3, left: catalogoConfig?.agrupar_por_categoria ? 26 : 3,
-                                                    width: 22, height: 22,
-                                                    borderRadius: "50%",
-                                                    background: "#fff",
-                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-                                                    transition: "left 0.25s",
-                                                }} />
-                                            </button>
-                                        </div>
-
-                                        {/* Permitir descargar fotos */}
-                                        <div style={{
-                                            display: "flex", justifyContent: "space-between", alignItems: "center",
-                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
-                                        }}>
-                                            <div>
-                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Descargar fotos</span>
-                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                                                    Permite que tus clientes descarguen las fotos de los productos desde el catálogo.
-                                                </p>
-                                            </div>
-                                            <button
-                                                onClick={() => guardarConfigCatalogo({ permitir_descarga: !catalogoConfig?.permitir_descarga })}
-                                                disabled={guardandoCatalogo}
-                                                style={{
-                                                    position: "relative",
-                                                    width: 52, height: 28,
-                                                    borderRadius: 14,
-                                                    border: "none",
-                                                    cursor: guardandoCatalogo ? "not-allowed" : "pointer",
-                                                    background: catalogoConfig?.permitir_descarga ? "var(--primary-mid)" : "var(--border-primary)",
-                                                    transition: "background 0.25s",
-                                                    flexShrink: 0,
-                                                }}
-                                            >
-                                                <div style={{
-                                                    position: "absolute",
-                                                    top: 3, left: catalogoConfig?.permitir_descarga ? 26 : 3,
-                                                    width: 22, height: 22,
-                                                    borderRadius: "50%",
-                                                    background: "#fff",
-                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-                                                    transition: "left 0.25s",
-                                                }} />
-                                            </button>
-                                        </div>
-
-                                        {/* Productos por fila en móvil */}
-                                        <div>
-                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>
-                                                Productos por fila en móvil
+                                        {/* ── Sección: Contenido ── */}
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                                            <Icon name="FileText" size={15} color="var(--primary-mid)" />
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--primary-mid)", textTransform: "uppercase", letterSpacing: 1.2 }}>
+                                                Contenido
                                             </span>
-                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                                {[
-                                                    { value: 1, label: "1 por fila", desc: "Un producto grande por fila en celulares. La fila compacta muestra 1 a la vez.", icon: "Smartphone" },
-                                                    { value: 2, label: "2 por fila", desc: "Dos productos por fila en celulares (recomendado).", icon: "LayoutGrid" },
-                                                ].map(op => {
-                                                    const activo = (catalogoConfig?.columnas_movil ?? 2) === op.value
-                                                    return (
-                                                        <button
-                                                            key={op.value}
-                                                            onClick={() => guardarConfigCatalogo({ columnas_movil: op.value })}
-                                                            style={{
-                                                                display: "flex", alignItems: "center", gap: 14,
-                                                                padding: "12px 14px", borderRadius: 12,
-                                                                border: `2px solid ${activo ? "var(--primary-mid)" : "var(--border-primary)"}`,
-                                                                background: activo ? "var(--primary-soft)" : "var(--bg-card2)",
-                                                                cursor: "pointer", textAlign: "left", transition: "all 0.2s",
-                                                                width: "100%",
-                                                            }}
-                                                        >
-                                                            <Icon name={op.icon as any} size={20} color={activo ? "var(--primary-mid)" : "var(--text-muted)"} />
-                                                            <div>
-                                                                <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>{op.label}</span>
-                                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>{op.desc}</p>
-                                                            </div>
-                                                            {activo && (
-                                                                <div style={{ marginLeft: "auto" }}>
-                                                                    <Icon name="CircleCheck" size={18} color="var(--primary-mid)" />
-                                                                </div>
-                                                            )}
-                                                        </button>
-                                                    )
-                                                })}
-                                            </div>
+                                            <div style={{ flex: 1, height: 1.5, background: "var(--border-primary)", borderRadius: 1 }} />
                                         </div>
-
                                         {/* Título */}
                                         <div>
-                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Título del Catálogo</span>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Título del Catálogo</span>
+                                                {renderGuardado("titulo")}
+                                            </div>
                                             <input
                                                 className="input-primary"
                                                 placeholder="Ej: Nuestros productos"
                                                 value={catalogoConfig?.titulo || ""}
-                                                onChange={e => setCatalogoConfig(prev => prev ? { ...prev, titulo: e.target.value } : null)}
+                                                onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, titulo: e.target.value } : null); autoguardarDebounce("titulo", () => ({ titulo: e.target.value })) }}
                                                 maxLength={60}
                                                 style={{ fontSize: "0.85rem" }}
                                             />
@@ -797,12 +742,15 @@ export default function Personalizacion() {
 
                                         {/* Subtítulo */}
                                         <div>
-                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Subtítulo</span>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Subtítulo</span>
+                                                {renderGuardado("subtitulo")}
+                                            </div>
                                             <input
                                                 className="input-primary"
                                                 placeholder="Ej: Los mejores productos de la región"
                                                 value={catalogoConfig?.subtitulo || ""}
-                                                onChange={e => setCatalogoConfig(prev => prev ? { ...prev, subtitulo: e.target.value } : null)}
+                                                onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, subtitulo: e.target.value } : null); autoguardarDebounce("subtitulo", () => ({ subtitulo: e.target.value })) }}
                                                 maxLength={120}
                                                 style={{ fontSize: "0.85rem" }}
                                             />
@@ -810,12 +758,15 @@ export default function Personalizacion() {
 
                                         {/* ── Barra de anuncios ── */}
                                         <div>
-                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Barra de anuncios</span>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Barra de anuncios</span>
+                                                {renderGuardado("anuncio_texto")}
+                                            </div>
                                             <input
                                                 className="input-primary"
                                                 placeholder="Ej: 🚚 Envíos gratis desde $500"
                                                 value={catalogoConfig?.anuncio_texto || ""}
-                                                onChange={e => setCatalogoConfig(prev => prev ? { ...prev, anuncio_texto: e.target.value } : null)}
+                                                onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, anuncio_texto: e.target.value } : null); autoguardarDebounce("anuncio_texto", () => ({ anuncio_texto: e.target.value })) }}
                                                 maxLength={120}
                                                 style={{ fontSize: "0.85rem" }}
                                             />
@@ -826,7 +777,10 @@ export default function Personalizacion() {
 
                                         {/* ── Banner / Hero ── */}
                                         <div>
-                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Banner / Imagen de portada</span>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Banner / Imagen de portada</span>
+                                                {renderGuardado("banner_url")}
+                                            </div>
                                             <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                                                 {/* Vista previa */}
                                                 <div style={{
@@ -865,7 +819,7 @@ export default function Personalizacion() {
                                                     </button>
                                                     {catalogoConfig?.banner_url && (
                                                         <button
-                                                            onClick={() => setCatalogoConfig(prev => prev ? { ...prev, banner_url: "" } : null)}
+                                                            onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, banner_url: "" } : null); autoguardar("banner_url", { banner_url: "" }) }}
                                                             style={{
                                                                 fontSize: "0.72rem", fontWeight: 700, padding: "6px 12px",
                                                                 borderRadius: 8, border: "1px solid var(--border-primary)",
@@ -883,113 +837,139 @@ export default function Personalizacion() {
                                             </div>
                                         </div>
 
-                                        {/* ── Estilo del hero ── */}
-                                        <div>
-                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Estilo de la portada</span>
-                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                                {[
-                                                    { key: "gradiente", label: "Gradiente", desc: "Fondo con degradado del tema + banner arriba (recomendado)" },
-                                                    { key: "imagen", label: "Imagen de fondo", desc: "El banner cubre toda la portada con el título encima" },
-                                                ].map(h => (
-                                                    <button
-                                                        key={h.key}
-                                                        onClick={() => setCatalogoConfig(prev => prev ? { ...prev, hero_estilo: h.key } : null)}
-                                                        style={{
-                                                            display: "flex", alignItems: "center", gap: 14,
-                                                            padding: "12px 14px", borderRadius: 12,
-                                                            border: `2px solid ${(catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-mid)" : "var(--border-primary)"}`,
-                                                            background: (catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-soft)" : "var(--bg-card2)",
-                                                            cursor: "pointer", textAlign: "left", transition: "all 0.2s",
-                                                            width: "100%",
-                                                        }}
-                                                    >
-                                                        <Icon name={h.key === "imagen" ? "Image" : "Palette"} size={20} color={(catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-mid)" : "var(--text-muted)"} />
-                                                        <div>
-                                                            <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>{h.label}</span>
-                                                            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>{h.desc}</p>
-                                                        </div>
-                                                        {(catalogoConfig?.hero_estilo || "gradiente") === h.key && (
-                                                            <div style={{ marginLeft: "auto" }}>
-                                                                <Icon name="CircleCheck" size={18} color="var(--primary-mid)" />
-                                                            </div>
-                                                        )}
-                                                    </button>
-                                                ))}
+                                        {/* ── Sección: Comportamiento ── */}
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                                            <Icon name="SlidersHorizontal" size={15} color="var(--primary-mid)" />
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--primary-mid)", textTransform: "uppercase", letterSpacing: 1.2 }}>
+                                                Comportamiento
+                                            </span>
+                                            <div style={{ flex: 1, height: 1.5, background: "var(--border-primary)", borderRadius: 1 }} />
+                                        </div>
+                                        {/* Agrupar por categoría */}
+                                        <div style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                        }}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Agrupar por categoría</span>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                    Separa los productos por secciones ("Peluches", "Bolsas"...). Desactiva la paginación.
+                                                </p>
+                                                {renderGuardado("agrupar_por_categoria")}
                                             </div>
+                                            <button
+                                                onClick={() => {
+                                                    const nuevo = !catalogoConfig?.agrupar_por_categoria
+                                                    setCatalogoConfig(prev => prev ? { ...prev, agrupar_por_categoria: nuevo } : prev)
+                                                    autoguardar("agrupar_por_categoria", { agrupar_por_categoria: nuevo })
+                                                }}
+                                                disabled={campoGuardando === "agrupar_por_categoria"}
+                                                style={{
+                                                    position: "relative",
+                                                    width: 52, height: 28,
+                                                    borderRadius: 14,
+                                                    border: "none",
+                                                    cursor: campoGuardando === "agrupar_por_categoria" ? "not-allowed" : "pointer",
+                                                    background: catalogoConfig?.agrupar_por_categoria ? "var(--primary-mid)" : "var(--border-primary)",
+                                                    transition: "background 0.25s",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: 3, left: catalogoConfig?.agrupar_por_categoria ? 26 : 3,
+                                                    width: 22, height: 22,
+                                                    borderRadius: "50%",
+                                                    background: "#fff",
+                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                    transition: "left 0.25s",
+                                                }} />
+                                            </button>
                                         </div>
 
-                                        {/* Selector de Template */}
-                                        <div>
-                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Plantilla Visual</span>
-                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                                {TEMPLATES_OPTS.map(t => (
-                                                    <button
-                                                        key={t.value}
-                                                        onClick={() => setCatalogoConfig(prev => prev ? { ...prev, template: t.value } : null)}
-                                                        style={{
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            gap: 14,
-                                                            padding: "14px 16px",
-                                                            borderRadius: 12,
-                                                            border: `2px solid ${catalogoConfig?.template === t.value ? "var(--primary-mid)" : "var(--border-primary)"}`,
-                                                            background: catalogoConfig?.template === t.value ? "var(--primary-soft)" : "var(--bg-card2)",
-                                                            cursor: "pointer",
-                                                            textAlign: "left",
-                                                            transition: "all 0.2s",
-                                                            width: "100%",
-                                                        }}
-                                                    >
-                                                        <Icon name={t.icon as any} size={24} color={catalogoConfig?.template === t.value ? "var(--primary-mid)" : "var(--text-muted)"} />
-                                                        <div>
-                                                            <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>{t.label}</span>
-                                                            <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500 }}>{t.desc}</p>
-                                                        </div>
-                                                        {catalogoConfig?.template === t.value && (
-                                                            <div style={{ marginLeft: "auto" }}>
-                                                                <Icon name="CircleCheck" size={20} color="var(--primary-mid)" />
-                                                            </div>
-                                                        )}
-                                                    </button>
-                                                ))}
+                                        {/* Permitir descargar fotos */}
+                                        <div style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                        }}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Descargar fotos</span>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                    Permite que tus clientes descarguen las fotos de los productos desde el catálogo.
+                                                </p>
+                                                {renderGuardado("permitir_descarga")}
                                             </div>
+                                            <button
+                                                onClick={() => {
+                                                    const nuevo = !catalogoConfig?.permitir_descarga
+                                                    setCatalogoConfig(prev => prev ? { ...prev, permitir_descarga: nuevo } : prev)
+                                                    autoguardar("permitir_descarga", { permitir_descarga: nuevo })
+                                                }}
+                                                disabled={campoGuardando === "permitir_descarga"}
+                                                style={{
+                                                    position: "relative",
+                                                    width: 52, height: 28,
+                                                    borderRadius: 14,
+                                                    border: "none",
+                                                    cursor: campoGuardando === "permitir_descarga" ? "not-allowed" : "pointer",
+                                                    background: catalogoConfig?.permitir_descarga ? "var(--primary-mid)" : "var(--border-primary)",
+                                                    transition: "background 0.25s",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: 3, left: catalogoConfig?.permitir_descarga ? 26 : 3,
+                                                    width: 22, height: 22,
+                                                    borderRadius: "50%",
+                                                    background: "#fff",
+                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                    transition: "left 0.25s",
+                                                }} />
+                                            </button>
                                         </div>
 
-                                        {/* Tema de colores */}
+                                        {/* Productos por fila en móvil */}
                                         <div>
-                                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Tema de Colores</span>
-                                            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                                                    Productos por fila en móvil
+                                                </span>
+                                                {renderGuardado("columnas_movil")}
+                                            </div>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                                 {[
-                                                    { key: "default", label: "Steel Slate", colors: ["#3a7dbf", "#5e87a4"] },
-                                                    { key: "midnightBlack", label: "Midnight Black", colors: ["#1f2321", "#1e6456"] },
-                                                    { key: "strawberry", label: "Strawberry Pink", colors: ["#f33376", "#fa30df"] },
-                                                    { key: "cozyYellow", label: "Cozy Yellow", colors: ["#ffd05b", "#eb7456"] },
-                                                ].map(t => (
-                                                    <button
-                                                        key={t.key}
-                                                        onClick={() => setCatalogoConfig(prev => prev ? { ...prev, tema: t.key } : null)}
-                                                        style={{
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            gap: 8,
-                                                            padding: "8px 14px",
-                                                            borderRadius: 10,
-                                                            border: `2px solid ${catalogoConfig?.tema === t.key ? "var(--primary-mid)" : "transparent"}`,
-                                                            background: "var(--bg-card2)",
-                                                            cursor: "pointer",
-                                                            transition: "all 0.15s",
-                                                        }}
-                                                    >
-                                                        <div style={{
-                                                            width: 22, height: 22,
-                                                            borderRadius: "50%",
-                                                            background: `linear-gradient(135deg, ${t.colors[0]}, ${t.colors[1]})`,
-                                                            border: "2px solid rgba(255,255,255,0.5)",
-                                                            flexShrink: 0,
-                                                        }} />
-                                                        <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)" }}>{t.label}</span>
-                                                    </button>
-                                                ))}
+                                                    { value: 1, label: "1 por fila", desc: "Un producto grande por fila en celulares. La fila compacta muestra 1 a la vez.", icon: "Smartphone" },
+                                                    { value: 2, label: "2 por fila", desc: "Dos productos por fila en celulares (recomendado).", icon: "LayoutGrid" },
+                                                ].map(op => {
+                                                    const activo = (catalogoConfig?.columnas_movil ?? 2) === op.value
+                                                    return (
+                                                        <button
+                                                            key={op.value}
+                                                            onClick={() => autoguardar("columnas_movil", { columnas_movil: op.value })}
+                                                            disabled={campoGuardando === "columnas_movil"}
+                                                            style={{
+                                                                display: "flex", alignItems: "center", gap: 14,
+                                                                padding: "12px 14px", borderRadius: 12,
+                                                                border: `2px solid ${activo ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                                background: activo ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                                cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                                                                width: "100%",
+                                                            }}
+                                                        >
+                                                            <Icon name={op.icon as any} size={20} color={activo ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                                            <div>
+                                                                <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>{op.label}</span>
+                                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>{op.desc}</p>
+                                                            </div>
+                                                            {activo && (
+                                                                <div style={{ marginLeft: "auto" }}>
+                                                                    <Icon name="CircleCheck" size={18} color="var(--primary-mid)" />
+                                                                </div>
+                                                            )}
+                                                        </button>
+                                                    )
+                                                })}
                                             </div>
                                         </div>
 
@@ -1054,37 +1034,133 @@ export default function Personalizacion() {
                                             </div>
                                         )}
 
-                                        {/* Guardar — barra sticky: siempre visible aunque haya muchas categorías */}
-                                        <div style={{
-                                            position: "sticky",
-                                            bottom: -12,
-                                            marginTop: 8,
-                                            marginBottom: -24,
-                                            padding: "12px 4px",
-                                            background: "var(--bg-card2)",
-                                            borderTop: "1px solid var(--border-light)",
-                                            borderBottomLeftRadius: 14,
-                                            borderBottomRightRadius: 14,
-                                            zIndex: 5,
-                                        }}>
-                                            <button
-                                                className="btn-primary"
-                                                onClick={() => guardarConfigCatalogo({
-                                                    titulo: catalogoConfig?.titulo,
-                                                    subtitulo: catalogoConfig?.subtitulo,
-                                                    template: catalogoConfig?.template,
-                                                    tema: catalogoConfig?.tema,
-                                                    banner_url: catalogoConfig?.banner_url,
-                                                    hero_estilo: catalogoConfig?.hero_estilo,
-                                                    anuncio_texto: catalogoConfig?.anuncio_texto,
-                                                })}
-                                                disabled={guardandoCatalogo}
-                                                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-                                            >
-                                                <Icon name="Save" size={16} />
-                                                {guardandoCatalogo ? "Guardando..." : "Guardar Cambios"}
-                                            </button>
+                                        {/* ── Sección: Apariencia ── */}
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                                            <Icon name="Palette" size={15} color="var(--primary-mid)" />
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--primary-mid)", textTransform: "uppercase", letterSpacing: 1.2 }}>
+                                                Apariencia
+                                            </span>
+                                            <div style={{ flex: 1, height: 1.5, background: "var(--border-primary)", borderRadius: 1 }} />
                                         </div>
+                                        {/* ── Estilo del hero ── */}
+                                        <div>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Estilo de la portada</span>
+                                                {renderGuardado("hero_estilo")}
+                                            </div>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                                {[
+                                                    { key: "gradiente", label: "Gradiente", desc: "Fondo con degradado del tema + banner arriba (recomendado)" },
+                                                    { key: "imagen", label: "Imagen de fondo", desc: "El banner cubre toda la portada con el título encima" },
+                                                ].map(h => (
+                                                    <button
+                                                        key={h.key}
+                                                        onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, hero_estilo: h.key } : null); autoguardar("hero_estilo", { hero_estilo: h.key }) }}
+                                                        style={{
+                                                            display: "flex", alignItems: "center", gap: 14,
+                                                            padding: "12px 14px", borderRadius: 12,
+                                                            border: `2px solid ${(catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                            background: (catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                            cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                                                            width: "100%",
+                                                        }}
+                                                    >
+                                                        <Icon name={h.key === "imagen" ? "Image" : "Palette"} size={20} color={(catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                                        <div>
+                                                            <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>{h.label}</span>
+                                                            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>{h.desc}</p>
+                                                        </div>
+                                                        {(catalogoConfig?.hero_estilo || "gradiente") === h.key && (
+                                                            <div style={{ marginLeft: "auto" }}>
+                                                                <Icon name="CircleCheck" size={18} color="var(--primary-mid)" />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Selector de Template */}
+                                        <div>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Plantilla Visual</span>
+                                                {renderGuardado("template")}
+                                            </div>
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                                {TEMPLATES_OPTS.map(t => (
+                                                    <button
+                                                        key={t.value}
+                                                        onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, template: t.value } : null); autoguardar("template", { template: t.value }) }}
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: 14,
+                                                            padding: "14px 16px",
+                                                            borderRadius: 12,
+                                                            border: `2px solid ${catalogoConfig?.template === t.value ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                            background: catalogoConfig?.template === t.value ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                            cursor: "pointer",
+                                                            textAlign: "left",
+                                                            transition: "all 0.2s",
+                                                            width: "100%",
+                                                        }}
+                                                    >
+                                                        <Icon name={t.icon as any} size={24} color={catalogoConfig?.template === t.value ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                                        <div>
+                                                            <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>{t.label}</span>
+                                                            <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500 }}>{t.desc}</p>
+                                                        </div>
+                                                        {catalogoConfig?.template === t.value && (
+                                                            <div style={{ marginLeft: "auto" }}>
+                                                                <Icon name="CircleCheck" size={20} color="var(--primary-mid)" />
+                                                            </div>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Tema de colores */}
+                                        <div>
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                                                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Tema de Colores</span>
+                                                {renderGuardado("tema")}
+                                            </div>
+                                            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                                                {[
+                                                    { key: "default", label: "Steel Slate", colors: ["#3a7dbf", "#5e87a4"] },
+                                                    { key: "midnightBlack", label: "Midnight Black", colors: ["#1f2321", "#1e6456"] },
+                                                    { key: "strawberry", label: "Strawberry Pink", colors: ["#f33376", "#fa30df"] },
+                                                    { key: "cozyYellow", label: "Cozy Yellow", colors: ["#ffd05b", "#eb7456"] },
+                                                ].map(t => (
+                                                    <button
+                                                        key={t.key}
+                                                        onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, tema: t.key } : null); autoguardar("tema", { tema: t.key }) }}
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            gap: 8,
+                                                            padding: "8px 14px",
+                                                            borderRadius: 10,
+                                                            border: `2px solid ${catalogoConfig?.tema === t.key ? "var(--primary-mid)" : "transparent"}`,
+                                                            background: "var(--bg-card2)",
+                                                            cursor: "pointer",
+                                                            transition: "all 0.15s",
+                                                        }}
+                                                    >
+                                                        <div style={{
+                                                            width: 22, height: 22,
+                                                            borderRadius: "50%",
+                                                            background: `linear-gradient(135deg, ${t.colors[0]}, ${t.colors[1]})`,
+                                                            border: "2px solid rgba(255,255,255,0.5)",
+                                                            flexShrink: 0,
+                                                        }} />
+                                                        <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)" }}>{t.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
 
