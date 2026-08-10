@@ -41,6 +41,7 @@ interface ConfigCatalogo {
     mostrar_stock: boolean
     mostrar_categorias: boolean
     agrupar_por_categoria?: boolean | null
+    columnas_movil?: number
     banner_url?: string
     hero_estilo?: string      // 'gradiente' | 'imagen'
     anuncio_texto?: string

@@ -31,6 +31,7 @@ interface ConfigCatalogo {
     mostrar_precios: boolean
     mostrar_stock: boolean
     mostrar_categorias: boolean
+    columnas_movil?: number
 }
 
 interface PaletaTema {
@@ -54,6 +55,8 @@ interface Props {
 export default function CatalogoGridClasico({ productos, config, tema, agrupado = false }: Props) {
     // ── Estado del modo agrupado ──
     const [expandidas, setExpandidas] = useState<Set<string>>(() => new Set())
+    const [esMovil, setEsMovil] = useState<boolean>(() =>
+        typeof window !== "undefined" && window.matchMedia("(max-width: 899px)").matches)
     const [desborda, setDesborda] = useState<Record<string, boolean>>({})
     const filasRef = useRef<Record<string, HTMLDivElement | null>>({})
 
@@ -72,11 +75,20 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
         })
     }, [])
 
+    // Detecta si la vista es móvil (<=899px) para aplicar las columnas configuradas
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 899px)")
+        setEsMovil(mq.matches)
+        const handler = (e: MediaQueryListEvent) => setEsMovil(e.matches)
+        mq.addEventListener("change", handler)
+        return () => mq.removeEventListener("change", handler)
+    }, [])
+
     useEffect(() => {
         medirFilas()
         window.addEventListener("resize", medirFilas)
         return () => window.removeEventListener("resize", medirFilas)
-    }, [medirFilas, productos])
+    }, [medirFilas, productos, esMovil])
 
     // Desplaza la fila de una categoría en la dirección indicada
     const scrollFila = (cat: string, dir: number) => {
@@ -212,6 +224,20 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
         )
     }
 
+    // ── Columnas en móvil (configurable por el tenant: 1 o 2) ──
+    // Escritorio: siempre 4 por fila.
+    const columnasMovil = config.columnas_movil === 1 ? 1 : 2
+    const anchoTarjetaCarrusel = !esMovil
+        ? "calc((100% - 60px) / 4)"
+        : columnasMovil === 1
+            ? "100%"
+            : "calc((100% - 20px) / 2)"
+    const columnasGrid = !esMovil
+        ? "repeat(auto-fill, minmax(220px, 1fr))"
+        : columnasMovil === 1
+            ? "1fr"
+            : "repeat(2, minmax(0, 1fr))"
+
     // ── Modo agrupado: fila deslizable por categoría + acordeón ──
     if (agrupado) {
         const agrupados = agruparPorCategoria(productos)
@@ -284,7 +310,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                                     <>
                                         <div style={{
                                             display: "grid",
-                                            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                                            gridTemplateColumns: columnasGrid,
                                             gap: 20,
                                         }}>
                                             {items.map(p => renderTarjeta(p, true))}
@@ -328,7 +354,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                                                 }}
                                             >
                                                 {items.map(p => (
-                                                    <div key={p.producto} style={{ flex: "0 0 calc((100% - 60px) / 4)", minWidth: 180, scrollSnapAlign: "start" }}>
+                                                    <div key={p.producto} style={{ flex: `0 0 ${anchoTarjetaCarrusel}`, minWidth: esMovil ? 0 : 180, scrollSnapAlign: "start" }}>
                                                         {renderTarjeta(p, true)}
                                                     </div>
                                                 ))}
@@ -378,7 +404,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
             ) : (
                 <div style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gridTemplateColumns: columnasGrid,
                     gap: 20,
                 }}>
                     {productos.map(p => renderTarjeta(p, false))}
