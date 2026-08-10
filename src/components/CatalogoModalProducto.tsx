@@ -293,8 +293,8 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
 
                 {/* ── Cuerpo del post ── */}
                 <div style={{ padding: "14px 18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-                    {/* Nombre (grande, protagonista) */}
-                    <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 800, color: tema.text, lineHeight: 1.25 }}>
+                    {/* Nombre (grande, sin negritas) */}
+                    <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 500, color: tema.text, lineHeight: 1.25 }}>
                         {producto.producto}
                     </h3>
 
