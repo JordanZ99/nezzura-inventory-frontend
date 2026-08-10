@@ -94,13 +94,13 @@ export default async function ImagenPreview({ params }: { params: { slug: string
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={logoComoPng(logo)}
-                        width={150}
-                        height={150}
+                        width={300}
+                        height={300}
                         alt=""
                         style={{
                             borderRadius: 999,
                             objectFit: "cover",
-                            border: "6px solid rgba(255,255,255,0.92)",
+                            border: "8px solid rgba(255,255,255,0.92)",
                         }}
                     />
                 )}
@@ -109,7 +109,7 @@ export default async function ImagenPreview({ params }: { params: { slug: string
                         fontSize: 68,
                         fontWeight: 800,
                         color: "#ffffff",
-                        marginTop: logo ? 28 : 0,
+                        marginTop: logo ? 36 : 0,
                         padding: "0 64px",
                         textAlign: "center",
                         lineHeight: 1.1,
