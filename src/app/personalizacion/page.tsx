@@ -243,6 +243,7 @@ export default function Personalizacion() {
         mostrar_categorias?: boolean
         agrupar_por_categoria?: boolean
         columnas_movil?: number
+        permitir_descarga?: boolean
         banner_url?: string
         hero_estilo?: string
         anuncio_texto?: string
@@ -695,6 +696,43 @@ export default function Personalizacion() {
                                                 <div style={{
                                                     position: "absolute",
                                                     top: 3, left: catalogoConfig?.agrupar_por_categoria ? 26 : 3,
+                                                    width: 22, height: 22,
+                                                    borderRadius: "50%",
+                                                    background: "#fff",
+                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                                                    transition: "left 0.25s",
+                                                }} />
+                                            </button>
+                                        </div>
+
+                                        {/* Permitir descargar fotos */}
+                                        <div style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                        }}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Descargar fotos</span>
+                                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                    Permite que tus clientes descarguen las fotos de los productos desde el catálogo.
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => guardarConfigCatalogo({ permitir_descarga: !catalogoConfig?.permitir_descarga })}
+                                                disabled={guardandoCatalogo}
+                                                style={{
+                                                    position: "relative",
+                                                    width: 52, height: 28,
+                                                    borderRadius: 14,
+                                                    border: "none",
+                                                    cursor: guardandoCatalogo ? "not-allowed" : "pointer",
+                                                    background: catalogoConfig?.permitir_descarga ? "var(--primary-mid)" : "var(--border-primary)",
+                                                    transition: "background 0.25s",
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                <div style={{
+                                                    position: "absolute",
+                                                    top: 3, left: catalogoConfig?.permitir_descarga ? 26 : 3,
                                                     width: 22, height: 22,
                                                     borderRadius: "50%",
                                                     background: "#fff",

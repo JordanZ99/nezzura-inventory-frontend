@@ -30,6 +30,7 @@ interface ConfigCatalogo {
     mostrar_precios: boolean
     mostrar_stock: boolean
     mostrar_categorias: boolean
+    permitir_descarga?: boolean
     logo: string
 }
 
@@ -56,6 +57,41 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 function resolverImagen(url: string): string {
     if (!url) return ""
     return url.startsWith("http") ? url : `${API_URL}/${url}`
+}
+
+/**
+ * Descarga una imagen como archivo (fetch → blob → a[download]).
+ * Fallback: abre la imagen en otra pestaña si el fetch falla.
+ */
+async function descargarImagen(url: string, nombre: string) {
+    try {
+        const res = await fetch(url)
+        if (!res.ok) throw new Error("HTTP " + res.status)
+        const blob = await res.blob()
+        // Extensión según el tipo del blob (o la URL como fallback)
+        let ext = ""
+        if (blob.type === "image/png") ext = ".png"
+        else if (blob.type === "image/webp") ext = ".webp"
+        else if (blob.type === "image/jpeg") ext = ".jpg"
+        else {
+            try {
+                const m = new URL(url).pathname.match(/\.([a-zA-Z0-9]+)$/)
+                if (m) ext = "." + m[1].toLowerCase()
+            } catch { /* URL inválida */ }
+        }
+        if (!ext) ext = ".jpg"
+        const objUrl = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = objUrl
+        a.download = `${nombre}${ext}`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(objUrl), 3000)
+    } catch {
+        // Fallback: abrir la imagen para guardarla manualmente
+        window.open(url, "_blank")
+    }
 }
 
 export default function CatalogoModalProducto({ producto, config, tema, onClose }: Props) {
@@ -97,6 +133,13 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     const indiceSeguro = galeria.length > 0 ? Math.min(indice, galeria.length - 1) : 0
     const fotoActual = galeria.length > 0 ? galeria[indiceSeguro] : ""
     const agotado = producto.stock_total <= 0
+    // Nombre base para los archivos descargados + descarga de todas las fotos
+    const nombreBase = (producto.producto || "foto").replace(/[^a-zA-Z0-9áéíóúñÑ\s-]/g, "").trim() || "foto"
+    const descargarTodas = () => {
+        galeria.forEach((url, i) => {
+            setTimeout(() => descargarImagen(url, i === 0 ? nombreBase : `${nombreBase} (${i + 1})`), i * 400)
+        })
+    }
 
     const estiloFlecha: React.CSSProperties = {
         position: "absolute",
@@ -269,6 +312,27 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                             {indiceSeguro + 1} / {galeria.length}
                         </span>
                     )}
+
+                    {/* Descargar foto actual (solo si el tenant lo permite) */}
+                    {config.permitir_descarga && fotoActual && (
+                        <button
+                            onClick={e => { e.stopPropagation(); descargarImagen(fotoActual, nombreBase) }}
+                            aria-label="Descargar foto"
+                            title="Descargar foto"
+                            style={{
+                                position: "absolute", top: 10, left: 10,
+                                width: 34, height: 34, borderRadius: "50%",
+                                border: "none", background: "rgba(0,0,0,0.45)",
+                                color: "#fff", cursor: "pointer",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                transition: "background 0.15s",
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
+                        >
+                            <Icon name="Download" size={18} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Dots de posición */}
@@ -288,6 +352,28 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                 }}
                             />
                         ))}
+                    </div>
+                )}
+
+                {/* Descargar todas las fotos (solo si el tenant lo permite) */}
+                {config.permitir_descarga && galeria.length > 1 && (
+                    <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+                        <button
+                            onClick={descargarTodas}
+                            style={{
+                                display: "flex", alignItems: "center", gap: 6,
+                                padding: "6px 14px", borderRadius: 10,
+                                border: `1px solid ${tema.border}`,
+                                background: tema.bg, color: tema.primaryDark,
+                                fontWeight: 700, fontSize: "0.75rem", cursor: "pointer",
+                                transition: "background 0.15s",
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = tema.border }}
+                            onMouseLeave={e => { e.currentTarget.style.background = tema.bg }}
+                        >
+                            <Icon name="Download" size={14} />
+                            Descargar todas ({galeria.length})
+                        </button>
                     </div>
                 )}
 
