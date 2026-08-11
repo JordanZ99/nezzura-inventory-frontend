@@ -32,6 +32,9 @@ export interface Producto {
     // Costo/precio de venta de un servicio (viven en el producto, no en lotes)
     costo_servicio?: number;
     precio_servicio?: number;
+    // Fase 6: si true, cada variación lleva su propio inventario (lotes por
+    // variación) y el restock pide la variación.
+    stock_por_variacion?: boolean;
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
     variaciones?: Variacion[];
     // Receta de un producto compuesto (materiales que consume al venderse)
@@ -48,6 +51,10 @@ export interface Variacion {
     // Foto propia de la variación (URL de Cloudinary) — el catálogo la muestra
     // al seleccionar esta presentación (ej. la foto de la Hamburguesa Doble).
     foto?: string;
+    // Stock EXCLUSIVO de esta variación (Fase 6). Solo es relevante si el
+    // producto activó stock_por_variacion; si no, las variaciones comparten
+    // el stock del producto y esto queda en 0.
+    stock?: number;
 }
 
 /**
@@ -85,6 +92,10 @@ export interface Lote {
     estado: string;
     // Presentación opcional del lote (ej. "20cm", "Premium", "Oferta")
     etiqueta?: string;
+    // Fase 6 — stock por variación: a qué variación pertenece este lote
+    // (null/undefined = stock base del producto, compartido)
+    variacion_id?: number | null;
+    variacion?: string;
 }
 
 export interface NuevoProducto {
@@ -107,7 +118,9 @@ export interface NuevoProducto {
     // si el producto es NUEVO; útil para ingredientes que no deben aparecer.
     visible_en_catalogo?: boolean;
     // Variaciones y receta se crean en la MISMA transacción que el producto.
-    variaciones?: { nombre: string; precio: number }[];
+    // stock_inicial/costo: opcionales — si alguna variación trae stock, se crea
+    // su lote y el producto pasa a manejar stock por variación (Fase 6).
+    variaciones?: { nombre: string; precio: number; stock_inicial?: number; costo?: number }[];
     recetas?: { material: string; cantidad: number }[];
 }
 
@@ -117,6 +130,9 @@ export interface Restock {
     precio_venta: number;
     stock: number;
     etiqueta?: string;
+    // Variación a la que llega el stock (obligatoria si el producto maneja
+    // stock por variación — Fase 6)
+    variacion?: string;
 }
 
 export interface Venta {
@@ -270,7 +286,7 @@ export const api = {
     getLotes: () => request<Lote[]>("/inventario/lotes"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string; visible_en_catalogo?: boolean; sufijo_precio?: string; tipo_producto?: string; costo_servicio?: number; precio_servicio?: number }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string; visible_en_catalogo?: boolean; sufijo_precio?: string; tipo_producto?: string; costo_servicio?: number; precio_servicio?: number; stock_por_variacion?: boolean }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
     // Categorías
     getCategorias: () => request<Categoria[]>("/inventario/categorias"),
     crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),
@@ -281,13 +297,16 @@ export const api = {
             `/inventario/categoria/${encodeURIComponent(categoria)}/visibilidad`,
             { method: "PATCH" }
         ),
-    editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number; etiqueta?: string }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number; etiqueta?: string; variacion?: string }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    // Reasignar/desvincular la variación de un lote (Fase 6) — '' = base
+    reasignarLoteVariacion: (id: string, variacion: string) =>
+        request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify({ variacion }) }),
     eliminarLote: (id: string) => request<{ ok: boolean; producto: string; producto_desactivado: boolean }>(`/inventario/lote/${id}`, { method: "DELETE" }),
     // Variaciones (Fase 2): presentaciones con precio propio por producto
     getVariaciones: (producto: string) => request<Variacion[]>(`/inventario/variaciones/${encodeURIComponent(producto)}`),
     crearVariacion: (producto: string, nombre: string, precio: number, foto?: string) => request<{ ok: boolean; variacion: Variacion }>("/inventario/variaciones", { method: "POST", body: JSON.stringify({ producto, nombre, precio, foto: foto ?? "" }) }),
     editarVariacion: (id: number, nombre: string, precio: number, foto?: string) => request<{ ok: boolean; variacion: Variacion }>(`/inventario/variaciones/${id}`, { method: "PATCH", body: JSON.stringify(foto !== undefined ? { nombre, precio, foto } : { nombre, precio }) }),
-    eliminarVariacion: (id: number) => request<{ ok: boolean; id: number }>(`/inventario/variaciones/${id}`, { method: "DELETE" }),
+    eliminarVariacion: (id: number, confirmar = false) => request<{ ok: boolean; id: number } | { ok: boolean; requiere_confirmacion: boolean; unidades: number; lotes: number; mensaje: string }>(`/inventario/variaciones/${id}?confirmar=${confirmar}`, { method: "DELETE" }),
     // Sube (o reemplaza) la foto propia de una variación (Fase 5)
     subirFotoVariacion: async (variacionId: number, file: File): Promise<{ ok: boolean; url: string }> => {
         const authHeaders = await getAuthHeaders()

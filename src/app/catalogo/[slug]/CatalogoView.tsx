@@ -38,7 +38,10 @@ interface ProductoPublico {
     // 'stock' | 'servicio' | 'compuesto' — sin stock: no se agotan nunca
     tipo_producto?: string
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
-    variaciones?: { id: number; nombre: string; precio: number; foto?: string }[]
+    variaciones?: { id: number; nombre: string; precio: number; foto?: string; stock?: number }[]
+    // Fase 6: si true, cada variación lleva su propio inventario (las agotadas
+    // se muestran como "Agotado" y no se pueden elegir)
+    stock_por_variacion?: boolean
 }
 
 interface ConfigCatalogo {

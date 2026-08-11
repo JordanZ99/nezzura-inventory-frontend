@@ -126,20 +126,28 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
  * Alta de variaciones (crear producto): lista simple de nombre + precio.
  * Se persisten en la MISMA transacción que el producto (crear_producto_completo).
  */
-function AltaVariaciones({ lista, disabled = false, onAgregar, onQuitar }: {
-    lista: { nombre: string; precio: number }[]
+function AltaVariaciones({ lista, tipoStock = false, disabled = false, onAgregar, onQuitar }: {
+    lista: { nombre: string; precio: number; stock_inicial?: number; costo?: number }[]
+    tipoStock?: boolean  // si el producto es tipo 'stock', muestra stock inicial + costo por variación
     disabled?: boolean
-    onAgregar: (nombre: string, precio: number) => void
+    onAgregar: (nombre: string, precio: number, stockInicial?: number, costo?: number) => void
     onQuitar: (i: number) => void
 }) {
     const [nombre, setNombre] = useState("")
     const [precio, setPrecio] = useState("")
+    const [stockInicial, setStockInicial] = useState("")
+    const [costo, setCosto] = useState("")
     const puede = nombre.trim() !== "" && precio !== "" && Number(precio) > 0
 
     const agregar = () => {
         if (!puede) return
-        onAgregar(nombre.trim(), Number(precio))
-        setNombre(""); setPrecio("")
+        onAgregar(
+            nombre.trim(),
+            Number(precio),
+            stockInicial === "" ? undefined : Number(stockInicial),
+            costo === "" ? undefined : Number(costo),
+        )
+        setNombre(""); setPrecio(""); setStockInicial(""); setCosto("")
     }
 
     return (
@@ -150,6 +158,11 @@ function AltaVariaciones({ lista, disabled = false, onAgregar, onQuitar }: {
             <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
                 Presentaciones con precio propio (ej. S/M/L, Sencilla/Doble). Se crean junto al producto y aparecen en el catálogo como "desde $X".
             </p>
+            {tipoStock && (
+                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
+                    Si llenas el <strong>stock inicial</strong> de alguna variación, cada una llevará su propio inventario (se marcará "Agotado" en el catálogo cuando se acabe) y se creará su lote con el costo que pongas (si lo dejas vacío, usa el costo del producto).
+                </p>
+            )}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <input
                     className="input-primary"
@@ -172,6 +185,30 @@ function AltaVariaciones({ lista, disabled = false, onAgregar, onQuitar }: {
                         onChange={e => setPrecio(e.target.value)}
                     />
                 </div>
+                {tipoStock && (
+                    <>
+                        <input
+                            className="input-primary"
+                            style={{ width: 92 }}
+                            type="number" min="0" step="0.01"
+                            placeholder="Stock inic."
+                            title="Stock inicial de esta variación (crea su propio lote)"
+                            value={stockInicial}
+                            disabled={disabled}
+                            onChange={e => setStockInicial(e.target.value)}
+                        />
+                        <input
+                            className="input-primary"
+                            style={{ width: 92 }}
+                            type="number" min="0" step="0.01"
+                            placeholder="Costo $"
+                            title="Costo del lote inicial (opcional; usa el del producto si se omite)"
+                            value={costo}
+                            disabled={disabled}
+                            onChange={e => setCosto(e.target.value)}
+                        />
+                    </>
+                )}
                 <button
                     onClick={agregar}
                     disabled={disabled || !puede}
@@ -191,6 +228,9 @@ function AltaVariaciones({ lista, disabled = false, onAgregar, onQuitar }: {
                     {lista.map((v, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 10, padding: "6px 10px" }}>
                             <span style={{ flex: 1, fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>{v.nombre}</span>
+                            {tipoStock && typeof v.stock_inicial === "number" && v.stock_inicial > 0 && (
+                                <span style={{ fontWeight: 700, fontSize: "0.72rem", color: "#2e7d32" }}>{v.stock_inicial} uds</span>
+                            )}
                             <span style={{ fontWeight: 800, fontSize: "0.8rem", color: "var(--primary-dark)" }}>${v.precio.toFixed(2)}</span>
                             <button onClick={() => onQuitar(i)} title="Quitar" style={{ background: "none", border: "none", cursor: "pointer", color: "#e53935", padding: 4 }}>
                                 <Icon name="Trash" size={15} />
@@ -310,9 +350,12 @@ function AltaMateriales({ inv, lista, disabled = false, onAgregar, onQuitar }: {
  * Fila editable de una variación: nombre + precio propios, con botones
  * Guardar (persiste el cambio) y Eliminar.
  */
-function VariacionRow({ variacion, disabled, onGuardar, onEliminar, onCambiarFoto, onQuitarFoto }: {
+function VariacionRow({ variacion, disabled, stockVisible = false, onGuardar, onEliminar, onCambiarFoto, onQuitarFoto }: {
     variacion: Variacion
     disabled: boolean
+    // Fase 6: muestra el stock propio de la variación (solo si el producto
+    // maneja stock por variación)
+    stockVisible?: boolean
     onGuardar: (nombre: string, precio: number) => void
     onEliminar: () => void
     onCambiarFoto: (file: File) => void
@@ -393,6 +436,15 @@ function VariacionRow({ variacion, disabled, onGuardar, onEliminar, onCambiarFot
                     onChange={e => setPrecio(e.target.value)}
                 />
             </div>
+            {stockVisible && (typeof variacion.stock === "number" ? (
+                variacion.stock > 0 ? (
+                    <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "#2e7d32", whiteSpace: "nowrap" }}>{variacion.stock} uds</span>
+                ) : (
+                    <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "#ad4955ff", whiteSpace: "nowrap" }}>Agotado</span>
+                )
+            ) : (
+                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>0 uds</span>
+            ))}
             <button
                 className="btn-primary"
                 disabled={disabled}
@@ -477,15 +529,15 @@ export default function Inventario() {
     const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock" as string, costo_servicio: "" as number | string, precio_servicio: "" as number | string, visible_en_catalogo: true as boolean })
     // Variaciones y materiales pendientes del ALTA (se guardan en la misma
     // transacción que el producto, vía crear_producto_completo)
-    const [nuevasVariaciones, setNuevasVariaciones] = useState<{ nombre: string; precio: number }[]>([])
+    const [nuevasVariaciones, setNuevasVariaciones] = useState<{ nombre: string; precio: number; stock_inicial?: number; costo?: number }[]>([])
     const [nuevosMateriales, setNuevosMateriales] = useState<{ material: string; cantidad: number }[]>([])
-    const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, etiqueta: "" })
+    const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, etiqueta: "", variacion: "" })
     const [nuevasFotos, setNuevasFotos] = useState<FotoGaleria[]>([])
     const [editFotos, setEditFotos] = useState<FotoGaleria[]>([])
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true, sufijo_precio: "", tipo_producto: "stock", costo_servicio: "" as number | string, precio_servicio: "" as number | string })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true, sufijo_precio: "", tipo_producto: "stock", costo_servicio: "" as number | string, precio_servicio: "" as number | string, stock_por_variacion: false })
 
     // ── Variaciones del producto en edición (Fase 2) ──
     // Cada variación es una presentación con su PROPIO precio (ej. Sencilla/Doble, S/M/L).
@@ -509,7 +561,7 @@ export default function Inventario() {
 
     // Estado para editar lotes individuales dentro del formulario Editar Prod.
     const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
-    const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string, etiqueta: "" })
+    const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string, etiqueta: "", variacion: "" })
     // Estado para el diálogo de confirmación persistente al dar de baja un lote
     // Contiene el id del lote pendiente de confirmación; no se cierra hasta eliminar o recargar
     const [loteEliminarConfirm, setLoteEliminarConfirm] = useState<string | null>(null)
@@ -791,10 +843,10 @@ export default function Inventario() {
             const prodActual = inv.find(p => p.producto === restock.producto)
             const precio = restock.precio_venta === "" ? (prodActual?.precio_venta || 0) : Number(restock.precio_venta)
             await api.restockear({ ...restock, costo: Number(restock.costo), stock: Number(restock.stock), precio_venta: precio })
-            mostrarMsg(true, `+${Number(restock.stock)} a ${restock.producto}`)
+            mostrarMsg(true, `+${Number(restock.stock)} a ${restock.producto}${restock.variacion ? ` (${restock.variacion})` : ""}`)
             recargar()
             setRestockProdSeleccionado(null)
-            setRestock({ producto: "", costo: "", precio_venta: "", stock: 1, etiqueta: "" })
+            setRestock({ producto: "", costo: "", precio_venta: "", stock: 1, etiqueta: "", variacion: "" })
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -845,6 +897,8 @@ export default function Inventario() {
                 costo_servicio: editProdVal.tipo_producto === "servicio" ? Number(editProdVal.costo_servicio === "" ? 0 : editProdVal.costo_servicio) : undefined,
                 // Servicios y compuestos guardan su precio propio en precio_servicio
                 precio_servicio: editProdVal.tipo_producto !== "stock" ? Number(editProdVal.precio_servicio === "" ? 0 : editProdVal.precio_servicio) : undefined,
+                // Fase 6: stock por variación (solo tiene sentido en tipo stock)
+                stock_por_variacion: editProdVal.tipo_producto === "stock" ? editProdVal.stock_por_variacion : undefined,
             }
             await api.editarProducto(prodEditar, payload)
 
@@ -936,6 +990,21 @@ export default function Inventario() {
             if (res.ok) {
                 setEditVariaciones(prev => prev.filter(v => v.id !== id))
                 mostrarMsg(true, "Variación eliminada")
+            } else if ("requiere_confirmacion" in res && res.requiere_confirmacion) {
+                // La variación tiene stock: advertir y ofrecer eliminar de todos modos
+                setGuardandoVar(false)
+                const ok = window.confirm(
+                    `${res.mensaje}\n\nUnidades en stock: ${res.unidades} (${res.lotes} lote(s)).\n\nSi la eliminas, su stock desaparecerá del inventario.`
+                )
+                if (!ok) return
+                setGuardandoVar(true)
+                const res2 = await api.eliminarVariacion(id, true)
+                if (res2.ok) {
+                    setEditVariaciones(prev => prev.filter(v => v.id !== id))
+                    mostrarMsg(true, "Variación eliminada")
+                } else {
+                    mostrarMsg(false, (res2 as { mensaje?: string }).mensaje ?? "Error al eliminar")
+                }
             } else {
                 mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al eliminar")
             }
@@ -1048,7 +1117,7 @@ export default function Inventario() {
         if (loteEditandoId === null || guardando) return
         setGuardando(true)
         try {
-            await api.editarLote(loteEditandoId, { costo: Number(editLoteVal.costo), precio_venta: Number(editLoteVal.precio_venta), stock: Number(editLoteVal.stock), etiqueta: editLoteVal.etiqueta })
+            await api.editarLote(loteEditandoId, { costo: Number(editLoteVal.costo), precio_venta: Number(editLoteVal.precio_venta), stock: Number(editLoteVal.stock), etiqueta: editLoteVal.etiqueta, variacion: editLoteVal.variacion })
             mostrarMsg(true, "Lote actualizado")
             setLoteEditandoId(null)
             recargar()
@@ -1434,8 +1503,9 @@ export default function Inventario() {
                             {/* Variaciones e ingredientes: se crean junto al producto (transacción única) */}
                             <AltaVariaciones
                                 lista={nuevasVariaciones}
+                                tipoStock={form.tipo_producto === "stock"}
                                 disabled={guardando}
-                                onAgregar={(nombre, precio) => setNuevasVariaciones(prev => [...prev, { nombre, precio }])}
+                                onAgregar={(nombre, precio, stockInicial, costo) => setNuevasVariaciones(prev => [...prev, { nombre, precio, stock_inicial: stockInicial, costo }])}
                                 onQuitar={(i) => setNuevasVariaciones(prev => prev.filter((_, idx) => idx !== i))}
                             />
                             {form.tipo_producto === "compuesto" && (
@@ -1736,7 +1806,8 @@ export default function Inventario() {
                                                 ...r,
                                                 producto: prod.producto,
                                                 costo: Number(prod.costo_promedio ?? 0).toFixed(2),
-                                                precio_venta: Number(prod.precio_venta ?? 0).toFixed(2)
+                                                precio_venta: Number(prod.precio_venta ?? 0).toFixed(2),
+                                                variacion: ""
                                             }))
                                         }}
                                         onMouseEnter={e => {
@@ -1787,7 +1858,7 @@ export default function Inventario() {
                                     setRestockBuscador("")
                                     setRestockBuscadorDebounced("")
                                     setRestockCatSelec("Todas")
-                                    setRestock({ producto: "", costo: "", precio_venta: "", stock: 1, etiqueta: "" })
+                                    setRestock({ producto: "", costo: "", precio_venta: "", stock: 1, etiqueta: "", variacion: "" })
                                 }}
                                 style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
                             >
@@ -1832,13 +1903,31 @@ export default function Inventario() {
                         <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>
                             Costo y precio prellenados según el producto. Ajústalos si este nuevo lote tiene valores diferentes.
                         </p>
+                        {restockProdSeleccionado?.stock_por_variacion && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                                    ¿A qué variación llegó el stock? *
+                                </label>
+                                <select
+                                    className="input-primary"
+                                    value={restock.variacion}
+                                    onChange={e => setRestock(r => ({ ...r, variacion: e.target.value }))}
+                                    style={{ width: "100%" }}
+                                >
+                                    <option value="">Selecciona la variación...</option>
+                                    {(restockProdSeleccionado.variaciones || []).map(v => (
+                                        <option key={v.id} value={v.nombre}>{v.nombre}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                             <Input label="Cantidad" type="number" min={0} step="0.1" placeholder="1" value={restock.stock} onChange={e => setRestock(r => ({ ...r, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
                         <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={restock.etiqueta} onChange={e => setRestock(r => ({ ...r, etiqueta: e.target.value }))} />
-                        <button className="btn-primary" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0}>
+                        <button className="btn-primary" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0 || (!!restockProdSeleccionado?.stock_por_variacion && !restock.variacion)}>
                             {guardando ? "Procesando..." : "Añadir Stock"}
                         </button>
                     </div>
@@ -1949,6 +2038,7 @@ export default function Inventario() {
                                                     tipo_producto: prod.tipo_producto ?? "stock",
                                                     costo_servicio: prod.costo_servicio ?? "",
                                                     precio_servicio: prod.precio_servicio ?? "",
+                                                    stock_por_variacion: prod.stock_por_variacion ?? false,
                                                 })
                                                 // Cargar las variaciones del producto (nombre + precio propio)
                                                 setEditVariaciones(prod.variaciones ?? [])
@@ -2128,6 +2218,40 @@ export default function Inventario() {
                                 Presentaciones con su propio precio para este producto (ej. Sencilla $60 / Doble $95, talla S/M/L, Corte Caballero/Dama). Aparecen como selector en el POS, en el catálogo ("desde $X") y se registran en cada venta.
                             </p>
 
+                            {/* Fase 6: stock separado por variación (solo tipo stock) */}
+                            {editProdVal.tipo_producto === "stock" && (
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card2)", borderRadius: 12, padding: "10px 14px", flexWrap: "wrap" }}>
+                                    <Icon name="Boxes" size={18} color={editProdVal.stock_por_variacion ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                    <div style={{ flex: 1, minWidth: 180 }}>
+                                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>Stock separado por variación</p>
+                                        <p style={{ margin: "2px 0 0", fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                                            Cada variación lleva su propio inventario (ej. llavero Corazones: Blanco 3, Rojo 5, Azul 0) y se marca "Agotado" en el catálogo cuando se acaba. El restock pide la variación y la tabla de lotes muestra a cuál pertenece cada lote.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const nuevo = !editProdVal.stock_por_variacion
+                                            if (nuevo) {
+                                                // Advertencia si hay lotes base con stock sin variación asignada
+                                                const sinAsignar = lotes.filter(l => l.producto === prodEditar && !l.variacion && (l.stock_lote || 0) !== 0)
+                                                if (sinAsignar.length > 0 && !confirm(`Este producto tiene ${sinAsignar.length} lote(s) con stock sin variación asignada. Aparecerán en "Sin asignar" en la tabla de lotes para que los asignes manualmente.`)) return
+                                            }
+                                            setEditProdVal(p => ({ ...p, stock_por_variacion: nuevo }))
+                                        }}
+                                        style={{
+                                            padding: "6px 16px", borderRadius: 14, border: "none", cursor: "pointer",
+                                            fontWeight: 700, fontSize: "0.75rem", transition: "all 0.15s",
+                                            background: editProdVal.stock_por_variacion ? "var(--primary-mid)" : "var(--bg-card)",
+                                            color: editProdVal.stock_por_variacion ? "#fff" : "var(--text-main)",
+                                            boxShadow: editProdVal.stock_por_variacion ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+                                        }}
+                                    >
+                                        {editProdVal.stock_por_variacion ? "Activado" : "Desactivado"}
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Lista de variaciones existentes */}
                             {editVariaciones.length > 0 && (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -2136,6 +2260,7 @@ export default function Inventario() {
                                             key={v.id}
                                             variacion={v}
                                             disabled={guardandoVar}
+                                            stockVisible={editProdVal.stock_por_variacion && editProdVal.tipo_producto === "stock"}
                                             onGuardar={(nombre, precio) => editarVariacionItem(v.id, nombre, precio)}
                                             onEliminar={() => eliminarVariacionItem(v.id)}
                                             onCambiarFoto={(file) => subirFotoVariacionItem(v, file)}
@@ -2350,7 +2475,7 @@ export default function Inventario() {
                                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
                                     <thead>
                                         <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}>
-                                            {["ID", "Etiqueta", "Costo unit.", "Precio venta", "Stock", "Margen", ""].map(h => (
+                                            {["ID", "Variación", "Etiqueta", "Costo unit.", "Precio venta", "Stock", "Margen", ""].map(h => (
                                                 <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
                                             ))}
                                         </tr>
@@ -2365,6 +2490,26 @@ export default function Inventario() {
                                                     onMouseLeave={e => (e.currentTarget.style.background = "")}>
                                                     <td style={{ padding: "8px 12px", fontSize: "0.72rem", color: "var(--text-muted)" }}>
                                                         #{lote.id_lote}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>
+                                                        {editando ? (
+                                                            <select
+                                                                className="input-primary"
+                                                                style={{ width: 130, padding: 4 }}
+                                                                value={editLoteVal.variacion}
+                                                                onChange={e => setEditLoteVal(l => ({ ...l, variacion: e.target.value }))}
+                                                                title="Asigna a qué variación pertenece este lote ('' = stock base)"
+                                                            >
+                                                                <option value="">Base (sin variación)</option>
+                                                                {editVariaciones.map(v => (
+                                                                    <option key={v.id} value={v.nombre}>{v.nombre}</option>
+                                                                ))}
+                                                            </select>
+                                                        ) : (
+                                                            lote.variacion
+                                                                ? <span style={{ fontWeight: 700, color: "var(--primary-dark)" }}>{lote.variacion}</span>
+                                                                : <span style={{ color: "var(--text-muted)" }}>Base</span>
+                                                        )}
                                                     </td>
                                                     <td style={{ padding: "8px 12px" }}>
                                                         {editando ? (
@@ -2418,7 +2563,7 @@ export default function Inventario() {
                                                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                                                                 <button onClick={() => {
                                                                     setLoteEditandoId(lote.id_lote)
-                                                                    setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote, etiqueta: lote.etiqueta || "" })
+                                                                    setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote, etiqueta: lote.etiqueta || "", variacion: lote.variacion || "" })
                                                                 }}
                                                                     style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
                                                                     Editar
@@ -2436,7 +2581,7 @@ export default function Inventario() {
                                         })}
                                         {lotes.filter(l => l.producto === prodEditar).length === 0 && (
                                             <tr>
-                                                <td colSpan={6} style={{ textAlign: "center", padding: "24px 12px", color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                                                <td colSpan={7} style={{ textAlign: "center", padding: "24px 12px", color: "var(--text-muted)", fontSize: "0.8rem" }}>
                                                     No hay lotes registrados para este producto.
                                                 </td>
                                             </tr>

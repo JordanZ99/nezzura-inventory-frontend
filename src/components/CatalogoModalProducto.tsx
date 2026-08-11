@@ -27,7 +27,9 @@ interface ProductoPublico {
     tipo_producto?: string
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
     // foto?: URL propia de la variación — encabeza la galería al seleccionarla
-    variaciones?: { id: number; nombre: string; precio: number; foto?: string }[]
+    variaciones?: { id: number; nombre: string; precio: number; foto?: string; stock?: number }[]
+    // Fase 6: si true, cada variación lleva su propio inventario
+    stock_por_variacion?: boolean
 }
 
 interface ConfigCatalogo {
@@ -103,10 +105,12 @@ async function descargarImagen(url: string, nombre: string) {
 }
 
 export default function CatalogoModalProducto({ producto, config, tema, onClose }: Props) {
-    // Variación seleccionada (si el producto tiene). Por defecto la primera,
-    // que además define el precio mostrado y la foto mostrada.
     const variaciones = producto.variaciones || []
-    const [variacionSel, setVariacionSel] = useState(() => variaciones[0]?.nombre ?? "")
+    // Fase 6: si el producto maneja stock por variación, las agotadas no se
+    // pueden elegir; la selección por defecto es la primera DISPONIBLE.
+    const stockPorVar = !!producto.stock_por_variacion
+    const disponibles = variaciones.filter(v => !stockPorVar || (v.stock ?? 0) > 0)
+    const [variacionSel, setVariacionSel] = useState(() => disponibles[0]?.nombre ?? variaciones[0]?.nombre ?? "")
     const variacionActual = variaciones.find(v => v.nombre === variacionSel) || null
     const precioMostrado = variacionActual ? variacionActual.precio : producto.precio_venta
     const sufijoMostrado = variacionActual ? "" : producto.sufijo_precio
@@ -474,14 +478,17 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                         )}
                     </div>
 
-                    {/* Selector de variación (solo si el producto tiene) */}
-                    {config.mostrar_precios && variaciones.length > 0 && (
+                    {/* Selector de variación (siempre visible si el producto tiene,
+                        incluso con precios ocultos — Fase 6) */}
+                    {variaciones.length > 0 && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                             {variaciones.map(v => {
                                 const activa = v.nombre === variacionSel
+                                const agotada = stockPorVar && (v.stock ?? 0) <= 0
                                 return (
                                     <button
                                         key={v.id}
+                                        disabled={agotada}
                                         onClick={() => setVariacionSel(v.nombre)}
                                         style={{
                                             display: "flex", alignItems: "center", gap: 8,
@@ -489,15 +496,21 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                             borderRadius: 20,
                                             border: `1.5px solid ${activa ? tema.primary : tema.border}`,
                                             background: activa ? `${tema.primary}18` : tema.bg,
-                                            color: tema.text,
+                                            color: agotada ? tema.textMuted : tema.text,
                                             fontWeight: 700,
                                             fontSize: "0.78rem",
-                                            cursor: "pointer",
+                                            cursor: agotada ? "not-allowed" : "pointer",
+                                            opacity: agotada ? 0.55 : 1,
                                             transition: "all 0.15s",
                                         }}
                                     >
                                         {v.nombre}
-                                        <span style={{ color: tema.primaryDark, fontWeight: 800 }}>${v.precio.toFixed(2)}</span>
+                                        {stockPorVar && !agotada && (
+                                            <span style={{ fontSize: "0.66rem", fontWeight: 600, opacity: 0.75 }}>{v.stock} uds</span>
+                                        )}
+                                        {agotada
+                                            ? <span style={{ color: "#ef4444", fontWeight: 800, fontSize: "0.7rem" }}>Agotado</span>
+                                            : (config.mostrar_precios && <span style={{ color: tema.primaryDark, fontWeight: 800 }}>${v.precio.toFixed(2)}</span>)}
                                     </button>
                                 )
                             })}
