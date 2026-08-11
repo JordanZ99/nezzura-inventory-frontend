@@ -22,21 +22,45 @@ const MAX_ORIGINAL_SIZE_MB = 10;
  * duplicar transformaciones. Cualquier otra URL (local, relativa, otro CDN)
  * también se devuelve sin cambios.
  */
-export function optimizarImagenCloudinary(url: string | undefined, ancho: number): string {
-    if (!url) return url ?? ""
-    if (!url.includes("res.cloudinary.com")) return url
+/**
+ * Helper compartido: construye la URL de Cloudinary con una transformación
+ * insertada, solo si la URL es de res.cloudinary.com y NO trae transformación
+ * previa (no se duplica la cadena). Devuelve null si no aplica.
+ */
+function construirUrlCloudinary(url: string | undefined, transformacion: string): string | null {
+    if (!url || !url.includes("res.cloudinary.com")) return null
     const marker = "/image/upload/"
     const idx = url.indexOf(marker)
-    if (idx === -1) return url
+    if (idx === -1) return null
 
     // Si ya hay una transformación (f_auto, q_auto, w_, c_, e_, etc.) en
     // cualquiera de los segmentos de la ruta, no duplicar la cadena.
     const despues = url.slice(idx + marker.length)
     const segmentos = despues.split("/")
-    if (segmentos.some(seg => /f_auto|q_auto|\bw_\d|\bc_|\be_|\bt_\w+/i.test(seg))) return url
+    if (segmentos.some(seg => /f_auto|q_auto|\bw_\d|\bc_|\be_|\bt_\w+/i.test(seg))) return null
 
-    const transformacion = `w_${ancho},f_auto,q_auto`
     return `${url.slice(0, idx + marker.length)}${transformacion}/${despues}`
+}
+
+export function optimizarImagenCloudinary(url: string | undefined, ancho: number): string {
+    return construirUrlCloudinary(url, `w_${ancho},f_auto,q_auto`) ?? url ?? ""
+}
+
+/**
+ * Genera la URL del placeholder LQIP (Low Quality Image Placeholder) de
+ * Cloudinary: una versión minúscula (30px) y muy borrosa de la misma imagen,
+ * que pesa menos de 1 KB y carga al instante.
+ *
+ * Ejemplo:
+ *   https://res.cloudinary.com/xx/image/upload/v1/abc.jpg
+ *   → https://res.cloudinary.com/xx/image/upload/w_30,e_blur:800,f_auto,q_auto:low/v1/abc.jpg
+ *
+ * Igual que optimizarImagenCloudinary: solo afecta a URLs de res.cloudinary.com
+ * y no toca URLs que ya tengan transformaciones. Para URLs que NO son de
+ * Cloudinary devuelve "" (sin placeholder) para no descargar la imagen dos veces.
+ */
+export function placeholderBlurCloudinary(url: string | undefined): string {
+    return construirUrlCloudinary(url, "w_30,e_blur:800,f_auto,q_auto:low") ?? ""
 }
 
 /**

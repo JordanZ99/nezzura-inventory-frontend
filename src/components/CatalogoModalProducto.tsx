@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Icon from "@/components/ui/Icon"
-import { optimizarImagenCloudinary } from "@/lib/image-utils"
+import { optimizarImagenCloudinary, placeholderBlurCloudinary } from "@/lib/image-utils"
 
 interface ProductoPublico {
     producto: string
@@ -111,6 +111,8 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
 
     const [indice, setIndice] = useState(0)
     const touchX = useRef<number | null>(null)
+    // Controla el fade-in: mientras la foto real carga, se ve el placeholder LQIP borroso
+    const [imagenLista, setImagenLista] = useState(false)
 
     // Bloquear el scroll de la página (body + html) mientras el modal está abierto
     // y cerrar con la tecla Escape
@@ -136,6 +138,14 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     // Versión optimizada SOLO para mostrar (ahorra bandwidth): la descarga
     // sigue usando fotoActual (URL original en máxima calidad).
     const fotoActualOptimizada = optimizarImagenCloudinary(fotoActual, 960)
+    // Placeholder LQIP: miniatura de 30px borrosa (<1 KB) que se ve al instante
+    const fotoPlaceholder = placeholderBlurCloudinary(fotoActual)
+
+    // Al cambiar de foto (producto o swipe), volver al estado "cargando"
+    // para que el fade-in se repita con cada imagen nueva.
+    useEffect(() => {
+        setImagenLista(false)
+    }, [fotoActualOptimizada])
     const agotado = producto.stock_total <= 0
     // Nombre base para los archivos descargados + descarga de todas las fotos
     const nombreBase = (producto.producto || "foto").replace(/[^a-zA-Z0-9áéíóúñÑ\s-]/g, "").trim() || "foto"
@@ -262,11 +272,38 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                     }}
                 >
                     {fotoActual ? (
-                        <img
-                            src={fotoActualOptimizada}
-                            alt={producto.producto}
-                            style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-                        />
+                        <div style={{ position: "absolute", inset: 0 }}>
+                            {/* Placeholder LQIP: borroso, se ve al instante mientras carga la foto real */}
+                            <img
+                                src={fotoPlaceholder}
+                                alt=""
+                                aria-hidden
+                                style={{
+                                    position: "absolute", inset: 0,
+                                    width: "100%", height: "100%",
+                                    objectFit: "contain",
+                                    filter: "blur(14px)",
+                                    transform: "scale(1.08)",
+                                    opacity: imagenLista ? 0 : 1,
+                                    transition: "opacity 0.4s ease",
+                                }}
+                            />
+                            {/* Foto real: fade-in suave al terminar de cargar */}
+                            <img
+                                src={fotoActualOptimizada}
+                                alt={producto.producto}
+                                onLoad={() => setImagenLista(true)}
+                                onError={() => setImagenLista(true)}
+                                style={{
+                                    position: "absolute", inset: 0,
+                                    width: "100%", height: "100%",
+                                    objectFit: "contain",
+                                    display: "block",
+                                    opacity: imagenLista ? 1 : 0,
+                                    transition: "opacity 0.4s ease",
+                                }}
+                            />
+                        </div>
                     ) : (
                         <div style={{
                             width: "100%", height: "100%",
