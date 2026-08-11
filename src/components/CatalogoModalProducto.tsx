@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Icon from "@/components/ui/Icon"
-import { optimizarImagenCloudinary, placeholderBlurCloudinary } from "@/lib/image-utils"
+import { optimizarImagenCloudinary } from "@/lib/image-utils"
 
 interface ProductoPublico {
     producto: string
@@ -111,7 +111,8 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
 
     const [indice, setIndice] = useState(0)
     const touchX = useRef<number | null>(null)
-    // Controla el fade-in: mientras la foto real carga, se ve el placeholder LQIP borroso
+    // Controla el fade-in: primero se ve la w_600 (ya en caché desde el grid) y
+    // cuando la w_960 termina de cargar, se funde encima (mejora de calidad).
     const [imagenLista, setImagenLista] = useState(false)
 
     // Bloquear el scroll de la página (body + html) mientras el modal está abierto
@@ -138,8 +139,8 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     // Versión optimizada SOLO para mostrar (ahorra bandwidth): la descarga
     // sigue usando fotoActual (URL original en máxima calidad).
     const fotoActualOptimizada = optimizarImagenCloudinary(fotoActual, 960)
-    // Placeholder LQIP: miniatura de 30px borrosa (<1 KB) que se ve al instante
-    const fotoPlaceholder = placeholderBlurCloudinary(fotoActual)
+    // Primer stage: la misma w_600 del grid (ya en caché del navegador → instantáneo)
+    const fotoRapida = optimizarImagenCloudinary(fotoActual, 600)
 
     // Al cambiar de foto (producto o swipe), volver al estado "cargando"
     // para que el fade-in se repita con cada imagen nueva.
@@ -273,27 +274,27 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                 >
                     {fotoActual ? (
                         <div style={{ position: "absolute", inset: 0 }}>
-                            {/* Placeholder LQIP: borroso, se ve al instante mientras carga la foto real */}
+                            {/* Primer stage: w_600 (la misma del grid, en caché) → instantáneo.
+                                Se oculta con fade cuando la w_960 está lista. */}
                             <img
-                                src={fotoPlaceholder}
+                                src={fotoRapida}
                                 alt=""
                                 aria-hidden
                                 style={{
                                     position: "absolute", inset: 0,
                                     width: "100%", height: "100%",
                                     objectFit: "contain",
-                                    filter: "blur(14px)",
-                                    transform: "scale(1.08)",
+                                    display: "block",
                                     opacity: imagenLista ? 0 : 1,
                                     transition: "opacity 0.4s ease",
                                 }}
                             />
-                            {/* Foto real: fade-in suave al terminar de cargar */}
+                            {/* Segundo stage: w_960 de calidad, fade-in suave al terminar de cargar.
+                                Si falla, la w_600 sigue visible (no se revela una imagen rota). */}
                             <img
                                 src={fotoActualOptimizada}
                                 alt={producto.producto}
                                 onLoad={() => setImagenLista(true)}
-                                onError={() => setImagenLista(true)}
                                 style={{
                                     position: "absolute", inset: 0,
                                     width: "100%", height: "100%",
