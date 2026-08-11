@@ -111,8 +111,8 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
 
     const [indice, setIndice] = useState(0)
     const touchX = useRef<number | null>(null)
-    // Controla el fade-in: primero se ve la w_600 (ya en caché desde el grid) y
-    // cuando la w_960 termina de cargar, se funde encima (mejora de calidad).
+    // Controla el swap: primero se ve la w_600 (ya en caché desde el grid) y
+    // cuando la w_960 termina de cargar, la reemplaza al instante (sin fundido).
     const [imagenLista, setImagenLista] = useState(false)
 
     // Bloquear el scroll de la página (body + html) mientras el modal está abierto
@@ -143,7 +143,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     const fotoRapida = optimizarImagenCloudinary(fotoActual, 600)
 
     // Al cambiar de foto (producto o swipe), volver al estado "cargando"
-    // para que el fade-in se repita con cada imagen nueva.
+    // para que el swap se repita con cada imagen nueva.
     useEffect(() => {
         setImagenLista(false)
     }, [fotoActualOptimizada])
@@ -275,7 +275,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                     {fotoActual ? (
                         <div style={{ position: "absolute", inset: 0 }}>
                             {/* Primer stage: w_600 (la misma del grid, en caché) → instantáneo.
-                                Se oculta con fade cuando la w_960 está lista. */}
+                                Se reemplaza al instante (sin fundido) cuando la w_960 está lista. */}
                             <img
                                 src={fotoRapida}
                                 alt=""
@@ -284,13 +284,12 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                     position: "absolute", inset: 0,
                                     width: "100%", height: "100%",
                                     objectFit: "contain",
-                                    display: "block",
-                                    opacity: imagenLista ? 0 : 1,
-                                    transition: "opacity 0.4s ease",
+                                    display: imagenLista ? "none" : "block",
                                 }}
                             />
-                            {/* Segundo stage: w_960 de calidad, fade-in suave al terminar de cargar.
-                                Si falla, la w_600 sigue visible (no se revela una imagen rota). */}
+                            {/* Segundo stage: w_960 de calidad. Se mantiene oculta (display none) para
+                                descargar en segundo plano; al terminar, reemplaza a la w_600 al
+                                instante. Si falla, la w_600 sigue visible (no se revela una imagen rota). */}
                             <img
                                 src={fotoActualOptimizada}
                                 alt={producto.producto}
@@ -299,9 +298,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                     position: "absolute", inset: 0,
                                     width: "100%", height: "100%",
                                     objectFit: "contain",
-                                    display: "block",
-                                    opacity: imagenLista ? 1 : 0,
-                                    transition: "opacity 0.4s ease",
+                                    display: imagenLista ? "block" : "none",
                                 }}
                             />
                         </div>
