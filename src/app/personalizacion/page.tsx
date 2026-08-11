@@ -45,6 +45,9 @@ export default function Personalizacion() {
     // Último logo persistido en la DB (para borrar el anterior de Cloudinary al reemplazarlo)
     const [logoOriginal, setLogoOriginal] = useState("")
     const [guardando, setGuardando] = useState(false)
+    // Modo de precio sugerido del Punto de Venta ('antiguo' | 'maximo' | 'reciente')
+    const [modoPrecio, setModoPrecio] = useState("antiguo")
+    const [guardandoModo, setGuardandoModo] = useState(false)
     const [subiendoLogo, setSubiendoLogo] = useState(false)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
     const inputFileRef = useRef<HTMLInputElement>(null)
@@ -107,6 +110,30 @@ export default function Personalizacion() {
             setLogoOriginal(tenant.logo || "")
         }
     }, [tenant])
+
+    // Cargar el modo de precio sugerido del Punto de Venta
+    useEffect(() => {
+        api.getPerfil()
+            .then(p => setModoPrecio(p.modo_precio_sugerido || "antiguo"))
+            .catch(() => {})
+    }, [])
+
+    async function cambiarModoPrecio(modo: string) {
+        setModoPrecio(modo)
+        setGuardandoModo(true)
+        try {
+            await api.actualizarModoPrecioSugerido(modo)
+            mostrarMsg(true, "Modo de precio sugerido actualizado")
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error guardando el modo de precio"}`)
+            // Revertir al valor persistido
+            api.getPerfil()
+                .then(p => setModoPrecio(p.modo_precio_sugerido || "antiguo"))
+                .catch(() => {})
+        } finally {
+            setGuardandoModo(false)
+        }
+    }
 
     useEffect(() => {
         async function loadData() {
@@ -683,6 +710,38 @@ export default function Personalizacion() {
                                         onChange={e => setEmpresa(e.target.value)}
                                         maxLength={60}
                                     />
+                                </div>
+
+                                {/* Modo de precio sugerido del Punto de Venta */}
+                                <div>
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Precio sugerido (Punto de Venta)</span>
+                                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0 0 8px", fontWeight: 500 }}>
+                                        Cómo el POS sugiere el precio al agregar un producto al carrito.
+                                    </p>
+                                    <select
+                                        value={modoPrecio}
+                                        disabled={guardandoModo}
+                                        onChange={e => cambiarModoPrecio(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            fontSize: "0.8rem",
+                                            padding: "8px 10px",
+                                            borderRadius: 8,
+                                            border: "1px solid var(--border-primary)",
+                                            background: "var(--bg-card2)",
+                                            color: "var(--text-main)",
+                                            outline: "none",
+                                            cursor: "pointer",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        <option value="antiguo">Lote más antiguo con stock (recomendado)</option>
+                                        <option value="maximo">Precio máximo con stock</option>
+                                        <option value="reciente">Lote más reciente con stock</option>
+                                    </select>
+                                    <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", display: "block", marginTop: 6 }}>
+                                        {guardandoModo ? "Guardando..." : "Se guarda automáticamente"}
+                                    </span>
                                 </div>
 
                                 {/* Guardar Cambios */}
