@@ -25,6 +25,10 @@ interface ProductoPublico {
     imagenes?: string[]
     // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
     sufijo_precio?: string
+    // 'stock' | 'servicio' — los servicios no tienen inventario (no se agotan)
+    tipo_producto?: string
+    // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
+    variaciones?: { id: number; nombre: string; precio: number }[]
 }
 
 interface ConfigCatalogo {
@@ -112,7 +116,9 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
 
     // ── Tarjeta de producto (compartida entre todos los modos) ──
     const renderTarjeta = (p: ProductoPublico, enSeccion: boolean) => {
-        const agotado = p.stock_total <= 0
+        // Servicios y compuestos no tienen inventario propio: nunca se "agotan"
+        const esSinStock = p.tipo_producto !== undefined && p.tipo_producto !== "stock"
+        const agotado = !esSinStock && p.stock_total <= 0
         return (
             <div
                 key={p.producto}
@@ -150,8 +156,8 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                             <Icon name="Package" size={40} color="var(--text-muted)" />
                         </div>
                     )}
-                    {/* Badge de stock */}
-                    {config.mostrar_stock && agotado && (
+                    {/* Badge de stock (los servicios no se agotan) */}
+                    {config.mostrar_stock && !esSinStock && agotado && (
                         <span style={{
                             position: "absolute", top: 10, right: 10,
                             background: "rgba(239,68,68,0.95)", color: "#fff",
@@ -161,7 +167,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                             Agotado
                         </span>
                     )}
-                    {config.mostrar_stock && !agotado && p.stock_total <= 5 && (
+                    {config.mostrar_stock && !esSinStock && !agotado && p.stock_total <= 5 && (
                         <span style={{
                             position: "absolute", top: 10, right: 10,
                             background: "rgba(245,158,11,0.95)", color: "#fff",
@@ -212,17 +218,26 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                                 color: tema.primaryDark,
                                 whiteSpace: "nowrap",
                             }}>
-                                ${p.precio_venta.toFixed(2)}
-                                {p.sufijo_precio && (
-                                    <span style={{ fontSize: "0.72rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
-                                        {p.sufijo_precio}
+                                {(p.variaciones || []).length > 0 ? (
+                                    <span>
+                                        <span style={{ fontSize: "0.7rem", fontWeight: 700, opacity: 0.7, marginRight: 2 }}>desde </span>
+                                        ${Math.min(...(p.variaciones || []).map(v => v.precio)).toFixed(2)}
+                                    </span>
+                                ) : (
+                                    <span>
+                                        ${p.precio_venta.toFixed(2)}
+                                        {p.sufijo_precio && (
+                                            <span style={{ fontSize: "0.72rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
+                                                {p.sufijo_precio}
+                                            </span>
+                                        )}
                                     </span>
                                 )}
                             </span>
                         ) : (
                             <span />
                         )}
-                        {config.mostrar_stock && !agotado && (
+                        {config.mostrar_stock && !esSinStock && !agotado && (
                             <span style={{
                                 fontSize: "0.7rem", fontWeight: 600,
                                 color: tema.textMuted,

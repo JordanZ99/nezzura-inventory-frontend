@@ -23,6 +23,11 @@ interface ProductoPublico {
     imagenes?: string[]
     // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
     sufijo_precio?: string
+    // 'stock' | 'servicio' — los servicios no tienen inventario (no se agotan)
+    tipo_producto?: string
+    // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
+    // foto?: URL propia de la variación — encabeza la galería al seleccionarla
+    variaciones?: { id: number; nombre: string; precio: number; foto?: string }[]
 }
 
 interface ConfigCatalogo {
@@ -98,7 +103,16 @@ async function descargarImagen(url: string, nombre: string) {
 }
 
 export default function CatalogoModalProducto({ producto, config, tema, onClose }: Props) {
-    // Galería completa: foto principal + extras, sin duplicados ni "No hay foto"
+    // Variación seleccionada (si el producto tiene). Por defecto la primera,
+    // que además define el precio mostrado y la foto mostrada.
+    const variaciones = producto.variaciones || []
+    const [variacionSel, setVariacionSel] = useState(() => variaciones[0]?.nombre ?? "")
+    const variacionActual = variaciones.find(v => v.nombre === variacionSel) || null
+    const precioMostrado = variacionActual ? variacionActual.precio : producto.precio_venta
+    const sufijoMostrado = variacionActual ? "" : producto.sufijo_precio
+
+    // Galería completa: foto de la variación seleccionada (si tiene) + foto
+    // principal + extras, sin duplicados ni "No hay foto".
     const galeria = (() => {
         const lista: string[] = []
         const agregar = (u: string) => {
@@ -106,6 +120,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
             const resuelta = resolverImagen(u)
             if (resuelta && !lista.includes(resuelta)) lista.push(resuelta)
         }
+        agregar(variacionActual?.foto ?? "")
         agregar(producto.imagen)
         ;(producto.imagenes || []).forEach(agregar)
         return lista
@@ -116,6 +131,11 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     // Controla el swap: primero se ve la w_600 (ya en caché desde el grid) y
     // cuando la w_960 termina de cargar, la reemplaza al instante (sin fundido).
     const [imagenLista, setImagenLista] = useState(false)
+
+    // Al cambiar de variación, volver a la primera foto (la de esa variación)
+    useEffect(() => {
+        setIndice(0)
+    }, [variacionSel])
 
     // Bloquear el scroll de la página (body + html) mientras el modal está abierto
     // y cerrar con la tecla Escape
@@ -149,7 +169,9 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     useEffect(() => {
         setImagenLista(false)
     }, [fotoActualOptimizada])
-    const agotado = producto.stock_total <= 0
+    // Servicios y compuestos no tienen inventario propio: nunca se "agotan"
+    const esSinStock = producto.tipo_producto !== undefined && producto.tipo_producto !== "stock"
+    const agotado = !esSinStock && producto.stock_total <= 0
     // Nombre base para los archivos descargados + descarga de todas las fotos
     const nombreBase = (producto.producto || "foto").replace(/[^a-zA-Z0-9áéíóúñÑ\s-]/g, "").trim() || "foto"
     const descargarTodas = () => {
@@ -429,15 +451,18 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                         {config.mostrar_precios ? (
                             <span style={{ fontSize: "1.5rem", fontWeight: 800, color: tema.primaryDark, lineHeight: 1 }}>
-                                ${producto.precio_venta.toFixed(2)}
-                                {producto.sufijo_precio && (
+                                {variaciones.length > 0 && !variacionActual && (
+                                    <span style={{ fontSize: "0.85rem", fontWeight: 700, opacity: 0.7, marginRight: 4 }}>desde </span>
+                                )}
+                                ${precioMostrado.toFixed(2)}
+                                {sufijoMostrado && (
                                     <span style={{ fontSize: "1rem", fontWeight: 700, opacity: 0.75, marginLeft: 6 }}>
-                                        {producto.sufijo_precio}
+                                        {sufijoMostrado}
                                     </span>
                                 )}
                             </span>
                         ) : <span />}
-                        {config.mostrar_stock && (
+                        {config.mostrar_stock && !esSinStock && (
                             <span style={{
                                 fontSize: "0.72rem", fontWeight: 700,
                                 color: agotado ? "#ef4444" : tema.textMuted,
@@ -448,6 +473,36 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                             </span>
                         )}
                     </div>
+
+                    {/* Selector de variación (solo si el producto tiene) */}
+                    {config.mostrar_precios && variaciones.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                            {variaciones.map(v => {
+                                const activa = v.nombre === variacionSel
+                                return (
+                                    <button
+                                        key={v.id}
+                                        onClick={() => setVariacionSel(v.nombre)}
+                                        style={{
+                                            display: "flex", alignItems: "center", gap: 8,
+                                            padding: "7px 14px",
+                                            borderRadius: 20,
+                                            border: `1.5px solid ${activa ? tema.primary : tema.border}`,
+                                            background: activa ? `${tema.primary}18` : tema.bg,
+                                            color: tema.text,
+                                            fontWeight: 700,
+                                            fontSize: "0.78rem",
+                                            cursor: "pointer",
+                                            transition: "all 0.15s",
+                                        }}
+                                    >
+                                        {v.nombre}
+                                        <span style={{ color: tema.primaryDark, fontWeight: 800 }}>${v.precio.toFixed(2)}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
 
                     {/* Categorías */}
                     {config.mostrar_categorias && (producto.categoria || []).length > 0 && (

@@ -35,6 +35,10 @@ interface ProductoPublico {
     imagenes?: string[]
     // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
     sufijo_precio?: string
+    // 'stock' | 'servicio' | 'compuesto' — sin stock: no se agotan nunca
+    tipo_producto?: string
+    // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
+    variaciones?: { id: number; nombre: string; precio: number; foto?: string }[]
 }
 
 interface ConfigCatalogo {
