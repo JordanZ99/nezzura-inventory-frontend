@@ -4,7 +4,7 @@
 // ==============================================================================
 
 import { useState, useEffect, useRef } from "react"
-import { api, Producto, Lote, NuevoProducto, Restock, Categoria } from "@/lib/api"
+import { api, Producto, Lote, NuevoProducto, Restock, Categoria, Variacion, MaterialReceta } from "@/lib/api"
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import GaleriaProducto, { type FotoGaleria } from "@/components/ui/GaleriaProducto"
@@ -122,6 +122,166 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
     )
 }
 
+/**
+ * Fila editable de una variación: nombre + precio propios, con botones
+ * Guardar (persiste el cambio) y Eliminar.
+ */
+function VariacionRow({ variacion, disabled, onGuardar, onEliminar, onCambiarFoto, onQuitarFoto }: {
+    variacion: Variacion
+    disabled: boolean
+    onGuardar: (nombre: string, precio: number) => void
+    onEliminar: () => void
+    onCambiarFoto: (file: File) => void
+    onQuitarFoto: () => void
+}) {
+    const [nombre, setNombre] = useState(variacion.nombre)
+    const [precio, setPrecio] = useState(variacion.precio.toString())
+    const inputFotoRef = useRef<HTMLInputElement>(null)
+
+    // Al cambiar de producto (o recargar), sincronizar con la variación recibida
+    useEffect(() => {
+        setNombre(variacion.nombre)
+        setPrecio(variacion.precio.toString())
+    }, [variacion])
+
+    const tieneFoto = !!variacion.foto && variacion.foto !== "No hay foto"
+
+    return (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {/* Foto de la variación: miniatura clicable para subir/reemplazar */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+                <div
+                    onClick={() => { if (!disabled) inputFotoRef.current?.click() }}
+                    title={tieneFoto ? "Cambiar foto de esta variación" : "Subir foto de esta variación"}
+                    style={{
+                        width: 44, height: 44, borderRadius: 10, cursor: disabled ? "default" : "pointer",
+                        background: "var(--bg-card2)", border: "1px dashed var(--border-color, #d0d5dd)",
+                        display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+                    }}
+                >
+                    {tieneFoto ? (
+                        <img src={variacion.foto} alt={variacion.nombre} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                        <Icon name="Image" size={18} color="var(--text-muted)" />
+                    )}
+                </div>
+                {tieneFoto && (
+                    <button
+                        onClick={onQuitarFoto}
+                        disabled={disabled}
+                        title="Quitar foto"
+                        style={{
+                            position: "absolute", top: -6, right: -6,
+                            width: 18, height: 18, borderRadius: "50%", border: "none", cursor: disabled ? "default" : "pointer",
+                            background: "#e53935", color: "#fff", fontSize: "0.6rem", lineHeight: 1,
+                            display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+                        }}
+                    >
+                        ✕
+                    </button>
+                )}
+                <input
+                    ref={inputFotoRef}
+                    type="file" accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={e => {
+                        const f = e.target.files?.[0]
+                        if (f) onCambiarFoto(f)
+                        e.target.value = ""
+                    }}
+                />
+            </div>
+            <input
+                className="input-primary"
+                style={{ flex: 1, minWidth: 120 }}
+                value={nombre}
+                placeholder="Nombre"
+                onChange={e => setNombre(e.target.value)}
+            />
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>$</span>
+                <input
+                    className="input-primary"
+                    style={{ width: 90 }}
+                    type="number" min="0" step="0.01"
+                    value={precio}
+                    placeholder="0.00"
+                    onChange={e => setPrecio(e.target.value)}
+                />
+            </div>
+            <button
+                className="btn-primary"
+                disabled={disabled}
+                onClick={() => onGuardar(nombre.trim(), Number(precio === "" ? 0 : precio))}
+                title="Guardar cambios de esta variación"
+            >
+                <Icon name="Check" size={14} />
+            </button>
+            <button
+                onClick={onEliminar}
+                disabled={disabled}
+                title="Eliminar variación"
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#e53935", fontSize: "1rem", padding: 6 }}
+            >
+                <Icon name="Trash" size={16} />
+            </button>
+        </div>
+    )
+}
+
+/**
+ * Fila editable de un material de la receta: nombre (fijo) + cantidad editable
+ * (permite fracciones: 0.5, 150, 0.25...) con botones Guardar y Eliminar.
+ */
+function MaterialRecetaRow({ material, disabled, onGuardar, onEliminar }: {
+    material: MaterialReceta
+    disabled: boolean
+    onGuardar: (cantidad: number) => void
+    onEliminar: () => void
+}) {
+    const [cantidad, setCantidad] = useState(material.cantidad.toString())
+
+    // Al cambiar de producto (o recargar), sincronizar con el material recibido
+    useEffect(() => {
+        setCantidad(material.cantidad.toString())
+    }, [material])
+
+    return (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ flex: 1, minWidth: 120, fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>
+                {material.material}
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                    className="input-primary"
+                    style={{ width: 90 }}
+                    type="number" min="0" step="any"
+                    value={cantidad}
+                    placeholder="1"
+                    onChange={e => setCantidad(e.target.value)}
+                />
+                <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)", whiteSpace: "nowrap" }}>por unidad</span>
+            </div>
+            <button
+                className="btn-primary"
+                disabled={disabled}
+                onClick={() => onGuardar(Number(cantidad === "" ? 0 : cantidad))}
+                title="Guardar cantidad"
+            >
+                <Icon name="Check" size={14} />
+            </button>
+            <button
+                onClick={onEliminar}
+                disabled={disabled}
+                title="Quitar material"
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#e53935", fontSize: "1rem", padding: 6 }}
+            >
+                <Icon name="Trash" size={16} />
+            </button>
+        </div>
+    )
+}
+
 export default function Inventario() {
     const { tenant } = useTenant()
 
@@ -130,14 +290,30 @@ export default function Inventario() {
     const [tab, setTab] = useState<Tab>("nuevo")
 
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "" })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock" as string, costo_servicio: "" as number | string, precio_servicio: "" as number | string })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, etiqueta: "" })
     const [nuevasFotos, setNuevasFotos] = useState<FotoGaleria[]>([])
     const [editFotos, setEditFotos] = useState<FotoGaleria[]>([])
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true, sufijo_precio: "" })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true, sufijo_precio: "", tipo_producto: "stock", costo_servicio: "" as number | string, precio_servicio: "" as number | string })
+
+    // ── Variaciones del producto en edición (Fase 2) ──
+    // Cada variación es una presentación con su PROPIO precio (ej. Sencilla/Doble, S/M/L).
+    const [editVariaciones, setEditVariaciones] = useState<Variacion[]>([])
+    const [nuevaVarNombre, setNuevaVarNombre] = useState("")
+    const [nuevaVarPrecio, setNuevaVarPrecio] = useState("" as number | string)
+    const [guardandoVar, setGuardandoVar] = useState(false)
+
+    // ── Materiales de la receta del compuesto en edición (Fases 3 y 4) ──
+    const [editRecetas, setEditRecetas] = useState<MaterialReceta[]>([])
+    const [matBuscador, setMatBuscador] = useState("")
+    const [matSeleccionado, setMatSeleccionado] = useState("")
+    const [matCantidad, setMatCantidad] = useState("" as number | string)
+    const [guardandoReceta, setGuardandoReceta] = useState(false)
+    // Contexto de la receta que se edita: null = receta base, id = variación
+    const [matVariacionSel, setMatVariacionSel] = useState<number | null>(null)
 
     // ── Galería unificada de fotos (principal + extras) ──
     // Ahora la foto principal es simplemente la primera del array (índice 0).
@@ -364,8 +540,24 @@ export default function Inventario() {
                 imagen = r.ruta
             }
 
-            // Crear el producto con la foto principal
-            await api.crearProducto({ ...form, costo: Number(form.costo), precio_venta: Number(form.precio_venta), stock: Number(form.stock), imagen, codigo_interno: form.codigo_interno || undefined, codigo_barras: form.codigo_barras || undefined, ubicacion: form.ubicacion || undefined })
+            // Crear el producto con la foto principal.
+            // Servicios y compuestos NO tienen inventario: el stock se envía en 0
+            // y el costo/precio propios se guardan en costo_servicio/precio_servicio.
+            // (Para un compuesto el COSTO real se calcula en vivo con su receta;
+            //  el precio de venta sí es fijo y se guarda aquí.)
+            const esSinStock = form.tipo_producto !== "stock"
+            await api.crearProducto({
+                ...form,
+                costo: esSinStock ? 0 : Number(form.costo),
+                precio_venta: esSinStock ? 0 : Number(form.precio_venta),
+                stock: esSinStock ? 0 : Number(form.stock),
+                imagen,
+                codigo_interno: form.codigo_interno || undefined,
+                codigo_barras: form.codigo_barras || undefined,
+                ubicacion: form.ubicacion || undefined,
+                costo_servicio: esSinStock ? Number(form.costo_servicio === "" ? form.costo : form.costo_servicio) : undefined,
+                precio_servicio: esSinStock ? Number(form.precio_servicio === "" ? form.precio_venta : form.precio_servicio) : undefined,
+            })
             mostrarMsg(true, `${form.producto} registrado`)
 
             // ── Subir fotos adicionales (índices 1+) si hay ──
@@ -383,7 +575,7 @@ export default function Inventario() {
             }
 
             setNuevasFotos([])
-            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "" })
+            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock", costo_servicio: "", precio_servicio: "" })
             recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -445,6 +637,11 @@ export default function Inventario() {
                 // Se envía SIEMPRE (incluso "") para que el backend pueda LIMPIAR el
                 // sufijo si el tenant lo deselecciona (COALESCE trata '' como valor válido).
                 sufijo_precio: editProdVal.sufijo_precio,
+                // Tipo + campos de servicio (si aplica) para guardar en productos
+                tipo_producto: editProdVal.tipo_producto,
+                costo_servicio: editProdVal.tipo_producto === "servicio" ? Number(editProdVal.costo_servicio === "" ? 0 : editProdVal.costo_servicio) : undefined,
+                // Servicios y compuestos guardan su precio propio en precio_servicio
+                precio_servicio: editProdVal.tipo_producto !== "stock" ? Number(editProdVal.precio_servicio === "" ? 0 : editProdVal.precio_servicio) : undefined,
             }
             await api.editarProducto(prodEditar, payload)
 
@@ -488,6 +685,159 @@ export default function Inventario() {
             setProdEditar(""); setEditProdNombre(""); setEditFotos([]); recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
+    }
+
+    // ── CRUD de variaciones (Fase 2) ──
+    // Cada variación es una presentación con su PROPIO precio para el mismo
+    // producto (ej. hamburguesa Sencilla/Doble, remera S/M/L).
+    async function agregarVariacion() {
+        if (!prodEditar || guardandoVar) return
+        const nombre = nuevaVarNombre.trim()
+        if (!nombre) { mostrarMsg(false, "Escribe un nombre para la variación"); return }
+        setGuardandoVar(true)
+        try {
+            const res = await api.crearVariacion(prodEditar, nombre, Number(nuevaVarPrecio === "" ? 0 : nuevaVarPrecio))
+            if (res.ok) {
+                setEditVariaciones(prev => [...prev, res.variacion])
+                setNuevaVarNombre(""); setNuevaVarPrecio("")
+                mostrarMsg(true, `Variación '${res.variacion.nombre}' agregada`)
+            } else {
+                mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al agregar la variación")
+            }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardandoVar(false) }
+    }
+
+    async function editarVariacionItem(id: number, nombre: string, precio: number) {
+        if (guardandoVar) return
+        if (!nombre.trim()) { mostrarMsg(false, "El nombre de la variación es obligatorio"); return }
+        setGuardandoVar(true)
+        try {
+            const res = await api.editarVariacion(id, nombre.trim(), precio)
+            if (res.ok) {
+                setEditVariaciones(prev => prev.map(v => v.id === id ? res.variacion : v))
+                mostrarMsg(true, "Variación actualizada")
+            } else {
+                mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al actualizar")
+            }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardandoVar(false) }
+    }
+
+    async function eliminarVariacionItem(id: number) {
+        if (guardandoVar) return
+        if (!confirm("¿Eliminar esta variación? Los productos con esta variación en ventas históricas conservarán el texto.")) return
+        setGuardandoVar(true)
+        try {
+            const res = await api.eliminarVariacion(id)
+            if (res.ok) {
+                setEditVariaciones(prev => prev.filter(v => v.id !== id))
+                mostrarMsg(true, "Variación eliminada")
+            } else {
+                mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al eliminar")
+            }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardandoVar(false) }
+    }
+
+    // ── Foto por variación (Fase 5) ──
+    // La foto de la variación se muestra en el catálogo al elegir esa
+    // presentación (ej. la foto de la Hamburguesa Doble). Se sube comprimida
+    // a Cloudinary (mismo flujo que las fotos de producto).
+    async function subirFotoVariacionItem(v: Variacion, file: File) {
+        if (!prodEditar || guardandoVar) return
+        setGuardandoVar(true)
+        try {
+            const comp = await comprimirImagen(file)
+            const res = await api.subirFotoVariacion(v.id, comp)
+            setEditVariaciones(prev => prev.map(x => x.id === v.id ? { ...x, foto: res.url } : x))
+            setInv(prev => prev.map(p => p.producto === prodEditar
+                ? { ...p, variaciones: (p.variaciones || []).map(x => x.id === v.id ? { ...x, foto: res.url } : x) }
+                : p))
+            mostrarMsg(true, "Foto de la variación guardada")
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardandoVar(false) }
+    }
+
+    async function quitarFotoVariacionItem(v: Variacion) {
+        if (!prodEditar || guardandoVar) return
+        setGuardandoVar(true)
+        try {
+            if (v.foto && v.foto !== "No hay foto") api.borrarImagen(v.foto).catch(() => {})
+            const res = await api.editarVariacion(v.id, v.nombre, v.precio, "")
+            if (res.ok) {
+                setEditVariaciones(prev => prev.map(x => x.id === v.id ? res.variacion : x))
+                setInv(prev => prev.map(p => p.producto === prodEditar
+                    ? { ...p, variaciones: (p.variaciones || []).map(x => x.id === v.id ? { ...x, foto: "" } : x) }
+                    : p))
+                mostrarMsg(true, "Foto de la variación eliminada")
+            } else {
+                mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al quitar la foto")
+            }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardandoVar(false) }
+    }
+
+    // ── CRUD de materiales de la receta (Fase 3) ──
+    // El buscador sugiere SOLO productos de stock (los que tienen inventario).
+    const matSugerencias = (() => {
+        if (!matBuscador.trim()) return []
+        const q = matBuscador.toLowerCase()
+        return inv
+            .filter(p => p.tipo_producto === "stock" && p.producto.toLowerCase().includes(q) && p.producto !== prodEditar)
+            .slice(0, 6)
+    })()
+
+    async function agregarMaterialItem() {
+        if (!prodEditar || guardandoReceta || !matSeleccionado) return
+        const cant = Number(matCantidad === "" ? 1 : matCantidad)
+        if (!(cant > 0)) { mostrarMsg(false, "La cantidad debe ser mayor a 0"); return }
+        setGuardandoReceta(true)
+        try {
+            // variacion_id: el contexto de receta seleccionado (null = base)
+            const res = await api.agregarMaterial(prodEditar, matSeleccionado, cant, matVariacionSel)
+            if (res.ok) {
+                // Recargar la receta completa (para reflejar el id y orden)
+                const recetas = await api.getRecetas(prodEditar)
+                setEditRecetas(recetas)
+                setMatBuscador(""); setMatSeleccionado(""); setMatCantidad("")
+                mostrarMsg(true, `Material '${matSeleccionado}' agregado a la receta`)
+            } else {
+                mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al agregar el material")
+            }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardandoReceta(false) }
+    }
+
+    async function editarMaterialItem(id: number, cantidad: number) {
+        if (guardandoReceta) return
+        setGuardandoReceta(true)
+        try {
+            const res = await api.editarMaterial(id, cantidad)
+            if (res.ok) {
+                setEditRecetas(prev => prev.map(r => r.id === id ? { ...r, cantidad: res.cantidad } : r))
+                mostrarMsg(true, "Cantidad actualizada")
+            } else {
+                mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al actualizar")
+            }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardandoReceta(false) }
+    }
+
+    async function eliminarMaterialItem(id: number) {
+        if (guardandoReceta) return
+        if (!confirm("¿Quitar este material de la receta?")) return
+        setGuardandoReceta(true)
+        try {
+            const res = await api.eliminarMaterial(id)
+            if (res.ok) {
+                setEditRecetas(prev => prev.filter(r => r.id !== id))
+                mostrarMsg(true, "Material eliminado de la receta")
+            } else {
+                mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al eliminar")
+            }
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardandoReceta(false) }
     }
 
     /** Guarda los cambios de un lote individual desde el formulario Editar Prod. */
@@ -587,7 +937,9 @@ export default function Inventario() {
         }
     })
     // Productos filtrados y ordenados para el Restock
+    // Los servicios (sin stock) no se pueden restockear → se excluyen.
     const productosRestock = inv.filter(p => {
+        if (p.tipo_producto === "servicio") return false
         const b = restockBuscadorDebounced.toLowerCase()
         const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
             p.descripcion?.toLowerCase().includes(b) ||
@@ -710,6 +1062,55 @@ export default function Inventario() {
                         {/* ── Card: Dar de alta producto ── */}
                         <div className="card fade-up md:flex-1" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Dar de alta producto</h2>
+                            {/* Tipo de producto: stock, servicio (sin stock) o compuesto (receta) */}
+                            <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Tipo de producto</label>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setForm(p => ({ ...p, tipo_producto: "stock" }))}
+                                        style={{
+                                            flex: 1, padding: "10px 12px", borderRadius: 12, border: "none", cursor: "pointer",
+                                            fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
+                                            background: form.tipo_producto === "stock" ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: form.tipo_producto === "stock" ? "#fff" : "var(--text-main)",
+                                        }}
+                                    >
+                                        📦 Con stock
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setForm(p => ({ ...p, tipo_producto: "servicio" }))}
+                                        style={{
+                                            flex: 1, padding: "10px 12px", borderRadius: 12, border: "none", cursor: "pointer",
+                                            fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
+                                            background: form.tipo_producto === "servicio" ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: form.tipo_producto === "servicio" ? "#fff" : "var(--text-main)",
+                                        }}
+                                    >
+                                        ✂️ Servicio (sin stock)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setForm(p => ({ ...p, tipo_producto: "compuesto" }))}
+                                        style={{
+                                            flex: 1, padding: "10px 12px", borderRadius: 12, border: "none", cursor: "pointer",
+                                            fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
+                                            background: form.tipo_producto === "compuesto" ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            color: form.tipo_producto === "compuesto" ? "#fff" : "var(--text-main)",
+                                        }}
+                                    >
+                                        🍔 Compuesto (receta)
+                                    </button>
+                                </div>
+                                <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "6px 0 0" }}>
+                                    {form.tipo_producto === "servicio"
+                                        ? "Se vende sin límite de inventario (ej. corte de cabello, consulta, lavado de auto)."
+                                        : form.tipo_producto === "compuesto"
+                                            ? "Se vende y consume stock de sus materiales (ej. hamburguesa: pan + carne + queso). Configura la receta al editarlo."
+                                            : "Se lleva control de inventario por lotes (ej. peluches, plantas, ropa)."}
+                                </p>
+                            </div>
                             <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                             <Input label="Descripción" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
@@ -789,16 +1190,31 @@ export default function Inventario() {
                                 label="Fotos del producto"
                                 planLocked={tenant?.plan === "basico"}
                             />
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                                <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                                <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
-                                <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            <div style={{ display: "grid", gridTemplateColumns: form.tipo_producto === "stock" ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
+                                {form.tipo_producto === "stock" && (
+                                    <Input label="Cantidad" type="number" min={0} step="0.1" placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                )}
+                                {form.tipo_producto === "compuesto" ? (
+                                    <Input label="Precio de venta" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                ) : (
+                                    <>
+                                        <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                        <Input label="Precio de venta" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                    </>
+                                )}
                             </div>
+                            {form.tipo_producto === "compuesto" && (
+                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
+                                    💡 El costo real se calcula en vivo al vender (según el costo de los materiales de la receta). Aquí solo defines el <strong>precio de venta</strong>. La receta se configura después de crear el producto, en "Editar Prod.".
+                                </p>
+                            )}
                             <div>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Precio en el catálogo</label>
                                 <SelectorSufijoPrecio value={form.sufijo_precio} onChange={v => setForm(p => ({ ...p, sufijo_precio: v }))} />
                             </div>
-                            <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={form.etiqueta} onChange={e => setForm(p => ({ ...p, etiqueta: e.target.value }))} />
+                            {form.tipo_producto === "stock" && (
+                                <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={form.etiqueta} onChange={e => setForm(p => ({ ...p, etiqueta: e.target.value }))} />
+                            )}
                             <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
                                 {guardando ? "Procesando..." : " Dar de Alta"}
                             </button>
@@ -1178,7 +1594,7 @@ export default function Inventario() {
                             Costo y precio prellenados según el producto. Ajústalos si este nuevo lote tiene valores diferentes.
                         </p>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                            <Input label="Cantidad" type="number" min={1} placeholder="1" value={restock.stock} onChange={e => setRestock(r => ({ ...r, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            <Input label="Cantidad" type="number" min={0} step="0.1" placeholder="1" value={restock.stock} onChange={e => setRestock(r => ({ ...r, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
@@ -1291,7 +1707,16 @@ export default function Inventario() {
                                                     ubicacion: prod.ubicacion ?? "",
                                                     visible_en_catalogo: prod.visible_en_catalogo ?? true,
                                                     sufijo_precio: prod.sufijo_precio ?? "",
+                                                    tipo_producto: prod.tipo_producto ?? "stock",
+                                                    costo_servicio: prod.costo_servicio ?? "",
+                                                    precio_servicio: prod.precio_servicio ?? "",
                                                 })
+                                                // Cargar las variaciones del producto (nombre + precio propio)
+                                                setEditVariaciones(prod.variaciones ?? [])
+                                                setNuevaVarNombre(""); setNuevaVarPrecio("")
+                                                // Cargar los materiales de la receta (si es compuesto)
+                                                setEditRecetas(prod.recetas ?? [])
+                                                setMatBuscador(""); setMatSeleccionado(""); setMatCantidad(""); setMatVariacionSel(null)
                                                 // Cargar todas las fotos del producto (principal + extras) en editFotos
                                                 const fotos: FotoGaleria[] = []
                                                 if (prod.imagen && prod.imagen !== "No hay foto") {
@@ -1387,6 +1812,37 @@ export default function Inventario() {
                                 planLocked={tenant?.plan === "basico"}
                             />
 
+                            {/* Tipo: no es editable en edición (se define al crear) */}
+                            <div style={{
+                                padding: "10px 14px", borderRadius: 12,
+                                background: editProdVal.tipo_producto !== "stock" ? "rgba(156,39,176,0.08)" : "var(--bg-card2)",
+                                border: `1px solid ${editProdVal.tipo_producto !== "stock" ? "rgba(156,39,176,0.3)" : "var(--border-light)"}`,
+                                fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)",
+                                display: "flex", alignItems: "center", gap: 8,
+                            }}>
+                                {editProdVal.tipo_producto === "servicio" ? "✂️ Servicio (sin stock)" : editProdVal.tipo_producto === "compuesto" ? "🍔 Compuesto (receta)" : "📦 Producto con stock"}
+                            </div>
+
+                            {/* Costo/precio de servicios y compuestos (viven en el producto, no en lotes) */}
+                            {editProdVal.tipo_producto !== "stock" && (
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                    {editProdVal.tipo_producto === "servicio" && (
+                                        <Input label="Costo del servicio" type="number" min={0} step="0.01" placeholder="0.00" value={editProdVal.costo_servicio} onChange={e => setEditProdVal(p => ({ ...p, costo_servicio: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                                    )}
+                                    <Input
+                                        label={editProdVal.tipo_producto === "compuesto" ? "Precio de venta" : "Precio de venta"}
+                                        type="number" min={0} step="0.01" placeholder="0.00"
+                                        value={editProdVal.precio_servicio}
+                                        onChange={e => setEditProdVal(p => ({ ...p, precio_servicio: e.target.value === "" ? "" : Number(e.target.value) }))}
+                                    />
+                                </div>
+                            )}
+                            {editProdVal.tipo_producto === "compuesto" && (
+                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
+                                    💡 El costo real se calcula en vivo al vender, según el costo de los materiales de la receta (ver "Materiales" abajo).
+                                </p>
+                            )}
+
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Precio en el catálogo</label>
                                 <SelectorSufijoPrecio value={editProdVal.sufijo_precio} onChange={v => setEditProdVal(p => ({ ...p, sufijo_precio: v }))} />
@@ -1423,7 +1879,226 @@ export default function Inventario() {
                             </button>
                         </div>
 
-                        {/* ── Card 2: Editar lotes individuales ── */}
+                        {/* ── Card 1.5: Variaciones (aplica a cualquier tipo de producto) ── */}
+                        <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
+                            <h2 style={{ margin: "0 0 2px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                <Icon name="Layers" size={20} color="var(--primary-mid)" />
+                                Variaciones
+                            </h2>
+                            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0 }}>
+                                Presentaciones con su propio precio para este producto (ej. Sencilla $60 / Doble $95, talla S/M/L, Corte Caballero/Dama). Aparecen como selector en el POS, en el catálogo ("desde $X") y se registran en cada venta.
+                            </p>
+
+                            {/* Lista de variaciones existentes */}
+                            {editVariaciones.length > 0 && (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                    {editVariaciones.map(v => (
+                                        <VariacionRow
+                                            key={v.id}
+                                            variacion={v}
+                                            disabled={guardandoVar}
+                                            onGuardar={(nombre, precio) => editarVariacionItem(v.id, nombre, precio)}
+                                            onEliminar={() => eliminarVariacionItem(v.id)}
+                                            onCambiarFoto={(file) => subirFotoVariacionItem(v, file)}
+                                            onQuitarFoto={() => quitarFotoVariacionItem(v)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                            {editVariaciones.length === 0 && (
+                                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0 }}>
+                                    Sin variaciones todavía. Este producto se vende con un solo precio.
+                                </p>
+                            )}
+
+                            {/* Formulario de nueva variación */}
+                            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+                                <div style={{ flex: 1, minWidth: 140, display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Nombre</label>
+                                    <input
+                                        className="input-primary"
+                                        placeholder="Ej: Doble, S, Premium"
+                                        value={nuevaVarNombre}
+                                        onChange={e => setNuevaVarNombre(e.target.value)}
+                                        onKeyDown={e => { if (e.key === "Enter") agregarVariacion() }}
+                                    />
+                                </div>
+                                <div style={{ width: 110, display: "flex", flexDirection: "column", gap: 4 }}>
+                                    <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Precio $</label>
+                                    <input
+                                        className="input-primary"
+                                        type="number" min="0" step="0.01"
+                                        placeholder="0.00"
+                                        value={nuevaVarPrecio}
+                                        onChange={e => setNuevaVarPrecio(e.target.value === "" ? "" : Number(e.target.value))}
+                                        onKeyDown={e => { if (e.key === "Enter") agregarVariacion() }}
+                                    />
+                                </div>
+                                <button className="btn-primary" onClick={agregarVariacion} disabled={guardandoVar} style={{ whiteSpace: "nowrap" }}>
+                                    {guardandoVar ? "Guardando..." : "Agregar variación"}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* ── Card 1.6: Materiales de la receta (solo compuestos) ── */}
+                        {editProdVal.tipo_producto === "compuesto" && (
+                            <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
+                                <h2 style={{ margin: "0 0 2px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Icon name="Boxes" size={20} color="var(--primary-mid)" />
+                                    Materiales (receta)
+                                </h2>
+                                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0 }}>
+                                    Al vender 1 unidad de <strong>{prodEditar}</strong>, el gestor descuenta la cantidad indicada de cada material. Se permiten fracciones (0.5, 150, 0.25...).
+                                </p>
+
+                                {/* ── Contexto de la receta: Base o por variación ── */}
+                                {(editVariaciones.length > 0) && (
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Receta para:</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setMatVariacionSel(null); setMatBuscador(""); setMatSeleccionado(""); setMatCantidad("") }}
+                                            style={{
+                                                padding: "6px 14px", borderRadius: 14, border: "none", cursor: "pointer",
+                                                fontSize: "0.72rem", fontWeight: 700, transition: "all 0.15s",
+                                                background: matVariacionSel === null ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                color: matVariacionSel === null ? "#fff" : "var(--text-main)",
+                                            }}
+                                        >
+                                            Base (todas)
+                                        </button>
+                                        {editVariaciones.map(v => {
+                                            const activa = matVariacionSel === v.id
+                                            return (
+                                                <button
+                                                    key={v.id}
+                                                    type="button"
+                                                    onClick={() => { setMatVariacionSel(v.id); setMatBuscador(""); setMatSeleccionado(""); setMatCantidad("") }}
+                                                    style={{
+                                                        padding: "6px 14px", borderRadius: 14, border: "none", cursor: "pointer",
+                                                        fontSize: "0.72rem", fontWeight: 700, transition: "all 0.15s",
+                                                        background: activa ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                        color: activa ? "#fff" : "var(--text-main)",
+                                                    }}
+                                                >
+                                                    {v.nombre}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                                <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: 0 }}>
+                                    {matVariacionSel === null
+                                        ? "La receta BASE se usa cuando la variación vendida no tiene receta propia."
+                                        : `La variación '${editVariaciones.find(v => v.id === matVariacionSel)?.nombre ?? ""}' gastará estos materiales (si vacía, se usa la Base).`}
+                                </p>
+
+                                {/* Lista de materiales del contexto seleccionado */}
+                                {(() => {
+                                    const recetasContexto = editRecetas.filter(r =>
+                                        matVariacionSel === null
+                                            ? (r.variacion_id === null || r.variacion_id === undefined)
+                                            : r.variacion_id === matVariacionSel
+                                    )
+                                    return recetasContexto.length > 0 ? (
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                            {recetasContexto.map(r => (
+                                                <MaterialRecetaRow
+                                                    key={r.id}
+                                                    material={r}
+                                                    disabled={guardandoReceta}
+                                                    onGuardar={(cantidad) => editarMaterialItem(r.id, cantidad)}
+                                                    onEliminar={() => eliminarMaterialItem(r.id)}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0 }}>
+                                            {matVariacionSel === null
+                                                ? "Sin materiales en la receta base. Agrega los productos de stock que este compuesto consume."
+                                                : "Esta variación no tiene receta propia: usará la Base. Agrega materiales aquí si gasta cantidades distintas."}
+                                        </p>
+                                    )
+                                })()}
+
+                                {/* Formulario de nuevo material: buscador + cantidad */}
+                                <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+                                    <div style={{ flex: 1, minWidth: 160, display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Material (búscalo)</label>
+                                        <input
+                                            className="input-primary"
+                                            placeholder="Buscar producto de stock..."
+                                            value={matBuscador}
+                                            onChange={e => setMatBuscador(e.target.value)}
+                                        />
+                                        {matSugerencias.length > 0 && matBuscador.trim() && (
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+                                                {matSugerencias.map(s => {
+                                                    const activo = s.producto === matSeleccionado
+                                                    return (
+                                                        <button
+                                                            key={s.producto}
+                                                            type="button"
+                                                            onClick={() => { setMatSeleccionado(s.producto); setMatBuscador(s.producto) }}
+                                                            style={{
+                                                                background: activo ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                                color: activo ? "#fff" : "var(--text-main)",
+                                                                border: "none", borderRadius: 10,
+                                                                padding: "5px 10px", fontSize: "0.7rem", fontWeight: 700,
+                                                                cursor: "pointer",
+                                                            }}
+                                                        >
+                                                            {s.producto} {activo ? "✓" : ""}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
+                                        {matSeleccionado && (
+                                            <p style={{ fontSize: "0.68rem", color: "var(--primary-dark)", fontWeight: 700, margin: 0 }}>
+                                                ✓ {matSeleccionado}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div style={{ width: 110, display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Cantidad</label>
+                                        <input
+                                            className="input-primary"
+                                            type="number" min="0" step="any"
+                                            placeholder="1"
+                                            value={matCantidad}
+                                            onChange={e => setMatCantidad(e.target.value === "" ? "" : Number(e.target.value))}
+                                            onKeyDown={e => { if (e.key === "Enter") agregarMaterialItem() }}
+                                        />
+                                    </div>
+                                    <button className="btn-primary" onClick={agregarMaterialItem} disabled={guardandoReceta || !matSeleccionado} style={{ whiteSpace: "nowrap" }}>
+                                        {guardandoReceta ? "Guardando..." : "Agregar material"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Card 2: Editar lotes individuales (solo productos con stock) ── */}
+                        {editProdVal.tipo_producto === "servicio" ? (
+                            <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+                                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                    <Icon name="Package" size={20} color="var(--primary-mid)" /> Servicio sin inventario
+                                </h2>
+                                <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>
+                                    Este es un servicio: no tiene lotes ni stock. Se vende sin límite y no descuenta inventario.
+                                </p>
+                            </div>
+                        ) : editProdVal.tipo_producto === "compuesto" ? (
+                            <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+                                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                    <Icon name="Layers" size={20} color="var(--primary-mid)" /> Compuesto sin inventario propio
+                                </h2>
+                                <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>
+                                    Este producto no tiene lotes: al venderlo, el gestor descuenta automáticamente el stock de los materiales definidos en su receta (ver "Materiales" arriba).
+                                </p>
+                            </div>
+                        ) : (
+                        <>
                         <div className="card fade-up" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
                             <h2 style={{ margin: "0 0 4px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
                                 <Icon name="Package" size={20} color="var(--primary-mid)" />
@@ -1475,7 +2150,7 @@ export default function Inventario() {
                                                     </td>
                                                     <td style={{ padding: "8px 12px" }}>
                                                         {editando ? (
-                                                            <input type="number" min={0} value={editLoteVal.stock} placeholder="0"
+                                                            <input type="number" min={0} step="0.1" value={editLoteVal.stock} placeholder="0"
                                                                 onChange={e => setEditLoteVal(l => ({ ...l, stock: e.target.value === "" ? "" : Number(e.target.value) }))}
                                                                 className="input-primary" style={{ width: 80, padding: 4 }} />
                                                         ) : lote.stock_lote}
@@ -1631,6 +2306,8 @@ export default function Inventario() {
                                 </div>
                             )
                         })()}
+                        </>
+                        )}
                     </>
                 )}
 

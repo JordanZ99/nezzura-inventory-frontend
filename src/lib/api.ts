@@ -27,6 +27,43 @@ export interface Producto {
     visible_en_catalogo?: boolean;
     // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
     sufijo_precio?: string;
+    // Tipo de producto: 'stock' (normal) | 'servicio' (sin inventario, ej. corte de cabello)
+    tipo_producto?: string;
+    // Costo/precio de venta de un servicio (viven en el producto, no en lotes)
+    costo_servicio?: number;
+    precio_servicio?: number;
+    // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
+    variaciones?: Variacion[];
+    // Receta de un producto compuesto (materiales que consume al venderse)
+    recetas?: MaterialReceta[];
+    // Solo compuestos: cuántas unidades se pueden vender con el stock actual
+    // de sus materiales (min sobre la receta). null = sin receta → no estimable.
+    disponibilidad_estimada?: number | null;
+}
+
+export interface Variacion {
+    id: number;
+    nombre: string;
+    precio: number;
+    // Foto propia de la variación (URL de Cloudinary) — el catálogo la muestra
+    // al seleccionar esta presentación (ej. la foto de la Hamburguesa Doble).
+    foto?: string;
+}
+
+/**
+ * Material de la receta de un producto compuesto (Fases 3 y 4).
+ * Un compuesto (ej. hamburguesa) no tiene stock propio: al venderlo se
+ * descuenta `cantidad` de este material (producto de stock).
+ *
+ * variacion_id: null/undefined = receta BASE; si no, receta de ESA variación
+ * (ej. Hamburguesa Doble gasta 200g carne en vez de 100g).
+ */
+export interface MaterialReceta {
+    id: number;
+    material: string;   // nombre del material (producto de stock)
+    cantidad: number;   // cantidad por unidad del compuesto (permite 0.5, 150, ...)
+    variacion_id?: number | null;
+    variacion?: string; // nombre de la variación (solo informativo)
 }
 
 export interface ItemCarrito {
@@ -34,6 +71,8 @@ export interface ItemCarrito {
     cantidad: number;
     precio_real: number;
     id_lote?: string;
+    // Nombre de la variación vendida (ej. "Doble", "S") — cambia el precio
+    variacion?: string;
 }
 
 export interface Lote {
@@ -61,6 +100,9 @@ export interface NuevoProducto {
     ubicacion?: string;
     etiqueta?: string;
     sufijo_precio?: string;
+    tipo_producto?: string;        // 'stock' | 'servicio'
+    costo_servicio?: number;
+    precio_servicio?: number;
 }
 
 export interface Restock {
@@ -83,6 +125,12 @@ export interface Venta {
     total_venta: number;
     ganancia_bruta: number;
     estado: string;
+    // 'stock' | 'servicio' — para saber en el historial si la venta consumió inventario
+    tipo_producto?: string;
+    // Nombre de la variación vendida (ej. "Doble", "S") — vacío = sin variación
+    variacion?: string;
+    // Consumo real de materiales de una venta COMPUESTA (solo compuestos)
+    consumo?: { material: string; id_lote: string | null; cantidad: number; costo: number }[] | null;
 }
 
 export interface Gasto {
@@ -216,7 +264,7 @@ export const api = {
     getLotes: () => request<Lote[]>("/inventario/lotes"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string; visible_en_catalogo?: boolean; sufijo_precio?: string }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string; visible_en_catalogo?: boolean; sufijo_precio?: string; tipo_producto?: string; costo_servicio?: number; precio_servicio?: number }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
     // Categorías
     getCategorias: () => request<Categoria[]>("/inventario/categorias"),
     crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),
@@ -229,6 +277,33 @@ export const api = {
         ),
     editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number; etiqueta?: string }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarLote: (id: string) => request<{ ok: boolean; producto: string; producto_desactivado: boolean }>(`/inventario/lote/${id}`, { method: "DELETE" }),
+    // Variaciones (Fase 2): presentaciones con precio propio por producto
+    getVariaciones: (producto: string) => request<Variacion[]>(`/inventario/variaciones/${encodeURIComponent(producto)}`),
+    crearVariacion: (producto: string, nombre: string, precio: number, foto?: string) => request<{ ok: boolean; variacion: Variacion }>("/inventario/variaciones", { method: "POST", body: JSON.stringify({ producto, nombre, precio, foto: foto ?? "" }) }),
+    editarVariacion: (id: number, nombre: string, precio: number, foto?: string) => request<{ ok: boolean; variacion: Variacion }>(`/inventario/variaciones/${id}`, { method: "PATCH", body: JSON.stringify(foto !== undefined ? { nombre, precio, foto } : { nombre, precio }) }),
+    eliminarVariacion: (id: number) => request<{ ok: boolean; id: number }>(`/inventario/variaciones/${id}`, { method: "DELETE" }),
+    // Sube (o reemplaza) la foto propia de una variación (Fase 5)
+    subirFotoVariacion: async (variacionId: number, file: File): Promise<{ ok: boolean; url: string }> => {
+        const authHeaders = await getAuthHeaders()
+        const formData = new FormData()
+        formData.append("foto", file)
+        const res = await fetch(`${BASE_URL}/inventario/variaciones/${variacionId}/foto`, {
+            method: "POST",
+            headers: authHeaders,
+            body: formData,
+        })
+        if (!res.ok) {
+            let detail = "Error al subir foto de la variación"
+            try { const err = await res.json(); detail = err.detail || detail } catch { }
+            throw new Error(detail)
+        }
+        return res.json()
+    },
+    // Recetas de compuestos (Fases 3 y 4): materiales que consume al venderse
+    getRecetas: (producto: string) => request<MaterialReceta[]>(`/inventario/recetas/${encodeURIComponent(producto)}`),
+    agregarMaterial: (producto: string, material: string, cantidad: number, variacion_id?: number | null) => request<{ ok: boolean; material: string; cantidad: number }>("/inventario/recetas", { method: "POST", body: JSON.stringify({ producto, material, cantidad, variacion_id: variacion_id ?? null }) }),
+    editarMaterial: (id: number, cantidad: number) => request<{ ok: boolean; id: number; cantidad: number }>(`/inventario/recetas/${id}`, { method: "PATCH", body: JSON.stringify({ cantidad }) }),
+    eliminarMaterial: (id: number) => request<{ ok: boolean; id: number }>(`/inventario/recetas/${id}`, { method: "DELETE" }),
     subirFoto: async (producto: string, file: File): Promise<{ ruta: string }> => {
         const authHeaders = await getAuthHeaders()
         const formData = new FormData()

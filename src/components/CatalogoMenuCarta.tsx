@@ -20,6 +20,10 @@ interface ProductoPublico {
     imagenes?: string[]
     // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
     sufijo_precio?: string
+    // 'stock' | 'servicio' — los servicios no tienen inventario (no se agotan)
+    tipo_producto?: string
+    // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
+    variaciones?: { id: number; nombre: string; precio: number }[]
 }
 
 interface ConfigCatalogo {
@@ -55,7 +59,9 @@ interface Props {
 export default function CatalogoMenuCarta({ productos, config, tema, agrupado = true, onAbrirProducto }: Props) {
     // ── Fila de producto (compartida entre vista agrupada y plana) ──
     const renderItem = (p: ProductoPublico) => {
-        const agotado = p.stock_total <= 0
+        // Servicios y compuestos no tienen inventario propio: nunca se "agotan"
+        const esSinStock = p.tipo_producto !== undefined && p.tipo_producto !== "stock"
+        const agotado = !esSinStock && p.stock_total <= 0
         return (
             <div
                 key={p.producto}
@@ -68,7 +74,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                     background: tema.bgCard,
                     border: `1px solid ${tema.border}`,
                     transition: "background 0.15s, border-color 0.15s",
-                    opacity: agotado && config.mostrar_stock ? 0.55 : 1,
+                    opacity: !esSinStock && agotado && config.mostrar_stock ? 0.55 : 1,
                     cursor: "pointer",
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = tema.bg }}
@@ -112,7 +118,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                             lineHeight: 1.3,
                         }}>
                             {p.producto}
-                            {agotado && config.mostrar_stock && (
+                            {!esSinStock && agotado && config.mostrar_stock && (
                                 <span style={{
                                     fontSize: "0.62rem",
                                     fontWeight: 700,
@@ -130,10 +136,19 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                 color: tema.primaryDark,
                                 whiteSpace: "nowrap",
                             }}>
-                                ${p.precio_venta.toFixed(2)}
-                                {p.sufijo_precio && (
-                                    <span style={{ fontSize: "0.68rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
-                                        {p.sufijo_precio}
+                                {(p.variaciones || []).length > 0 ? (
+                                    <span>
+                                        <span style={{ fontSize: "0.66rem", fontWeight: 700, opacity: 0.7, marginRight: 2 }}>desde </span>
+                                        ${Math.min(...(p.variaciones || []).map(v => v.precio)).toFixed(2)}
+                                    </span>
+                                ) : (
+                                    <span>
+                                        ${p.precio_venta.toFixed(2)}
+                                        {p.sufijo_precio && (
+                                            <span style={{ fontSize: "0.68rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
+                                                {p.sufijo_precio}
+                                            </span>
+                                        )}
                                     </span>
                                 )}
                             </span>

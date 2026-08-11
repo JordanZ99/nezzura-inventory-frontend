@@ -41,6 +41,8 @@ export default function PuntoDeVenta() {
         visible: boolean;
         nombres: string;
     }>({ visible: false, nombres: "" })
+    // Modal de selección de variación (productos con presentaciones y precio propio)
+    const [modalVariacion, setModalVariacion] = useState<{ visible: boolean; prod: Producto | null }>({ visible: false, prod: null })
     const [userId, setUserId] = useState<string>("Cargando...");
     const { tenant } = useTenant()
     const logoSrc = tenant?.logo || "/logo.png"
@@ -49,8 +51,14 @@ export default function PuntoDeVenta() {
 
     function manejarToggleDescuento() {
         if (modoDescuento) {
-            // Si lo estamos apagando, reseteamos todos los precios al original de lista
+            // Si lo estamos apagando, reseteamos todos los precios al original de lista.
+            // Los ítems CON variación conservan el precio de su variación (no el del lote).
             setCarrito(prev => prev.map(item => {
+                if (item.variacion) {
+                    const prod = productos.find(p => p.producto === item.producto)
+                    const variacion = (prod?.variaciones || []).find(v => v.nombre === item.variacion)
+                    return variacion ? { ...item, precio_real: variacion.precio } : item
+                }
                 const prod = productos.find(p => p.producto === item.producto)
                 // Precio sugerido = lote más antiguo con stock (el que PEPS venderá)
                 return { ...item, precio_real: prod ? (prod.precio_sugerido ?? prod.precio_venta) : item.precio_real }
@@ -137,7 +145,35 @@ export default function PuntoDeVenta() {
             .sort((a, b) => new Date(a.fecha_entrada).getTime() - new Date(b.fecha_entrada).getTime())
     }
 
+    // Cambia la variación de un ítem ya en el carrito (precio propio de la variación)
+    function cambiarVariacionCarrito(producto: string, nombre: string) {
+        const prod = productos.find(p => p.producto === producto)
+        const variacion = (prod?.variaciones || []).find(v => v.nombre === nombre)
+        if (!variacion) return
+        setCarrito(prev => prev.map(i =>
+            i.producto === producto ? { ...i, variacion: variacion.nombre, precio_real: variacion.precio } : i
+        ))
+        setPrecios(prev => {
+            const nuevo = { ...prev }
+            delete nuevo[producto]
+            return nuevo
+        })
+    }
+
     function cambiarLoteCarrito(producto: string, id_lote: string | undefined) {
+        // Si el ítem tiene variación, el PRECIO lo define la variación (no el lote):
+        // el lote solo determina de DÓNDE se descuenta el stock.
+        const itemActual = carrito.find(i => i.producto === producto)
+        const itemConVariacion = itemActual?.variacion
+        if (itemConVariacion) {
+            const prod = productos.find(p => p.producto === producto)
+            const variacion = (prod?.variaciones || []).find(v => v.nombre === itemConVariacion)
+            setCarrito(prev => prev.map(i =>
+                i.producto === producto ? { ...i, id_lote } : i
+            ))
+            if (variacion) setPrecios(prev => ({ ...prev, [producto]: variacion.precio.toFixed(2) }))
+            return
+        }
         // Propuesta 2: el precio sugerido sigue al lote seleccionado
         // (y "Más antiguo" usa el precio del lote más antiguo con stock).
         let precioSugerido: number | null = null
@@ -159,6 +195,15 @@ export default function PuntoDeVenta() {
     }
 
     function agregarAlCarrito(prod: Producto) {
+        // Si el producto tiene variaciones, primero se elige cuál (modal)
+        if ((prod.variaciones || []).length > 0) {
+            setModalVariacion({ visible: true, prod })
+            return
+        }
+        agregarDirecto(prod)
+    }
+
+    function agregarDirecto(prod: Producto) {
         const yaEnCarrito = carrito.some(i => i.producto === prod.producto)
         setCarrito(prev => {
             const idx = prev.findIndex(i => i.producto === prod.producto)
@@ -184,8 +229,36 @@ export default function PuntoDeVenta() {
         }
     }
 
+    // Agrega un producto con la variación elegida (precio propio de esa variación)
+    function agregarConVariacion(prod: Producto, nombre: string, precio: number) {
+        setCarrito(prev => {
+            const idx = prev.findIndex(i => i.producto === prod.producto)
+            if (idx >= 0) {
+                // Ya está: reemplaza la variación y actualiza el precio de esa fila
+                const nuevo = [...prev]
+                nuevo[idx] = { ...nuevo[idx], variacion: nombre, precio_real: precio }
+                return nuevo
+            }
+            return [...prev, { producto: prod.producto, cantidad: 1, precio_real: precio, variacion: nombre }]
+        })
+        // La variación define el precio: se descarta el precio custom persistido
+        setPrecios(prev => {
+            const nuevo = { ...prev }
+            delete nuevo[prod.producto]
+            return nuevo
+        })
+        setModalVariacion({ visible: false, prod: null })
+    }
+
     function cambiarCantidad(producto: string, cantidad: number) {
         setCarrito(prev => prev.map(i => i.producto === producto ? { ...i, cantidad } : i))
+    }
+
+    // Paso de los botones ± del carrito: 1 unidad entera si la cantidad es
+    // >= 1, y 0.1 si ya es fraccionaria (para productos vendidos por kilo).
+    function pasoCantidad(actual: number, dir: 1 | -1): number {
+        const paso = actual >= 1 ? 1 : 0.1
+        return Math.max(0.1, +(actual + dir * paso).toFixed(1))
     }
 
     function cambiarPrecio(producto: string, texto: string) {
@@ -225,9 +298,11 @@ export default function PuntoDeVenta() {
     function cobrarConAdvertencia() {
         if (carrito.length === 0) return
 
-        // Identificar productos del carrito que no tienen stock suficiente
+        // Identificar productos del carrito que no tienen stock suficiente.
+        // Los servicios y compuestos (sin stock por diseño) nunca disparan la advertencia.
         const sinStock = carrito.filter(item => {
             const prod = productos.find(p => p.producto === item.producto)
+            if (prod?.tipo_producto && prod.tipo_producto !== "stock") return false
             return !prod || prod.stock_total <= 0 || item.cantidad > prod.stock_total
         })
 
@@ -253,16 +328,19 @@ export default function PuntoDeVenta() {
         setModalAdvertencia({ visible: false, nombres: "" })
     }
 
-    // Cerrar el modal con la tecla Escape
+    // Cerrar los modales con la tecla Escape
     useEffect(() => {
         function manejarEscape(e: KeyboardEvent) {
             if (e.key === "Escape" && modalAdvertencia.visible) {
                 cancelarAdvertencia()
             }
+            if (e.key === "Escape" && modalVariacion.visible) {
+                setModalVariacion({ visible: false, prod: null })
+            }
         }
         document.addEventListener("keydown", manejarEscape)
         return () => document.removeEventListener("keydown", manejarEscape)
-    }, [modalAdvertencia.visible])
+    }, [modalAdvertencia.visible, modalVariacion.visible])
 
     async function cobrar() {
         if (carrito.length === 0) return
@@ -497,9 +575,11 @@ export default function PuntoDeVenta() {
                                             {prod.producto}
                                         </p>
                                         <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>
-                                            {prod.precio_min !== undefined && prod.precio_max !== undefined && prod.precio_min < prod.precio_max
-                                                ? `$${prod.precio_min.toFixed(2)} – $${prod.precio_max.toFixed(2)}`
-                                                : `$${(prod.precio_sugerido ?? prod.precio_venta).toFixed(2)}`}
+                                            {(prod.variaciones || []).length > 0
+                                                ? `Desde $${Math.min(...(prod.variaciones || []).map(v => v.precio)).toFixed(2)}`
+                                                : prod.precio_min !== undefined && prod.precio_max !== undefined && prod.precio_min < prod.precio_max
+                                                    ? `$${prod.precio_min.toFixed(2)} – $${prod.precio_max.toFixed(2)}`
+                                                    : `$${(prod.precio_sugerido ?? prod.precio_venta).toFixed(2)}`}
                                         </p>
                                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6, alignItems: "center" }}>
                                             <span
@@ -511,9 +591,26 @@ export default function PuntoDeVenta() {
                                             >
                                                 {(prod.categoria || ["General"]).join(", ")}
                                             </span>
-                                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>
-                                                Stock: {prod.stock_total}
-                                            </span>
+                                            {prod.tipo_producto === "servicio" ? (
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#7b3fa0", background: "#f3e8ff", borderRadius: 6, padding: "2px 6px" }}>
+                                                    ✂️ Servicio
+                                                </span>
+                                            ) : prod.tipo_producto === "compuesto" ? (
+                                                <>
+                                                    <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#b45309", background: "#fef3c7", borderRadius: 6, padding: "2px 6px" }}>
+                                                        🍔 Compuesto
+                                                    </span>
+                                                    {prod.disponibilidad_estimada !== undefined && prod.disponibilidad_estimada !== null && (
+                                                        <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.disponibilidad_estimada <= 0 ? "#b71c1c" : "#6d4c41", background: prod.disponibilidad_estimada <= 0 ? "#ffeef0" : "#efebe9", borderRadius: 6, padding: "2px 6px" }}>
+                                                            Quedan ~{prod.disponibilidad_estimada}
+                                                        </span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>
+                                                    Stock: {prod.stock_total}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -591,23 +688,30 @@ export default function PuntoDeVenta() {
                                         return (
                                             <div key={item.producto} style={{ padding: 10, background: "var(--bg-card)", borderRadius: 12, border: "var(--bg-card)" }}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                                                    <p style={{ margin: 0, fontWeight: 600, fontSize: "0.8rem", color: "var(--text-main)", flex: 1, marginRight: 6 }}>
-                                                        {item.producto}
-                                                    </p>
+                                                    <div style={{ flex: 1, minWidth: 0, marginRight: 6 }}>
+                                                        <p style={{ margin: 0, fontWeight: 600, fontSize: "0.8rem", color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                            {item.producto}
+                                                        </p>
+                                                        {item.variacion && (
+                                                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "var(--bg-card2)", borderRadius: 6, padding: "1px 6px" }}>
+                                                                {item.variacion}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <button onClick={() => quitarDelCarrito(item.producto)}
                                                         style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: "0.9rem", padding: 0, lineHeight: 1 }}>✕</button>
                                                 </div>
                                                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-card2)", borderRadius: 8, border: "var(--border-primary)", padding: "2px 4px" }}>
-                                                        <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))}
+                                                        <button onClick={() => cambiarCantidad(item.producto, pasoCantidad(item.cantidad, -1))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>−</button>
                                                         <input
-                                                            type="number" min="1"
+                                                            type="number" min="0.1" step="0.1"
                                                             value={item.cantidad}
-                                                            onChange={e => cambiarCantidad(item.producto, Math.max(1, +e.target.value))}
-                                                            style={{ width: 35, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
+                                                            onChange={e => cambiarCantidad(item.producto, Math.max(0.1, +e.target.value))}
+                                                            style={{ width: 40, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                                         />
-                                                        <button onClick={() => cambiarCantidad(item.producto, item.cantidad + 1)}
+                                                        <button onClick={() => cambiarCantidad(item.producto, pasoCantidad(item.cantidad, 1))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>+</button>
                                                     </div>
                                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -621,7 +725,38 @@ export default function PuntoDeVenta() {
                                                     </div>
                                                 </div>
 
-                                                {/* ── Selector de lote ── */}
+                                                {/* ── Selector de variación (si el producto tiene) ── */}
+                                                {(prod?.variaciones || []).length > 0 && (
+                                                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                                                    <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#999", whiteSpace: "nowrap" }}>VAR.:</span>
+                                                    <select
+                                                        value={item.variacion || ""}
+                                                        onChange={e => cambiarVariacionCarrito(item.producto, e.target.value)}
+                                                        style={{
+                                                            flex: 1,
+                                                            fontSize: "0.65rem",
+                                                            padding: "3px 6px",
+                                                            borderRadius: 6,
+                                                            border: "1px solid var(--border-primary)",
+                                                            background: "var(--bg-card2)",
+                                                            color: "var(--text-main)",
+                                                            outline: "none",
+                                                            cursor: "pointer",
+                                                            fontWeight: 600
+                                                        }}
+                                                    >
+                                                        {!item.variacion && <option value="">Elegir variación</option>}
+                                                        {(prod?.variaciones || []).map(v => (
+                                                            <option key={v.id} value={v.nombre}>
+                                                                {v.nombre} — ${v.precio.toFixed(2)}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                )}
+
+                                                {/* ── Selector de lote (solo productos con stock) ── */}
+                                                {(prod?.tipo_producto ?? "stock") === "stock" && (
                                                 <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
                                                     <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#999", whiteSpace: "nowrap" }}>LOTE:</span>
                                                     <select
@@ -648,6 +783,7 @@ export default function PuntoDeVenta() {
                                                         ))}
                                                     </select>
                                                 </div>
+                                                )}
 
                                                 <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 2 }}>
                                                     <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700, textAlign: "right" }}>SUBTOTAL</span>
@@ -738,25 +874,33 @@ export default function PuntoDeVenta() {
                         </div>
                         {carrito.map(item => {
                             const lotesProd = lotesParaProducto(item.producto)
+                            const prodCarrito = productos.find(p => p.producto === item.producto)
                             return (
                                 <div key={item.producto} style={{ padding: "10px 0", borderBottom: "1px solid var(--border-primary)" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                        <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-main)" }}>{item.producto}</span>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 8 }}>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                                            <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.producto}</span>
+                                            {item.variacion && (
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "var(--bg-card2)", borderRadius: 6, padding: "1px 6px", alignSelf: "flex-start" }}>
+                                                    {item.variacion}
+                                                </span>
+                                            )}
+                                        </div>
                                         <button onClick={() => quitarDelCarrito(item.producto)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>✕</button>
                                     </div>
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "center" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 8, padding: "4px 10px" }}>
-                                            <button onClick={() => cambiarCantidad(item.producto, Math.max(1, item.cantidad - 1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
+                                            <button onClick={() => cambiarCantidad(item.producto, pasoCantidad(item.cantidad, -1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
                                             <input
-                                                type="number" min="1"
+                                                type="number" min="0.1" step="0.1"
                                                 value={item.cantidad}
                                                 onChange={e => {
-                                                    cambiarCantidad(item.producto, Math.max(1, +e.target.value));
+                                                    cambiarCantidad(item.producto, Math.max(0.1, +e.target.value));
                                                 }}
                                                 style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent", color: "var(--text-main)" }}
                                             />
                                             <button onClick={() => {
-                                                cambiarCantidad(item.producto, item.cantidad + 1);
+                                                cambiarCantidad(item.producto, pasoCantidad(item.cantidad, 1));
                                             }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>+</button>
                                         </div>
                                         <input type="text" inputMode="decimal"
@@ -766,7 +910,37 @@ export default function PuntoDeVenta() {
                                         />
                                     </div>
 
-                                    {/* ── Selector de lote (móvil) ── */}
+                                    {/* ── Selector de variación (móvil) ── */}
+                                    {(prodCarrito?.variaciones || []).length > 0 && (
+                                    <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>VAR.:</span>                                            <select
+                                                value={item.variacion || ""}
+                                                onChange={e => cambiarVariacionCarrito(item.producto, e.target.value)}
+                                                style={{
+                                                    flex: 1,
+                                                    fontSize: "0.75rem",
+                                                    padding: "4px 8px",
+                                                    borderRadius: 8,
+                                                    border: "1px solid var(--border-primary)",
+                                                    background: "var(--bg-card2)",
+                                                    color: "var(--text-main)",
+                                                    outline: "none",
+                                                    cursor: "pointer",
+                                                    fontWeight: 600
+                                                }}
+                                            >
+                                                {!item.variacion && <option value="">Elegir variación</option>}
+                                                {(prodCarrito?.variaciones || []).map(v => (
+                                                    <option key={v.id} value={v.nombre}>
+                                                        {v.nombre} — ${v.precio.toFixed(2)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                    </div>
+                                    )}
+
+                                    {/* ── Selector de lote (móvil, solo productos con stock) ── */}
+                                    {(prodCarrito?.tipo_producto ?? "stock") === "stock" && (
                                     <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
                                         <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>LOTE:</span>
                                         <select
@@ -793,6 +967,7 @@ export default function PuntoDeVenta() {
                                             ))}
                                         </select>
                                     </div>
+                                    )}
 
                                     <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                         <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700 }}>{modoDescuento ? "EDITAR TOTAL:" : "SUBTOTAL:"}</span>
@@ -826,6 +1001,66 @@ export default function PuntoDeVenta() {
                 </div>
             )}
             {/* ── Modal de advertencia por stock insuficiente ── */}
+            {/* ── Modal de selección de variación ── */}
+            {modalVariacion.visible && modalVariacion.prod && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 9999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "var(--overlay-bg)",
+                    backdropFilter: "blur(4px)",
+                    WebkitBackdropFilter: "blur(4px)",
+                }}>
+                    <div className="fade-up" style={{
+                        background: "var(--bg-card)",
+                        borderRadius: 20,
+                        padding: "28px 24px 24px",
+                        maxWidth: 400,
+                        width: "90%",
+                        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                        border: "1px solid var(--border-primary)",
+                    }}>
+                        <h3 style={{ margin: "0 0 4px", fontSize: "1.1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                            {modalVariacion.prod.producto}
+                        </h3>
+                        <p style={{ margin: "0 0 16px", fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                            Elige la variación (cada una tiene su propio precio):
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {(modalVariacion.prod.variaciones || []).map(v => (
+                                <button
+                                    key={v.id}
+                                    onClick={() => agregarConVariacion(modalVariacion.prod!, v.nombre, v.precio)}
+                                    style={{
+                                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                                        padding: "12px 14px",
+                                        borderRadius: 12,
+                                        border: "1px solid var(--border-primary)",
+                                        background: "var(--bg-card2)",
+                                        color: "var(--text-main)",
+                                        cursor: "pointer",
+                                        fontWeight: 700,
+                                        fontSize: "0.9rem",
+                                        transition: "background 0.15s, transform 0.15s",
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-card3)"; e.currentTarget.style.transform = "translateY(-1px)" }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.transform = "none" }}
+                                >
+                                    <span>{v.nombre}</span>
+                                    <span style={{ color: "var(--primary-dark)", fontWeight: 800 }}>${v.precio.toFixed(2)}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            className="btn-ghost"
+                            onClick={() => setModalVariacion({ visible: false, prod: null })}
+                            style={{ marginTop: 14, width: "100%" }}
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {modalAdvertencia.visible && (
                 <div style={{
                     position: "fixed", inset: 0, zIndex: 9999,
