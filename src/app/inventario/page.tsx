@@ -43,8 +43,8 @@ export default function Inventario() {
     const [tab, setTab] = useState<Tab>("nuevo")
 
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "" })
-    const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "" })
+    const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, etiqueta: "" })
     const [nuevasFotos, setNuevasFotos] = useState<FotoGaleria[]>([])
     const [editFotos, setEditFotos] = useState<FotoGaleria[]>([])
 
@@ -58,7 +58,7 @@ export default function Inventario() {
 
     // Estado para editar lotes individuales dentro del formulario Editar Prod.
     const [loteEditandoId, setLoteEditandoId] = useState<string | null>(null)
-    const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string })
+    const [editLoteVal, setEditLoteVal] = useState({ costo: "" as number | string, precio_venta: "" as number | string, stock: "" as number | string, etiqueta: "" })
     // Estado para el diálogo de confirmación persistente al dar de baja un lote
     // Contiene el id del lote pendiente de confirmación; no se cierra hasta eliminar o recargar
     const [loteEliminarConfirm, setLoteEliminarConfirm] = useState<string | null>(null)
@@ -296,7 +296,7 @@ export default function Inventario() {
             }
 
             setNuevasFotos([])
-            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "" })
+            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "" })
             recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -312,7 +312,7 @@ export default function Inventario() {
             mostrarMsg(true, `+${Number(restock.stock)} a ${restock.producto}`)
             recargar()
             setRestockProdSeleccionado(null)
-            setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
+            setRestock({ producto: "", costo: "", precio_venta: "", stock: 1, etiqueta: "" })
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
     }
@@ -405,7 +405,7 @@ export default function Inventario() {
         if (loteEditandoId === null || guardando) return
         setGuardando(true)
         try {
-            await api.editarLote(loteEditandoId, { costo: Number(editLoteVal.costo), precio_venta: Number(editLoteVal.precio_venta), stock: Number(editLoteVal.stock) })
+            await api.editarLote(loteEditandoId, { costo: Number(editLoteVal.costo), precio_venta: Number(editLoteVal.precio_venta), stock: Number(editLoteVal.stock), etiqueta: editLoteVal.etiqueta })
             mostrarMsg(true, "Lote actualizado")
             setLoteEditandoId(null)
             recargar()
@@ -704,6 +704,7 @@ export default function Inventario() {
                                 <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                                 <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             </div>
+                            <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={form.etiqueta} onChange={e => setForm(p => ({ ...p, etiqueta: e.target.value }))} />
                             <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
                                 {guardando ? "Procesando..." : " Dar de Alta"}
                             </button>
@@ -1037,7 +1038,7 @@ export default function Inventario() {
                                     setRestockBuscador("")
                                     setRestockBuscadorDebounced("")
                                     setRestockCatSelec("Todas")
-                                    setRestock({ producto: "", costo: "", precio_venta: "", stock: 1 })
+                                    setRestock({ producto: "", costo: "", precio_venta: "", stock: 1, etiqueta: "" })
                                 }}
                                 style={{ background: "var(--bg-card2)", border: "none", borderRadius: 10, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}
                             >
@@ -1087,6 +1088,7 @@ export default function Inventario() {
                             <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={restock.costo} onChange={e => setRestock(r => ({ ...r, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                             <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
                         </div>
+                        <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={restock.etiqueta} onChange={e => setRestock(r => ({ ...r, etiqueta: e.target.value }))} />
                         <button className="btn-primary" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0}>
                             {guardando ? "Procesando..." : "Añadir Stock"}
                         </button>
@@ -1334,7 +1336,7 @@ export default function Inventario() {
                                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
                                     <thead>
                                         <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-light)" }}>
-                                            {["ID", "Costo unit.", "Precio venta", "Stock", "Margen", ""].map(h => (
+                                            {["ID", "Etiqueta", "Costo unit.", "Precio venta", "Stock", "Margen", ""].map(h => (
                                                 <th key={h} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 600, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
                                             ))}
                                         </tr>
@@ -1349,6 +1351,13 @@ export default function Inventario() {
                                                     onMouseLeave={e => (e.currentTarget.style.background = "")}>
                                                     <td style={{ padding: "8px 12px", fontSize: "0.72rem", color: "var(--text-muted)" }}>
                                                         #{lote.id_lote}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        {editando ? (
+                                                            <input type="text" value={editLoteVal.etiqueta} placeholder="20cm, Premium..."
+                                                                onChange={e => setEditLoteVal(l => ({ ...l, etiqueta: e.target.value }))}
+                                                                className="input-primary" style={{ width: 110, padding: 4 }} />
+                                                        ) : (lote.etiqueta || "—")}
                                                     </td>
                                                     <td style={{ padding: "8px 12px" }}>
                                                         {editando ? (
@@ -1395,7 +1404,7 @@ export default function Inventario() {
                                                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                                                                 <button onClick={() => {
                                                                     setLoteEditandoId(lote.id_lote)
-                                                                    setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote })
+                                                                    setEditLoteVal({ costo: lote.costo, precio_venta: lote.precio_venta, stock: lote.stock_lote, etiqueta: lote.etiqueta || "" })
                                                                 }}
                                                                     style={{ background: "none", border: "none", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.78rem", cursor: "pointer", padding: 4 }}>
                                                                     Editar

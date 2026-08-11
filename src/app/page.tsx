@@ -287,6 +287,11 @@ export default function PuntoDeVenta() {
 
     function nombreLote(lote: Lote): string {
         const fecha = new Date(lote.fecha_entrada).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "2-digit" })
+        // Si el lote tiene etiqueta de presentación (20cm, Premium...), es lo más útil para distinguirlo
+        const etiqueta = lote.etiqueta?.trim()
+        if (etiqueta) {
+            return `${etiqueta} — $${lote.costo.toFixed(2)} — ${lote.stock_lote}uds`
+        }
         return `${fecha} — $${lote.costo.toFixed(2)} — ${lote.stock_lote}uds`
     }
 
@@ -492,7 +497,9 @@ export default function PuntoDeVenta() {
                                             {prod.producto}
                                         </p>
                                         <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>
-                                            ${(prod.precio_sugerido ?? prod.precio_venta).toFixed(2)}
+                                            {prod.precio_min !== undefined && prod.precio_max !== undefined && prod.precio_min < prod.precio_max
+                                                ? `$${prod.precio_min.toFixed(2)} – $${prod.precio_max.toFixed(2)}`
+                                                : `$${(prod.precio_sugerido ?? prod.precio_venta).toFixed(2)}`}
                                         </p>
                                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6, alignItems: "center" }}>
                                             <span

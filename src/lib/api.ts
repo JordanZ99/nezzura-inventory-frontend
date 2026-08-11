@@ -16,6 +16,9 @@ export interface Producto {
     precio_venta: number;
     // Precio del lote más antiguo con stock (el que PEPS venderá); null/undefined si no aplica
     precio_sugerido?: number;
+    // Rango de precios de los lotes con stock (para mostrar variabilidad en el POS)
+    precio_min?: number;
+    precio_max?: number;
     costo_promedio: number;
     categoria: string[];
     codigo_interno?: string;
@@ -39,6 +42,8 @@ export interface Lote {
     stock_lote: number;
     fecha_entrada: string;
     estado: string;
+    // Presentación opcional del lote (ej. "20cm", "Premium", "Oferta")
+    etiqueta?: string;
 }
 
 export interface NuevoProducto {
@@ -52,6 +57,7 @@ export interface NuevoProducto {
     codigo_interno?: string;
     codigo_barras?: string;
     ubicacion?: string;
+    etiqueta?: string;
 }
 
 export interface Restock {
@@ -59,6 +65,7 @@ export interface Restock {
     costo: number;
     precio_venta: number;
     stock: number;
+    etiqueta?: string;
 }
 
 export interface Venta {
@@ -217,7 +224,7 @@ export const api = {
             `/inventario/categoria/${encodeURIComponent(categoria)}/visibilidad`,
             { method: "PATCH" }
         ),
-    editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarLote: (id: string, data: { costo: number; precio_venta: number; stock: number; etiqueta?: string }) => request(`/inventario/lote/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarLote: (id: string) => request<{ ok: boolean; producto: string; producto_desactivado: boolean }>(`/inventario/lote/${id}`, { method: "DELETE" }),
     subirFoto: async (producto: string, file: File): Promise<{ ruta: string }> => {
         const authHeaders = await getAuthHeaders()
