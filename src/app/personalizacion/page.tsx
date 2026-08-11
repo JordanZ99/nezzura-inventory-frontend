@@ -42,6 +42,8 @@ export default function Personalizacion() {
     // Estados para el formulario de identidad del negocio
     const [empresa, setEmpresa] = useState("")
     const [logoUrl, setLogoUrl] = useState("")
+    // Último logo persistido en la DB (para borrar el anterior de Cloudinary al reemplazarlo)
+    const [logoOriginal, setLogoOriginal] = useState("")
     const [guardando, setGuardando] = useState(false)
     const [subiendoLogo, setSubiendoLogo] = useState(false)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
@@ -102,6 +104,7 @@ export default function Personalizacion() {
         if (tenant) {
             setEmpresa(tenant.empresa || "")
             setLogoUrl(tenant.logo || "")
+            setLogoOriginal(tenant.logo || "")
         }
     }, [tenant])
 
@@ -176,12 +179,26 @@ export default function Personalizacion() {
             try { imgAEnviar = await comprimirBanner(archivo) }
             catch { /* enviar el recorte si falla la compresión */ }
             const { ruta } = await api.subirFoto(nombreClave, imgAEnviar as File)
+            // URL anterior del banner: se borra de Cloudinary solo tras guardar el nuevo
+            const viejaUrl = esMovil ? (catalogoConfig?.banner_url_movil || "") : (catalogoConfig?.banner_url || "")
             if (esMovil) {
                 setCatalogoConfig(prev => prev ? { ...prev, banner_url_movil: ruta } : prev)
-                autoguardar("banner_url_movil", { banner_url_movil: ruta })
+                const ok = await ejecutarGuardado("banner_url_movil", { banner_url_movil: ruta })
+                if (ok && viejaUrl && viejaUrl !== ruta) {
+                    api.borrarImagen(viejaUrl).catch(() => {})
+                } else if (!ok) {
+                    // Guardado falló: limpiar la imagen recién subida (huérfana)
+                    api.borrarImagen(ruta).catch(() => {})
+                }
             } else {
                 setCatalogoConfig(prev => prev ? { ...prev, banner_url: ruta } : prev)
-                autoguardar("banner_url", { banner_url: ruta })
+                const ok = await ejecutarGuardado("banner_url", { banner_url: ruta })
+                if (ok && viejaUrl && viejaUrl !== ruta) {
+                    api.borrarImagen(viejaUrl).catch(() => {})
+                } else if (!ok) {
+                    // Guardado falló: limpiar la imagen recién subida (huérfana)
+                    api.borrarImagen(ruta).catch(() => {})
+                }
             }
             mostrarMsg(true, "🖼️ Banner subido y aplicado")
         } catch (err: any) {
@@ -195,10 +212,14 @@ export default function Personalizacion() {
     }
 
     // ── Quitar banner (escritorio o móvil) ──
-    function quitarBanner(target: "escritorio" | "movil") {
+    async function quitarBanner(target: "escritorio" | "movil") {
         const campo = target === "escritorio" ? "banner_url" : "banner_url_movil"
+        const viejaUrl = target === "escritorio" ? (catalogoConfig?.banner_url || "") : (catalogoConfig?.banner_url_movil || "")
         setCatalogoConfig(prev => prev ? { ...prev, [campo]: "" } : prev)
-        autoguardar(campo, { [campo]: "" })
+        const ok = await ejecutarGuardado(campo, { [campo]: "" })
+        if (ok && viejaUrl) {
+            api.borrarImagen(viejaUrl).catch(() => {})
+        }
     }
 
     // Guarda empresa y logo en Supabase
@@ -215,6 +236,14 @@ export default function Personalizacion() {
                 empresa: empresa.trim(),
                 logo: logoUrl.trim()
             })
+
+            // Si el logo cambió, borrar el anterior de Cloudinary (best-effort)
+            const logoNuevo = logoUrl.trim()
+            const logoViejo = logoOriginal
+            if (logoNuevo && logoViejo && logoViejo !== logoNuevo && logoViejo !== "No hay foto") {
+                api.borrarImagen(logoViejo).catch(() => {})
+            }
+            setLogoOriginal(logoNuevo)
 
             mostrarMsg(true, "✅ Cambios guardados y aplicados correctamente")
         } catch (err: any) {
@@ -273,12 +302,14 @@ export default function Personalizacion() {
     const [campoGuardando, setCampoGuardando] = useState<string | null>(null)
     const debounceRef = useRef<Record<string, { timer: ReturnType<typeof setTimeout>; data: () => Record<string, any> }>>({})
 
-    async function ejecutarGuardado(campo: string, data: Record<string, any>) {
+    async function ejecutarGuardado(campo: string, data: Record<string, any>): Promise<boolean> {
         setCampoGuardando(campo)
         try {
             await api.actualizarConfigCatalogo(data)
+            return true
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error guardando configuración"}`)
+            return false
         } finally {
             setCampoGuardando(prev => prev === campo ? null : prev)
         }
