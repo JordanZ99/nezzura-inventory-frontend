@@ -1026,29 +1026,42 @@ export default function PuntoDeVenta() {
                             Elige la variación (cada una tiene su propio precio):
                         </p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            {(modalVariacion.prod.variaciones || []).map(v => (
-                                <button
-                                    key={v.id}
-                                    onClick={() => agregarConVariacion(modalVariacion.prod!, v.nombre, v.precio)}
-                                    style={{
-                                        display: "flex", justifyContent: "space-between", alignItems: "center",
-                                        padding: "12px 14px",
-                                        borderRadius: 12,
-                                        border: "1px solid var(--border-primary)",
-                                        background: "var(--bg-card2)",
-                                        color: "var(--text-main)",
-                                        cursor: "pointer",
-                                        fontWeight: 700,
-                                        fontSize: "0.9rem",
-                                        transition: "background 0.15s, transform 0.15s",
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-card3)"; e.currentTarget.style.transform = "translateY(-1px)" }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card2)"; e.currentTarget.style.transform = "none" }}
-                                >
-                                    <span>{v.nombre}</span>
-                                    <span style={{ color: "var(--primary-dark)", fontWeight: 800 }}>${v.precio.toFixed(2)}</span>
-                                </button>
-                            ))}
+                            {(modalVariacion.prod.variaciones || []).map(v => {
+                                const stockPorVar = !!modalVariacion.prod?.stock_por_variacion
+                                const agotada = stockPorVar && (v.stock ?? 0) <= 0
+                                return (
+                                    <button
+                                        key={v.id}
+                                        disabled={agotada}
+                                        onClick={() => agregarConVariacion(modalVariacion.prod!, v.nombre, v.precio)}
+                                        style={{
+                                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                                            padding: "12px 14px",
+                                            borderRadius: 12,
+                                            border: "1px solid var(--border-primary)",
+                                            background: agotada ? "var(--bg-card)" : "var(--bg-card2)",
+                                            color: agotada ? "var(--text-muted)" : "var(--text-main)",
+                                            cursor: agotada ? "not-allowed" : "pointer",
+                                            fontWeight: 700,
+                                            fontSize: "0.9rem",
+                                            opacity: agotada ? 0.55 : 1,
+                                            transition: "background 0.15s, transform 0.15s",
+                                        }}
+                                        onMouseEnter={e => { if (!agotada) { e.currentTarget.style.background = "var(--bg-card3)"; e.currentTarget.style.transform = "translateY(-1px)" } }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = agotada ? "var(--bg-card)" : "var(--bg-card2)"; e.currentTarget.style.transform = "none" }}
+                                    >
+                                        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            {v.nombre}
+                                            {stockPorVar && !agotada && (
+                                                <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)" }}>{v.stock} uds</span>
+                                            )}
+                                        </span>
+                                        {agotada
+                                            ? <span style={{ color: "#ad4955ff", fontWeight: 700, fontSize: "0.78rem" }}>Agotado</span>
+                                            : <span style={{ color: "var(--primary-dark)", fontWeight: 800 }}>${v.precio.toFixed(2)}</span>}
+                                    </button>
+                                )
+                            })}
                         </div>
                         <button
                             className="btn-ghost"

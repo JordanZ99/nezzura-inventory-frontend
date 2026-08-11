@@ -28,7 +28,9 @@ interface ProductoPublico {
     // 'stock' | 'servicio' — los servicios no tienen inventario (no se agotan)
     tipo_producto?: string
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
-    variaciones?: { id: number; nombre: string; precio: number }[]
+    variaciones?: { id: number; nombre: string; precio: number; stock?: number }[]
+    // Fase 6: si true, cada variación lleva su propio inventario
+    stock_por_variacion?: boolean
 }
 
 interface ConfigCatalogo {
@@ -59,6 +61,18 @@ interface Props {
     tema: PaletaTema
     agrupado?: boolean
     onAbrirProducto?: (p: ProductoPublico) => void
+}
+
+/**
+ * Precio mínimo de las variaciones DISPONIBLES (Fase 6): si el producto
+ * maneja stock por variación, las variaciones agotadas no cuentan para el
+ * "desde $X". Si todas están agotadas, cae al precio del producto.
+ */
+function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number }[]; stock_por_variacion?: boolean; precio_venta: number }): { desde: boolean; precio: number } {
+    const vars = p.variaciones || []
+    const disponibles = p.stock_por_variacion ? vars.filter(v => (v.stock ?? 0) > 0) : vars
+    if (disponibles.length > 0) return { desde: true, precio: Math.min(...disponibles.map(v => v.precio)) }
+    return { desde: false, precio: p.precio_venta }
 }
 
 export default function CatalogoGridClasico({ productos, config, tema, agrupado = false, onAbrirProducto }: Props) {
@@ -218,21 +232,20 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                                 color: tema.primaryDark,
                                 whiteSpace: "nowrap",
                             }}>
-                                {(p.variaciones || []).length > 0 ? (
-                                    <span>
-                                        <span style={{ fontSize: "0.7rem", fontWeight: 700, opacity: 0.7, marginRight: 2 }}>desde </span>
-                                        ${Math.min(...(p.variaciones || []).map(v => v.precio)).toFixed(2)}
-                                    </span>
-                                ) : (
-                                    <span>
-                                        ${p.precio_venta.toFixed(2)}
-                                        {p.sufijo_precio && (
-                                            <span style={{ fontSize: "0.72rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
-                                                {p.sufijo_precio}
-                                            </span>
-                                        )}
-                                    </span>
-                                )}
+                                {(() => {
+                                    const min = minPrecioDisponible(p)
+                                    return (
+                                        <span>
+                                            {min.desde && <span style={{ fontSize: "0.7rem", fontWeight: 700, opacity: 0.7, marginRight: 2 }}>desde </span>}
+                                            ${min.precio.toFixed(2)}
+                                            {p.sufijo_precio && (
+                                                <span style={{ fontSize: "0.72rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
+                                                    {p.sufijo_precio}
+                                                </span>
+                                            )}
+                                        </span>
+                                    )
+                                })()}
                             </span>
                         ) : (
                             <span />
