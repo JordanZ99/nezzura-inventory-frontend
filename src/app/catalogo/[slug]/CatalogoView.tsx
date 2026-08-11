@@ -33,6 +33,8 @@ interface ProductoPublico {
     stock_total: number
     categoria: string[]
     imagenes?: string[]
+    // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
+    sufijo_precio?: string
 }
 
 interface ConfigCatalogo {

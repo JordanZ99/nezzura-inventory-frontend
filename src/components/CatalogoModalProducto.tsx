@@ -21,6 +21,8 @@ interface ProductoPublico {
     stock_total: number
     categoria: string[]
     imagenes?: string[]
+    // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
+    sufijo_precio?: string
 }
 
 interface ConfigCatalogo {
@@ -428,6 +430,11 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                         {config.mostrar_precios ? (
                             <span style={{ fontSize: "1.5rem", fontWeight: 800, color: tema.primaryDark, lineHeight: 1 }}>
                                 ${producto.precio_venta.toFixed(2)}
+                                {producto.sufijo_precio && (
+                                    <span style={{ fontSize: "1rem", fontWeight: 700, opacity: 0.75, marginLeft: 6 }}>
+                                        {producto.sufijo_precio}
+                                    </span>
+                                )}
                             </span>
                         ) : <span />}
                         {config.mostrar_stock && (
