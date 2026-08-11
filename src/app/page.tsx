@@ -52,7 +52,8 @@ export default function PuntoDeVenta() {
             // Si lo estamos apagando, reseteamos todos los precios al original de lista
             setCarrito(prev => prev.map(item => {
                 const prod = productos.find(p => p.producto === item.producto)
-                return { ...item, precio_real: prod ? prod.precio_venta : item.precio_real }
+                // Precio sugerido = lote más antiguo con stock (el que PEPS venderá)
+                return { ...item, precio_real: prod ? (prod.precio_sugerido ?? prod.precio_venta) : item.precio_real }
             }))
             setPrecios({})
         }
@@ -137,12 +138,28 @@ export default function PuntoDeVenta() {
     }
 
     function cambiarLoteCarrito(producto: string, id_lote: string | undefined) {
-        setCarrito(prev => prev.map(i =>
-            i.producto === producto ? { ...i, id_lote } : i
-        ))
+        // Propuesta 2: el precio sugerido sigue al lote seleccionado
+        // (y "Más antiguo" usa el precio del lote más antiguo con stock).
+        let precioSugerido: number | null = null
+        if (id_lote) {
+            const lote = lotes.find(l => l.id_lote === id_lote)
+            precioSugerido = lote ? lote.precio_venta : null
+        } else {
+            const prod = productos.find(p => p.producto === producto)
+            precioSugerido = prod ? (prod.precio_sugerido ?? prod.precio_venta) : null
+        }
+        setCarrito(prev => prev.map(i => {
+            if (i.producto !== producto) return i
+            return precioSugerido !== null ? { ...i, id_lote, precio_real: precioSugerido } : { ...i, id_lote }
+        }))
+        if (precioSugerido !== null) {
+            const precioStr = precioSugerido.toFixed(2)
+            setPrecios(prev => ({ ...prev, [producto]: precioStr }))
+        }
     }
 
     function agregarAlCarrito(prod: Producto) {
+        const yaEnCarrito = carrito.some(i => i.producto === prod.producto)
         setCarrito(prev => {
             const idx = prev.findIndex(i => i.producto === prod.producto)
             if (idx >= 0) {
@@ -153,8 +170,18 @@ export default function PuntoDeVenta() {
                 nuevo[idx] = { ...nuevo[idx], cantidad: nuevo[idx].cantidad + 1 }
                 return nuevo
             }
-            return [...prev, { producto: prod.producto, cantidad: 1, precio_real: prod.precio_venta }]
+            // Precio sugerido = lote más antiguo con stock (el que PEPS venderá)
+            return [...prev, { producto: prod.producto, cantidad: 1, precio_real: (prod.precio_sugerido ?? prod.precio_venta) }]
         })
+        // Al añadir un ítem NUEVO, la sugerencia manda: descartamos el precio custom
+        // persistido de sesiones anteriores (evita mostrar $30 en el input y cobrar $35).
+        if (!yaEnCarrito) {
+            setPrecios(prev => {
+                const nuevo = { ...prev }
+                delete nuevo[prod.producto]
+                return nuevo
+            })
+        }
     }
 
     function cambiarCantidad(producto: string, cantidad: number) {
@@ -465,7 +492,7 @@ export default function PuntoDeVenta() {
                                             {prod.producto}
                                         </p>
                                         <p style={{ fontWeight: 800, fontSize: "1rem", color: "var(--primary-dark)", margin: 0 }}>
-                                            ${prod.precio_venta.toFixed(2)}
+                                            ${(prod.precio_sugerido ?? prod.precio_venta).toFixed(2)}
                                         </p>
                                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6, alignItems: "center" }}>
                                             <span

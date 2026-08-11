@@ -14,6 +14,8 @@ export interface Producto {
     estado: string;
     stock_total: number;
     precio_venta: number;
+    // Precio del lote más antiguo con stock (el que PEPS venderá); null/undefined si no aplica
+    precio_sugerido?: number;
     costo_promedio: number;
     categoria: string[];
     codigo_interno?: string;
