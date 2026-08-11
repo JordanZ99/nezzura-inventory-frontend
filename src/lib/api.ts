@@ -100,9 +100,15 @@ export interface NuevoProducto {
     ubicacion?: string;
     etiqueta?: string;
     sufijo_precio?: string;
-    tipo_producto?: string;        // 'stock' | 'servicio'
+    tipo_producto?: string;        // 'stock' | 'servicio' | 'compuesto'
     costo_servicio?: number;
     precio_servicio?: number;
+    // Visible en el catálogo público al crearlo (default true). Solo aplica
+    // si el producto es NUEVO; útil para ingredientes que no deben aparecer.
+    visible_en_catalogo?: boolean;
+    // Variaciones y receta se crean en la MISMA transacción que el producto.
+    variaciones?: { nombre: string; precio: number }[];
+    recetas?: { material: string; cantidad: number }[];
 }
 
 export interface Restock {

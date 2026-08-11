@@ -123,6 +123,190 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
 }
 
 /**
+ * Alta de variaciones (crear producto): lista simple de nombre + precio.
+ * Se persisten en la MISMA transacción que el producto (crear_producto_completo).
+ */
+function AltaVariaciones({ lista, disabled = false, onAgregar, onQuitar }: {
+    lista: { nombre: string; precio: number }[]
+    disabled?: boolean
+    onAgregar: (nombre: string, precio: number) => void
+    onQuitar: (i: number) => void
+}) {
+    const [nombre, setNombre] = useState("")
+    const [precio, setPrecio] = useState("")
+    const puede = nombre.trim() !== "" && precio !== "" && Number(precio) > 0
+
+    const agregar = () => {
+        if (!puede) return
+        onAgregar(nombre.trim(), Number(precio))
+        setNombre(""); setPrecio("")
+    }
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                Variaciones (opcional)
+            </label>
+            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
+                Presentaciones con precio propio (ej. S/M/L, Sencilla/Doble). Se crean junto al producto y aparecen en el catálogo como "desde $X".
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                    className="input-primary"
+                    style={{ flex: 1, minWidth: 140 }}
+                    placeholder="Nombre (ej. Doble)"
+                    value={nombre}
+                    disabled={disabled}
+                    onChange={e => setNombre(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") agregar() }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>$</span>
+                    <input
+                        className="input-primary"
+                        style={{ width: 90 }}
+                        type="number" min="0" step="0.01"
+                        placeholder="0.00"
+                        value={precio}
+                        disabled={disabled}
+                        onChange={e => setPrecio(e.target.value)}
+                    />
+                </div>
+                <button
+                    onClick={agregar}
+                    disabled={disabled || !puede}
+                    style={{
+                        background: !disabled && puede ? "var(--primary-mid)" : "var(--bg-card2)",
+                        color: !disabled && puede ? "#fff" : "var(--text-muted)",
+                        border: "none", borderRadius: 10, padding: "8px 14px",
+                        fontWeight: 700, fontSize: "0.75rem", cursor: !disabled && puede ? "pointer" : "not-allowed",
+                        display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
+                    }}
+                >
+                    <Icon name="Plus" size={14} /> Añadir
+                </button>
+            </div>
+            {lista.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {lista.map((v, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 10, padding: "6px 10px" }}>
+                            <span style={{ flex: 1, fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>{v.nombre}</span>
+                            <span style={{ fontWeight: 800, fontSize: "0.8rem", color: "var(--primary-dark)" }}>${v.precio.toFixed(2)}</span>
+                            <button onClick={() => onQuitar(i)} title="Quitar" style={{ background: "none", border: "none", cursor: "pointer", color: "#e53935", padding: 4 }}>
+                                <Icon name="Trash" size={15} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+/**
+ * Alta de ingredientes del compuesto (crear producto): buscador de productos
+ * de stock + cantidad (permite fracciones: 0.5, 150, 0.25...).
+ * Se persisten en la MISMA transacción que el producto (crear_producto_completo).
+ */
+function AltaMateriales({ inv, lista, disabled = false, onAgregar, onQuitar }: {
+    inv: Producto[]
+    lista: { material: string; cantidad: number }[]
+    disabled?: boolean
+    onAgregar: (material: string, cantidad: number) => void
+    onQuitar: (i: number) => void
+}) {
+    const [buscador, setBuscador] = useState("")
+    const [seleccionado, setSeleccionado] = useState("")
+    const [cantidad, setCantidad] = useState("")
+    const q = buscador.trim().toLowerCase()
+    const sugerencias = q ? inv.filter(p => p.tipo_producto === "stock" && p.producto.toLowerCase().includes(q)).slice(0, 6) : []
+    const puede = seleccionado !== "" && cantidad !== "" && Number(cantidad) > 0
+
+    const agregar = () => {
+        if (!puede) return
+        onAgregar(seleccionado, Number(cantidad))
+        setBuscador(""); setSeleccionado(""); setCantidad("")
+    }
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                Añadir ingredientes (receta)
+            </label>
+            <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
+                Al vender 1 unidad de este compuesto se descuenta la cantidad indicada de cada material (se permiten fracciones: 0.5, 150, 0.25...).
+            </p>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 160, display: "flex", flexDirection: "column", gap: 4 }}>
+                    <input
+                        className="input-primary"
+                        placeholder="Buscar producto de stock..."
+                        value={buscador}
+                        disabled={disabled}
+                        onChange={e => { setBuscador(e.target.value); setSeleccionado("") }}
+                    />
+                    {sugerencias.length > 0 && buscador.trim() && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {sugerencias.map(s => (
+                                <button
+                                    key={s.producto}
+                                    type="button"
+                                    onClick={() => { setSeleccionado(s.producto); setBuscador(s.producto) }}
+                                    style={{
+                                        background: s.producto === seleccionado ? "var(--primary-mid)" : "var(--bg-card2)",
+                                        color: s.producto === seleccionado ? "#fff" : "var(--text-main)",
+                                        border: "none", borderRadius: 10, padding: "5px 10px",
+                                        fontSize: "0.7rem", fontWeight: 700, cursor: "pointer",
+                                        display: "flex", alignItems: "center", gap: 4,
+                                    }}
+                                >
+                                    {s.producto === seleccionado && <Icon name="Check" size={12} />} {s.producto}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <input
+                    className="input-primary"
+                    style={{ width: 90 }}
+                    type="number" min="0" step="any"
+                    placeholder="Cant."
+                    value={cantidad}
+                    disabled={disabled}
+                    onChange={e => setCantidad(e.target.value)}
+                />
+                <button
+                    onClick={agregar}
+                    disabled={disabled || !puede}
+                    style={{
+                        background: !disabled && puede ? "var(--primary-mid)" : "var(--bg-card2)",
+                        color: !disabled && puede ? "#fff" : "var(--text-muted)",
+                        border: "none", borderRadius: 10, padding: "8px 14px",
+                        fontWeight: 700, fontSize: "0.75rem", cursor: !disabled && puede ? "pointer" : "not-allowed",
+                        display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
+                    }}
+                >
+                    <Icon name="Plus" size={14} /> Añadir
+                </button>
+            </div>
+            {lista.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {lista.map((m, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 10, padding: "6px 10px" }}>
+                            <span style={{ flex: 1, fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>{m.material}</span>
+                            <span style={{ fontWeight: 700, fontSize: "0.75rem", color: "var(--text-muted)" }}>×{m.cantidad}</span>
+                            <button onClick={() => onQuitar(i)} title="Quitar" style={{ background: "none", border: "none", cursor: "pointer", color: "#e53935", padding: 4 }}>
+                                <Icon name="Trash" size={15} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+/**
  * Fila editable de una variación: nombre + precio propios, con botones
  * Guardar (persiste el cambio) y Eliminar.
  */
@@ -290,7 +474,11 @@ export default function Inventario() {
     const [tab, setTab] = useState<Tab>("nuevo")
 
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock" as string, costo_servicio: "" as number | string, precio_servicio: "" as number | string })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock" as string, costo_servicio: "" as number | string, precio_servicio: "" as number | string, visible_en_catalogo: true as boolean })
+    // Variaciones y materiales pendientes del ALTA (se guardan en la misma
+    // transacción que el producto, vía crear_producto_completo)
+    const [nuevasVariaciones, setNuevasVariaciones] = useState<{ nombre: string; precio: number }[]>([])
+    const [nuevosMateriales, setNuevosMateriales] = useState<{ material: string; cantidad: number }[]>([])
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, etiqueta: "" })
     const [nuevasFotos, setNuevasFotos] = useState<FotoGaleria[]>([])
     const [editFotos, setEditFotos] = useState<FotoGaleria[]>([])
@@ -516,6 +704,9 @@ export default function Inventario() {
     async function guardarNuevo() {
         if (guardando) return
         setGuardando(true)
+        // Si la creación falla tras subir la foto, la borramos para no dejar
+        // imágenes huérfanas en Cloudinary (la creación es todo-o-nada).
+        let imagenSubida = ""
         try {
             // Ensure tables exist before creating a product
             await api.initDB()
@@ -538,6 +729,7 @@ export default function Inventario() {
                 }
                 const r = await api.subirFoto(form.producto, imgAEnviar)
                 imagen = r.ruta
+                imagenSubida = imagen
             }
 
             // Crear el producto con la foto principal.
@@ -557,8 +749,12 @@ export default function Inventario() {
                 ubicacion: form.ubicacion || undefined,
                 costo_servicio: esSinStock ? Number(form.costo_servicio === "" ? form.costo : form.costo_servicio) : undefined,
                 precio_servicio: esSinStock ? Number(form.precio_servicio === "" ? form.precio_venta : form.precio_servicio) : undefined,
+                visible_en_catalogo: form.visible_en_catalogo,
+                // Se crean junto al producto en una sola transacción
+                variaciones: nuevasVariaciones.length > 0 ? nuevasVariaciones : undefined,
+                recetas: form.tipo_producto === "compuesto" && nuevosMateriales.length > 0 ? nuevosMateriales : undefined,
             })
-            mostrarMsg(true, `${form.producto} registrado`)
+            mostrarMsg(true, `${form.producto} registrado${nuevasVariaciones.length > 0 ? ` con ${nuevasVariaciones.length} variación(es)` : ""}${nuevosMateriales.length > 0 ? ` y ${nuevosMateriales.length} ingrediente(s)` : ""}`)
 
             // ── Subir fotos adicionales (índices 1+) si hay ──
             const extras = nuevasFotos.slice(1)
@@ -575,9 +771,16 @@ export default function Inventario() {
             }
 
             setNuevasFotos([])
-            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock", costo_servicio: "", precio_servicio: "" })
+            setNuevasVariaciones([])
+            setNuevosMateriales([])
+            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock", costo_servicio: "", precio_servicio: "", visible_en_catalogo: true })
             recargar()
-        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) {
+            // La creación falló (variación duplicada, material inexistente, etc.):
+            // limpiar la foto principal que ya se subió para no dejar huérfanos.
+            if (imagenSubida) api.borrarImagen(imagenSubida).catch(() => {})
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
+        }
         finally { setGuardando(false) }
     }
 
@@ -1110,9 +1313,25 @@ export default function Inventario() {
                                     {form.tipo_producto === "servicio"
                                         ? "Se vende sin límite de inventario (ej. corte de cabello, consulta, lavado de auto)."
                                         : form.tipo_producto === "compuesto"
-                                            ? "Se vende y consume stock de sus materiales (ej. hamburguesa: pan + carne + queso). Configura la receta al editarlo."
+                                            ? "Se vende y consume stock de sus materiales (ej. hamburguesa: pan + carne + queso). Añade los ingredientes más abajo."
                                             : "Se lleva control de inventario por lotes (ej. peluches, plantas, ropa)."}
                                 </p>
+                            </div>
+                            {/* Visible en catálogo: por defecto activo, para que un ingrediente
+                                (material de compuestos) no aparezca accidentalmente en el catálogo */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Visible en catálogo</label>
+                                <select
+                                    className="input-primary"
+                                    value={form.visible_en_catalogo ? "true" : "false"}
+                                    onChange={e => setForm(p => ({ ...p, visible_en_catalogo: e.target.value === "true" }))}
+                                    title={form.visible_en_catalogo
+                                        ? "Este producto se mostrará en tu catálogo público"
+                                        : "Este producto quedará oculto en tu catálogo público (ideal para ingredientes)"}
+                                >
+                                    <option value="true">Visible</option>
+                                    <option value="false">Oculto</option>
+                                </select>
                             </div>
                             <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                             <Input label="Descripción" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
@@ -1208,8 +1427,25 @@ export default function Inventario() {
                             </div>
                             {form.tipo_producto === "compuesto" && (
                                 <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
-                                    <Icon name="Lightbulb" size={14} /> El costo real se calcula en vivo al vender (según el costo de los materiales de la receta). Aquí solo defines el <strong>precio de venta</strong>. La receta se configura después de crear el producto, en "Editar Prod.".
+                                    <Icon name="Lightbulb" size={14} /> El costo real se calcula en vivo al vender (según el costo de los ingredientes). Puedes añadirlos aquí abajo o después, en "Editar Prod.".
                                 </p>
+                            )}
+
+                            {/* Variaciones e ingredientes: se crean junto al producto (transacción única) */}
+                            <AltaVariaciones
+                                lista={nuevasVariaciones}
+                                disabled={guardando}
+                                onAgregar={(nombre, precio) => setNuevasVariaciones(prev => [...prev, { nombre, precio }])}
+                                onQuitar={(i) => setNuevasVariaciones(prev => prev.filter((_, idx) => idx !== i))}
+                            />
+                            {form.tipo_producto === "compuesto" && (
+                                <AltaMateriales
+                                    inv={inv}
+                                    lista={nuevosMateriales}
+                                    disabled={guardando}
+                                    onAgregar={(material, cantidad) => setNuevosMateriales(prev => [...prev, { material, cantidad }])}
+                                    onQuitar={(i) => setNuevosMateriales(prev => prev.filter((_, idx) => idx !== i))}
+                                />
                             )}
                             <div>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Precio en el catálogo</label>
