@@ -9,20 +9,6 @@
 const MAX_ORIGINAL_SIZE_MB = 10;
 
 /**
- * Añade parámetros de optimización de Cloudinary a una URL para reducir el
- * ancho de banda (Opción A): redimensiona a `ancho` px y entrega en el mejor
- * formato/calidad automáticos (f_auto,q_auto).
- *
- * Ejemplo:
- *   https://res.cloudinary.com/xx/image/upload/v1/abc.jpg
- *   → https://res.cloudinary.com/xx/image/upload/w_600,f_auto,q_auto/v1/abc.jpg
- *
- * Solo afecta a URLs de res.cloudinary.com. Si la URL ya tiene una cadena de
- * transformación (p.ej. contiene f_auto o w_), la devuelve intacta para no
- * duplicar transformaciones. Cualquier otra URL (local, relativa, otro CDN)
- * también se devuelve sin cambios.
- */
-/**
  * Helper compartido: construye la URL de Cloudinary con una transformación
  * insertada, solo si la URL es de res.cloudinary.com y NO trae transformación
  * previa (no se duplica la cadena). Devuelve null si no aplica.
@@ -42,25 +28,22 @@ function construirUrlCloudinary(url: string | undefined, transformacion: string)
     return `${url.slice(0, idx + marker.length)}${transformacion}/${despues}`
 }
 
-export function optimizarImagenCloudinary(url: string | undefined, ancho: number): string {
-    return construirUrlCloudinary(url, `w_${ancho},f_auto,q_auto`) ?? url ?? ""
-}
-
 /**
- * Genera la URL del placeholder LQIP (Low Quality Image Placeholder) de
- * Cloudinary: una versión minúscula (30px) y muy borrosa de la misma imagen,
- * que pesa menos de 1 KB y carga al instante.
+ * Añade parámetros de optimización de Cloudinary a una URL para reducir el
+ * ancho de banda (Opción A): redimensiona a `ancho` px y entrega en el mejor
+ * formato/calidad automáticos (f_auto,q_auto).
  *
  * Ejemplo:
  *   https://res.cloudinary.com/xx/image/upload/v1/abc.jpg
- *   → https://res.cloudinary.com/xx/image/upload/w_30,e_blur:800,f_auto,q_auto:low/v1/abc.jpg
+ *   → https://res.cloudinary.com/xx/image/upload/w_600,f_auto,q_auto/v1/abc.jpg
  *
- * Igual que optimizarImagenCloudinary: solo afecta a URLs de res.cloudinary.com
- * y no toca URLs que ya tengan transformaciones. Para URLs que NO son de
- * Cloudinary devuelve "" (sin placeholder) para no descargar la imagen dos veces.
+ * Solo afecta a URLs de res.cloudinary.com. Si la URL ya tiene una cadena de
+ * transformación (p.ej. contiene f_auto o w_), la devuelve intacta para no
+ * duplicar transformaciones. Cualquier otra URL (local, relativa, otro CDN)
+ * también se devuelve sin cambios.
  */
-export function placeholderBlurCloudinary(url: string | undefined): string {
-    return construirUrlCloudinary(url, "w_30,e_blur:800,f_auto,q_auto:low") ?? ""
+export function optimizarImagenCloudinary(url: string | undefined, ancho: number): string {
+    return construirUrlCloudinary(url, `w_${ancho},f_auto,q_auto`) ?? url ?? ""
 }
 
 /**
