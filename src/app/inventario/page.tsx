@@ -35,6 +35,72 @@ function Pill({ children, color = "primary" }: { children: React.ReactNode; colo
     )
 }
 
+/**
+ * Selector de sufijo del precio que se muestra en el catálogo público.
+ * 3 casillas: "c/u", "por kilo" y una libre ("Otro" → ej. "por litro").
+ * El valor guardado es el texto final ("", "c/u", "por kilo", "por litro", ...).
+ */
+function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+    const presets = ["c/u", "por kilo"]
+    const esPreset = presets.includes(value)
+    const esOtro = value !== "" && !esPreset
+    const [otroTexto, setOtroTexto] = useState(esOtro ? value : "")
+
+    const togglePreset = (preset: string) => {
+        onChange(value === preset ? "" : preset)
+    }
+
+    // Al activar "Otro", el texto del input arranca vacío (el usuario escribe el
+    // sufijo libre, ej. "por litro"); NO se inventa un default para no pisar
+    // una selección previa con un valor no deseado.
+    const activarOtro = () => {
+        if (esOtro) {
+            // Deseleccionar: limpiar todo (input + valor persistido)
+            setOtroTexto("")
+            onChange("")
+        } else {
+            setOtroTexto("")
+            onChange("")
+        }
+    }
+
+    const chipStyle = (activo: boolean): React.CSSProperties => ({
+        background: activo ? "var(--primary-mid)" : "var(--bg-card2)",
+        color: activo ? "#fff" : "var(--text-main)",
+        border: "none", borderRadius: 12,
+        padding: "8px 14px", fontSize: "0.78rem", fontWeight: 700,
+        cursor: "pointer", transition: "all 0.15s",
+    })
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {presets.map(preset => (
+                    <button key={preset} onClick={() => togglePreset(preset)} style={chipStyle(value === preset)}>
+                        {preset} {value === preset ? "✓" : ""}
+                    </button>
+                ))}
+                <button onClick={activarOtro} style={chipStyle(esOtro)}>
+                    Otro {esOtro ? "✓" : ""}
+                </button>
+            </div>
+            {esOtro && (
+                <input
+                    type="text"
+                    placeholder="Ej: por litro, por docena..."
+                    value={otroTexto}
+                    autoFocus
+                    onChange={e => { setOtroTexto(e.target.value); onChange(e.target.value) }}
+                    className="input-primary"
+                />
+            )}
+            <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: 0 }}>
+                Se muestra junto al precio en el catálogo: "$35.00 {value || "…"}".
+            </p>
+        </div>
+    )
+}
+
 export default function Inventario() {
     const { tenant } = useTenant()
 
@@ -43,14 +109,14 @@ export default function Inventario() {
     const [tab, setTab] = useState<Tab>("nuevo")
 
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "" })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "" })
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, etiqueta: "" })
     const [nuevasFotos, setNuevasFotos] = useState<FotoGaleria[]>([])
     const [editFotos, setEditFotos] = useState<FotoGaleria[]>([])
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true, sufijo_precio: "" })
 
     // ── Galería unificada de fotos (principal + extras) ──
     // Ahora la foto principal es simplemente la primera del array (índice 0).
@@ -296,7 +362,7 @@ export default function Inventario() {
             }
 
             setNuevasFotos([])
-            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "" })
+            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "" })
             recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardando(false) }
@@ -355,6 +421,9 @@ export default function Inventario() {
                 codigo_barras: editProdVal.codigo_barras || undefined,
                 ubicacion: editProdVal.ubicacion || undefined,
                 visible_en_catalogo: editProdVal.visible_en_catalogo,
+                // Se envía SIEMPRE (incluso "") para que el backend pueda LIMPIAR el
+                // sufijo si el tenant lo deselecciona (COALESCE trata '' como valor válido).
+                sufijo_precio: editProdVal.sufijo_precio,
             }
             await api.editarProducto(prodEditar, payload)
 
@@ -703,6 +772,10 @@ export default function Inventario() {
                                 <Input label="Cantidad" type="number" min={1} placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
                                 <Input label="Costo" type="number" min={0} step="0.01" placeholder="0.00" value={form.costo} onChange={e => setForm(p => ({ ...p, costo: e.target.value === "" ? "" : Number(e.target.value) }))} />
                                 <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={form.precio_venta} onChange={e => setForm(p => ({ ...p, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Precio en el catálogo</label>
+                                <SelectorSufijoPrecio value={form.sufijo_precio} onChange={v => setForm(p => ({ ...p, sufijo_precio: v }))} />
                             </div>
                             <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={form.etiqueta} onChange={e => setForm(p => ({ ...p, etiqueta: e.target.value }))} />
                             <button className="btn-primary" onClick={guardarNuevo} disabled={guardando || !form.producto || form.precio_venta === "" || form.precio_venta === 0}>
@@ -1196,6 +1269,7 @@ export default function Inventario() {
                                                     codigo_barras: prod.codigo_barras ?? "",
                                                     ubicacion: prod.ubicacion ?? "",
                                                     visible_en_catalogo: prod.visible_en_catalogo ?? true,
+                                                    sufijo_precio: prod.sufijo_precio ?? "",
                                                 })
                                                 // Cargar todas las fotos del producto (principal + extras) en editFotos
                                                 const fotos: FotoGaleria[] = []
@@ -1291,6 +1365,11 @@ export default function Inventario() {
                                 label="Fotos del producto"
                                 planLocked={tenant?.plan === "basico"}
                             />
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Precio en el catálogo</label>
+                                <SelectorSufijoPrecio value={editProdVal.sufijo_precio} onChange={v => setEditProdVal(p => ({ ...p, sufijo_precio: v }))} />
+                            </div>
 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

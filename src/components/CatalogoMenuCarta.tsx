@@ -18,6 +18,8 @@ interface ProductoPublico {
     stock_total: number
     categoria: string[]
     imagenes?: string[]
+    // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
+    sufijo_precio?: string
 }
 
 interface ConfigCatalogo {
@@ -129,6 +131,11 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                 whiteSpace: "nowrap",
                             }}>
                                 ${p.precio_venta.toFixed(2)}
+                                {p.sufijo_precio && (
+                                    <span style={{ fontSize: "0.68rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
+                                        {p.sufijo_precio}
+                                    </span>
+                                )}
                             </span>
                         )}
                     </div>
