@@ -266,6 +266,9 @@ export const api = {
         },
     eliminarImagenExtra: (imagenId: number) =>
         request<{ ok: boolean; id: number }>(`/inventario/imagenes/${imagenId}`, { method: "DELETE" }),
+    // Borra de Cloudinary una imagen reemplazada/eliminada (logo, banners)
+    borrarImagen: (url: string) =>
+        request<{ ok: boolean; mensaje: string }>("/inventario/borrar_imagen", { method: "POST", body: JSON.stringify({ url }) }),
     reordenarImagenes: (producto: string, ids: number[]) =>
         request<{ ok: boolean; mensaje: string }>(
             `/inventario/imagenes/${encodeURIComponent(producto)}/reordenar`,
