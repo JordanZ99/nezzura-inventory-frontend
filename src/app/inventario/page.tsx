@@ -1074,9 +1074,10 @@ export default function Inventario() {
                                             fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
                                             background: form.tipo_producto === "stock" ? "var(--primary-mid)" : "var(--bg-card2)",
                                             color: form.tipo_producto === "stock" ? "#fff" : "var(--text-main)",
+                                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                                         }}
                                     >
-                                        📦 Con stock
+                                        <Icon name="Package" size={16} /> Con stock
                                     </button>
                                     <button
                                         type="button"
@@ -1086,9 +1087,10 @@ export default function Inventario() {
                                             fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
                                             background: form.tipo_producto === "servicio" ? "var(--primary-mid)" : "var(--bg-card2)",
                                             color: form.tipo_producto === "servicio" ? "#fff" : "var(--text-main)",
+                                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                                         }}
                                     >
-                                        ✂️ Servicio (sin stock)
+                                        <Icon name="Scissors" size={16} /> Servicio (sin stock)
                                     </button>
                                     <button
                                         type="button"
@@ -1098,9 +1100,10 @@ export default function Inventario() {
                                             fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
                                             background: form.tipo_producto === "compuesto" ? "var(--primary-mid)" : "var(--bg-card2)",
                                             color: form.tipo_producto === "compuesto" ? "#fff" : "var(--text-main)",
+                                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                                         }}
                                     >
-                                        🍔 Compuesto (receta)
+                                        <Icon name="Hamburger" size={16} /> Compuesto (receta)
                                     </button>
                                 </div>
                                 <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "6px 0 0" }}>
@@ -1204,8 +1207,8 @@ export default function Inventario() {
                                 )}
                             </div>
                             {form.tipo_producto === "compuesto" && (
-                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
-                                    💡 El costo real se calcula en vivo al vender (según el costo de los materiales de la receta). Aquí solo defines el <strong>precio de venta</strong>. La receta se configura después de crear el producto, en "Editar Prod.".
+                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                                    <Icon name="Lightbulb" size={14} /> El costo real se calcula en vivo al vender (según el costo de los materiales de la receta). Aquí solo defines el <strong>precio de venta</strong>. La receta se configura después de crear el producto, en "Editar Prod.".
                                 </p>
                             )}
                             <div>
@@ -1820,7 +1823,7 @@ export default function Inventario() {
                                 fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)",
                                 display: "flex", alignItems: "center", gap: 8,
                             }}>
-                                {editProdVal.tipo_producto === "servicio" ? "✂️ Servicio (sin stock)" : editProdVal.tipo_producto === "compuesto" ? "🍔 Compuesto (receta)" : "📦 Producto con stock"}
+                                {editProdVal.tipo_producto === "servicio" ? (<><Icon name="Scissors" size={16} /> Servicio (sin stock)</>) : editProdVal.tipo_producto === "compuesto" ? (<><Icon name="Hamburger" size={16} /> Compuesto (receta)</>) : (<><Icon name="Package" size={16} /> Producto con stock</>)}
                             </div>
 
                             {/* Costo/precio de servicios y compuestos (viven en el producto, no en lotes) */}
@@ -1838,8 +1841,8 @@ export default function Inventario() {
                                 </div>
                             )}
                             {editProdVal.tipo_producto === "compuesto" && (
-                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
-                                    💡 El costo real se calcula en vivo al vender, según el costo de los materiales de la receta (ver "Materiales" abajo).
+                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                                    <Icon name="Lightbulb" size={14} /> El costo real se calcula en vivo al vender, según el costo de los materiales de la receta (ver "Materiales" abajo).
                                 </p>
                             )}
 
@@ -2048,15 +2051,15 @@ export default function Inventario() {
                                                                 cursor: "pointer",
                                                             }}
                                                         >
-                                                            {s.producto} {activo ? "✓" : ""}
+                                                            {activo && <Icon name="Check" size={12} />} {s.producto}
                                                         </button>
                                                     )
                                                 })}
                                             </div>
                                         )}
                                         {matSeleccionado && (
-                                            <p style={{ fontSize: "0.68rem", color: "var(--primary-dark)", fontWeight: 700, margin: 0 }}>
-                                                ✓ {matSeleccionado}
+                                            <p style={{ fontSize: "0.68rem", color: "var(--primary-dark)", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 4 }}>
+                                                <Icon name="Check" size={14} /> {matSeleccionado}
                                             </p>
                                         )}
                                     </div>

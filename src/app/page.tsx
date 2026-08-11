@@ -592,13 +592,13 @@ export default function PuntoDeVenta() {
                                                 {(prod.categoria || ["General"]).join(", ")}
                                             </span>
                                             {prod.tipo_producto === "servicio" ? (
-                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#7b3fa0", background: "#f3e8ff", borderRadius: 6, padding: "2px 6px" }}>
-                                                    ✂️ Servicio
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#7b3fa0", background: "#f3e8ff", borderRadius: 6, padding: "2px 6px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                                    <Icon name="Scissors" size={11} /> Servicio
                                                 </span>
                                             ) : prod.tipo_producto === "compuesto" ? (
                                                 <>
-                                                    <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#b45309", background: "#fef3c7", borderRadius: 6, padding: "2px 6px" }}>
-                                                        🍔 Compuesto
+                                                    <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#b45309", background: "#fef3c7", borderRadius: 6, padding: "2px 6px", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                                        <Icon name="Hamburger" size={11} /> Compuesto
                                                     </span>
                                                     {prod.disponibilidad_estimada !== undefined && prod.disponibilidad_estimada !== null && (
                                                         <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.disponibilidad_estimada <= 0 ? "#b71c1c" : "#6d4c41", background: prod.disponibilidad_estimada <= 0 ? "#ffeef0" : "#efebe9", borderRadius: 6, padding: "2px 6px" }}>
