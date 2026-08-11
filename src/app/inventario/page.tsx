@@ -44,22 +44,37 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
     const presets = ["c/u", "por kilo"]
     const esPreset = presets.includes(value)
     const esOtro = value !== "" && !esPreset
-    const [otroTexto, setOtroTexto] = useState(esOtro ? value : "")
+    // El modo "Otro" necesita estado LOCAL porque el valor puede estar vacío
+    // justo al activarlo (antes de escribir); si dependiera solo de `value`,
+    // al hacer click en "Otro" (que limpia el valor) el chip no se marcaría.
+    const [otroActivo, setOtroActivo] = useState(esOtro)
+    // Resincroniza el modo local ante cambios EXTERNOS del valor (reset del form
+    // al guardar, o cambio de producto en edición), sin romper la escritura del
+    // usuario: cuando `value` cambia, el modo "Otro" se deriva del nuevo valor.
+    const prevValue = useRef(value)
+    useEffect(() => {
+        if (prevValue.current !== value) {
+            prevValue.current = value
+            setOtroActivo(esOtro)
+        }
+    }, [value, esOtro])
 
     const togglePreset = (preset: string) => {
+        // Al elegir un preset se sale del modo "Otro"
+        setOtroActivo(false)
         onChange(value === preset ? "" : preset)
     }
 
-    // Al activar "Otro", el texto del input arranca vacío (el usuario escribe el
-    // sufijo libre, ej. "por litro"); NO se inventa un default para no pisar
-    // una selección previa con un valor no deseado.
+    // Activar/desactivar el modo libre: el input arranca vacío (el usuario
+    // escribe el sufijo, ej. "por litro"); no se inventa un default.
     const activarOtro = () => {
-        if (esOtro) {
-            // Deseleccionar: limpiar todo (input + valor persistido)
-            setOtroTexto("")
+        if (otroActivo || esOtro) {
+            // Deseleccionar: limpiar el valor persistido
+            setOtroActivo(false)
             onChange("")
         } else {
-            setOtroTexto("")
+            // Activar: mostrar el input vacío y enfocado
+            setOtroActivo(true)
             onChange("")
         }
     }
@@ -72,6 +87,10 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
         cursor: "pointer", transition: "all 0.15s",
     })
 
+    // Visible cuando el modo está activo localmente O cuando el valor persistido
+    // es un sufijo libre (caso: editar un producto que ya tiene "por litro").
+    const modoOtroVisible = otroActivo || esOtro
+
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -80,17 +99,19 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
                         {preset} {value === preset ? "✓" : ""}
                     </button>
                 ))}
-                <button onClick={activarOtro} style={chipStyle(esOtro)}>
-                    Otro {esOtro ? "✓" : ""}
+                <button onClick={activarOtro} style={chipStyle(modoOtroVisible)}>
+                    Otro {modoOtroVisible ? "✓" : ""}
                 </button>
             </div>
-            {esOtro && (
+            {modoOtroVisible && (
                 <input
                     type="text"
                     placeholder="Ej: por litro, por docena..."
-                    value={otroTexto}
+                    // Controlado directo con `value`: cada tecla escribe al padre,
+                    // así el texto del input siempre coincide con el valor guardado.
+                    value={value}
                     autoFocus
-                    onChange={e => { setOtroTexto(e.target.value); onChange(e.target.value) }}
+                    onChange={e => onChange(e.target.value)}
                     className="input-primary"
                 />
             )}
