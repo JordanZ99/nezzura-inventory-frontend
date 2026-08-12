@@ -194,42 +194,45 @@ function AltaVariaciones({ lista, tipoStock = false, disabled = false, onAgregar
                     onChange={e => setNombre(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") agregar() }}
                 />
+                {tipoStock && (
+                    <input
+                        className="input-primary"
+                        style={{ width: 92 }}
+                        type="number" min="0" step="0.01"
+                        placeholder="Cantidad"
+                        title="Stock inicial de esta variación (crea su propio lote)"
+                        value={stockInicial}
+                        disabled={disabled}
+                        onChange={e => setStockInicial(e.target.value)}
+                    />
+                )}
+                {tipoStock && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>$</span>
+                        <input
+                            className="input-primary"
+                            style={{ width: 90 }}
+                            type="number" min="0" step="0.01"
+                            placeholder="Costo"
+                            title="Costo del lote inicial (opcional; usa el del producto si se omite)"
+                            value={costo}
+                            disabled={disabled}
+                            onChange={e => setCosto(e.target.value)}
+                        />
+                    </div>
+                )}
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>$</span>
                     <input
                         className="input-primary"
                         style={{ width: 90 }}
                         type="number" min="0" step="0.01"
-                        placeholder="0.00"
+                        placeholder="Precio"
                         value={precio}
                         disabled={disabled}
                         onChange={e => setPrecio(e.target.value)}
                     />
                 </div>
-                {tipoStock && (
-                    <>
-                        <input
-                            className="input-primary"
-                            style={{ width: 92 }}
-                            type="number" min="0" step="0.01"
-                            placeholder="Stock inic."
-                            title="Stock inicial de esta variación (crea su propio lote)"
-                            value={stockInicial}
-                            disabled={disabled}
-                            onChange={e => setStockInicial(e.target.value)}
-                        />
-                        <input
-                            className="input-primary"
-                            style={{ width: 92 }}
-                            type="number" min="0" step="0.01"
-                            placeholder="Costo $"
-                            title="Costo del lote inicial (opcional; usa el del producto si se omite)"
-                            value={costo}
-                            disabled={disabled}
-                            onChange={e => setCosto(e.target.value)}
-                        />
-                    </>
-                )}
                 <button
                     onClick={agregar}
                     disabled={disabled || !puede}
