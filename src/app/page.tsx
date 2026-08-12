@@ -285,14 +285,18 @@ export default function PuntoDeVenta() {
     //  - Productos por UNIDADES (c/u, no fraccionable): paso entero de 1.
     //    Al llegar a 1 y presionar −, el resultado es 0 → el caller ELIMINA la
     //    línea (evita vender 0.1 llaveros por error de dedo).
-    //  - Productos FRACCIONABLES (kg/lt/mt): paso 1 mientras sea >= 1 y 0.1
-    //    al bajar de la unidad (2 → 1 → 0.9 → … → 0 → elimina).
+    //  - Productos FRACCIONABLES (kg/lt/mt): paso 1 mientras sea > 1 y 0.1 al
+    //    bajar de la unidad (2 → 1 → 0.9 → … → 0.01). Desde el mínimo (0.01)
+    //    el botón − elimina la línea.
     function pasoCantidad(actual: number, dir: 1 | -1, fracc: boolean): number {
         if (!fracc) {
             return Math.max(0, Math.round(actual + dir))
         }
-        const paso = actual >= 1 ? 1 : 0.1
-        return Math.max(0, +(actual + dir * paso).toFixed(1))
+        // Mínimo vendible por fracción: 0.01 (ej. 10 g). Si ya se llegó al
+        // mínimo y se presiona −, devolvemos 0 → el caller ELIMINA la línea.
+        if (actual <= 0.01 && dir === -1) return 0
+        const paso = actual > 1 ? 1 : 0.1
+        return Math.max(0.01, +(actual + dir * paso).toFixed(1))
     }
 
     function cambiarPrecio(key: string, texto: string) {
@@ -331,6 +335,15 @@ export default function PuntoDeVenta() {
      */
     function cobrarConAdvertencia() {
         if (carrito.length === 0) return
+
+        // Guarda defensiva: ningún ítem puede cobrarse con cantidad 0 o negativa
+        // (puede quedar un "0" tipeado si el usuario no salió del campo).
+        const invalidos = carrito.filter(item => !(item.cantidad > 0))
+        if (invalidos.length > 0) {
+            const nombres = invalidos.map(i => i.variacion ? `${i.producto} (${i.variacion})` : i.producto).join(", ")
+            setMensaje({ tipo: "error", texto: `Corrige la cantidad de: ${nombres} (debe ser mayor a 0)` })
+            return
+        }
 
         // Identificar productos del carrito que no tienen stock suficiente.
         // Los servicios y compuestos (sin stock por diseño) nunca disparan la advertencia.
@@ -753,13 +766,28 @@ export default function PuntoDeVenta() {
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>−</button>
                                                         <input
                                                             type="number"
-                                                            min={prod?.fraccionable ? "0.1" : "1"}
+                                                            min={prod?.fraccionable ? "0.01" : "1"}
                                                             step={prod?.fraccionable ? "0.1" : "1"}
                                                             value={item.cantidad}
                                                             onChange={e => {
                                                                 const fracc = !!prod?.fraccionable
-                                                                if (fracc) cambiarCantidad(key, Math.max(0.1, +e.target.value))
-                                                                else cambiarCantidad(key, Math.max(1, Math.round(+e.target.value || 0)))
+                                                                if (!fracc) {
+                                                                    // Unidades enteras: redondea y nunca baja de 1 (no se fracciona)
+                                                                    cambiarCantidad(key, Math.max(1, Math.round(+e.target.value || 0)))
+                                                                    return
+                                                                }
+                                                                // Fraccionable: acepta lo que se escribe (0.05, 1.25...); NaN se ignora.
+                                                                // No se clampa en cada tecla para poder digitar "0.0X" de corrido.
+                                                                const v = e.target.value === "" ? 0 : +e.target.value
+                                                                if (isNaN(v)) return
+                                                                cambiarCantidad(key, v)
+                                                            }}
+                                                            onBlur={() => {
+                                                                // Piso al salir del campo: 0 o menor a 0.01 → 0.01
+                                                                if (prod?.fraccionable) {
+                                                                    const c = carrito.find(i => keyCarrito(i) === key)?.cantidad ?? 0
+                                                                    if (isNaN(c) || c < 0.01) cambiarCantidad(key, 0.01)
+                                                                }
                                                             }}
                                                             style={{ width: 40, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                                         />
@@ -950,13 +978,27 @@ export default function PuntoDeVenta() {
                                             }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
                                             <input
                                                 type="number"
-                                                min={prodCarrito?.fraccionable ? "0.1" : "1"}
+                                                min={prodCarrito?.fraccionable ? "0.01" : "1"}
                                                 step={prodCarrito?.fraccionable ? "0.1" : "1"}
                                                 value={item.cantidad}
                                                 onChange={e => {
                                                     const fracc = !!prodCarrito?.fraccionable
-                                                    if (fracc) cambiarCantidad(key, Math.max(0.1, +e.target.value));
-                                                    else cambiarCantidad(key, Math.max(1, Math.round(+e.target.value || 0)));
+                                                    if (!fracc) {
+                                                        // Unidades enteras: redondea y nunca baja de 1 (no se fracciona)
+                                                        cambiarCantidad(key, Math.max(1, Math.round(+e.target.value || 0)));
+                                                        return;
+                                                    }
+                                                    // Fraccionable: acepta lo que se escribe (0.05, 1.25...); NaN se ignora.
+                                                    const v = e.target.value === "" ? 0 : +e.target.value
+                                                    if (isNaN(v)) return
+                                                    cambiarCantidad(key, v);
+                                                }}
+                                                onBlur={() => {
+                                                    // Piso al salir del campo: 0 o menor a 0.01 → 0.01
+                                                    if (prodCarrito?.fraccionable) {
+                                                        const c = carrito.find(i => keyCarrito(i) === key)?.cantidad ?? 0
+                                                        if (isNaN(c) || c < 0.01) cambiarCantidad(key, 0.01);
+                                                    }
                                                 }}
                                                 style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent", color: "var(--text-main)" }}
                                             />
