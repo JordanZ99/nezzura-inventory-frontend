@@ -27,6 +27,9 @@ export interface Producto {
     visible_en_catalogo?: boolean;
     // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
     sufijo_precio?: string;
+    // Si true, se puede vender por fracciones (0.5 kg, 1.5 lt, ...). Si false
+    // (default), solo unidades enteras — ni digitando decimales en el POS.
+    fraccionable?: boolean;
     // Tipo de producto: 'stock' (normal) | 'servicio' (sin inventario, ej. corte de cabello)
     tipo_producto?: string;
     // Costo/precio de venta de un servicio (viven en el producto, no en lotes)
@@ -111,6 +114,7 @@ export interface NuevoProducto {
     ubicacion?: string;
     etiqueta?: string;
     sufijo_precio?: string;
+    fraccionable?: boolean;        // Si true, se vende por fracciones (0.5 kg)
     tipo_producto?: string;        // 'stock' | 'servicio' | 'compuesto'
     costo_servicio?: number;
     precio_servicio?: number;
@@ -286,7 +290,7 @@ export const api = {
     getLotes: () => request<Lote[]>("/inventario/lotes"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string; visible_en_catalogo?: boolean; sufijo_precio?: string; tipo_producto?: string; costo_servicio?: number; precio_servicio?: number; stock_por_variacion?: boolean }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string; visible_en_catalogo?: boolean; sufijo_precio?: string; fraccionable?: boolean; tipo_producto?: string; costo_servicio?: number; precio_servicio?: number; stock_por_variacion?: boolean }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
     // Categorías
     getCategorias: () => request<Categoria[]>("/inventario/categorias"),
     crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),

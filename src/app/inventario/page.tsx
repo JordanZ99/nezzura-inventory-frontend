@@ -40,9 +40,22 @@ function Pill({ children, color = "primary" }: { children: React.ReactNode; colo
  * 4 casillas: "c/u", "kg", "lt", "mt" y una libre ("Otro" → ej. "por docena").
  * El valor guardado es el texto final ("", "c/u", "kg", "lt", "mt", ...).
  */
-function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-    const presets = ["c/u", "kg", "lt", "mt"]
-    const esPreset = presets.includes(value)
+function SelectorSufijoPrecio({ value, onChange, fraccionable, onFraccionableChange }: {
+    value: string
+    onChange: (v: string) => void
+    fraccionable: boolean
+    onFraccionableChange: (v: boolean) => void
+}) {
+    // Unidad en la que se vende el producto. Los presets fijan el flag
+    // "fraccionable": c/u es entero; kg/lt/mt aceptan 0.5, 1.5...
+    // "Otro" (libre) deja que el tenant decida con un toggle.
+    const presets: { valor: string; fraccionable: boolean }[] = [
+        { valor: "c/u", fraccionable: false },
+        { valor: "kg", fraccionable: true },
+        { valor: "lt", fraccionable: true },
+        { valor: "mt", fraccionable: true },
+    ]
+    const esPreset = presets.some(p => p.valor === value)
     const esOtro = value !== "" && !esPreset
     // El modo "Otro" necesita estado LOCAL porque el valor puede estar vacío
     // justo al activarlo (antes de escribir); si dependiera solo de `value`,
@@ -72,7 +85,15 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
         // Al elegir un preset se sale del modo "Otro"
         interno.current = true
         setOtroActivo(false)
-        onChange(value === preset ? "" : preset)
+        if (value === preset) {
+            // Deseleccionar: sin unidad → no fraccionable
+            onChange("")
+            onFraccionableChange(false)
+        } else {
+            onChange(preset)
+            const def = presets.find(p => p.valor === preset)
+            onFraccionableChange(def ? def.fraccionable : false)
+        }
     }
 
     // Activar/desactivar el modo libre: el input arranca vacío (el usuario
@@ -83,8 +104,10 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
             // Deseleccionar: limpiar el valor persistido
             setOtroActivo(false)
             onChange("")
+            onFraccionableChange(false)
         } else {
-            // Activar: mostrar el input vacío y enfocado
+            // Activar: mostrar el input vacío y enfocado; el tenant decide con
+            // el toggle si la unidad libre se vende por fracciones.
             setOtroActivo(true)
             onChange("")
         }
@@ -105,9 +128,9 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {presets.map(preset => (
-                    <button key={preset} onClick={() => togglePreset(preset)} style={chipStyle(value === preset)}>
-                        {preset} {value === preset ? "✓" : ""}
+                {presets.map(p => (
+                    <button key={p.valor} onClick={() => togglePreset(p.valor)} style={chipStyle(value === p.valor)}>
+                        {p.valor} {value === p.valor ? "✓" : ""}
                     </button>
                 ))}
                 <button onClick={activarOtro} style={chipStyle(modoOtroVisible)}>
@@ -115,20 +138,33 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
                 </button>
             </div>
             {modoOtroVisible && (
-                <input
-                    type="text"
-                    placeholder="Ej: por litro, por docena..."
-                    // Controlado directo con `value`: cada tecla escribe al padre,
-                    // así el texto del input siempre coincide con el valor guardado.
-                    value={value}
-                    autoFocus
-                    onChange={e => onChange(e.target.value)}
-                    className="input-primary"
-                />
+                <>
+                    <input
+                        type="text"
+                        placeholder="Ej: por litro, por docena..."
+                        // Controlado directo con `value`: cada tecla escribe al padre,
+                        // así el texto del input siempre coincide con el valor guardado.
+                        value={value}
+                        autoFocus
+                        onChange={e => onChange(e.target.value)}
+                        className="input-primary"
+                    />
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.78rem", color: "var(--text-main)", cursor: "pointer" }}>
+                        <input
+                            type="checkbox"
+                            checked={fraccionable}
+                            onChange={e => onFraccionableChange(e.target.checked)}
+                            style={{ width: 16, height: 16, accentColor: "var(--primary-mid)" }}
+                        />
+                        ¿Se vende por fracciones? (0.5, 1.25…)
+                    </label>
+                </>
             )}
-            <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: 0 }}>
-                Se mostrará en el catálogo como: "$35.00 {value ? `Por ${value}` : "…"}".
-            </p>
+            {!modoOtroVisible && (
+                <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: 0 }}>
+                    Se mostrará en el catálogo como: "$35.00 {value ? `Por ${value}` : "…"}".
+                </p>
+            )}
         </div>
     )
 }
@@ -590,7 +626,7 @@ export default function Inventario() {
     const [tab, setTab] = useState<Tab>("nuevo")
 
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
-    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock" as string, costo_servicio: "" as number | string, precio_servicio: "" as number | string, visible_en_catalogo: true as boolean })
+    const [form, setForm] = useState({ producto: "", descripcion: "", categoria: ["General"] as string[], costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", fraccionable: false as boolean, tipo_producto: "stock" as string, costo_servicio: "" as number | string, precio_servicio: "" as number | string, visible_en_catalogo: true as boolean })
     // Variaciones y materiales pendientes del ALTA (se guardan en la misma
     // transacción que el producto, vía crear_producto_completo)
     const [nuevasVariaciones, setNuevasVariaciones] = useState<{ nombre: string; precio: number; stock_inicial?: number; costo?: number }[]>([])
@@ -601,7 +637,7 @@ export default function Inventario() {
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
-    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true, sufijo_precio: "", tipo_producto: "stock", costo_servicio: "" as number | string, precio_servicio: "" as number | string, stock_por_variacion: false })
+    const [editProdVal, setEditProdVal] = useState({ descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"] as string[], codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true, sufijo_precio: "", fraccionable: false as boolean, tipo_producto: "stock", costo_servicio: "" as number | string, precio_servicio: "" as number | string, stock_por_variacion: false })
 
     // ── Variaciones del producto en edición (Fase 2) ──
     // Cada variación es una presentación con su PROPIO precio (ej. Sencilla/Doble, S/M/L).
@@ -889,7 +925,7 @@ export default function Inventario() {
             setNuevasFotos([])
             setNuevasVariaciones([])
             setNuevosMateriales([])
-            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", tipo_producto: "stock", costo_servicio: "", precio_servicio: "", visible_en_catalogo: true })
+            setForm({ producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "", stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "", sufijo_precio: "", fraccionable: false, tipo_producto: "stock", costo_servicio: "", precio_servicio: "", visible_en_catalogo: true })
             recargar()
         } catch (e: unknown) {
             // La creación falló (variación duplicada, material inexistente, etc.):
@@ -956,6 +992,9 @@ export default function Inventario() {
                 // Se envía SIEMPRE (incluso "") para que el backend pueda LIMPIAR el
                 // sufijo si el tenant lo deselecciona (COALESCE trata '' como valor válido).
                 sufijo_precio: editProdVal.sufijo_precio,
+                // Se envía SIEMPRE: el tenant puede desmarcar "fraccionable" y
+                // volver el producto a unidades enteras (COALESCE respeta false).
+                fraccionable: editProdVal.fraccionable,
                 // Tipo + campos de servicio (si aplica) para guardar en productos
                 tipo_producto: editProdVal.tipo_producto,
                 costo_servicio: editProdVal.tipo_producto === "servicio" ? Number(editProdVal.costo_servicio === "" ? 0 : editProdVal.costo_servicio) : undefined,
@@ -1589,7 +1628,7 @@ export default function Inventario() {
                             )}
                             <div>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Unidad de venta</label>
-                                <SelectorSufijoPrecio value={form.sufijo_precio} onChange={v => setForm(p => ({ ...p, sufijo_precio: v }))} />
+                                <SelectorSufijoPrecio value={form.sufijo_precio} onChange={v => setForm(p => ({ ...p, sufijo_precio: v }))} fraccionable={form.fraccionable} onFraccionableChange={v => setForm(p => ({ ...p, fraccionable: v }))} />
                             </div>
                             {form.tipo_producto === "stock" && (
                                 <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={form.etiqueta} onChange={e => setForm(p => ({ ...p, etiqueta: e.target.value }))} />
@@ -2105,6 +2144,7 @@ export default function Inventario() {
                                                     ubicacion: prod.ubicacion ?? "",
                                                     visible_en_catalogo: prod.visible_en_catalogo ?? true,
                                                     sufijo_precio: prod.sufijo_precio ?? "",
+                                                    fraccionable: prod.fraccionable ?? false,
                                                     tipo_producto: prod.tipo_producto ?? "stock",
                                                     costo_servicio: prod.costo_servicio ?? "",
                                                     precio_servicio: prod.precio_servicio ?? "",
@@ -2244,7 +2284,7 @@ export default function Inventario() {
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Unidad de venta</label>
-                                <SelectorSufijoPrecio value={editProdVal.sufijo_precio} onChange={v => setEditProdVal(p => ({ ...p, sufijo_precio: v }))} />
+                                <SelectorSufijoPrecio value={editProdVal.sufijo_precio} onChange={v => setEditProdVal(p => ({ ...p, sufijo_precio: v }))} fraccionable={editProdVal.fraccionable} onFraccionableChange={v => setEditProdVal(p => ({ ...p, fraccionable: v }))} />
                             </div>
 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
