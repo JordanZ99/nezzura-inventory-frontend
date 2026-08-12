@@ -240,7 +240,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                                             ${min.precio.toFixed(2)}
                                             {p.sufijo_precio && (
                                                 <span style={{ fontSize: "0.72rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
-                                                    {p.sufijo_precio}
+                                                    Por {p.sufijo_precio}
                                                 </span>
                                             )}
                                         </span>
