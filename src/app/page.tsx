@@ -330,12 +330,19 @@ export default function PuntoDeVenta() {
         const sinStock = carrito.filter(item => {
             const prod = productos.find(p => p.producto === item.producto)
             if (prod?.tipo_producto && prod.tipo_producto !== "stock") return false
+            // Con stock por variación, la comparación es contra el stock de ESA
+            // variación (suma de sus lotes), no contra el stock total del producto:
+            // así 3 de A + 3 de B con 2 de cada una sí dispara la advertencia.
+            if (prod?.stock_por_variacion && item.variacion) {
+                const stockVar = (prod.variaciones || []).find(v => v.nombre === item.variacion)?.stock ?? 0
+                return item.cantidad > stockVar
+            }
             return !prod || prod.stock_total <= 0 || item.cantidad > prod.stock_total
         })
 
         if (sinStock.length > 0) {
             // Abrimos el modal personalizado en lugar del window.confirm() nativo
-            const nombres = sinStock.map(i => i.producto).join(", ")
+            const nombres = sinStock.map(i => i.variacion ? `${i.producto} (${i.variacion})` : i.producto).join(", ")
             setModalAdvertencia({ visible: true, nombres })
             return
         }
