@@ -145,33 +145,57 @@ export default function PuntoDeVenta() {
             .sort((a, b) => new Date(a.fecha_entrada).getTime() - new Date(b.fecha_entrada).getTime())
     }
 
-    // Cambia la variación de un ítem ya en el carrito (precio propio de la variación)
-    function cambiarVariacionCarrito(producto: string, nombre: string) {
-        const prod = productos.find(p => p.producto === producto)
+    // Clave única de cada línea del carrito: producto + variación. Permite tener
+    // VARIAS variaciones del mismo producto en el mismo ticket (ej. Sencilla y
+    // Doble como líneas independientes, cada una con su precio y cantidad).
+    function keyCarrito(item: { producto: string; variacion?: string }): string {
+        return item.variacion ? `${item.producto}::${item.variacion}` : item.producto
+    }
+
+    // Cambia la variación de un ítem ya en el carrito (precio propio de la variación).
+    // Si la combinación destino ya existe en otra línea, se FUSIONA sumando cantidades.
+    function cambiarVariacionCarrito(key: string, nombre: string) {
+        const item = carrito.find(i => keyCarrito(i) === key)
+        if (!item) return
+        const prod = productos.find(p => p.producto === item.producto)
         const variacion = (prod?.variaciones || []).find(v => v.nombre === nombre)
         if (!variacion) return
-        setCarrito(prev => prev.map(i =>
-            i.producto === producto ? { ...i, variacion: variacion.nombre, precio_real: variacion.precio } : i
-        ))
+        const nuevaKey = keyCarrito({ producto: item.producto, variacion: nombre })
+        if (nuevaKey === key) return
+        setCarrito(prev => {
+            const sinActual = prev.filter(i => keyCarrito(i) !== key)
+            const destino = sinActual.find(i => keyCarrito(i) === nuevaKey)
+            if (destino) {
+                return sinActual.map(i =>
+                    keyCarrito(i) === nuevaKey
+                        // Al fusionar se descarta el id_lote (de la fuente y del
+                        // destino): que PEPS decida de dónde salir el stock.
+                        ? { ...i, cantidad: i.cantidad + item.cantidad, id_lote: undefined, variacion: nombre, precio_real: variacion.precio }
+                        : i
+                )
+            }
+            return [...sinActual, { ...item, variacion: nombre, precio_real: variacion.precio }]
+        })
         setPrecios(prev => {
             const nuevo = { ...prev }
-            delete nuevo[producto]
+            delete nuevo[key]
+            delete nuevo[nuevaKey]
             return nuevo
         })
     }
 
-    function cambiarLoteCarrito(producto: string, id_lote: string | undefined) {
+    function cambiarLoteCarrito(key: string, id_lote: string | undefined) {
         // Si el ítem tiene variación, el PRECIO lo define la variación (no el lote):
         // el lote solo determina de DÓNDE se descuenta el stock.
-        const itemActual = carrito.find(i => i.producto === producto)
+        const itemActual = carrito.find(i => keyCarrito(i) === key)
         const itemConVariacion = itemActual?.variacion
         if (itemConVariacion) {
-            const prod = productos.find(p => p.producto === producto)
+            const prod = productos.find(p => p.producto === itemActual?.producto)
             const variacion = (prod?.variaciones || []).find(v => v.nombre === itemConVariacion)
             setCarrito(prev => prev.map(i =>
-                i.producto === producto ? { ...i, id_lote } : i
+                keyCarrito(i) === key ? { ...i, id_lote } : i
             ))
-            if (variacion) setPrecios(prev => ({ ...prev, [producto]: variacion.precio.toFixed(2) }))
+            if (variacion) setPrecios(prev => ({ ...prev, [key]: variacion.precio.toFixed(2) }))
             return
         }
         // Propuesta 2: el precio sugerido sigue al lote seleccionado
@@ -181,16 +205,16 @@ export default function PuntoDeVenta() {
             const lote = lotes.find(l => l.id_lote === id_lote)
             precioSugerido = lote ? lote.precio_venta : null
         } else {
-            const prod = productos.find(p => p.producto === producto)
+            const prod = productos.find(p => p.producto === itemActual?.producto)
             precioSugerido = prod ? (prod.precio_sugerido ?? prod.precio_venta) : null
         }
         setCarrito(prev => prev.map(i => {
-            if (i.producto !== producto) return i
+            if (keyCarrito(i) !== key) return i
             return precioSugerido !== null ? { ...i, id_lote, precio_real: precioSugerido } : { ...i, id_lote }
         }))
         if (precioSugerido !== null) {
             const precioStr = precioSugerido.toFixed(2)
-            setPrecios(prev => ({ ...prev, [producto]: precioStr }))
+            setPrecios(prev => ({ ...prev, [key]: precioStr }))
         }
     }
 
@@ -204,9 +228,10 @@ export default function PuntoDeVenta() {
     }
 
     function agregarDirecto(prod: Producto) {
-        const yaEnCarrito = carrito.some(i => i.producto === prod.producto)
+        const key = keyCarrito({ producto: prod.producto })
+        const yaEnCarrito = carrito.some(i => keyCarrito(i) === key)
         setCarrito(prev => {
-            const idx = prev.findIndex(i => i.producto === prod.producto)
+            const idx = prev.findIndex(i => keyCarrito(i) === key)
             if (idx >= 0) {
                 // NOTA: Ya no limitamos por stock_total para permitir
                 // vender aunque el inventario esté en 0 o negativo.
@@ -223,20 +248,22 @@ export default function PuntoDeVenta() {
         if (!yaEnCarrito) {
             setPrecios(prev => {
                 const nuevo = { ...prev }
-                delete nuevo[prod.producto]
+                delete nuevo[key]
                 return nuevo
             })
         }
     }
 
-    // Agrega un producto con la variación elegida (precio propio de esa variación)
+    // Agrega un producto con la variación elegida (precio propio de esa variación).
+    // La clave es producto+variación: si ESA combinación ya está, suma cantidad;
+    // si es otra variación, crea una línea independiente en el carrito.
     function agregarConVariacion(prod: Producto, nombre: string, precio: number) {
+        const key = keyCarrito({ producto: prod.producto, variacion: nombre })
         setCarrito(prev => {
-            const idx = prev.findIndex(i => i.producto === prod.producto)
+            const idx = prev.findIndex(i => keyCarrito(i) === key)
             if (idx >= 0) {
-                // Ya está: reemplaza la variación y actualiza el precio de esa fila
                 const nuevo = [...prev]
-                nuevo[idx] = { ...nuevo[idx], variacion: nombre, precio_real: precio }
+                nuevo[idx] = { ...nuevo[idx], cantidad: nuevo[idx].cantidad + 1, variacion: nombre, precio_real: precio }
                 return nuevo
             }
             return [...prev, { producto: prod.producto, cantidad: 1, precio_real: precio, variacion: nombre }]
@@ -244,14 +271,14 @@ export default function PuntoDeVenta() {
         // La variación define el precio: se descarta el precio custom persistido
         setPrecios(prev => {
             const nuevo = { ...prev }
-            delete nuevo[prod.producto]
+            delete nuevo[key]
             return nuevo
         })
         setModalVariacion({ visible: false, prod: null })
     }
 
-    function cambiarCantidad(producto: string, cantidad: number) {
-        setCarrito(prev => prev.map(i => i.producto === producto ? { ...i, cantidad } : i))
+    function cambiarCantidad(key: string, cantidad: number) {
+        setCarrito(prev => prev.map(i => keyCarrito(i) === key ? { ...i, cantidad } : i))
     }
 
     // Paso de los botones ± del carrito: 1 unidad entera si la cantidad es
@@ -261,28 +288,28 @@ export default function PuntoDeVenta() {
         return Math.max(0.1, +(actual + dir * paso).toFixed(1))
     }
 
-    function cambiarPrecio(producto: string, texto: string) {
-        setPrecios(prev => ({ ...prev, [producto]: texto }))
+    function cambiarPrecio(key: string, texto: string) {
+        setPrecios(prev => ({ ...prev, [key]: texto }))
         const num = parseFloat(texto.replace(",", "."))
         if (!isNaN(num) && num >= 0)
-            setCarrito(prev => prev.map(i => i.producto === producto ? { ...i, precio_real: num } : i))
+            setCarrito(prev => prev.map(i => keyCarrito(i) === key ? { ...i, precio_real: num } : i))
     }
 
-    function cambiarTotal(producto: string, texto: string) {
-        const item = carrito.find(i => i.producto === producto)
+    function cambiarTotal(key: string, texto: string) {
+        const item = carrito.find(i => keyCarrito(i) === key)
         if (!item || item.cantidad === 0) return
 
         const totalNum = parseFloat(texto.replace(",", "."))
         if (!isNaN(totalNum) && totalNum >= 0) {
             const nuevoPrecio = totalNum / item.cantidad
-            setCarrito(prev => prev.map(i => i.producto === producto ? { ...i, precio_real: nuevoPrecio } : i))
+            setCarrito(prev => prev.map(i => keyCarrito(i) === key ? { ...i, precio_real: nuevoPrecio } : i))
             // Actualizamos también el string del precio para que se vea el cambio
-            setPrecios(prev => ({ ...prev, [producto]: nuevoPrecio.toFixed(2) }))
+            setPrecios(prev => ({ ...prev, [key]: nuevoPrecio.toFixed(2) }))
         }
     }
 
-    function quitarDelCarrito(producto: string) {
-        setCarrito(prev => prev.filter(i => i.producto !== producto))
+    function quitarDelCarrito(key: string) {
+        setCarrito(prev => prev.filter(i => keyCarrito(i) !== key))
     }
 
     /**
@@ -682,11 +709,12 @@ export default function PuntoDeVenta() {
                             ) : (
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                     {carrito.map(item => {
+                                        const key = keyCarrito(item)
                                         const prod = productos.find(p => p.producto === item.producto)
                                         const lotesProd = lotesParaProducto(item.producto)
                                         const loteSel = item.id_lote ? lotePorId(item.id_lote) : null
                                         return (
-                                            <div key={item.producto} style={{ padding: 10, background: "var(--bg-card)", borderRadius: 12, border: "var(--bg-card)" }}>
+                                            <div key={key} style={{ padding: 10, background: "var(--bg-card)", borderRadius: 12, border: "var(--bg-card)" }}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                                                     <div style={{ flex: 1, minWidth: 0, marginRight: 6 }}>
                                                         <p style={{ margin: 0, fontWeight: 600, fontSize: "0.8rem", color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -698,28 +726,28 @@ export default function PuntoDeVenta() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <button onClick={() => quitarDelCarrito(item.producto)}
+                                                    <button onClick={() => quitarDelCarrito(key)}
                                                         style={{ background: "none", border: "none", cursor: "pointer", color: "#ccc", fontSize: "0.9rem", padding: 0, lineHeight: 1 }}>✕</button>
                                                 </div>
                                                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-card2)", borderRadius: 8, border: "var(--border-primary)", padding: "2px 4px" }}>
-                                                        <button onClick={() => cambiarCantidad(item.producto, pasoCantidad(item.cantidad, -1))}
+                                                        <button onClick={() => cambiarCantidad(key, pasoCantidad(item.cantidad, -1))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>−</button>
                                                         <input
                                                             type="number" min="0.1" step="0.1"
                                                             value={item.cantidad}
-                                                            onChange={e => cambiarCantidad(item.producto, Math.max(0.1, +e.target.value))}
+                                                            onChange={e => cambiarCantidad(key, Math.max(0.1, +e.target.value))}
                                                             style={{ width: 40, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                                         />
-                                                        <button onClick={() => cambiarCantidad(item.producto, pasoCantidad(item.cantidad, 1))}
+                                                        <button onClick={() => cambiarCantidad(key, pasoCantidad(item.cantidad, 1))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>+</button>
                                                     </div>
                                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
                                                         <span style={{ fontSize: "0.6rem", color: "#999", fontWeight: 700 }}>UNIT.</span>
                                                         <input
                                                             type="text" inputMode="decimal"
-                                                            value={precios[item.producto] ?? item.precio_real.toString()}
-                                                            onChange={e => cambiarPrecio(item.producto, e.target.value)}
+                                                            value={precios[key] ?? item.precio_real.toString()}
+                                                            onChange={e => cambiarPrecio(key, e.target.value)}
                                                             style={{ width: "100%", border: "1px solid var(--border-primary)", borderRadius: 8, padding: "4px 8px", fontSize: "0.8rem", textAlign: "right", outline: "none", background: "var(--bg-card2)" }}
                                                         />
                                                     </div>
@@ -731,7 +759,7 @@ export default function PuntoDeVenta() {
                                                     <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#999", whiteSpace: "nowrap" }}>VAR.:</span>
                                                     <select
                                                         value={item.variacion || ""}
-                                                        onChange={e => cambiarVariacionCarrito(item.producto, e.target.value)}
+                                                        onChange={e => cambiarVariacionCarrito(key, e.target.value)}
                                                         style={{
                                                             flex: 1,
                                                             fontSize: "0.65rem",
@@ -761,7 +789,7 @@ export default function PuntoDeVenta() {
                                                     <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#999", whiteSpace: "nowrap" }}>LOTE:</span>
                                                     <select
                                                         value={item.id_lote || ""}
-                                                        onChange={e => cambiarLoteCarrito(item.producto, e.target.value || undefined)}
+                                                        onChange={e => cambiarLoteCarrito(key, e.target.value || undefined)}
                                                         style={{
                                                             flex: 1,
                                                             fontSize: "0.65rem",
@@ -791,8 +819,8 @@ export default function PuntoDeVenta() {
                                                         <input
                                                             type="text" inputMode="decimal"
                                                             defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
-                                                            onBlur={e => cambiarTotal(item.producto, e.target.value)}
-                                                            onKeyDown={e => e.key === "Enter" && cambiarTotal(item.producto, (e.target as HTMLInputElement).value)}
+                                                            onBlur={e => cambiarTotal(key, e.target.value)}
+                                                            onKeyDown={e => e.key === "Enter" && cambiarTotal(key, (e.target as HTMLInputElement).value)}
                                                             style={{ width: "100%", border: "1px solid var(--primary-mid)", borderRadius: 8, padding: "4px 8px", fontSize: "0.85rem", textAlign: "right", outline: "none", background: "#fff", fontWeight: 800, color: "var(--primary-dark)" }}
                                                         />
                                                     ) : (
@@ -873,10 +901,11 @@ export default function PuntoDeVenta() {
                             </div>
                         </div>
                         {carrito.map(item => {
+                            const key = keyCarrito(item)
                             const lotesProd = lotesParaProducto(item.producto)
                             const prodCarrito = productos.find(p => p.producto === item.producto)
                             return (
-                                <div key={item.producto} style={{ padding: "10px 0", borderBottom: "1px solid var(--border-primary)" }}>
+                                <div key={key} style={{ padding: "10px 0", borderBottom: "1px solid var(--border-primary)" }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 8 }}>
                                         <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
                                             <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.producto}</span>
@@ -886,26 +915,26 @@ export default function PuntoDeVenta() {
                                                 </span>
                                             )}
                                         </div>
-                                        <button onClick={() => quitarDelCarrito(item.producto)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>✕</button>
+                                        <button onClick={() => quitarDelCarrito(key)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>✕</button>
                                     </div>
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "center" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 8, padding: "4px 10px" }}>
-                                            <button onClick={() => cambiarCantidad(item.producto, pasoCantidad(item.cantidad, -1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
+                                            <button onClick={() => cambiarCantidad(key, pasoCantidad(item.cantidad, -1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
                                             <input
                                                 type="number" min="0.1" step="0.1"
                                                 value={item.cantidad}
                                                 onChange={e => {
-                                                    cambiarCantidad(item.producto, Math.max(0.1, +e.target.value));
+                                                    cambiarCantidad(key, Math.max(0.1, +e.target.value));
                                                 }}
                                                 style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent", color: "var(--text-main)" }}
                                             />
                                             <button onClick={() => {
-                                                cambiarCantidad(item.producto, pasoCantidad(item.cantidad, 1));
+                                                cambiarCantidad(key, pasoCantidad(item.cantidad, 1));
                                             }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>+</button>
                                         </div>
                                         <input type="text" inputMode="decimal"
-                                            value={precios[item.producto] ?? item.precio_real.toString()}
-                                            onChange={e => cambiarPrecio(item.producto, e.target.value)}
+                                            value={precios[key] ?? item.precio_real.toString()}
+                                            onChange={e => cambiarPrecio(key, e.target.value)}
                                             style={{ width: "100%", border: "1px solid var(--border-primary)", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "var(--bg-card2)", color: "var(--text-main)" }}
                                         />
                                     </div>
@@ -915,7 +944,7 @@ export default function PuntoDeVenta() {
                                     <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
                                         <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>VAR.:</span>                                            <select
                                                 value={item.variacion || ""}
-                                                onChange={e => cambiarVariacionCarrito(item.producto, e.target.value)}
+                                                onChange={e => cambiarVariacionCarrito(key, e.target.value)}
                                                 style={{
                                                     flex: 1,
                                                     fontSize: "0.75rem",
@@ -945,7 +974,7 @@ export default function PuntoDeVenta() {
                                         <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>LOTE:</span>
                                         <select
                                             value={item.id_lote || ""}
-                                            onChange={e => cambiarLoteCarrito(item.producto, e.target.value || undefined)}
+                                            onChange={e => cambiarLoteCarrito(key, e.target.value || undefined)}
                                             style={{
                                                 flex: 1,
                                                 fontSize: "0.75rem",
@@ -975,7 +1004,7 @@ export default function PuntoDeVenta() {
                                             <input
                                                 type="text" inputMode="decimal"
                                                 defaultValue={(item.cantidad * item.precio_real).toFixed(2)}
-                                                onBlur={e => cambiarTotal(item.producto, e.target.value)}
+                                                onBlur={e => cambiarTotal(key, e.target.value)}
                                                 style={{ width: "100px", border: "1px solid var(--primary-mid)", borderRadius: 8, padding: "6px 10px", fontSize: "0.9rem", textAlign: "right", outline: "none", background: "var(--bg-card2)", fontWeight: 800, color: "var(--primary-dark)" }}
                                             />
                                         ) : (
