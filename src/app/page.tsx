@@ -1135,7 +1135,10 @@ export default function PuntoDeVenta() {
                                 return (
                                     <button
                                         key={v.id}
-                                        disabled={agotada}
+                                        // Agotada NO bloquea: el vendedor puede añadirla igual (ej.
+                                        // cuando el conteo físico no cuadra y quiere vender ya). Al
+                                        // cobrar, la advertencia de stock insuficiente pide confirmar
+                                        // y el backend descuenta a negativo, igual que los normales.
                                         onClick={() => agregarConVariacion(modalVariacion.prod!, v.nombre, v.precio)}
                                         style={{
                                             display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -1143,14 +1146,13 @@ export default function PuntoDeVenta() {
                                             borderRadius: 12,
                                             border: "1px solid var(--border-primary)",
                                             background: agotada ? "var(--bg-card)" : "var(--bg-card2)",
-                                            color: agotada ? "var(--text-muted)" : "var(--text-main)",
-                                            cursor: agotada ? "not-allowed" : "pointer",
+                                            color: "var(--text-main)",
+                                            cursor: "pointer",
                                             fontWeight: 700,
                                             fontSize: "0.9rem",
-                                            opacity: agotada ? 0.55 : 1,
                                             transition: "background 0.15s, transform 0.15s",
                                         }}
-                                        onMouseEnter={e => { if (!agotada) { e.currentTarget.style.background = "var(--bg-card3)"; e.currentTarget.style.transform = "translateY(-1px)" } }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = "var(--bg-card3)"; e.currentTarget.style.transform = "translateY(-1px)" }}
                                         onMouseLeave={e => { e.currentTarget.style.background = agotada ? "var(--bg-card)" : "var(--bg-card2)"; e.currentTarget.style.transform = "none" }}
                                     >
                                         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1158,10 +1160,11 @@ export default function PuntoDeVenta() {
                                             {stockPorVar && !agotada && (
                                                 <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)" }}>{v.stock} uds</span>
                                             )}
+                                            {stockPorVar && agotada && (
+                                                <span style={{ fontSize: "0.62rem", fontWeight: 600, color: "#ad4955ff", border: "1px solid #ad4955ff", borderRadius: 6, padding: "1px 6px" }}>Agotado</span>
+                                            )}
                                         </span>
-                                        {agotada
-                                            ? <span style={{ color: "#ad4955ff", fontWeight: 700, fontSize: "0.78rem" }}>Agotado</span>
-                                            : <span style={{ color: "var(--primary-dark)", fontWeight: 800 }}>${v.precio.toFixed(2)}</span>}
+                                        <span style={{ color: "var(--primary-dark)", fontWeight: 800 }}>${v.precio.toFixed(2)}</span>
                                     </button>
                                 )
                             })}
