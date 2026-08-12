@@ -948,6 +948,45 @@ export default function Personalizacion() {
                                             </button>
                                         </div>
 
+                                        {/* Relación de las imágenes (global) */}
+                                        <div style={{
+                                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                                        }}>
+                                            <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Relación de las imágenes</span>
+                                            <p style={{ margin: "2px 0 10px", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                                Se aplica a todas las fotos de producto: catálogo, punto de venta, gestor y al recortarlas.
+                                            </p>
+                                            {renderGuardado("relacion_imagen")}
+                                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                                {([["1:1", "1:1 · Cuadrada"], ["4:5", "4:5 · Instagram"]] as const).map(([valor, etiqueta]) => {
+                                                    const activo = (catalogoConfig?.relacion_imagen || "1:1") === valor
+                                                    return (
+                                                        <button
+                                                            key={valor}
+                                                            onClick={() => {
+                                                                setCatalogoConfig(prev => prev ? { ...prev, relacion_imagen: valor } : prev)
+                                                                autoguardar("relacion_imagen", { relacion_imagen: valor })
+                                                            }}
+                                                            disabled={campoGuardando === "relacion_imagen"}
+                                                            style={{
+                                                                background: activo ? "var(--primary-mid)" : "var(--bg-card)",
+                                                                color: activo ? "#fff" : "var(--text-main)",
+                                                                border: "1px solid var(--border-primary)",
+                                                                borderRadius: 12,
+                                                                padding: "8px 14px",
+                                                                fontSize: "0.78rem",
+                                                                fontWeight: 700,
+                                                                cursor: campoGuardando === "relacion_imagen" ? "not-allowed" : "pointer",
+                                                                transition: "all 0.15s",
+                                                            }}
+                                                        >
+                                                            {etiqueta}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+
                                         {/* Permitir descargar fotos */}
                                         <div style={{
                                             display: "flex", justifyContent: "space-between", alignItems: "center",

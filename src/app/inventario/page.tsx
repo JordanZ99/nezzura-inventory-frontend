@@ -634,6 +634,8 @@ export default function Inventario() {
     const [restock, setRestock] = useState({ producto: "", costo: "" as number | string, precio_venta: "" as number | string, stock: 1 as number | string, etiqueta: "", variacion: "" })
     const [nuevasFotos, setNuevasFotos] = useState<FotoGaleria[]>([])
     const [editFotos, setEditFotos] = useState<FotoGaleria[]>([])
+    // Relación global de las fotos de producto ('1' | '4 / 5') — config del catálogo
+    const [relacionImagen, setRelacionImagen] = useState("1")
 
     const [prodEditar, setProdEditar] = useState<string>("")
     const [editProdNombre, setEditProdNombre] = useState("")
@@ -822,6 +824,13 @@ export default function Inventario() {
     }
 
     useEffect(() => { recargar() }, [])
+
+    // Relación global de las fotos (catálogo/POS/gestor): se lee de la config del catálogo
+    useEffect(() => {
+        api.getConfigCatalogo()
+            .then(c => setRelacionImagen(c?.relacion_imagen === "4:5" ? "4 / 5" : "1"))
+            .catch(() => {})
+    }, [])
 
     // Cuando se cierra el formulario de edición (prodEditar pasa a ""),
     // restauramos el scroll Y guardado del grid de productos para que el
@@ -1567,6 +1576,7 @@ export default function Inventario() {
                                 disabled={guardando}
                                 label="Fotos del producto"
                                 planLocked={tenant?.plan === "basico"}
+                                aspectRatio={relacionImagen === "4 / 5" ? 4 / 5 : 1}
                             />
                             <div style={{ display: "grid", gridTemplateColumns: form.tipo_producto === "stock" ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
                                 {form.tipo_producto === "stock" && (
@@ -1928,7 +1938,7 @@ export default function Inventario() {
                                             e.currentTarget.style.boxShadow = ""
                                         }}
                                     >
-                                        <div style={{ aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <div style={{ aspectRatio: relacionImagen, borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                             {prod.imagen && prod.imagen !== "No hay foto" ? (
                                                 <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
                                                     alt={prod.producto}
@@ -2177,7 +2187,7 @@ export default function Inventario() {
                                                 e.currentTarget.style.boxShadow = ""
                                             }}
                                         >
-                                            <div style={{ aspectRatio: "1", borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            <div style={{ aspectRatio: relacionImagen, borderRadius: 12, background: "var(--gradient-bg-login)", marginBottom: 10, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                                 {prod.imagen && prod.imagen !== "No hay foto" ? (
                                                     <img src={prod.imagen.startsWith("http") ? prod.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${prod.imagen}`}
                                                         alt={prod.producto}
@@ -2249,6 +2259,7 @@ export default function Inventario() {
                                 disabled={guardando}
                                 label="Fotos del producto"
                                 planLocked={tenant?.plan === "basico"}
+                                aspectRatio={relacionImagen === "4 / 5" ? 4 / 5 : 1}
                             />
 
                             {/* Tipo: no es editable en edición (se define al crear) */}

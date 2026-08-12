@@ -52,9 +52,10 @@ interface SortablePhotoProps {
     index: number
     disabled?: boolean
     onDelete: (index: number) => void
+    aspectRatio?: number  // Relación global de las fotos (1 o 4/5)
 }
 
-function SortablePhoto({ id, foto, index, disabled, onDelete }: SortablePhotoProps) {
+function SortablePhoto({ id, foto, index, disabled, onDelete, aspectRatio = 1 }: SortablePhotoProps) {
     const {
         attributes,
         listeners,
@@ -75,7 +76,7 @@ function SortablePhoto({ id, foto, index, disabled, onDelete }: SortablePhotoPro
         borderRadius: 12,
         overflow: "hidden",
         background: "var(--bg-card2)",
-        aspectRatio: "1",
+        aspectRatio: aspectRatio,
         border: index === 0 ? "2px solid #f59e0b" : "2px solid var(--border-light)",
         cursor: disabled ? "not-allowed" : "grab",
         // ⚠️ CRÍTICO: touch-action: none es OBLIGATORIO para que PointerSensor
@@ -208,12 +209,16 @@ interface GaleriaProductoProps {
     label?: string
     /** Si el tenant está en plan básico, oculta el carrusel y muestra un mensaje de upgrade */
     planLocked?: boolean
+    /** Relación global de las fotos (1 = cuadrada, 4/5 = vertical Instagram).
+     *  Aplica a la vista previa, los slots vacíos, las miniaturas de reordenar
+     *  y el crop de nuevas fotos. Default: 1 (1:1). */
+    aspectRatio?: number
 }
 
 // ── Componente ──
 
 export default function GaleriaProducto({
-    fotos, onChange, maxFotos = 5, disabled = false, label = "Fotos del producto", planLocked = false
+    fotos, onChange, maxFotos = 5, disabled = false, label = "Fotos del producto", planLocked = false, aspectRatio = 1
 }: GaleriaProductoProps) {
     // Si el plan es básico, mostrar un bloqueo visual con mensaje de upgrade
     if (planLocked) {
@@ -457,12 +462,13 @@ export default function GaleriaProducto({
                 onChange={handleFileSelected}
             />
 
-            {/* Cropper modal */}
+            {/* Cropper modal (recorta con la relación global elegida: 1:1 o 4:5) */}
             {showCropper && cropperImageUrl && (
                 <ImageCropperModal
                     imageUrl={cropperImageUrl}
                     onCropComplete={handleCropComplete}
                     onCancel={handleCropCancel}
+                    aspectRatio={aspectRatio}
                 />
             )}
 
@@ -543,6 +549,7 @@ export default function GaleriaProducto({
                                             foto={foto}
                                             index={i}
                                             disabled={disabled}
+                                            aspectRatio={aspectRatio}
                                             onDelete={handleDelete}
                                         />
                                     )
@@ -580,7 +587,7 @@ export default function GaleriaProducto({
                             title="Haz clic para añadir una foto"
                             style={{
                                 flex: 1, position: "relative", borderRadius: 12,
-                                background: "var(--bg-card2)", aspectRatio: "1",
+                                background: "var(--bg-card2)", aspectRatio: aspectRatio,
                                 border: "2px dashed var(--primary-mid)",
                                 cursor: disabled ? "not-allowed" : "pointer",
                                 display: "flex", flexDirection: "column",
@@ -604,7 +611,7 @@ export default function GaleriaProducto({
                             title="Haz clic para cambiar esta foto"
                         style={{
                             flex: 1, position: "relative", borderRadius: 12, overflow: "hidden",
-                            background: "var(--bg-card2)", aspectRatio: "1",
+                            background: "var(--bg-card2)", aspectRatio: aspectRatio,
                             border: "2px solid var(--border-light)",
                             cursor: disabled ? "not-allowed" : "pointer",
                             transition: "border-color 0.2s",

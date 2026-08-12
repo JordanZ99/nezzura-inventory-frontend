@@ -199,6 +199,7 @@ export interface CatalogoConfig {
     columnas_movil?: number;
     permitir_descarga?: boolean;
     ocultar_agotados?: boolean;
+    relacion_imagen?: string;  // '1:1' (default) | '4:5' — relación global de las fotos de producto
     banner_url?: string;
     banner_url_movil?: string;
     hero_estilo?: string;      // 'gradiente' | 'imagen'
@@ -443,6 +444,7 @@ export const api = {
         columnas_movil?: number;
         permitir_descarga?: boolean;
         ocultar_agotados?: boolean;
+        relacion_imagen?: string;  // '1:1' | '4:5'
         banner_url?: string;
         banner_url_movil?: string;
         hero_estilo?: string;

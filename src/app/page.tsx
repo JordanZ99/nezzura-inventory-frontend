@@ -43,6 +43,8 @@ export default function PuntoDeVenta() {
     }>({ visible: false, nombres: "" })
     // Modal de selección de variación (productos con presentaciones y precio propio)
     const [modalVariacion, setModalVariacion] = useState<{ visible: boolean; prod: Producto | null }>({ visible: false, prod: null })
+    // Relación global de las fotos de producto ('1' | '4 / 5') — config del catálogo
+    const [relacionImagen, setRelacionImagen] = useState("1")
     const [userId, setUserId] = useState<string>("Cargando...");
     const { tenant } = useTenant()
     const logoSrc = tenant?.logo || "/logo.png"
@@ -98,6 +100,11 @@ export default function PuntoDeVenta() {
 
         api.getLotes()
             .then(data => setLotes(data))
+            .catch(() => {})
+
+        // Relación global de las fotos (catálogo/POS/gestor): se lee de la config del catálogo
+        api.getConfigCatalogo()
+            .then(c => setRelacionImagen(c?.relacion_imagen === "4:5" ? "4 / 5" : "1"))
             .catch(() => {})
     }, [])
 
@@ -604,7 +611,7 @@ export default function PuntoDeVenta() {
                                             e.currentTarget.style.boxShadow = ""
                                         }}>
                                         <div style={{
-                                            aspectRatio: "1", borderRadius: 12,
+                                            aspectRatio: relacionImagen, borderRadius: 12,
                                             background: "var(--gradient-bg-login)",
                                             marginBottom: 10, overflow: "hidden",
                                             display: "flex", alignItems: "center", justifyContent: "center",
