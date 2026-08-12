@@ -602,6 +602,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
             {/* ── Modal de producto (estilo post de Instagram) ── */}
             {productoActivo && (
                 <CatalogoModalProducto
+                    key={productoActivo.producto}
                     producto={productoActivo}
                     config={config}
                     tema={tema}
