@@ -461,7 +461,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                 ${precioMostrado.toFixed(2)}
                                 {sufijoMostrado && (
                                     <span style={{ fontSize: "1rem", fontWeight: 700, opacity: 0.75, marginLeft: 6 }}>
-                                        {sufijoMostrado}
+                                        Por {sufijoMostrado}
                                     </span>
                                 )}
                             </span>

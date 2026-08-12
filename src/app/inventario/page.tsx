@@ -37,11 +37,11 @@ function Pill({ children, color = "primary" }: { children: React.ReactNode; colo
 
 /**
  * Selector de sufijo del precio que se muestra en el catálogo público.
- * 3 casillas: "c/u", "por kilo" y una libre ("Otro" → ej. "por litro").
- * El valor guardado es el texto final ("", "c/u", "por kilo", "por litro", ...).
+ * 4 casillas: "c/u", "kg", "lt", "mt" y una libre ("Otro" → ej. "por docena").
+ * El valor guardado es el texto final ("", "c/u", "kg", "lt", "mt", ...).
  */
 function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-    const presets = ["c/u", "por kilo"]
+    const presets = ["c/u", "kg", "lt", "mt"]
     const esPreset = presets.includes(value)
     const esOtro = value !== "" && !esPreset
     // El modo "Otro" necesita estado LOCAL porque el valor puede estar vacío
@@ -116,7 +116,7 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
                 />
             )}
             <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: 0 }}>
-                Se muestra junto al precio en el catálogo: "$35.00 {value || "…"}".
+                Se muestra junto al precio en el catálogo: "$35.00 {value ? `Por ${value}` : "…"}".
             </p>
         </div>
     )
