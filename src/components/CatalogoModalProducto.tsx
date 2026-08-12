@@ -41,6 +41,7 @@ interface ConfigCatalogo {
     mostrar_stock: boolean
     mostrar_categorias: boolean
     permitir_descarga?: boolean
+    relacion_imagen?: string  // '1:1' (default) | '4:5' — relación global de las fotos
     logo: string
 }
 
@@ -282,12 +283,12 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                     </button>
                 </div>
 
-                {/* ── Foto: carrusel con swipe + flechas ── */}
+                {/* ── Foto: carrusel con swipe + flechas (relación global 1:1 o 4:5) ── */}
                 <div
                     className="cata-modal-carrusel"
                     style={{
                         position: "relative",
-                        aspectRatio: "1",
+                        aspectRatio: config.relacion_imagen === "4:5" ? "4 / 5" : "1",
                         background: "#000",
                         overflow: "hidden",
                         touchAction: "pan-y",

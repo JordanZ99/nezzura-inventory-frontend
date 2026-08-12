@@ -71,6 +71,13 @@ export default function Estadisticas() {
         const timer = setTimeout(() => setBusquedaProdDebounced(busquedaProd), 300)
         return () => clearTimeout(timer)
     }, [busquedaProd])
+    // Relación global de las fotos de producto ('1' | '4 / 5') — config del catálogo
+    const [relacionImagen, setRelacionImagen] = useState("1")
+    useEffect(() => {
+        api.getConfigCatalogo()
+            .then(c => setRelacionImagen(c?.relacion_imagen === "4:5" ? "4 / 5" : "1"))
+            .catch(() => {})
+    }, [])
     const [catSelecProd, setCatSelecProd] = useState("Todas")
     const [ordenProd, setOrdenProd] = useState("ventas-desc")
     const [prodSeleccionado, setProdSeleccionado] = useState<Producto | null>(null)
@@ -818,7 +825,7 @@ export default function Estadisticas() {
                                     }}
                                 >
                                     <div style={{
-                                        aspectRatio: "1", borderRadius: 12,
+                                        aspectRatio: relacionImagen, borderRadius: 12,
                                         background: "var(--gradient-bg-login)",
                                         marginBottom: 10, overflow: "hidden",
                                         display: "flex", alignItems: "center", justifyContent: "center",

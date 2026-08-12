@@ -42,6 +42,7 @@ interface ConfigCatalogo {
     mostrar_stock: boolean
     mostrar_categorias: boolean
     columnas_movil?: number
+    relacion_imagen?: string  // '1:1' (default) | '4:5' — relación global de las fotos
 }
 
 interface PaletaTema {
@@ -150,9 +151,9 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.08)" }}
                 onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "" }}
             >
-                {/* Imagen del producto */}
+                {/* Imagen del producto (relación global configurable: 1:1 o 4:5) */}
                 <div style={{
-                    aspectRatio: "1", background: tema.bg,
+                    aspectRatio: config.relacion_imagen === "4:5" ? "4 / 5" : "1", background: tema.bg,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     position: "relative", overflow: "hidden",
                     borderRadius: 12,
