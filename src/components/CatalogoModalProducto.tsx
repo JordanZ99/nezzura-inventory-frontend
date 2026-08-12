@@ -108,16 +108,25 @@ async function descargarImagen(url: string, nombre: string) {
 export default function CatalogoModalProducto({ producto, config, tema, onClose }: Props) {
     const variaciones = producto.variaciones || []
     // Fase 6: si el producto maneja stock por variación, las agotadas no se
-    // pueden elegir; la selección por defecto es la primera DISPONIBLE.
+    // pueden elegir (se muestran deshabilitadas con su badge "Agotado").
     const stockPorVar = !!producto.stock_por_variacion
-    const disponibles = variaciones.filter(v => !stockPorVar || (v.stock ?? 0) > 0)
-    const [variacionSel, setVariacionSel] = useState(() => disponibles[0]?.nombre ?? variaciones[0]?.nombre ?? "")
+    // Estilo AliExpress: NINGUNA variación seleccionada por defecto. Se ven las
+    // fotos base primero; al elegir una variación, el precio cambia y el
+    // carrusel salta a la foto de esa variación (si tiene).
+    const [variacionSel, setVariacionSel] = useState("")
     const variacionActual = variaciones.find(v => v.nombre === variacionSel) || null
-    const precioMostrado = variacionActual ? variacionActual.precio : producto.precio_venta
+    // Precio sin selección: "desde $X" (mínimo) si hay precios distintos;
+    // si todas cuestan lo mismo, se muestra el precio sin prefijo.
+    // Con stock por variación, el mínimo considera solo las disponibles
+    // (misma semántica que minPrecioDisponible del grid).
+    const preciosMin = (stockPorVar ? variaciones.filter(v => (v.stock ?? 0) > 0) : variaciones).map(v => v.precio)
+    const hayPreciosDistintos = new Set(preciosMin).size > 1
+    const precioMinimo = preciosMin.length > 0 ? Math.min(...preciosMin) : producto.precio_venta
+    const precioMostrado = variacionActual ? variacionActual.precio : precioMinimo
     const sufijoMostrado = variacionActual ? "" : producto.sufijo_precio
 
-    // Galería completa: foto de la variación seleccionada (si tiene) + foto
-    // principal + extras, sin duplicados ni "No hay foto".
+    // Galería estilo AliExpress: fotos BASE primero (portada + extras), después
+    // las fotos de TODAS las variaciones (deduplicadas, sin "No hay foto").
     const galeria = (() => {
         const lista: string[] = []
         const agregar = (u: string) => {
@@ -125,9 +134,9 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
             const resuelta = resolverImagen(u)
             if (resuelta && !lista.includes(resuelta)) lista.push(resuelta)
         }
-        agregar(variacionActual?.foto ?? "")
         agregar(producto.imagen)
         ;(producto.imagenes || []).forEach(agregar)
+        variaciones.forEach(v => agregar(v.foto ?? ""))
         return lista
     })()
 
@@ -137,9 +146,14 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     // cuando la w_960 termina de cargar, la reemplaza al instante (sin fundido).
     const [imagenLista, setImagenLista] = useState(false)
 
-    // Al cambiar de variación, volver a la primera foto (la de esa variación)
+    // Al cambiar de variación, saltar a la foto de esa variación (estilo
+    // AliExpress). Si la variación no tiene foto, el carrusel se queda donde está.
     useEffect(() => {
-        setIndice(0)
+        const v = variaciones.find(x => x.nombre === variacionSel)
+        if (!v?.foto) return
+        const idx = galeria.indexOf(resolverImagen(v.foto))
+        if (idx >= 0) setIndice(idx)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [variacionSel])
 
     // Bloquear el scroll de la página (body + html) mientras el modal está abierto
@@ -456,7 +470,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                         {config.mostrar_precios ? (
                             <span style={{ fontSize: "1.5rem", fontWeight: 800, color: tema.primaryDark, lineHeight: 1 }}>
-                                {variaciones.length > 0 && !variacionActual && (
+                                {variaciones.length > 0 && !variacionActual && hayPreciosDistintos && (
                                     <span style={{ fontSize: "0.85rem", fontWeight: 700, opacity: 0.7, marginRight: 4 }}>desde </span>
                                 )}
                                 ${precioMostrado.toFixed(2)}
