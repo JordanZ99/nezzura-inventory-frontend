@@ -1386,22 +1386,6 @@ export default function Inventario() {
                                             : "Se lleva control de inventario por lotes (ej. peluches, plantas, ropa)."}
                                 </p>
                             </div>
-                            {/* Visible en catálogo: por defecto activo, para que un ingrediente
-                                (material de compuestos) no aparezca accidentalmente en el catálogo */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Visible en catálogo</label>
-                                <select
-                                    className="input-primary"
-                                    value={form.visible_en_catalogo ? "true" : "false"}
-                                    onChange={e => setForm(p => ({ ...p, visible_en_catalogo: e.target.value === "true" }))}
-                                    title={form.visible_en_catalogo
-                                        ? "Este producto se mostrará en tu catálogo público"
-                                        : "Este producto quedará oculto en tu catálogo público (ideal para ingredientes)"}
-                                >
-                                    <option value="true">Visible</option>
-                                    <option value="false">Oculto</option>
-                                </select>
-                            </div>
                             <Input label="Nombre del producto" value={form.producto} onChange={e => setForm(p => ({ ...p, producto: e.target.value }))} />
                             <Input label="Descripción" value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
@@ -1499,6 +1483,22 @@ export default function Inventario() {
                                     <Icon name="Lightbulb" size={14} /> El costo real se calcula en vivo al vender (según el costo de los ingredientes). Puedes añadirlos aquí abajo o después, en "Editar Prod.".
                                 </p>
                             )}
+                            {/* Visible en catálogo: por defecto activo, para que un ingrediente
+                                (material de compuestos) no aparezca accidentalmente en el catálogo */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Visible en catálogo</label>
+                                <select
+                                    className="input-primary"
+                                    value={form.visible_en_catalogo ? "true" : "false"}
+                                    onChange={e => setForm(p => ({ ...p, visible_en_catalogo: e.target.value === "true" }))}
+                                    title={form.visible_en_catalogo
+                                        ? "Este producto se mostrará en tu catálogo público"
+                                        : "Este producto quedará oculto en tu catálogo público (ideal para ingredientes)"}
+                                >
+                                    <option value="true">Visible</option>
+                                    <option value="false">Oculto</option>
+                                </select>
+                            </div>
 
                             {/* Variaciones e ingredientes: se crean junto al producto (transacción única) */}
                             <AltaVariaciones
