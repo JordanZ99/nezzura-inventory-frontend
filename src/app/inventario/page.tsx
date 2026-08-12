@@ -116,7 +116,7 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
                 />
             )}
             <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: 0 }}>
-                Se muestra junto al precio en el catálogo: "$35.00 {value ? `Por ${value}` : "…"}".
+                Se mostrará en el catálogo como: "$35.00 {value ? `Por ${value}` : "…"}".
             </p>
         </div>
     )
@@ -1577,7 +1577,7 @@ export default function Inventario() {
                                 />
                             )}
                             <div>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Precio en el catálogo</label>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Unidad de venta</label>
                                 <SelectorSufijoPrecio value={form.sufijo_precio} onChange={v => setForm(p => ({ ...p, sufijo_precio: v }))} />
                             </div>
                             {form.tipo_producto === "stock" && (
@@ -2232,7 +2232,7 @@ export default function Inventario() {
                             )}
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Precio en el catálogo</label>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Unidad de venta</label>
                                 <SelectorSufijoPrecio value={editProdVal.sufijo_precio} onChange={v => setEditProdVal(p => ({ ...p, sufijo_precio: v }))} />
                             </div>
 
