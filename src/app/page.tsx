@@ -281,11 +281,18 @@ export default function PuntoDeVenta() {
         setCarrito(prev => prev.map(i => keyCarrito(i) === key ? { ...i, cantidad } : i))
     }
 
-    // Paso de los botones ± del carrito: 1 unidad entera si la cantidad es
-    // >= 1, y 0.1 si ya es fraccionaria (para productos vendidos por kilo).
-    function pasoCantidad(actual: number, dir: 1 | -1): number {
+    // Paso de los botones ± del carrito:
+    //  - Productos por UNIDADES (c/u, no fraccionable): paso entero de 1.
+    //    Al llegar a 1 y presionar −, el resultado es 0 → el caller ELIMINA la
+    //    línea (evita vender 0.1 llaveros por error de dedo).
+    //  - Productos FRACCIONABLES (kg/lt/mt): paso 1 mientras sea >= 1 y 0.1
+    //    al bajar de la unidad (2 → 1 → 0.9 → … → 0 → elimina).
+    function pasoCantidad(actual: number, dir: 1 | -1, fracc: boolean): number {
+        if (!fracc) {
+            return Math.max(0, Math.round(actual + dir))
+        }
         const paso = actual >= 1 ? 1 : 0.1
-        return Math.max(0.1, +(actual + dir * paso).toFixed(1))
+        return Math.max(0, +(actual + dir * paso).toFixed(1))
     }
 
     function cambiarPrecio(key: string, texto: string) {
@@ -738,15 +745,25 @@ export default function PuntoDeVenta() {
                                                 </div>
                                                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--bg-card2)", borderRadius: 8, border: "var(--border-primary)", padding: "2px 4px" }}>
-                                                        <button onClick={() => cambiarCantidad(key, pasoCantidad(item.cantidad, -1))}
+                                                        <button onClick={() => {
+                                                            const next = pasoCantidad(item.cantidad, -1, !!prod?.fraccionable)
+                                                            if (next <= 0) quitarDelCarrito(key)
+                                                            else cambiarCantidad(key, next)
+                                                        }}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>−</button>
                                                         <input
-                                                            type="number" min="0.1" step="0.1"
+                                                            type="number"
+                                                            min={prod?.fraccionable ? "0.1" : "1"}
+                                                            step={prod?.fraccionable ? "0.1" : "1"}
                                                             value={item.cantidad}
-                                                            onChange={e => cambiarCantidad(key, Math.max(0.1, +e.target.value))}
+                                                            onChange={e => {
+                                                                const fracc = !!prod?.fraccionable
+                                                                if (fracc) cambiarCantidad(key, Math.max(0.1, +e.target.value))
+                                                                else cambiarCantidad(key, Math.max(1, Math.round(+e.target.value || 0)))
+                                                            }}
                                                             style={{ width: 40, border: "none", textAlign: "center", fontSize: "0.8rem", fontWeight: 700, outline: "none", background: "transparent" }}
                                                         />
-                                                        <button onClick={() => cambiarCantidad(key, pasoCantidad(item.cantidad, 1))}
+                                                        <button onClick={() => cambiarCantidad(key, pasoCantidad(item.cantidad, 1, !!prod?.fraccionable))}
                                                             style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", color: "var(--primary-mid)", width: 22, height: 22 }}>+</button>
                                                     </div>
                                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -926,17 +943,25 @@ export default function PuntoDeVenta() {
                                     </div>
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, alignItems: "center" }}>
                                         <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 8, padding: "4px 10px" }}>
-                                            <button onClick={() => cambiarCantidad(key, pasoCantidad(item.cantidad, -1))} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
+                                            <button onClick={() => {
+                                                const next = pasoCantidad(item.cantidad, -1, !!prodCarrito?.fraccionable)
+                                                if (next <= 0) quitarDelCarrito(key)
+                                                else cambiarCantidad(key, next)
+                                            }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>−</button>
                                             <input
-                                                type="number" min="0.1" step="0.1"
+                                                type="number"
+                                                min={prodCarrito?.fraccionable ? "0.1" : "1"}
+                                                step={prodCarrito?.fraccionable ? "0.1" : "1"}
                                                 value={item.cantidad}
                                                 onChange={e => {
-                                                    cambiarCantidad(key, Math.max(0.1, +e.target.value));
+                                                    const fracc = !!prodCarrito?.fraccionable
+                                                    if (fracc) cambiarCantidad(key, Math.max(0.1, +e.target.value));
+                                                    else cambiarCantidad(key, Math.max(1, Math.round(+e.target.value || 0)));
                                                 }}
                                                 style={{ width: "100%", border: "none", textAlign: "center", fontSize: "0.9rem", fontWeight: 700, outline: "none", background: "transparent", color: "var(--text-main)" }}
                                             />
                                             <button onClick={() => {
-                                                cambiarCantidad(key, pasoCantidad(item.cantidad, 1));
+                                                cambiarCantidad(key, pasoCantidad(item.cantidad, 1, !!prodCarrito?.fraccionable));
                                             }} style={{ background: "none", border: "none", cursor: "pointer", fontWeight: 700, color: "var(--primary-mid)", fontSize: "1rem" }}>+</button>
                                         </div>
                                         <input type="text" inputMode="decimal"
