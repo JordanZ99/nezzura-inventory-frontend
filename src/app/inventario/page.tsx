@@ -51,16 +51,26 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
     // Resincroniza el modo local ante cambios EXTERNOS del valor (reset del form
     // al guardar, o cambio de producto en edición), sin romper la escritura del
     // usuario: cuando `value` cambia, el modo "Otro" se deriva del nuevo valor.
+    //
+    // `interno` distingue los cambios que el PROPIO componente provoca (activar
+    // "Otro" limpia el valor a ""; elegir un preset lo cambia) de los cambios
+    // externos: sin esta ref, activar "Otro" con un preset seleccionado hacía
+    // que el efecto revirtiera el chip (bug visual de parpadeo).
+    const interno = useRef(false)
     const prevValue = useRef(value)
     useEffect(() => {
         if (prevValue.current !== value) {
             prevValue.current = value
-            setOtroActivo(esOtro)
+            if (!interno.current) {
+                setOtroActivo(esOtro)
+            }
+            interno.current = false
         }
     }, [value, esOtro])
 
     const togglePreset = (preset: string) => {
         // Al elegir un preset se sale del modo "Otro"
+        interno.current = true
         setOtroActivo(false)
         onChange(value === preset ? "" : preset)
     }
@@ -68,6 +78,7 @@ function SelectorSufijoPrecio({ value, onChange }: { value: string; onChange: (v
     // Activar/desactivar el modo libre: el input arranca vacío (el usuario
     // escribe el sufijo, ej. "por litro"); no se inventa un default.
     const activarOtro = () => {
+        interno.current = true
         if (otroActivo || esOtro) {
             // Deseleccionar: limpiar el valor persistido
             setOtroActivo(false)
