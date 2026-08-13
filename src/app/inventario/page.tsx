@@ -963,6 +963,9 @@ export default function Inventario() {
     async function guardarProducto() {
         if (!prodEditar || guardando) return
         setGuardando(true)
+        // Si la edición falla tras subir una foto principal nueva, se borra de
+        // Cloudinary para no dejar imágenes huérfanas (misma lógica que en el alta).
+        let imagenSubidaEdit = ""
         try {
             // ── Foto principal: la primera del array editFotos ──
             let nuevaImagen: string | undefined = undefined
@@ -983,9 +986,16 @@ export default function Inventario() {
                 }
                 const r = await api.subirFoto(prodEditar, imgAEnviar)
                 nuevaImagen = r.ruta
+                imagenSubidaEdit = r.ruta
             } else if (editFotos.length === 0 && editProdVal.imagen !== "No hay foto") {
                 // Se eliminaron todas las fotos → quitar foto principal
                 nuevaImagen = "No hay foto"
+            } else if (principalEdit && !principalEdit.file && principalEdit.url !== editProdVal.imagen) {
+                // La principal cambió SIN subir un archivo nuevo (se reordenó o
+                // se eliminó del carrusel): la nueva principal es la primera
+                // foto restante, que ya existe en Cloudinary (solo cambia la
+                // referencia en productos.imagen).
+                nuevaImagen = principalEdit.url
             }
 
             const payload: Parameters<typeof api.editarProducto>[1] = {
@@ -1015,44 +1025,72 @@ export default function Inventario() {
             await api.editarProducto(prodEditar, payload)
 
             // ── Sincronizar fotos extras (índices 1+) ──
-            // Eliminar fotos que ya no están en el array
+            // Eliminar fotos que ya no están en el array. La fila que representa
+            // a la foto principal (posición 0) NUNCA se elimina por no tener id:
+            // se identifica por URL (tanto la actual como la recién guardada) y
+            // se conserva aunque la posición 0 del array no traiga id.
             const fotosActuales = await api.getImagenesProducto(prodEditar)
+            const urlPrincipalActual = editFotos[0]?.url
+            const urlPrincipalGuardada = payload.imagen && payload.imagen !== "No hay foto" ? payload.imagen : undefined
             for (const existente of fotosActuales) {
-                const sigueEnArray = editFotos.some(f => f.id === existente.id)
+                const esPrincipal = (!!urlPrincipalActual && existente.url === urlPrincipalActual)
+                    || (!!urlPrincipalGuardada && existente.url === urlPrincipalGuardada)
+                const sigueEnArray = editFotos.some(f => f.id === existente.id) || esPrincipal
                 if (!sigueEnArray) {
                     try { await api.eliminarImagenExtra(existente.id) }
                     catch { /* ignorar error al eliminar */ }
                 }
-            }                        // Subir nuevas fotos extras + reemplazadas
-                        // Para cada foto del array que tenga file (es nueva/cambiada):
-                        //   - Si tiene orden, reemplazar en ese orden (backend borra la vieja)
-                        //   - Si no tiene orden, insercion nueva
-                        const nuevosExtras = editFotos.slice(1).filter(f => f.file)
-                        for (const extra of nuevosExtras) {
-                            if (!extra.file) continue
-                            try {
-                                let imgAEnviar = extra.file
-                                try { imgAEnviar = await comprimirImagen(extra.file) }
-                                catch { /* enviar original */ }
-                                await api.subirImagenExtra(prodEditar, imgAEnviar, extra.orden)
-                            } catch {
-                                console.warn("Error subiendo imagen extra para", prodEditar)
-                            }
-                        }
+            }
+            // Subir nuevas fotos extras + reemplazadas
+            // Para cada foto del array que tenga file (es nueva/cambiada):
+            //   - Si tiene orden, reemplazar en ese orden (el backend sube primero
+            //     y borra la vieja de Cloudinary después)
+            //   - Si no tiene orden, inserción nueva
+            const nuevosExtras = editFotos.slice(1).filter(f => f.file)
+            for (const extra of nuevosExtras) {
+                if (!extra.file) continue
+                try {
+                    let imgAEnviar = extra.file
+                    try { imgAEnviar = await comprimirImagen(extra.file) }
+                    catch { /* enviar original */ }
+                    await api.subirImagenExtra(prodEditar, imgAEnviar, extra.orden)
+                } catch {
+                    console.warn("Error subiendo imagen extra para", prodEditar)
+                }
+            }
 
-                        // ── Reordenar imágenes existentes si el orden cambió ──
-                        const idsEnOrden = editFotos.map(f => f.id).filter((id): id is number => id !== undefined)
-                        if (idsEnOrden.length >= 2) {
-                            try {
-                                await api.reordenarImagenes(prodEditar, idsEnOrden)
-                            } catch (err) {
-                                console.warn("Error reordenando imágenes:", err)
-                            }
-                        }
+            // ── Reordenar imágenes existentes si el orden cambió ──
+            // Se mapea cada posición del array a su fila REAL de la galería por
+            // URL (usando el estado fresco que ya incluye la principal sincronizada
+            // por el backend). Así el reordenamiento nunca pisa la foto principal
+            // con una URL vieja, y se omite si el orden ya es el correcto.
+            const idsEnOrden = editFotos
+                .map(f => fotosActuales.find(g => g.url === f.url)?.id)
+                .filter((id): id is number => id !== undefined)
+            if (idsEnOrden.length >= 2) {
+                const ordenActual = fotosActuales
+                    .filter(g => idsEnOrden.includes(g.id))
+                    .sort((a, b) => a.orden - b.orden)
+                    .map(g => g.id)
+                const cambia = idsEnOrden.length !== ordenActual.length
+                    || idsEnOrden.some((id, i) => id !== ordenActual[i])
+                if (cambia) {
+                    try {
+                        await api.reordenarImagenes(prodEditar, idsEnOrden)
+                    } catch (err) {
+                        console.warn("Error reordenando imágenes:", err)
+                    }
+                }
+            }
 
             mostrarMsg(true, "Producto actualizado")
             setProdEditar(""); setEditProdNombre(""); setEditFotos([]); recargar()
-        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        } catch (e: unknown) {
+            // El guardado falló tras subir una foto principal nueva: limpiarla
+            // de Cloudinary para no dejar huérfanas (igual que en el alta).
+            if (imagenSubidaEdit) api.borrarImagen(imagenSubidaEdit).catch(() => {})
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
+        }
         finally { setGuardando(false) }
     }
 
@@ -2166,17 +2204,40 @@ export default function Inventario() {
                                                 // Cargar los materiales de la receta (si es compuesto)
                                                 setEditRecetas(prod.recetas ?? [])
                                                 setMatBuscador(""); setMatSeleccionado(""); setMatCantidad(""); setMatVariacionSel(null)
-                                                // Cargar todas las fotos del producto (principal + extras) en editFotos
+                                                // Cargar todas las fotos del producto (principal + extras) en editFotos.
+                                                // La principal vive en productos.imagen y (plan Plus) también en
+                                                // producto_imagenes con orden 1: se deduplican por URL y se prefiere
+                                                // la versión con id (la fila de la galería) para que el reordenamiento
+                                                // la trate como una foto normal y no la pise con una URL vieja.
                                                 const fotos: FotoGaleria[] = []
-                                                if (prod.imagen && prod.imagen !== "No hay foto") {
-                                                    fotos.push({ url: prod.imagen, orden: 1 }) // principal = orden 1
-                                                }
                                                 api.getImagenesProducto(prod.producto)
                                                     .then(extras => {
-                                                        const todas = [...fotos, ...extras.map(e => ({ url: e.url, id: e.id, orden: e.orden }))]
-                                                        setEditFotos(todas)
+                                                        const tienePrincipal = !!(prod.imagen && prod.imagen !== "No hay foto")
+                                                        const filaPrincipal = tienePrincipal
+                                                            ? extras.find(e => e.url === prod.imagen)
+                                                            : undefined
+                                                        if (tienePrincipal) {
+                                                            if (filaPrincipal) {
+                                                                fotos.push({ url: prod.imagen, id: filaPrincipal.id, orden: 1 })
+                                                            } else {
+                                                                fotos.push({ url: prod.imagen, orden: 1 })
+                                                            }
+                                                        }
+                                                        for (const e of extras) {
+                                                            if (tienePrincipal && e.url === prod.imagen) continue // ya agregada como principal
+                                                            fotos.push({ url: e.url, id: e.id, orden: e.orden })
+                                                        }
+                                                        // Ordenar según el orden del backend (la principal primero)
+                                                        fotos.sort((a, b) => (a.orden ?? 99) - (b.orden ?? 99))
+                                                        setEditFotos(fotos)
                                                     })
-                                                    .catch(() => setEditFotos(fotos))
+                                                    .catch(() => {
+                                                        if (prod.imagen && prod.imagen !== "No hay foto") {
+                                                            setEditFotos([{ url: prod.imagen, orden: 1 }])
+                                                        } else {
+                                                            setEditFotos([])
+                                                        }
+                                                    })
                                             }}
                                             onMouseEnter={e => {
                                                 e.currentTarget.style.transform = "translateY(-3px)"
