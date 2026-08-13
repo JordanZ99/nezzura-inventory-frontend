@@ -143,7 +143,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     const [indice, setIndice] = useState(0)
     const touchX = useRef<number | null>(null)
     // Controla el swap: primero se ve la w_600 (ya en caché desde el grid) y
-    // cuando la w_960 termina de cargar, la reemplaza al instante (sin fundido).
+    // cuando la w_1200 termina de cargar, la reemplaza al instante (sin fundido).
     const [imagenLista, setImagenLista] = useState(false)
 
     // Al cambiar de variación, saltar a la foto de esa variación (estilo
@@ -179,7 +179,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     const fotoActual = galeria.length > 0 ? galeria[indiceSeguro] : ""
     // Versión optimizada SOLO para mostrar (ahorra bandwidth): la descarga
     // sigue usando fotoActual (URL original en máxima calidad).
-    const fotoActualOptimizada = optimizarImagenCloudinary(fotoActual, 960)
+    const fotoActualOptimizada = optimizarImagenCloudinary(fotoActual, 1200)
     // Primer stage: la misma w_600 del grid (ya en caché del navegador → instantáneo)
     const fotoRapida = optimizarImagenCloudinary(fotoActual, 600)
 
@@ -318,7 +318,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                     {fotoActual ? (
                         <div style={{ position: "absolute", inset: 0 }}>
                             {/* Primer stage: w_600 (la misma del grid, en caché) → instantáneo.
-                                Se reemplaza al instante (sin fundido) cuando la w_960 está lista. */}
+                                Se reemplaza al instante (sin fundido) cuando la w_1200 está lista. */}
                             <img
                                 src={fotoRapida}
                                 alt=""
@@ -330,7 +330,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                     display: imagenLista ? "none" : "block",
                                 }}
                             />
-                            {/* Segundo stage: w_960 de calidad. Se mantiene oculta (display none) para
+                            {/* Segundo stage: w_1200 de calidad. Se mantiene oculta (display none) para
                                 descargar en segundo plano; al terminar, reemplaza a la w_600 al
                                 instante. Si falla, la w_600 sigue visible (no se revela una imagen rota). */}
                             <img
