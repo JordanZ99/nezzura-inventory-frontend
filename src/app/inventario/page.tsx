@@ -1064,6 +1064,19 @@ export default function Inventario() {
             }
             await api.editarProducto(prodEditar, payload)
 
+            // El producto pudo renombrarse en este PATCH: todas las llamadas
+            // posteriores a la galería deben usar el nombre FINAL (el nuevo si
+            // cambió), no el nombre viejo con el que abrimos el formulario — el
+            // viejo ya no existe en la DB y el backend respondería 404. Espejo
+            // de la lógica del backend: si el nuevo nombre quedó vacío o es
+            // igual al actual, el producto conserva su nombre original.
+            const nombreEfectivo = (editProdNombre || "").trim() || prodEditar
+            // La foto principal recién subida ya quedó referenciada en la DB
+            // (el PATCH guardó payload.imagen): si un paso posterior falla, ya
+            // no debe borrarse de Cloudinary (la borraría y dejaría la imagen
+            // rota en el producto).
+            imagenSubidaEdit = ""
+
             // ── Guardar variaciones pendientes (guardado unificado) ──
             // Nombre/precio editados en las filas se persisten aquí, junto con
             // el resto del producto (ya no hay guardado individual por fila).
@@ -1083,7 +1096,7 @@ export default function Inventario() {
             // a la foto principal (posición 0) NUNCA se elimina por no tener id:
             // se identifica por URL (tanto la actual como la recién guardada) y
             // se conserva aunque la posición 0 del array no traiga id.
-            const fotosActuales = await api.getImagenesProducto(prodEditar)
+            const fotosActuales = await api.getImagenesProducto(nombreEfectivo)
             const urlPrincipalActual = editFotos[0]?.url
             const urlPrincipalGuardada = payload.imagen && payload.imagen !== "No hay foto" ? payload.imagen : undefined
             for (const existente of fotosActuales) {
@@ -1107,7 +1120,7 @@ export default function Inventario() {
                     let imgAEnviar = extra.file
                     try { imgAEnviar = await comprimirImagen(extra.file) }
                     catch { /* enviar original */ }
-                    await api.subirImagenExtra(prodEditar, imgAEnviar, extra.orden)
+                    await api.subirImagenExtra(nombreEfectivo, imgAEnviar, extra.orden)
                 } catch {
                     console.warn("Error subiendo imagen extra para", prodEditar)
                 }
@@ -1130,7 +1143,7 @@ export default function Inventario() {
                     || idsEnOrden.some((id, i) => id !== ordenActual[i])
                 if (cambia) {
                     try {
-                        await api.reordenarImagenes(prodEditar, idsEnOrden)
+                        await api.reordenarImagenes(nombreEfectivo, idsEnOrden)
                     } catch (err) {
                         console.warn("Error reordenando imágenes:", err)
                     }
