@@ -56,17 +56,36 @@ function cargarImagen(url: string): Promise<HTMLImageElement> {
     })
 }
 
+/** Tope del lado mayor del recorte: evita canvas gigantes (memoria en móvil).
+ * El archivo final igual se re-comprime con comprimirImagen (1000px máx). */
+const MAX_CROP_OUTPUT = 1400
+
 /**
  * Dibuja la imagen recortada en un canvas y devuelve el Blob en JPEG.
+ *
+ * @param fondo Color de relleno del área vacía (transparencia PNG o zoom-out).
+ *        Sin rellenar, el canvas arranca transparente y al exportar a JPEG
+ *        (sin canal alfa) esas zonas caen a NEGRO — el artefacto que se veía
+ *        al subir PNG. Por defecto se rellena de blanco.
  */
-async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
+async function getCroppedImg(imageSrc: string, pixelCrop: Area, fondo: string): Promise<Blob> {
     const image = await cargarImagen(imageSrc)
     const canvas = document.createElement("canvas")
     const ctx = canvas.getContext("2d")
     if (!ctx) throw new Error("No se pudo obtener el contexto 2D")
 
-    canvas.width = pixelCrop.width
-    canvas.height = pixelCrop.height
+    // Reducir el recorte si supera el tope (mantiene la proporción)
+    let { width, height } = pixelCrop
+    const escala = Math.min(1, MAX_CROP_OUTPUT / Math.max(width, height))
+    width = Math.round(width * escala)
+    height = Math.round(height * escala)
+
+    canvas.width = width
+    canvas.height = height
+
+    // Rellenar el fondo ANTES de dibujar (ver docstring)
+    ctx.fillStyle = fondo
+    ctx.fillRect(0, 0, width, height)
 
     ctx.drawImage(
         image,
@@ -76,8 +95,8 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
         pixelCrop.height,
         0,
         0,
-        pixelCrop.width,
-        pixelCrop.height,
+        width,
+        height,
     )
 
     return new Promise((resolve, reject) => {
@@ -87,7 +106,7 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
                 else reject(new Error("El canvas generó una imagen vacía"))
             },
             "image/jpeg",
-            0.92,
+            0.85,
         )
     })
 }
@@ -138,6 +157,9 @@ export default function ImageCropperModal({
 }: ImageCropperModalProps) {
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
+    // Color de relleno del área vacía (transparencia / zoom-out). Blanco por
+    // defecto: sin este relleno el JPEG exporta esas zonas en negro.
+    const [fondo, setFondo] = useState<"blanco" | "negro">("blanco")
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
     // Ref espejo de croppedAreaPixels para acceso síncrono dentro de handleAccept.
     // Necesario porque el callback de espera (polling) no ve el estado actualizado
@@ -265,7 +287,7 @@ export default function ImageCropperModal({
             // Si llegamos aquí, area ya está disponible. Continuar con el recorte.
             setProcesando(true)
             try {
-                const blob = await getCroppedImg(imageUrl, area)
+                const blob = await getCroppedImg(imageUrl, area, fondo === "negro" ? "#000000" : "#ffffff")
                 onCropComplete(blob)
             } catch (e) {
                 console.error("Error al recortar imagen:", e)
@@ -278,7 +300,7 @@ export default function ImageCropperModal({
         setProcesando(true)
         setErrorRecorte(null)
         try {
-            const blob = await getCroppedImg(imageUrl, croppedAreaPixels)
+            const blob = await getCroppedImg(imageUrl, croppedAreaPixels, fondo === "negro" ? "#000000" : "#ffffff")
             onCropComplete(blob)
         } catch (e) {
             console.error("Error al recortar imagen:", e)
@@ -427,6 +449,35 @@ export default function ImageCropperModal({
                             }}
                         />
                         <Icon name="ZoomIn" size={18} color="var(--text-muted)" />
+                    </div>
+
+                    {/* Fondo del área vacía (transparencia PNG o zoom-out).
+                        Sin rellenar, el JPEG exporta esas zonas en negro. */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            Fondo
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() => setFondo("blanco")}
+                            title="Rellenar el vacío de blanco"
+                            style={{
+                                width: 26, height: 26, borderRadius: "50%", cursor: "pointer",
+                                background: "#ffffff",
+                                border: fondo === "blanco" ? "2px solid var(--primary-mid)" : "1px solid var(--border-primary)",
+                                boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.15)",
+                            }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setFondo("negro")}
+                            title="Rellenar el vacío de negro"
+                            style={{
+                                width: 26, height: 26, borderRadius: "50%", cursor: "pointer",
+                                background: "#111111",
+                                border: fondo === "negro" ? "2px solid var(--primary-mid)" : "1px solid var(--border-primary)",
+                            }}
+                        />
                     </div>
 
                     {/* Etiqueta de ayuda */}

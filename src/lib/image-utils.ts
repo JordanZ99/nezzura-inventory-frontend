@@ -2,7 +2,9 @@
 // src/lib/image-utils.ts
 // Compresión de imágenes en el navegador + optimización de URLs de Cloudinary.
 // Redimensiona y comprime a JPEG (compatible con todos los navegadores)
-// para que las fotos de productos pesen ~40-80 KB.
+// para que las fotos de productos pesen ~150-200 KB a 1000px (suficiente
+// nitidez para el grid w_600 y el modal w_960 del catálogo; la optimización
+// final la hace Cloudinary al entregar con f_auto/q_auto).
 // ==============================================================================
 
 /** Tamaño máximo del archivo original que aceptamos (10 MB) */
@@ -139,11 +141,11 @@ function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob>
  *
  * Estrategia:
  * 1. Valida que el archivo no supere 10 MB.
- * 2. Redimensiona a máximo 600px (lado más grande) — suficiente para
- *    una foto de producto en catálogo.
- * 3. Empieza con calidad 0.5 y va bajando progresivamente hasta que
- *    el archivo pese menos de 80 KB.
- * 4. Si incluso en calidad mínima (0.15) supera 80 KB, lo entrega igual.
+ * 2. Redimensiona a máximo 1000px (lado más grande) — nítido tanto para el
+ *    grid (w_600) como para el modal del catálogo (w_960).
+ * 3. Empieza con calidad 0.8 y va bajando progresivamente hasta que
+ *    el archivo pese menos de 200 KB.
+ * 4. Si incluso en calidad mínima (0.6) supera 200 KB, lo entrega igual.
  *
  * @param file Archivo original seleccionado por el usuario.
  * @returns Un File en formato JPEG, ligero y compatible con todos los navegadores.
@@ -164,17 +166,19 @@ export async function comprimirImagen(file: File): Promise<File> {
 
     const dataUrl = await leerArchivoComoDataURL(file);
     const img = await cargarImagenDesdeURL(dataUrl);
-    const canvas = redimensionar(img, 600, 600);
+    const canvas = redimensionar(img, 1000, 1000);
 
-    // Compresión progresiva: empieza con 0.5 y baja hasta 0.15
-    const MAX_SIZE_KB = 80;
-    let quality = 0.5;
+    // Compresión progresiva: empieza con 0.8 y baja hasta 0.6. El target de
+    // ~200 KB equilibra nitidez y peso en Cloudinary (el costo real no está
+    // en el peso por foto, sino en los huérfanos que nunca se borran).
+    const MAX_SIZE_KB = 200;
+    let quality = 0.8;
 
     for (let intento = 0; intento < 10; intento++) {
         const blob = await canvasToBlob(canvas, quality);
         const kb = blob.size / 1024;
 
-        if (kb <= MAX_SIZE_KB || quality <= 0.15) {
+        if (kb <= MAX_SIZE_KB || quality <= 0.6) {
             const nombreBase = file.name.replace(/\.[^.]+$/, "");
             const jpegFile = new File([blob], `${nombreBase}.jpg`, {
                 type: "image/jpeg",
@@ -184,11 +188,11 @@ export async function comprimirImagen(file: File): Promise<File> {
         }
 
         // Reducir calidad un escalón
-        quality = Math.max(0.15, quality - 0.05);
+        quality = Math.max(0.6, quality - 0.05);
     }
 
-    // Último recurso: calidad 0.15
-    const blob = await canvasToBlob(canvas, 0.15);
+    // Último recurso: calidad 0.6
+    const blob = await canvasToBlob(canvas, 0.6);
     const nombreBase = file.name.replace(/\.[^.]+$/, "");
     return new File([blob], `${nombreBase}.jpg`, {
         type: "image/jpeg",
