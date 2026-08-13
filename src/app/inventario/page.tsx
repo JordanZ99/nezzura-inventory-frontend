@@ -641,6 +641,18 @@ function MaterialRecetaRow({ material, disabled, onGuardar, onEliminar }: {
 export default function Inventario() {
     const { tenant } = useTenant()
 
+    // Vista móvil (<= 899px): los botones de tipo de producto apilan el ícono
+    // arriba del texto en vez de al lado (evita que se comprima en pantallas chicas).
+    const [esMovil, setEsMovil] = useState<boolean>(() =>
+        typeof window !== "undefined" && window.matchMedia("(max-width: 899px)").matches)
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 899px)")
+        setEsMovil(mq.matches)
+        const handler = (e: MediaQueryListEvent) => setEsMovil(e.matches)
+        mq.addEventListener("change", handler)
+        return () => mq.removeEventListener("change", handler)
+    }, [])
+
     const [lotes, setLotes] = useState<Lote[]>([])
     const [inv, setInv] = useState<Producto[]>([])
     const [tab, setTab] = useState<Tab>("nuevo")
@@ -1672,7 +1684,8 @@ export default function Inventario() {
                                             fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
                                             background: form.tipo_producto === "stock" ? "var(--primary-mid)" : "var(--bg-card2)",
                                             color: form.tipo_producto === "stock" ? "#fff" : "var(--text-main)",
-                                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            flexDirection: esMovil ? "column" : "row", gap: esMovil ? 4 : 6,
                                         }}
                                     >
                                         <Icon name="Package" size={16} /> Con stock
@@ -1685,7 +1698,8 @@ export default function Inventario() {
                                             fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
                                             background: form.tipo_producto === "servicio" ? "var(--primary-mid)" : "var(--bg-card2)",
                                             color: form.tipo_producto === "servicio" ? "#fff" : "var(--text-main)",
-                                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            flexDirection: esMovil ? "column" : "row", gap: esMovil ? 4 : 6,
                                         }}
                                     >
                                         <Icon name="Scissors" size={16} /> Servicio (sin stock)
@@ -1698,7 +1712,8 @@ export default function Inventario() {
                                             fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
                                             background: form.tipo_producto === "compuesto" ? "var(--primary-mid)" : "var(--bg-card2)",
                                             color: form.tipo_producto === "compuesto" ? "#fff" : "var(--text-main)",
-                                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            flexDirection: esMovil ? "column" : "row", gap: esMovil ? 4 : 6,
                                         }}
                                     >
                                         <Icon name="Hamburger" size={16} /> Compuesto (receta)
