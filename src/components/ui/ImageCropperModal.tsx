@@ -7,8 +7,10 @@
 // Comportamiento del zoom:
 //   - Slider de 0% a 100%, con posición inicial en 50% (centro).
 //   - 50% → zoom por defecto: la imagen cubre todo el marco (cover).
-//   - < 50% → zoom out: la imagen se encoge hasta mostrarse COMPLETA
-//              dentro del marco (contain), dejando márgenes.
+//   - < 50% → zoom out SIN LÍMITE (hasta un piso mínimo): la imagen se
+//              encoge por debajo de "imagen completa" (contain) y el área
+//              vacía se rellena con el color de Fondo, permitiendo alejar
+//              el producto de los bordes (márgenes).
 //   - > 50% → zoom in: acerca la imagen para ver detalles.
 //   - Snap magnético en 48-52% → salta a 50% automáticamente.
 //   - Drag bounds se adaptan según el zoom.
@@ -63,6 +65,9 @@ const MAX_CROP_OUTPUT = 1400
 /**
  * Dibuja la imagen recortada en un canvas y devuelve el Blob en JPEG.
  *
+ * @param pixelCrop Rectángulo en píxeles NATURALES de la imagen. Puede exceder
+ *        los límites de la imagen (márgenes del zoom out): esas zonas se
+ *        rellenan con el color de fondo.
  * @param fondo Color de relleno del área vacía (transparencia PNG o zoom-out).
  *        Sin rellenar, el canvas arranca transparente y al exportar a JPEG
  *        (sin canal alfa) esas zonas caen a NEGRO — el artefacto que se veía
@@ -87,17 +92,30 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area, fondo: string): 
     ctx.fillStyle = fondo
     ctx.fillRect(0, 0, width, height)
 
-    ctx.drawImage(
-        image,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
-        0,
-        0,
-        width,
-        height,
-    )
+    // El rect de recorte puede EXCEDER los límites de la imagen (márgenes de
+    // zoom out). Dibujamos solo la intersección con la imagen, en su posición
+    // exacta dentro del canvas, para que el relleno del Fondo quede alrededor.
+    const imgW = image.naturalWidth
+    const imgH = image.naturalHeight
+    const ix = Math.max(0, pixelCrop.x)
+    const iy = Math.max(0, pixelCrop.y)
+    const ir = Math.min(imgW, pixelCrop.x + pixelCrop.width)
+    const ib = Math.min(imgH, pixelCrop.y + pixelCrop.height)
+    const vw = ir - ix
+    const vh = ib - iy
+    if (vw > 0 && vh > 0) {
+        ctx.drawImage(
+            image,
+            ix,
+            iy,
+            vw,
+            vh,
+            (ix - pixelCrop.x) * escala,
+            (iy - pixelCrop.y) * escala,
+            vw * escala,
+            vh * escala,
+        )
+    }
 
     return new Promise((resolve, reject) => {
         canvas.toBlob(
@@ -114,20 +132,16 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area, fondo: string): 
 /**
  * Convierte un valor de slider (0-100) al zoom real de react-easy-crop.
  *
- *   - 0%   → zoomContain (imagen completa visible dentro del marco cuadrado)
+ *   - 0%   → zoomOutMin (imagen mucho más pequeña que el marco: márgenes)
  *   - 50%  → zoom=1 (imagen cubre todo el marco, comportamiento por defecto)
  *   - 100% → MAX_ZOOM (zoom máximo, detalle muy cercano)
  */
-function sliderToZoom(sliderPct: number, zoomContain: number): number {
-    if (zoomContain >= 0.99) {
-        // Imagen cuadrada: la mitad izquierda del slider (0-50%) mantiene
-        // zoom=1 (cover ≡ contain), la mitad derecha (50-100%) hace zoom in.
-        if (sliderPct <= 50) return 1
-        return 1 + (MAX_ZOOM - 1) * ((sliderPct - 50) / 50)
-    }
+function sliderToZoom(sliderPct: number, zoomOutMin: number): number {
     if (sliderPct <= 50) {
-        // Modo contain → cover: de zoomContain a 1
-        return zoomContain + (1 - zoomContain) * (sliderPct / 50)
+        // Zoom out sin límite (hasta zoomOutMin): de la imagen encogida con
+        // márgenes a la imagen que cubre todo el marco (cover). Por debajo de
+        // "imagen completa" (contain) el área vacía se rellena con el Fondo.
+        return zoomOutMin + (1 - zoomOutMin) * (sliderPct / 50)
     }
     // Modo cover → zoom in: de 1 a MAX_ZOOM
     return 1 + (MAX_ZOOM - 1) * ((sliderPct - 50) / 50)
@@ -136,16 +150,69 @@ function sliderToZoom(sliderPct: number, zoomContain: number): number {
 /**
  * Convierte un zoom real de react-easy-crop a valor de slider (0-100).
  */
-function zoomToSlider(zoom: number, zoomContain: number): number {
-    if (zoomContain >= 0.99) {
-        // Imagen cuadrada: zoom=1 mapea a slider=50%, zoom>1 sube hasta 100%
-        if (zoom <= 1) return 50
-        return 50 + ((zoom - 1) / (MAX_ZOOM - 1)) * 50
-    }
+function zoomToSlider(zoom: number, zoomOutMin: number): number {
     if (zoom <= 1) {
-        return ((zoom - zoomContain) / (1 - zoomContain)) * 50
+        return ((zoom - zoomOutMin) / (1 - zoomOutMin)) * 50
     }
     return 50 + ((zoom - 1) / (MAX_ZOOM - 1)) * 50
+}
+
+/**
+ * Geometría del marco de recorte, replicando la lógica interna de react-easy-crop
+ * (getCropSize) para poder calcular el rectángulo de recorte en píxeles naturales
+ * de la imagen SIN el clamp que la librería aplica al guardar (que impedía los
+ * márgenes del zoom out y recortaba un eje según el ratio de la imagen).
+ *
+ *  - s: escala del layout de la imagen dentro del contenedor (objectFit contain)
+ *  - mediaW/mediaH: tamaño mostrado de la imagen, en unidades del contenedor
+ *  - cropW/cropH: tamaño del marco de recorte, en unidades del contenedor
+ */
+function frameGeom(containerW: number, containerH: number, imgW: number, imgH: number, aspect: number) {
+    const s = Math.min(containerW / imgW, containerH / imgH)
+    const mediaW = imgW * s
+    const mediaH = imgH * s
+    const fittingWidth = Math.min(mediaW, containerW)
+    const fittingHeight = Math.min(mediaH, containerH)
+    let cropW: number, cropH: number
+    if (fittingWidth > fittingHeight * aspect) {
+        cropW = fittingHeight * aspect
+        cropH = fittingHeight
+    } else {
+        cropW = fittingWidth
+        cropH = fittingWidth / aspect
+    }
+    return { s, mediaW, mediaH, cropW, cropH }
+}
+
+/**
+ * Rectángulo de recorte en píxeles NATURALES de la imagen, calculado a partir del
+ * crop/zoom actuales. A diferencia de lo que devuelve react-easy-crop (que limita
+ * el área a los bordes de la imagen), este rect puede exceder los límites de la
+ * imagen: es lo que permite exportar los márgenes del zoom out con el color de
+ * Fondo alrededor del producto.
+ *
+ * crop.x/crop.y están en píxeles CSS del contenedor (la semántica real de
+ * react-easy-crop). La fórmula coincide con su croppedAreaPercentages
+ * (verificada contra su fuente).
+ */
+function computeCropRectPx(
+    containerW: number,
+    containerH: number,
+    imgW: number,
+    imgH: number,
+    aspect: number,
+    crop: { x: number; y: number },
+    zoom: number,
+): Area {
+    const { s, cropW, cropH } = frameGeom(containerW, containerH, imgW, imgH, aspect)
+    const rectW = cropW / (s * zoom)
+    const rectH = cropH / (s * zoom)
+    return {
+        x: imgW / 2 - rectW / 2 - crop.x / (s * zoom),
+        y: imgH / 2 - rectH / 2 - crop.y / (s * zoom),
+        width: rectW,
+        height: rectH,
+    }
 }
 
 export default function ImageCropperModal({
@@ -170,6 +237,11 @@ export default function ImageCropperModal({
     // ── Dimensiones naturales de la imagen ──
     const [imageNaturalSize, setImageNaturalSize] = useState({ width: 0, height: 0 })
     const zoomContainRef = useRef(1)
+    // Piso del zoom out (mínimo del slider). Depende de zoomContain; se
+    // actualiza cuando la imagen carga.
+    const zoomOutMinRef = useRef(Math.max(0.2, 0.35 * 0.4))
+    // Ref al contenedor del cropper (para medir su tamaño al exportar el rect).
+    const containerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         let cancel = false
@@ -198,12 +270,19 @@ export default function ImageCropperModal({
             const A = aspectRatio
             const ratio = Math.min((w * A) / h, h / (w * A))
             zoomContainRef.current = Math.max(0.1, ratio)
+            // Piso del zoom out: permite encoger la imagen hasta un 40% de
+            // "imagen completa" (mínimo absoluto 0.2) para crear márgenes.
+            zoomOutMinRef.current = Math.max(0.2, zoomContainRef.current * 0.4)
+            // Si el zoom actual quedó por debajo del nuevo piso (cambio de
+            // imagen), ajustarlo para que el slider no salga de rango.
+            setZoom(z => Math.max(z, zoomOutMinRef.current))
         }
         img.onerror = () => {
             if (cancel) return
             // Si falla la carga (e.g. CORS), usamos un valor razonable
             // que permite zoom out aunque no sea perfecto
             zoomContainRef.current = 0.35
+            zoomOutMinRef.current = Math.max(0.2, 0.35 * 0.4)
         }
         img.src = imageUrl
         return () => { cancel = true }
@@ -211,7 +290,7 @@ export default function ImageCropperModal({
 
     // Valor del slider derivado del zoom actual
     const sliderValue = useMemo(
-        () => zoomToSlider(zoom, zoomContainRef.current),
+        () => zoomToSlider(zoom, zoomOutMinRef.current),
         [zoom],
     )
 
@@ -238,14 +317,28 @@ export default function ImageCropperModal({
             const raw = Number(e.target.value)
             // Snap magnético: si está entre 48 y 52, salta al 50 exacto
             const snapped = raw >= 48 && raw <= 52 ? 50 : raw
-            const zc = zoomContainRef.current
-            const newZoom = sliderToZoom(snapped, zc)
+            const newZoom = sliderToZoom(snapped, zoomOutMinRef.current)
             setZoom(newZoom)
         },
         [],
     )
 
     const [errorRecorte, setErrorRecorte] = useState<string | null>(null)
+
+    /**
+     * Calcula el rectángulo de recorte REAL (píxeles naturales de la imagen) a
+     * partir de la geometría del contenedor y del crop/zoom actuales. Puede
+     * exceder los límites de la imagen (márgenes del zoom out). Devuelve null
+     * si no se puede medir el contenedor o la imagen aún no cargó.
+     */
+    const resolveCropRect = useCallback((): Area | null => {
+        const el = containerRef.current
+        const { width: imgW, height: imgH } = imageNaturalSize
+        if (!el || imgW <= 0 || imgH <= 0) return null
+        const r = el.getBoundingClientRect()
+        if (r.width <= 0 || r.height <= 0) return null
+        return computeCropRectPx(r.width, r.height, imgW, imgH, aspectRatio, crop, zoom)
+    }, [aspectRatio, crop, zoom, imageNaturalSize])
 
     const handleAccept = useCallback(async () => {
         if (procesando) return
@@ -284,23 +377,25 @@ export default function ImageCropperModal({
                 setErrorRecorte("La imagen no terminó de cargar. Intenta de nuevo o usa otra foto.")
                 return
             }
-            // Si llegamos aquí, area ya está disponible. Continuar con el recorte.
+            // Si llegamos aquí, la imagen ya cargó. Continuar con el recorte.
             setProcesando(true)
-            try {
-                const blob = await getCroppedImg(imageUrl, area, fondo === "negro" ? "#000000" : "#ffffff")
-                onCropComplete(blob)
-            } catch (e) {
-                console.error("Error al recortar imagen:", e)
-                setErrorRecorte("Error al procesar la imagen. Intenta con otra foto.")
-                setProcesando(false)
-            }
+        }
+
+        // ── Rect de recorte REAL en píxeles de la imagen, sin el clamp de
+        // react-easy-crop (que limitaba el área a la imagen y recortaba un eje).
+        // Puede exceder los límites de la imagen: así los márgenes del zoom out
+        // se exportan con el color de Fondo, como se ve en el preview.
+        // ──
+        const rect = resolveCropRect() ?? croppedAreaPixelsRef.current ?? croppedAreaPixels
+        if (!rect) {
+            setErrorRecorte("No se pudo calcular el recorte. Intenta de nuevo.")
+            setProcesando(false)
             return
         }
 
-        setProcesando(true)
         setErrorRecorte(null)
         try {
-            const blob = await getCroppedImg(imageUrl, croppedAreaPixels, fondo === "negro" ? "#000000" : "#ffffff")
+            const blob = await getCroppedImg(imageUrl, rect, fondo === "negro" ? "#000000" : "#ffffff")
             onCropComplete(blob)
         } catch (e) {
             console.error("Error al recortar imagen:", e)
@@ -314,26 +409,21 @@ export default function ImageCropperModal({
                 setProcesando(false)
             }
         }
-    }, [imageUrl, croppedAreaPixels, onCropComplete, onCancel, procesando])
+    }, [imageUrl, croppedAreaPixels, onCropComplete, procesando, resolveCropRect, fondo])
 
     // ── Texto contextual del zoom ──
     const zoomLabel = useMemo(() => {
         const zc = zoomContainRef.current
-        const esCuadrada = zc >= 0.99
-        if (esCuadrada) {
-            if (sliderValue >= 90) return "Vista ampliada"
-            return "Imagen cuadrada - ajusta el zoom"
-        }
-        if (sliderValue <= 5) return "Imagen completa dentro del marco"
-        if (sliderValue <= 15) return "Casi toda la imagen visible"
-        if (sliderValue >= 48 && sliderValue <= 52) return "Imagen ajustada al marco"
         if (sliderValue >= 90) return "Vista ampliada"
-        if (sliderValue < 48) return "Mostrando mas imagen"
+        if (sliderValue >= 48 && sliderValue <= 52) return "Imagen ajustada al marco"
+        if (Math.abs(zoom - zc) <= 0.005) return "Imagen completa dentro del marco"
+        if (sliderValue < 48) return "Mostrando más imagen"
         return "Acercando para detalle"
-    }, [sliderValue])
+    }, [sliderValue, zoom])
 
-    // ── Determinar si estamos en modo contain (< 50%) para ajustar mensaje ──
-    const esModoContain = sliderValue < 48 && zoomContainRef.current < 0.99
+    // ── Modo "imagen más pequeña que el marco": el zoom out superó el contain
+    // y el área vacía se rellena con el color de Fondo ──
+    const esModoContain = zoom < zoomContainRef.current - 0.005
 
     return (
         <div
@@ -394,11 +484,14 @@ export default function ImageCropperModal({
 
                 {/* ── Cropper ── */}
                 <div
+                    ref={containerRef}
                     style={{
                         position: "relative",
                         width: "100%",
                         height: 360,
-                        background: "var(--border-light)",
+                        // WYSIWYG: el área vacía del preview muestra el mismo
+                        // color de Fondo que se exportará al guardar.
+                        background: fondo === "negro" ? "#000000" : "#ffffff",
                     }}
                 >
                     <Cropper
@@ -406,7 +499,7 @@ export default function ImageCropperModal({
                         crop={crop}
                         zoom={zoom}
                         aspect={aspectRatio}
-                        minZoom={zoomContainRef.current}
+                        minZoom={zoomOutMinRef.current}
                         maxZoom={MAX_ZOOM}
                         onCropChange={onCropChange}
                         onZoomChange={onZoomChange}
@@ -492,7 +585,7 @@ export default function ImageCropperModal({
                     >
                         {esModoContain ? (
                             <>
-                                La imagen se ve completa dentro del marco
+                                Imagen más pequeña que el marco — el espacio se rellena con el Fondo
                             </>
                         ) : (
                             <>{zoomLabel}</>
