@@ -309,7 +309,7 @@ export const api = {
     eliminarLote: (id: string) => request<{ ok: boolean; producto: string; producto_desactivado: boolean }>(`/inventario/lote/${id}`, { method: "DELETE" }),
     // Variaciones (Fase 2): presentaciones con precio propio por producto
     getVariaciones: (producto: string) => request<Variacion[]>(`/inventario/variaciones/${encodeURIComponent(producto)}`),
-    crearVariacion: (producto: string, nombre: string, precio: number, foto?: string) => request<{ ok: boolean; variacion: Variacion }>("/inventario/variaciones", { method: "POST", body: JSON.stringify({ producto, nombre, precio, foto: foto ?? "" }) }),
+    crearVariacion: (producto: string, nombre: string, precio: number, foto?: string, stockInicial?: number, costo?: number) => request<{ ok: boolean; variacion: Variacion }>("/inventario/variaciones", { method: "POST", body: JSON.stringify({ producto, nombre, precio, foto: foto ?? "", stock_inicial: stockInicial, costo }) }),
     editarVariacion: (id: number, nombre: string, precio: number, foto?: string) => request<{ ok: boolean; variacion: Variacion }>(`/inventario/variaciones/${id}`, { method: "PATCH", body: JSON.stringify(foto !== undefined ? { nombre, precio, foto } : { nombre, precio }) }),
     eliminarVariacion: (id: number, confirmar = false) => request<{ ok: boolean; id: number } | { ok: boolean; requiere_confirmacion: boolean; unidades: number; lotes: number; mensaje: string }>(`/inventario/variaciones/${id}?confirmar=${confirmar}`, { method: "DELETE" }),
     // Sube (o reemplaza) la foto propia de una variación (Fase 5)

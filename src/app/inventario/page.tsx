@@ -448,19 +448,23 @@ function AltaMateriales({ inv, lista, disabled = false, onAgregar, onQuitar }: {
 }
 
 /**
- * Fila editable de una variación: nombre + precio propios, con botones
- * Guardar (persiste el cambio) y Eliminar.
+ * Fila editable de una variación: nombre + precio propios. Los cambios se
+ * registran y se persisten con el botón global "Guardar Cambios" (guardado
+ * unificado; ya no hay botón de guardado individual por fila).
  */
-function VariacionRow({ variacion, disabled, stockVisible = false, onGuardar, onEliminar, onCambiarFoto, onQuitarFoto }: {
+function VariacionRow({ variacion, disabled, stockVisible = false, onCambiar, onEliminar, onCambiarFoto, onQuitarFoto, onAjustarStock }: {
     variacion: Variacion
     disabled: boolean
     // Fase 6: muestra el stock propio de la variación (solo si el producto
-    // maneja stock por variación)
+    // maneja stock por variación) y permite ajustarlo desde aquí
     stockVisible?: boolean
-    onGuardar: (nombre: string, precio: number) => void
+    // Registra cambios pendientes de nombre/precio (se guardan con "Guardar Cambios")
+    onCambiar: (id: number, nombre: string, precio: number) => void
     onEliminar: () => void
     onCambiarFoto: (file: File) => void
     onQuitarFoto: () => void
+    // Abre el restock precargado con esta variación (crea/llena su lote)
+    onAjustarStock: (v: Variacion) => void
 }) {
     const [nombre, setNombre] = useState(variacion.nombre)
     const [precio, setPrecio] = useState(variacion.precio.toString())
@@ -473,6 +477,8 @@ function VariacionRow({ variacion, disabled, stockVisible = false, onGuardar, on
     }, [variacion])
 
     const tieneFoto = !!variacion.foto && variacion.foto !== "No hay foto"
+    // Cambios locales pendientes de persistir con "Guardar Cambios"
+    const pendiente = nombre !== variacion.nombre || Number(precio === "" ? 0 : precio) !== variacion.precio
 
     return (
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -524,7 +530,7 @@ function VariacionRow({ variacion, disabled, stockVisible = false, onGuardar, on
                 style={{ flex: 1, minWidth: 120 }}
                 value={nombre}
                 placeholder="Nombre"
-                onChange={e => setNombre(e.target.value)}
+                onChange={e => { setNombre(e.target.value); onCambiar(variacion.id, e.target.value, Number(precio === "" ? 0 : precio)) }}
             />
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>$</span>
@@ -534,26 +540,32 @@ function VariacionRow({ variacion, disabled, stockVisible = false, onGuardar, on
                     type="number" min="0" step="0.01"
                     value={precio}
                     placeholder="0.00"
-                    onChange={e => setPrecio(e.target.value)}
+                    onChange={e => { setPrecio(e.target.value); onCambiar(variacion.id, nombre, Number(e.target.value === "" ? 0 : e.target.value)) }}
                 />
             </div>
-            {stockVisible && (typeof variacion.stock === "number" ? (
-                variacion.stock > 0 ? (
-                    <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "#2e7d32", whiteSpace: "nowrap" }}>{variacion.stock} uds</span>
-                ) : (
-                    <span style={{ fontSize: "0.68rem", fontWeight: 800, color: "#ad4955ff", whiteSpace: "nowrap" }}>Agotado</span>
-                )
-            ) : (
-                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>0 uds</span>
-            ))}
-            <button
-                className="btn-primary"
-                disabled={disabled}
-                onClick={() => onGuardar(nombre.trim(), Number(precio === "" ? 0 : precio))}
-                title="Guardar cambios de esta variación"
-            >
-                <Icon name="Check" size={14} />
-            </button>
+            {stockVisible && (
+                <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onAjustarStock(variacion)}
+                    title="Agregar stock a esta variación (crea o llena su lote)"
+                    style={{
+                        display: "flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
+                        fontSize: "0.68rem", fontWeight: 800,
+                        borderRadius: 10, padding: "5px 10px",
+                        border: "1.5px dashed var(--border-color, #d0d5dd)",
+                        background: "var(--bg-card2)",
+                        color: (variacion.stock ?? 0) > 0 ? "#2e7d32" : "#ad4955ff",
+                        cursor: disabled ? "default" : "pointer",
+                        transition: "background 0.15s",
+                    }}
+                    onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = "var(--border-light)" }}
+                    onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = "var(--bg-card2)" }}
+                >
+                    <Icon name="Plus" size={12} />
+                    Ajustar stock {(variacion.stock ?? 0) > 0 ? `(${variacion.stock} uds)` : "(Agotado)"}
+                </button>
+            )}
             <button
                 onClick={onEliminar}
                 disabled={disabled}
@@ -562,6 +574,13 @@ function VariacionRow({ variacion, disabled, stockVisible = false, onGuardar, on
             >
                 <Icon name="Trash" size={16} />
             </button>
+            {/* Indicador de cambios pendientes (se guardan con "Guardar Cambios") */}
+            {pendiente && (
+                <span
+                    title="Cambios sin guardar en esta variación"
+                    style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary-mid)", flexShrink: 0 }}
+                />
+            )}
         </div>
     )
 }
@@ -647,6 +666,8 @@ export default function Inventario() {
     const [editVariaciones, setEditVariaciones] = useState<Variacion[]>([])
     const [nuevaVarNombre, setNuevaVarNombre] = useState("")
     const [nuevaVarPrecio, setNuevaVarPrecio] = useState("" as number | string)
+    // Stock inicial de la nueva variación en edición (crea su lote, como el ALTA)
+    const [nuevaVarStock, setNuevaVarStock] = useState("1")
     const [guardandoVar, setGuardandoVar] = useState(false)
     // Crop de la foto de una variación: al elegir archivo se abre el MISMO
     // cropper que usan las fotos de producto (con el ratio global 1:1 / 4:5).
@@ -708,6 +729,9 @@ export default function Inventario() {
     // Al volver (o al guardar), se restaura esa posición para que el usuario
     // regrese exactamente donde estaba, conservando su contexto visual.
     const scrollGridEditarRef = useRef<number | null>(null)
+    // Guardado unificado de variaciones: cambios pendientes (nombre/precio) que
+    // se persisten con el botón global "Guardar Cambios".
+    const pendientesVarRef = useRef<Record<number, { nombre: string; precio: number }>>({})
 
     // ── Explicaciones de cada KPI en lenguaje entendible ──
     const explicacionesKPI: Record<string, { descripcion: string; formula: string }> = {
@@ -1028,6 +1052,20 @@ export default function Inventario() {
             }
             await api.editarProducto(prodEditar, payload)
 
+            // ── Guardar variaciones pendientes (guardado unificado) ──
+            // Nombre/precio editados en las filas se persisten aquí, junto con
+            // el resto del producto (ya no hay guardado individual por fila).
+            const pendientes = pendientesVarRef.current
+            for (const v of editVariaciones) {
+                const pend = pendientes[v.id]
+                if (!pend) continue
+                const res = await api.editarVariacion(v.id, pend.nombre.trim(), pend.precio)
+                if (!res.ok) {
+                    throw new Error((res as { mensaje?: string }).mensaje ?? `No se pudo guardar la variación '${pend.nombre}'`)
+                }
+            }
+            pendientesVarRef.current = {}
+
             // ── Sincronizar fotos extras (índices 1+) ──
             // Eliminar fotos que ya no están en el array. La fila que representa
             // a la foto principal (posición 0) NUNCA se elimina por no tener id:
@@ -1098,6 +1136,106 @@ export default function Inventario() {
         finally { setGuardando(false) }
     }
 
+    // ── Guardado unificado de variaciones ──
+    // Registra cambios pendientes (nombre/precio) de una fila; se persisten
+    // todos juntos al presionar "Guardar Cambios".
+    function registrarCambioVariacion(id: number, nombre: string, precio: number) {
+        pendientesVarRef.current[id] = { nombre, precio }
+    }
+
+    // ── Ajustar stock de una variación ──
+    // Salta a la pestaña Restock con el producto y la variación precargados,
+    // para crear/llenar el lote de esa variación sin salir del flujo.
+    function ajustarStockVariacion(v: Variacion) {
+        const prod = inv.find(p => p.producto === prodEditar)
+        if (!prod) return
+        setTab("restock")
+        setRestockProdSeleccionado(prod)
+        setRestock(r => ({
+            ...r,
+            producto: prod.producto,
+            costo: Number(prod.costo_promedio ?? 0).toFixed(2),
+            precio_venta: Number(prod.precio_venta ?? 0).toFixed(2),
+            variacion: v.nombre,
+        }))
+    }
+
+    // ── Cargar producto en el formulario de edición ──
+    // Se usa desde la grilla de la pestaña Editar y al volver a ella con un
+    // producto abierto (refresca el stock de las variaciones tras un restock).
+    function cargarProductoEdicion(prod: Producto) {
+        // Si hay cambios de variación sin guardar y cambiamos de producto, advertir.
+        const pendientes = Object.keys(pendientesVarRef.current).length
+        if (pendientes > 0 && prodEditar && prod.producto !== prodEditar &&
+            !confirm(`Tienes ${pendientes} variación(es) con cambios sin guardar. Se descartarán al cambiar de producto.`)) {
+            return
+        }
+        pendientesVarRef.current = {}
+        // Guardar la posición de scroll Y antes de abrir el formulario,
+        // para restaurarla al volver o guardar.
+        scrollGridEditarRef.current = window.scrollY
+        setProdEditar(prod.producto)
+        setEditProdNombre(prod.producto)
+        setLoteEditandoId(null)
+        setEditFotos([]) // reset al cambiar de producto
+        setEditProdVal({
+            descripcion: prod.descripcion ?? "",
+            estado: prod.estado ?? "Activo",
+            imagen: prod.imagen ?? "No hay foto",
+            categoria: prod.categoria ?? ["General"],
+            codigo_interno: prod.codigo_interno ?? "",
+            codigo_barras: prod.codigo_barras ?? "",
+            ubicacion: prod.ubicacion ?? "",
+            visible_en_catalogo: prod.visible_en_catalogo ?? true,
+            sufijo_precio: prod.sufijo_precio ?? "",
+            fraccionable: prod.fraccionable ?? false,
+            tipo_producto: prod.tipo_producto ?? "stock",
+            costo_servicio: prod.costo_servicio ?? "",
+            precio_servicio: prod.precio_servicio ?? "",
+            stock_por_variacion: prod.stock_por_variacion ?? false,
+        })
+        // Cargar las variaciones del producto (nombre + precio propio)
+        setEditVariaciones(prod.variaciones ?? [])
+        setNuevaVarNombre(""); setNuevaVarPrecio(""); setNuevaVarStock("1")
+        // Cargar los materiales de la receta (si es compuesto)
+        setEditRecetas(prod.recetas ?? [])
+        setMatBuscador(""); setMatSeleccionado(""); setMatCantidad(""); setMatVariacionSel(null)
+        // Cargar todas las fotos del producto (principal + extras) en editFotos.
+        // La principal vive en productos.imagen y (plan Plus) también en
+        // producto_imagenes con orden 1: se deduplican por URL y se prefiere
+        // la versión con id (la fila de la galería) para que el reordenamiento
+        // la trate como una foto normal y no la pise con una URL vieja.
+        const fotos: FotoGaleria[] = []
+        api.getImagenesProducto(prod.producto)
+            .then(extras => {
+                const tienePrincipal = !!(prod.imagen && prod.imagen !== "No hay foto")
+                const filaPrincipal = tienePrincipal
+                    ? extras.find(e => e.url === prod.imagen)
+                    : undefined
+                if (tienePrincipal) {
+                    if (filaPrincipal) {
+                        fotos.push({ url: prod.imagen, id: filaPrincipal.id, orden: 1 })
+                    } else {
+                        fotos.push({ url: prod.imagen, orden: 1 })
+                    }
+                }
+                for (const e of extras) {
+                    if (tienePrincipal && e.url === prod.imagen) continue // ya agregada como principal
+                    fotos.push({ url: e.url, id: e.id, orden: e.orden })
+                }
+                // Ordenar según el orden del backend (la principal primero)
+                fotos.sort((a, b) => (a.orden ?? 99) - (b.orden ?? 99))
+                setEditFotos(fotos)
+            })
+            .catch(() => {
+                if (prod.imagen && prod.imagen !== "No hay foto") {
+                    setEditFotos([{ url: prod.imagen, orden: 1 }])
+                } else {
+                    setEditFotos([])
+                }
+            })
+    }
+
     // ── CRUD de variaciones (Fase 2) ──
     // Cada variación es una presentación con su PROPIO precio para el mismo
     // producto (ej. hamburguesa Sencilla/Doble, remera S/M/L).
@@ -1107,29 +1245,20 @@ export default function Inventario() {
         if (!nombre) { mostrarMsg(false, "Escribe un nombre para la variación"); return }
         setGuardandoVar(true)
         try {
-            const res = await api.crearVariacion(prodEditar, nombre, Number(nuevaVarPrecio === "" ? 0 : nuevaVarPrecio))
+            const prodCosto = inv.find(p => p.producto === prodEditar)?.costo_promedio
+            const res = await api.crearVariacion(
+                prodEditar, nombre,
+                Number(nuevaVarPrecio === "" ? 0 : nuevaVarPrecio),
+                undefined,
+                nuevaVarStock === "" ? undefined : Number(nuevaVarStock),
+                Number(prodCosto ?? 0)
+            )
             if (res.ok) {
                 setEditVariaciones(prev => [...prev, res.variacion])
-                setNuevaVarNombre(""); setNuevaVarPrecio("")
-                mostrarMsg(true, `Variación '${res.variacion.nombre}' agregada`)
+                setNuevaVarNombre(""); setNuevaVarPrecio(""); setNuevaVarStock("1")
+                mostrarMsg(true, `Variación '${res.variacion.nombre}' agregada${(res.variacion.stock ?? 0) > 0 ? ` con ${res.variacion.stock} uds de stock` : ""}`)
             } else {
                 mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al agregar la variación")
-            }
-        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
-        finally { setGuardandoVar(false) }
-    }
-
-    async function editarVariacionItem(id: number, nombre: string, precio: number) {
-        if (guardandoVar) return
-        if (!nombre.trim()) { mostrarMsg(false, "El nombre de la variación es obligatorio"); return }
-        setGuardandoVar(true)
-        try {
-            const res = await api.editarVariacion(id, nombre.trim(), precio)
-            if (res.ok) {
-                setEditVariaciones(prev => prev.map(v => v.id === id ? res.variacion : v))
-                mostrarMsg(true, "Variación actualizada")
-            } else {
-                mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al actualizar")
             }
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
         finally { setGuardandoVar(false) }
@@ -1504,7 +1633,16 @@ export default function Inventario() {
                 {/* Tabs */}
                 <div className="card" style={{ display: "flex", padding: 6, gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
                     {TABS.map(t => (
-                        <button key={t.id} onClick={() => setTab(t.id)} style={{
+                        <button key={t.id} onClick={() => {
+                            // Al volver a la pestaña Editar con un producto abierto,
+                            // recargarlo (refresca el stock de las variaciones tras un
+                            // "Ajustar stock") — solo si no hay cambios sin guardar.
+                            if (t.id === "editar" && prodEditar && Object.keys(pendientesVarRef.current).length === 0) {
+                                const fresco = inv.find(p => p.producto === prodEditar)
+                                if (fresco) cargarProductoEdicion(fresco)
+                            }
+                            setTab(t.id)
+                        }} style={{
                             display: "flex", alignItems: "center", justifyContent: "center",
                             flex: 1, minWidth: 80, padding: "8px 12px", gap: 8, borderRadius: 10, border: "none",
                             background: tab === t.id ? "var(--gradient-1)" : "transparent",
@@ -2212,71 +2350,7 @@ export default function Inventario() {
                                             key={prod.producto}
                                             className="card fade-up"
                                             style={{ padding: 12, cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s" }}
-                                            onClick={() => {
-                                                // Guardar la posición de scroll Y antes de abrir el formulario,
-                                                // para restaurarla al volver o guardar.
-                                                scrollGridEditarRef.current = window.scrollY
-                                                setProdEditar(prod.producto)
-                                                setEditProdNombre(prod.producto)
-                                                setLoteEditandoId(null)
-                                                setEditFotos([]) // reset al cambiar de producto
-                                                setEditProdVal({
-                                                    descripcion: prod.descripcion ?? "",
-                                                    estado: prod.estado ?? "Activo",
-                                                    imagen: prod.imagen ?? "No hay foto",
-                                                    categoria: prod.categoria ?? ["General"],
-                                                    codigo_interno: prod.codigo_interno ?? "",
-                                                    codigo_barras: prod.codigo_barras ?? "",
-                                                    ubicacion: prod.ubicacion ?? "",
-                                                    visible_en_catalogo: prod.visible_en_catalogo ?? true,
-                                                    sufijo_precio: prod.sufijo_precio ?? "",
-                                                    fraccionable: prod.fraccionable ?? false,
-                                                    tipo_producto: prod.tipo_producto ?? "stock",
-                                                    costo_servicio: prod.costo_servicio ?? "",
-                                                    precio_servicio: prod.precio_servicio ?? "",
-                                                    stock_por_variacion: prod.stock_por_variacion ?? false,
-                                                })
-                                                // Cargar las variaciones del producto (nombre + precio propio)
-                                                setEditVariaciones(prod.variaciones ?? [])
-                                                setNuevaVarNombre(""); setNuevaVarPrecio("")
-                                                // Cargar los materiales de la receta (si es compuesto)
-                                                setEditRecetas(prod.recetas ?? [])
-                                                setMatBuscador(""); setMatSeleccionado(""); setMatCantidad(""); setMatVariacionSel(null)
-                                                // Cargar todas las fotos del producto (principal + extras) en editFotos.
-                                                // La principal vive en productos.imagen y (plan Plus) también en
-                                                // producto_imagenes con orden 1: se deduplican por URL y se prefiere
-                                                // la versión con id (la fila de la galería) para que el reordenamiento
-                                                // la trate como una foto normal y no la pise con una URL vieja.
-                                                const fotos: FotoGaleria[] = []
-                                                api.getImagenesProducto(prod.producto)
-                                                    .then(extras => {
-                                                        const tienePrincipal = !!(prod.imagen && prod.imagen !== "No hay foto")
-                                                        const filaPrincipal = tienePrincipal
-                                                            ? extras.find(e => e.url === prod.imagen)
-                                                            : undefined
-                                                        if (tienePrincipal) {
-                                                            if (filaPrincipal) {
-                                                                fotos.push({ url: prod.imagen, id: filaPrincipal.id, orden: 1 })
-                                                            } else {
-                                                                fotos.push({ url: prod.imagen, orden: 1 })
-                                                            }
-                                                        }
-                                                        for (const e of extras) {
-                                                            if (tienePrincipal && e.url === prod.imagen) continue // ya agregada como principal
-                                                            fotos.push({ url: e.url, id: e.id, orden: e.orden })
-                                                        }
-                                                        // Ordenar según el orden del backend (la principal primero)
-                                                        fotos.sort((a, b) => (a.orden ?? 99) - (b.orden ?? 99))
-                                                        setEditFotos(fotos)
-                                                    })
-                                                    .catch(() => {
-                                                        if (prod.imagen && prod.imagen !== "No hay foto") {
-                                                            setEditFotos([{ url: prod.imagen, orden: 1 }])
-                                                        } else {
-                                                            setEditFotos([])
-                                                        }
-                                                    })
-                                            }}
+                                            onClick={() => cargarProductoEdicion(prod)}
                                             onMouseEnter={e => {
                                                 e.currentTarget.style.transform = "translateY(-3px)"
                                                 e.currentTarget.style.boxShadow = "0 8px 30px var(--primary-glow)"
@@ -2479,12 +2553,13 @@ export default function Inventario() {
                                         <VariacionRow
                                             key={v.id}
                                             variacion={v}
-                                            disabled={guardandoVar}
+                                            disabled={guardando || guardandoVar}
                                             stockVisible={editProdVal.stock_por_variacion && editProdVal.tipo_producto === "stock"}
-                                            onGuardar={(nombre, precio) => editarVariacionItem(v.id, nombre, precio)}
+                                            onCambiar={registrarCambioVariacion}
                                             onEliminar={() => eliminarVariacionItem(v.id)}
                                             onCambiarFoto={(file) => solicitarFotoVariacion(v, file)}
                                             onQuitarFoto={() => quitarFotoVariacionItem(v)}
+                                            onAjustarStock={ajustarStockVariacion}
                                         />
                                     ))}
                                 </div>
@@ -2502,11 +2577,26 @@ export default function Inventario() {
                                     <input
                                         className="input-primary"
                                         placeholder="Ej: Doble, S, Premium"
-                                        value={nuevaVarNombre}
-                                        onChange={e => setNuevaVarNombre(e.target.value)}
+                                        value={nuevaVarNombre}                                        onChange={e => setNuevaVarNombre(e.target.value)}
                                         onKeyDown={e => { if (e.key === "Enter") agregarVariacion() }}
                                     />
                                 </div>
+
+                                {editProdVal.tipo_producto === "stock" && (
+                                    <div style={{ width: 100, display: "flex", flexDirection: "column", gap: 4 }}>
+                                        <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Cant. inicial</label>
+                                        <input
+                                            className="input-primary"
+                                            type="number" min="0" step="0.01"
+                                            placeholder="1"
+                                            title="Stock inicial de la variación: crea su lote (0 = agotada desde el inicio)"
+                                            value={nuevaVarStock}
+                                            onChange={e => setNuevaVarStock(e.target.value)}
+                                            onKeyDown={e => { if (e.key === "Enter") agregarVariacion() }}
+                                        />
+                                    </div>
+                                )}
+
                                 <div style={{ width: 110, display: "flex", flexDirection: "column", gap: 4 }}>
                                     <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>Precio $</label>
                                     <input
@@ -2522,6 +2612,11 @@ export default function Inventario() {
                                     {guardandoVar ? "Guardando..." : "Agregar variación"}
                                 </button>
                             </div>
+                            {editProdVal.tipo_producto === "stock" && (
+                                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
+                                    La cantidad inicial crea el lote propio de la variación; pon <strong>0</strong> si la quieres agotada desde el inicio.
+                                </p>
+                            )}
                         </div>
 
                         {/* ── Card 1.6: Materiales de la receta (solo compuestos) ── */}
