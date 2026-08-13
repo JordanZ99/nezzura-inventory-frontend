@@ -8,6 +8,7 @@ import { api, Producto, Lote, NuevoProducto, Restock, Categoria, Variacion, Mate
 import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
 import GaleriaProducto, { type FotoGaleria } from "@/components/ui/GaleriaProducto"
+import ImageCropperModal from "@/components/ui/ImageCropperModal"
 // comprimirImagen se usa para comprimir las imágenes antes de subirlas
 import { comprimirImagen } from "@/lib/image-utils"
 import ScrollableTable from "@/components/ui/ScrollableTable"
@@ -647,6 +648,9 @@ export default function Inventario() {
     const [nuevaVarNombre, setNuevaVarNombre] = useState("")
     const [nuevaVarPrecio, setNuevaVarPrecio] = useState("" as number | string)
     const [guardandoVar, setGuardandoVar] = useState(false)
+    // Crop de la foto de una variación: al elegir archivo se abre el MISMO
+    // cropper que usan las fotos de producto (con el ratio global 1:1 / 4:5).
+    const [cropVariacion, setCropVariacion] = useState<{ variacionId: number; url: string; file: File } | null>(null)
 
     // ── Materiales de la receta del compuesto en edición (Fases 3 y 4) ──
     const [editRecetas, setEditRecetas] = useState<MaterialReceta[]>([])
@@ -1164,8 +1168,42 @@ export default function Inventario() {
 
     // ── Foto por variación (Fase 5) ──
     // La foto de la variación se muestra en el catálogo al elegir esa
-    // presentación (ej. la foto de la Hamburguesa Doble). Se sube comprimida
-    // a Cloudinary (mismo flujo que las fotos de producto).
+    // presentación (ej. la foto de la Hamburguesa Doble).
+    //
+    // Al elegir un archivo se abre el MISMO cropper que usan las fotos de
+    // producto (ImageCropperModal, con el ratio global 1:1 / 4:5) y recién
+    // después se comprime y sube a Cloudinary.
+    function solicitarFotoVariacion(v: Variacion, file: File) {
+        if (!prodEditar || guardandoVar) return
+        // Si quedaba un crop abierto, liberar su URL temporal
+        if (cropVariacion) URL.revokeObjectURL(cropVariacion.url)
+        const url = URL.createObjectURL(file)
+        setCropVariacion({ variacionId: v.id, url, file })
+    }
+
+    function cancelarCropVariacion() {
+        if (cropVariacion) URL.revokeObjectURL(cropVariacion.url)
+        setCropVariacion(null)
+    }
+
+    /** El usuario aceptó el recorte: comprimir y subir la foto de la variación */
+    async function completarFotoVariacion(blob: Blob) {
+        if (!cropVariacion) return
+        const { variacionId, url, file } = cropVariacion
+        URL.revokeObjectURL(url)
+        setCropVariacion(null)
+
+        const nombreBase = file.name.replace(/\.[^.]+$/, "")
+        const croppedFile = new File([blob], `${nombreBase}_cropped.jpg`, {
+            type: "image/jpeg",
+            lastModified: Date.now(),
+        })
+        const v = editVariaciones.find(x => x.id === variacionId)
+        if (!v) return
+        await subirFotoVariacionItem(v, croppedFile)
+    }
+
+    /** Sube (comprime + Cloudinary) la foto YA recortada de una variación */
     async function subirFotoVariacionItem(v: Variacion, file: File) {
         if (!prodEditar || guardandoVar) return
         setGuardandoVar(true)
@@ -2445,7 +2483,7 @@ export default function Inventario() {
                                             stockVisible={editProdVal.stock_por_variacion && editProdVal.tipo_producto === "stock"}
                                             onGuardar={(nombre, precio) => editarVariacionItem(v.id, nombre, precio)}
                                             onEliminar={() => eliminarVariacionItem(v.id)}
-                                            onCambiarFoto={(file) => subirFotoVariacionItem(v, file)}
+                                            onCambiarFoto={(file) => solicitarFotoVariacion(v, file)}
                                             onQuitarFoto={() => quitarFotoVariacionItem(v)}
                                         />
                                     ))}
@@ -3056,6 +3094,16 @@ export default function Inventario() {
                 })()}
 
                 <div style={{ height: 20 }} />
+
+                {/* Cropper de la foto de una variación (mismo ratio que las fotos del producto) */}
+                {cropVariacion && (
+                    <ImageCropperModal
+                        imageUrl={cropVariacion.url}
+                        aspectRatio={relacionImagen === "4 / 5" ? 4 / 5 : 1}
+                        onCropComplete={completarFotoVariacion}
+                        onCancel={cancelarCropVariacion}
+                    />
+                )}
             </div>
         </div>
     )
