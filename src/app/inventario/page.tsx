@@ -2198,6 +2198,7 @@ export default function Inventario() {
 
                 {/* ── Restock: formulario para el producto seleccionado ── */}
                 {tab === "restock" && restockProdSeleccionado && (
+                    <>
                     <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                             <button
@@ -2279,6 +2280,88 @@ export default function Inventario() {
                             {guardando ? "Procesando..." : "Añadir Stock"}
                         </button>
                     </div>
+
+                    {/* ── Lotes del producto (para saber a cuáles les falta) ── */}
+                    <div className="card fade-up" style={{ padding: 20, maxWidth: 480, display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
+                        {(() => {
+                            const lotesProducto = lotes.filter(l => l.producto === restockProdSeleccionado.producto)
+                            // Stock activo por variación (para marcar las que quedan sin inventario)
+                            const stockPorVar: Record<string, number> = {}
+                            lotesProducto.filter(l => l.estado === "Activo").forEach(l => {
+                                if (l.variacion) stockPorVar[l.variacion] = (stockPorVar[l.variacion] || 0) + l.stock_lote
+                            })
+                            const faltanStock = (restockProdSeleccionado.variaciones || [])
+                                .filter(v => !((stockPorVar[v.nombre] || 0) > 0))
+                                .map(v => v.nombre)
+                            return (
+                                <>
+                                    <h2 style={{ margin: "0 0 2px", fontSize: "1rem", fontWeight: 800, color: "var(--text-main)", display: "flex", alignItems: "center", gap: 8 }}>
+                                        <Icon name="Package" size={20} color="var(--primary-mid)" />
+                                        Lotes de {restockProdSeleccionado.producto}
+                                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginLeft: "auto" }}>
+                                            {lotesProducto.length} lote(s)
+                                        </span>
+                                    </h2>
+                                    {lotesProducto.length === 0 ? (
+                                        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>
+                                            No hay lotes registrados para este producto todavía.
+                                        </p>
+                                    ) : (
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                            {lotesProducto.map(lote => {
+                                                const sinStock = lote.stock_lote <= 0
+                                                const inactivo = lote.estado !== "Activo"
+                                                return (
+                                                    <div key={lote.id_lote} style={{
+                                                        display: "flex", alignItems: "center", gap: 10,
+                                                        padding: "10px 12px", borderRadius: 12,
+                                                        background: "var(--bg-card2)",
+                                                        opacity: inactivo ? 0.55 : 1,
+                                                    }}>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                                                <span style={{ fontWeight: 800, fontSize: "0.8rem", color: "var(--text-main)" }}>
+                                                                    {lote.variacion || "Base"}
+                                                                </span>
+                                                                {inactivo && (
+                                                                    <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "var(--text-muted)", background: "var(--bg-card)", borderRadius: 6, padding: "2px 6px" }}>
+                                                                        Inactivo
+                                                                    </span>
+                                                                )}
+                                                                {lote.etiqueta && (
+                                                                    <span style={{ fontSize: "0.66rem", fontWeight: 600, color: "var(--text-muted)" }}>{lote.etiqueta}</span>
+                                                                )}
+                                                            </div>
+                                                            <div style={{ fontSize: "0.66rem", color: "var(--text-muted)", marginTop: 2 }}>
+                                                                #{lote.id_lote} · ${lote.precio_venta.toFixed(2)}
+                                                            </div>
+                                                        </div>
+                                                        <span style={{
+                                                            fontSize: "0.75rem", fontWeight: 800, whiteSpace: "nowrap",
+                                                            color: sinStock ? "#b71c1c" : "#2e7d32",
+                                                            background: sinStock ? "#ffeef0" : "#e8f5e9",
+                                                            borderRadius: 10, padding: "4px 10px",
+                                                        }}>
+                                                            {sinStock ? "Sin stock" : `${lote.stock_lote} uds`}
+                                                        </span>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+                                    {faltanStock.length > 0 && (
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 12px", borderRadius: 10, background: "rgba(239,68,68,0.08)" }}>
+                                            <Icon name="TriangleAlert" size={14} color="#b71c1c" />
+                                            <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#b71c1c" }}>
+                                                Falta stock en: {faltanStock.join(", ")}
+                                            </span>
+                                        </div>
+                                    )}
+                                </>
+                            )
+                        })()}
+                    </div>
+                    </>
                 )}
 
                 {/* Editar producto — buscador */}
