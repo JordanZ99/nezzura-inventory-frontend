@@ -6,11 +6,9 @@
 
 import { useState, useEffect } from "react"
 import { api, Gasto } from "@/lib/api"
-import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
+import PageHeader from "@/components/ui/PageHeader"
 import GestionGastosProgramados from "@/components/GestionGastosProgramados"
-
-const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
 type Tab = "movimientos" | "programados"
 
@@ -253,26 +251,19 @@ export default function Gastos() {
 
     return (
         <div style={{ minHeight: "100vh" }}>
-            {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-4)", padding: "32px 24px 90px" }}>
-                <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
-                    <Antigravity
-                        count={400} magnetRadius={12} ringRadius={8}
-                        waveSpeed={0.5} waveAmplitude={1.2} particleSize={1.5}
-                        lerpSpeed={0.08} color="var(--ag-color-4)" autoAnimate={true}
-                        particleVariance={0.8} rotationSpeed={0.3} depthFactor={0.5}
-                        pulseSpeed={2} particleShape="capsule" fieldStrength={8}
-                    />
-                </div>
-                <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}>EGRESOS</p>
-                    <h1 className="hidden md:flex" style={{ color: "var(--primary-soft)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
-                        <div style={{ marginLeft: "-5px" }}>
-                            <Icon name="DollarSign" size={32} color="var(--primary-soft)" />
-                        </div>
-                        Gastos</h1>
-                </div>
-            </div>
+            {/* ── Hero ── */}
+            <PageHeader
+                gradiente="var(--gradient-4)"
+                agColor="var(--ag-color-4)"
+                subtitulo="EGRESOS"
+                subtituloStyle={{ color: "rgba(255,255,255,0.7)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: 1.2, marginBottom: 4 }}
+                titulo="Gastos"
+                icono="DollarSign"
+                iconoEncerrado
+                iconoColor="var(--primary-soft)"
+                tituloClase="hidden md:flex"
+                tituloStyle={{ color: "var(--primary-soft)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}
+            />
 
             <div style={{ padding: "0 16px", marginTop: -60, position: "relative", zIndex: 1 }}>
 
