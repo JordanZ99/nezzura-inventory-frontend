@@ -606,7 +606,6 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     producto={productoActivo}
                     config={config}
                     tema={tema}
-                    esMovil={esMovil}
                     onClose={cerrarProducto}
                 />
             )}
