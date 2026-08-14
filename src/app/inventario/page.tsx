@@ -10,8 +10,8 @@
 // Esta página solo compone los hooks y las secciones, sin lógica de negocio.
 
 import { useEffect } from "react"
-import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
+import PageHeader from "@/components/ui/PageHeader"
 import ImageCropperModal from "@/components/ui/ImageCropperModal"
 import { useTenant } from "@/contexts/TenantContext"
 import { useInventarioData } from "@/hooks/useInventarioData"
@@ -24,7 +24,6 @@ import FormRestock from "@/components/inventario/FormRestock"
 import GridEditar from "@/components/inventario/GridEditar"
 import FormEditar from "@/components/inventario/FormEditar"
 
-const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
 export default function Inventario() {
     const { tenant } = useTenant()
@@ -221,35 +220,18 @@ export default function Inventario() {
 
     return (
         <div style={{ minHeight: "100vh" }}>
-            {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-2)", padding: "32px 24px 90px" }}>
-                <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
-                    <Antigravity
-                        count={400}
-                        magnetRadius={12}
-                        ringRadius={8}
-                        waveSpeed={0.5}
-                        waveAmplitude={1.2}
-                        particleSize={1.5}
-                        lerpSpeed={0.08}
-                        color="var(--ag-color-2)"
-                        autoAnimate={true}
-                        particleVariance={0.8}
-                        rotationSpeed={0.3}
-                        depthFactor={0.5}
-                        pulseSpeed={2}
-                        particleShape="capsule"
-                        fieldStrength={8}
-                    />
-                </div>
-                <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p style={{ color: "var(--primary-darkGray)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>GESTIÓN</p>
-                    <h1 style={{ color: "var(--primary-dark)", fontSize: "1.7rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "12px" }}>
-                        <Icon name="Package" size={32} color="var(--primary-dark)" />
-                        <span>Inventario</span>
-                    </h1>
-                </div>
-            </div>
+            {/* ── Hero ── */}
+            <PageHeader
+                gradiente="var(--gradient-2)"
+                agColor="var(--ag-color-2)"
+                subtitulo="GESTIÓN"
+                subtituloStyle={{ color: "var(--primary-darkGray)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}
+                titulo="Inventario"
+                icono="Package"
+                iconoColor="var(--primary-dark)"
+                tituloClase=""
+                tituloStyle={{ color: "var(--primary-dark)", fontSize: "1.7rem", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: "12px" }}
+            />
 
             <div style={{ padding: "0 24px", marginTop: -60, overflowX: "hidden" }}>
                 {/* Stat cards — clickeables para ver explicación */}

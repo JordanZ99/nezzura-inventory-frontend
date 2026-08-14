@@ -5,12 +5,11 @@
 
 import { useState, useEffect } from "react"
 import { api, Producto, ItemCarrito, Lote } from "@/lib/api"
-import dynamic from "next/dynamic"
 import Icon from "@/components/ui/Icon"
+import PageHeader from "@/components/ui/PageHeader"
 import { supabase } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
 
-const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
 
 export default function PuntoDeVenta() {
     const [productos, setProductos] = useState<Producto[]>([])
@@ -444,47 +443,32 @@ export default function PuntoDeVenta() {
     return (
         <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
 
-            {/* ── Hero con Antigravity ── */}
-            <div style={{ position: "relative", overflow: "hidden", background: "var(--gradient-1)", padding: "32px 24px 80px" }}>
-                <div style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "auto" }}>
-                    <Antigravity
-                        count={400}
-                        magnetRadius={12}
-                        ringRadius={8}
-                        waveSpeed={0.5}
-                        waveAmplitude={1.2}
-                        particleSize={1.5}
-                        lerpSpeed={0.08}
-                        color="var(--ag-color-1)"
-                        autoAnimate={true}
-                        particleVariance={0.8}
-                        rotationSpeed={0.3}
-                        depthFactor={0.5}
-                        pulseSpeed={2}
-                        particleShape="capsule"
-                        fieldStrength={8}
-                    />
-                </div>
-                <div style={{ position: "relative", zIndex: 1, pointerEvents: "none" }}>
-                    <p className="hidden md:block" style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
-                        Te damos la bienvenida
-                    </p>
-
-                    <h1 className="hidden md:flex" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}>
-                        <Icon name="ShoppingCart" size={32} color="#fff" />
-                        Punto de Venta
-                    </h1>
-
-                    <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>
-                        <img src={logoSrc} alt={empresa}
-                            style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", background: "white", padding: 3 }} />
-                        Punto de Venta
-                    </h1>
-                    <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.875rem", margin: 0 }}>
-                        {productos.length} productos disponibles hoy
-                    </p>
-                </div>
-            </div>
+            {/* ── Hero ── */}
+            <PageHeader
+                gradiente="var(--gradient-1)"
+                agColor="var(--ag-color-1)"
+                paddingBottom="80px"
+                subtitulo="Te damos la bienvenida"
+                subtituloClase="hidden md:block"
+                subtituloStyle={{ color: "rgba(255,255,255,0.7)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}
+                titulo="Punto de Venta"
+                icono="ShoppingCart"
+                iconoColor="#fff"
+                tituloClase="hidden md:flex"
+                tituloStyle={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}
+                extra={(
+                    <>
+                        <h1 className="flex md:hidden" style={{ color: "#fff", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 12 }}>
+                            <img src={logoSrc} alt={empresa}
+                                style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", background: "white", padding: 3 }} />
+                            Punto de Venta
+                        </h1>
+                        <p style={{ color: "rgba(255,255,255,0.75)", fontSize: "0.875rem", margin: 0 }}>
+                            {productos.length} productos disponibles hoy
+                        </p>
+                    </>
+                )}
+            />
 
             {/* ── Contenido sobre el hero ── */}
             <div style={{ padding: "0 16px", marginTop: -16 }}>
