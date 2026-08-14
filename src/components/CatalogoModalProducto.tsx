@@ -7,6 +7,14 @@
 // - Contador "1 / N" sobre la foto
 // - Precio, categorías, stock y descripción completa
 // Respeta las opciones del catálogo: mostrar_precios, mostrar_stock, mostrar_categorias.
+//
+// Layout responsive (estilo Instagram):
+//   - Móvil (< 900px): columna vertical — header, foto con aspectRatio, dots,
+//     descargar y contenido apilados (el card hace scroll).
+//   - Desktop (>= 900px): split horizontal — imagen a la izquierda (rellena el
+//     alto disponible, objeto contenido sobre fondo negro) y panel de contenido
+//     a la derecha (header arriba + bloque scrolleable). Así la foto acompaña
+//     la lectura de precio/variaciones/descripción sin desperdiciar el ancho.
 // ==============================================================================
 
 import { useEffect, useRef, useState } from "react"
@@ -60,6 +68,7 @@ interface Props {
     producto: ProductoPublico
     config: ConfigCatalogo
     tema: PaletaTema
+    esMovil: boolean
     onClose: () => void
 }
 
@@ -105,7 +114,9 @@ async function descargarImagen(url: string, nombre: string) {
     }
 }
 
-export default function CatalogoModalProducto({ producto, config, tema, onClose }: Props) {
+export default function CatalogoModalProducto({ producto, config, tema, esMovil, onClose }: Props) {
+    // Layout: móvil = vertical (columna única); desktop = split horizontal
+    const vertical = esMovil
     const variaciones = producto.variaciones || []
     // Fase 6: si el producto maneja stock por variación, las agotadas no se
     // pueden elegir (se muestran deshabilitadas con su badge "Agotado").
@@ -215,6 +226,357 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
         transition: "background 0.15s",
     }
 
+    // Contenedor del carrusel: en móvil el aspectRatio define el alto (igual que
+    // antes); en desktop rellena el alto disponible de la columna izquierda.
+    const estiloCarrusel: React.CSSProperties = vertical
+        ? {
+            position: "relative",
+            aspectRatio: config.relacion_imagen === "4:5" ? "4 / 5" : "1",
+            background: "#000",
+            overflow: "hidden",
+            touchAction: "pan-y",
+        }
+        : {
+            position: "relative",
+            flex: 1,
+            minHeight: 0,
+            background: "#000",
+            overflow: "hidden",
+            touchAction: "pan-y",
+        }
+
+    // ── Bloques reutilizables del modal ──
+
+    const renderHeader = () => (
+        <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "12px 16px",
+            borderBottom: `1px solid ${tema.border}`,
+            flexShrink: 0,
+        }}>
+            {config.logo ? (
+                <img
+                    src={optimizarImagenCloudinary(resolverImagen(config.logo), 100)}
+                    alt=""
+                    style={{
+                        width: 34, height: 34, borderRadius: "50%",
+                        objectFit: "cover",
+                        border: `1px solid ${tema.border}`,
+                        background: "#fff",
+                    }}
+                />
+            ) : (
+                <div style={{
+                    width: 34, height: 34, borderRadius: "50%",
+                    background: tema.gradient,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                }}>
+                    <Icon name="Store" size={16} color="#fff" />
+                </div>
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                    margin: 0, fontWeight: 800, fontSize: "0.85rem",
+                    color: tema.text,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                    {config.titulo || "Catálogo"}
+                </p>
+            </div>
+            <button
+                onClick={onClose}
+                aria-label="Cerrar"
+                style={{
+                    width: 32, height: 32, borderRadius: "50%",
+                    border: "none", background: tema.bg,
+                    color: tema.textMuted, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "background 0.15s", flexShrink: 0,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = tema.border }}
+                onMouseLeave={e => { e.currentTarget.style.background = tema.bg }}
+            >
+                <Icon name="X" size={18} />
+            </button>
+        </div>
+    )
+
+    const renderCarrusel = () => (
+        <div
+            className="cata-modal-carrusel"
+            style={estiloCarrusel}
+            onTouchStart={e => { touchX.current = e.touches[0].clientX }}
+            onTouchEnd={e => {
+                if (touchX.current === null) return
+                const dx = e.changedTouches[0].clientX - touchX.current
+                touchX.current = null
+                if (Math.abs(dx) > 40) (dx < 0 ? siguiente() : anterior())
+            }}
+        >
+            {fotoActual ? (
+                <div style={{ position: "absolute", inset: 0 }}>
+                    {/* Primer stage: w_600 (la misma del grid, en caché) → instantáneo.
+                        Se reemplaza al instante (sin fundido) cuando la w_1200 está lista. */}
+                    <img
+                        src={fotoRapida}
+                        alt=""
+                        aria-hidden
+                        style={{
+                            position: "absolute", inset: 0,
+                            width: "100%", height: "100%",
+                            objectFit: "contain",
+                            display: imagenLista ? "none" : "block",
+                        }}
+                    />
+                    {/* Segundo stage: w_1200 de calidad. Se mantiene oculta (display none) para
+                        descargar en segundo plano; al terminar, reemplaza a la w_600 al
+                        instante. Si falla, la w_600 sigue visible (no se revela una imagen rota). */}
+                    <img
+                        src={fotoActualOptimizada}
+                        alt={producto.producto}
+                        onLoad={() => setImagenLista(true)}
+                        style={{
+                            position: "absolute", inset: 0,
+                            width: "100%", height: "100%",
+                            objectFit: "contain",
+                            display: imagenLista ? "block" : "none",
+                        }}
+                    />
+                </div>
+            ) : (
+                <div style={{
+                    width: "100%", height: "100%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: tema.bg,
+                }}>
+                    <Icon name="Package" size={56} color={tema.textMuted} />
+                </div>
+            )}
+
+            {/* Flechas (solo si hay más de una foto) */}
+            {galeria.length > 1 && (
+                <>
+                    {indiceSeguro > 0 && (
+                        <button
+                            onClick={e => { e.stopPropagation(); anterior() }}
+                            aria-label="Foto anterior"
+                            style={{ ...estiloFlecha, left: 10 }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
+                        >
+                            <Icon name="ChevronLeft" size={20} />
+                        </button>
+                    )}
+                    {indiceSeguro < galeria.length - 1 && (
+                        <button
+                            onClick={e => { e.stopPropagation(); siguiente() }}
+                            aria-label="Foto siguiente"
+                            style={{ ...estiloFlecha, right: 10 }}
+                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
+                        >
+                            <Icon name="ChevronRight" size={20} />
+                        </button>
+                    )}
+                </>
+            )}
+
+            {/* Contador */}
+            {galeria.length > 1 && (
+                <span style={{
+                    position: "absolute", top: 10, right: 10,
+                    background: "rgba(0,0,0,0.5)", color: "#fff",
+                    fontSize: "0.7rem", fontWeight: 700,
+                    padding: "3px 10px", borderRadius: 12,
+                }}>
+                    {indiceSeguro + 1} / {galeria.length}
+                </span>
+            )}
+
+            {/* Descargar foto actual (solo si el tenant lo permite) */}
+            {config.permitir_descarga && fotoActual && (
+                <button
+                    onClick={e => { e.stopPropagation(); descargarImagen(fotoActual, nombreBase) }}
+                    aria-label="Descargar foto"
+                    title="Descargar foto"
+                    style={{
+                        position: "absolute", top: 10, left: 10,
+                        width: 34, height: 34, borderRadius: "50%",
+                        border: "none", background: "rgba(0,0,0,0.45)",
+                        color: "#fff", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "background 0.15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
+                >
+                    <Icon name="Download" size={18} />
+                </button>
+            )}
+        </div>
+    )
+
+    const renderDots = () => {
+        if (galeria.length <= 1) return null
+        return (
+            <div style={{ display: "flex", justifyContent: "center", gap: 5, padding: "10px 0 0" }}>
+                {galeria.map((_, i) => (
+                    <button
+                        key={i}
+                        onClick={() => setIndice(i)}
+                        aria-label={`Foto ${i + 1}`}
+                        style={{
+                            width: indiceSeguro === i ? 18 : 7,
+                            height: 7, borderRadius: 4,
+                            border: "none", padding: 0, cursor: "pointer",
+                            background: indiceSeguro === i ? tema.primary : tema.border,
+                            transition: "all 0.2s",
+                        }}
+                    />
+                ))}
+            </div>
+        )
+    }
+
+    const renderDescargarTodas = () => {
+        if (!config.permitir_descarga || galeria.length <= 1) return null
+        return (
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+                <button
+                    onClick={descargarTodas}
+                    style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        padding: "6px 14px", borderRadius: 10,
+                        border: `1px solid ${tema.border}`,
+                        background: tema.bg, color: tema.primaryDark,
+                        fontWeight: 700, fontSize: "0.75rem", cursor: "pointer",
+                        transition: "background 0.15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = tema.border }}
+                    onMouseLeave={e => { e.currentTarget.style.background = tema.bg }}
+                >
+                    <Icon name="Download" size={14} />
+                    Descargar todas ({galeria.length})
+                </button>
+            </div>
+        )
+    }
+
+    const renderCuerpo = () => (
+        <div style={{ padding: "14px 18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* Nombre (grande, sin negritas) */}
+            <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 500, color: tema.text, lineHeight: 1.25 }}>
+                {producto.producto}
+            </h3>
+
+            {/* Precio + stock */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                {config.mostrar_precios ? (
+                    <span style={{ fontSize: "1.5rem", fontWeight: 800, color: tema.primaryDark, lineHeight: 1 }}>
+                        {variaciones.length > 0 && !variacionActual && hayPreciosDistintos && (
+                            <span style={{ fontSize: "0.85rem", fontWeight: 700, opacity: 0.7, marginRight: 4 }}>desde </span>
+                        )}
+                        ${precioMostrado.toFixed(2)}
+                        {sufijoMostrado && (
+                            <span style={{ fontSize: "1rem", fontWeight: 700, opacity: 0.75, marginLeft: 6 }}>
+                                Por {sufijoMostrado}
+                            </span>
+                        )}
+                    </span>
+                ) : <span />}
+                {config.mostrar_stock && !esSinStock && (
+                    <span style={{
+                        fontSize: "0.72rem", fontWeight: 700,
+                        color: agotado ? "#ef4444" : tema.textMuted,
+                        background: agotado ? "rgba(239,68,68,0.12)" : tema.bg,
+                        padding: "4px 12px", borderRadius: 12,
+                    }}>
+                        {agotado ? "Agotado" : `${producto.stock_total} en stock`}
+                    </span>
+                )}
+            </div>
+
+            {/* Selector de variación (siempre visible si el producto tiene,
+                incluso con precios ocultos — Fase 6) */}
+            {variaciones.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {variaciones.map(v => {
+                        const activa = v.nombre === variacionSel
+                        const agotada = stockPorVar && (v.stock ?? 0) <= 0
+                        return (
+                            <button
+                                key={v.id}
+                                disabled={agotada}
+                                onClick={() => setVariacionSel(v.nombre)}
+                                style={{
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    padding: "7px 14px",
+                                    borderRadius: 20,
+                                    border: `1.5px solid ${activa ? tema.primary : tema.border}`,
+                                    background: activa ? `${tema.primary}18` : tema.bg,
+                                    color: agotada ? tema.textMuted : tema.text,
+                                    fontWeight: 700,
+                                    fontSize: "0.78rem",
+                                    cursor: agotada ? "not-allowed" : "pointer",
+                                    opacity: agotada ? 0.55 : 1,
+                                    transition: "all 0.15s",
+                                }}
+                            >
+                                {v.nombre}
+                                {stockPorVar && !agotada && (
+                                    <span style={{ fontSize: "0.66rem", fontWeight: 600, opacity: 0.75 }}>{v.stock} uds</span>
+                                )}
+                                {agotada
+                                    ? <span style={{ color: "#ef4444", fontWeight: 800, fontSize: "0.7rem" }}>Agotado</span>
+                                    : (config.mostrar_precios && <span style={{ color: tema.primaryDark, fontWeight: 800 }}>${v.precio.toFixed(2)}</span>)}
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
+
+            {/* Categorías */}
+            {config.mostrar_categorias && (producto.categoria || []).length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {(producto.categoria || ["Otros"]).map(c => (
+                        <span key={c} style={{
+                            fontSize: "0.68rem", fontWeight: 700,
+                            color: tema.primary,
+                            background: `${tema.primary}14`,
+                            borderRadius: 8, padding: "3px 10px",
+                        }}>
+                            {c}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {/* Divisor estilo post */}
+            <div style={{ height: 1, background: tema.border, margin: "2px 0" }} />
+
+            {/* Descripción completa */}
+            {producto.descripcion && (
+                <p style={{
+                    margin: 0, fontSize: "0.88rem",
+                    color: tema.textMuted, lineHeight: 1.55, fontWeight: 500,
+                    whiteSpace: "pre-wrap",
+                }}>
+                    {producto.descripcion}
+                </p>
+            )}
+        </div>
+    )
+
+    // ── Tarjeta: vertical (móvil) vs split horizontal (desktop) ──
+    const estiloCardBase: React.CSSProperties = {
+        background: tema.bgCard,
+        borderRadius: 20,
+        boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
+        border: `1px solid ${tema.border}`,
+        animation: "cataPop 0.22s ease-out",
+    }
+
     return (
         <div
             style={{
@@ -229,340 +591,68 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
         >
             <style>{`@keyframes cataPop { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } } .cata-modal-carrusel::-webkit-scrollbar { display: none; }`}</style>
 
-            <div
-                onClick={e => e.stopPropagation()}
-                style={{
-                    background: tema.bgCard,
-                    borderRadius: 20,
-                    maxWidth: 480,
-                    width: "100%",
-                    maxHeight: "92vh",
-                    overflowY: "auto",
-                    scrollbarWidth: "none",
-                    boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
-                    border: `1px solid ${tema.border}`,
-                    animation: "cataPop 0.22s ease-out",
-                }}
-            >
-                {/* ── Header estilo post: logo + negocio + cerrar ── */}
-                <div style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "12px 16px",
-                    borderBottom: `1px solid ${tema.border}`,
-                }}>
-                    {config.logo ? (
-                        <img
-                            src={optimizarImagenCloudinary(resolverImagen(config.logo), 100)}
-                            alt=""
-                            style={{
-                                width: 34, height: 34, borderRadius: "50%",
-                                objectFit: "cover",
-                                border: `1px solid ${tema.border}`,
-                                background: "#fff",
-                            }}
-                        />
-                    ) : (
-                        <div style={{
-                            width: 34, height: 34, borderRadius: "50%",
-                            background: tema.gradient,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            flexShrink: 0,
-                        }}>
-                            <Icon name="Store" size={16} color="#fff" />
-                        </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{
-                            margin: 0, fontWeight: 800, fontSize: "0.85rem",
-                            color: tema.text,
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>
-                            {config.titulo || "Catálogo"}
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        aria-label="Cerrar"
-                        style={{
-                            width: 32, height: 32, borderRadius: "50%",
-                            border: "none", background: tema.bg,
-                            color: tema.textMuted, cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            transition: "background 0.15s", flexShrink: 0,
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = tema.border }}
-                        onMouseLeave={e => { e.currentTarget.style.background = tema.bg }}
-                    >
-                        <Icon name="X" size={18} />
-                    </button>
-                </div>
-
-                {/* ── Foto: carrusel con swipe + flechas (relación global 1:1 o 4:5) ── */}
+            {vertical ? (
+                /* ── Móvil: columna vertical (layout original) ── */
                 <div
-                    className="cata-modal-carrusel"
+                    onClick={e => e.stopPropagation()}
                     style={{
-                        position: "relative",
-                        aspectRatio: config.relacion_imagen === "4:5" ? "4 / 5" : "1",
-                        background: "#000",
-                        overflow: "hidden",
-                        touchAction: "pan-y",
-                    }}
-                    onTouchStart={e => { touchX.current = e.touches[0].clientX }}
-                    onTouchEnd={e => {
-                        if (touchX.current === null) return
-                        const dx = e.changedTouches[0].clientX - touchX.current
-                        touchX.current = null
-                        if (Math.abs(dx) > 40) (dx < 0 ? siguiente() : anterior())
+                        ...estiloCardBase,
+                        maxWidth: 480,
+                        width: "100%",
+                        maxHeight: "92vh",
+                        overflowY: "auto",
+                        scrollbarWidth: "none",
                     }}
                 >
-                    {fotoActual ? (
-                        <div style={{ position: "absolute", inset: 0 }}>
-                            {/* Primer stage: w_600 (la misma del grid, en caché) → instantáneo.
-                                Se reemplaza al instante (sin fundido) cuando la w_1200 está lista. */}
-                            <img
-                                src={fotoRapida}
-                                alt=""
-                                aria-hidden
-                                style={{
-                                    position: "absolute", inset: 0,
-                                    width: "100%", height: "100%",
-                                    objectFit: "contain",
-                                    display: imagenLista ? "none" : "block",
-                                }}
-                            />
-                            {/* Segundo stage: w_1200 de calidad. Se mantiene oculta (display none) para
-                                descargar en segundo plano; al terminar, reemplaza a la w_600 al
-                                instante. Si falla, la w_600 sigue visible (no se revela una imagen rota). */}
-                            <img
-                                src={fotoActualOptimizada}
-                                alt={producto.producto}
-                                onLoad={() => setImagenLista(true)}
-                                style={{
-                                    position: "absolute", inset: 0,
-                                    width: "100%", height: "100%",
-                                    objectFit: "contain",
-                                    display: imagenLista ? "block" : "none",
-                                }}
-                            />
-                        </div>
-                    ) : (
-                        <div style={{
-                            width: "100%", height: "100%",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            background: tema.bg,
-                        }}>
-                            <Icon name="Package" size={56} color={tema.textMuted} />
-                        </div>
-                    )}
-
-                    {/* Flechas (solo si hay más de una foto) */}
-                    {galeria.length > 1 && (
-                        <>
-                            {indiceSeguro > 0 && (
-                                <button
-                                    onClick={e => { e.stopPropagation(); anterior() }}
-                                    aria-label="Foto anterior"
-                                    style={{ ...estiloFlecha, left: 10 }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
-                                >
-                                    <Icon name="ChevronLeft" size={20} />
-                                </button>
-                            )}
-                            {indiceSeguro < galeria.length - 1 && (
-                                <button
-                                    onClick={e => { e.stopPropagation(); siguiente() }}
-                                    aria-label="Foto siguiente"
-                                    style={{ ...estiloFlecha, right: 10 }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
-                                >
-                                    <Icon name="ChevronRight" size={20} />
-                                </button>
-                            )}
-                        </>
-                    )}
-
-                    {/* Contador */}
-                    {galeria.length > 1 && (
-                        <span style={{
-                            position: "absolute", top: 10, right: 10,
-                            background: "rgba(0,0,0,0.5)", color: "#fff",
-                            fontSize: "0.7rem", fontWeight: 700,
-                            padding: "3px 10px", borderRadius: 12,
-                        }}>
-                            {indiceSeguro + 1} / {galeria.length}
-                        </span>
-                    )}
-
-                    {/* Descargar foto actual (solo si el tenant lo permite) */}
-                    {config.permitir_descarga && fotoActual && (
-                        <button
-                            onClick={e => { e.stopPropagation(); descargarImagen(fotoActual, nombreBase) }}
-                            aria-label="Descargar foto"
-                            title="Descargar foto"
-                            style={{
-                                position: "absolute", top: 10, left: 10,
-                                width: 34, height: 34, borderRadius: "50%",
-                                border: "none", background: "rgba(0,0,0,0.45)",
-                                color: "#fff", cursor: "pointer",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                transition: "background 0.15s",
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
-                            onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
-                        >
-                            <Icon name="Download" size={18} />
-                        </button>
-                    )}
+                    {renderHeader()}
+                    {renderCarrusel()}
+                    {renderDots()}
+                    {renderDescargarTodas()}
+                    {renderCuerpo()}
                 </div>
-
-                {/* Dots de posición */}
-                {galeria.length > 1 && (
-                    <div style={{ display: "flex", justifyContent: "center", gap: 5, padding: "10px 0 0" }}>
-                        {galeria.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setIndice(i)}
-                                aria-label={`Foto ${i + 1}`}
-                                style={{
-                                    width: indiceSeguro === i ? 18 : 7,
-                                    height: 7, borderRadius: 4,
-                                    border: "none", padding: 0, cursor: "pointer",
-                                    background: indiceSeguro === i ? tema.primary : tema.border,
-                                    transition: "all 0.2s",
-                                }}
-                            />
-                        ))}
-                    </div>
-                )}
-
-                {/* Descargar todas las fotos (solo si el tenant lo permite) */}
-                {config.permitir_descarga && galeria.length > 1 && (
-                    <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
-                        <button
-                            onClick={descargarTodas}
-                            style={{
-                                display: "flex", alignItems: "center", gap: 6,
-                                padding: "6px 14px", borderRadius: 10,
-                                border: `1px solid ${tema.border}`,
-                                background: tema.bg, color: tema.primaryDark,
-                                fontWeight: 700, fontSize: "0.75rem", cursor: "pointer",
-                                transition: "background 0.15s",
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.background = tema.border }}
-                            onMouseLeave={e => { e.currentTarget.style.background = tema.bg }}
-                        >
-                            <Icon name="Download" size={14} />
-                            Descargar todas ({galeria.length})
-                        </button>
-                    </div>
-                )}
-
-                {/* ── Cuerpo del post ── */}
-                <div style={{ padding: "14px 18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-                    {/* Nombre (grande, sin negritas) */}
-                    <h3 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 500, color: tema.text, lineHeight: 1.25 }}>
-                        {producto.producto}
-                    </h3>
-
-                    {/* Precio + stock */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                        {config.mostrar_precios ? (
-                            <span style={{ fontSize: "1.5rem", fontWeight: 800, color: tema.primaryDark, lineHeight: 1 }}>
-                                {variaciones.length > 0 && !variacionActual && hayPreciosDistintos && (
-                                    <span style={{ fontSize: "0.85rem", fontWeight: 700, opacity: 0.7, marginRight: 4 }}>desde </span>
-                                )}
-                                ${precioMostrado.toFixed(2)}
-                                {sufijoMostrado && (
-                                    <span style={{ fontSize: "1rem", fontWeight: 700, opacity: 0.75, marginLeft: 6 }}>
-                                        Por {sufijoMostrado}
-                                    </span>
-                                )}
-                            </span>
-                        ) : <span />}
-                        {config.mostrar_stock && !esSinStock && (
-                            <span style={{
-                                fontSize: "0.72rem", fontWeight: 700,
-                                color: agotado ? "#ef4444" : tema.textMuted,
-                                background: agotado ? "rgba(239,68,68,0.12)" : tema.bg,
-                                padding: "4px 12px", borderRadius: 12,
-                            }}>
-                                {agotado ? "Agotado" : `${producto.stock_total} en stock`}
-                            </span>
-                        )}
+            ) : (
+                /* ── Desktop: split horizontal estilo Instagram ── */
+                <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                        ...estiloCardBase,
+                        maxWidth: 980,
+                        width: "100%",
+                        maxHeight: "92vh",
+                        overflow: "hidden",
+                        display: "grid",
+                        gridTemplateColumns: "minmax(0, 1.35fr) minmax(0, 1fr)",
+                    }}
+                >
+                    {/* Columna izquierda: foto (rellena el alto) + dots + descargar */}
+                    <div style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        minWidth: 0,
+                        minHeight: 0,
+                        overflow: "hidden",
+                        paddingBottom: 12,
+                    }}>
+                        {renderCarrusel()}
+                        {renderDots()}
+                        {renderDescargarTodas()}
                     </div>
 
-                    {/* Selector de variación (siempre visible si el producto tiene,
-                        incluso con precios ocultos — Fase 6) */}
-                    {variaciones.length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                            {variaciones.map(v => {
-                                const activa = v.nombre === variacionSel
-                                const agotada = stockPorVar && (v.stock ?? 0) <= 0
-                                return (
-                                    <button
-                                        key={v.id}
-                                        disabled={agotada}
-                                        onClick={() => setVariacionSel(v.nombre)}
-                                        style={{
-                                            display: "flex", alignItems: "center", gap: 8,
-                                            padding: "7px 14px",
-                                            borderRadius: 20,
-                                            border: `1.5px solid ${activa ? tema.primary : tema.border}`,
-                                            background: activa ? `${tema.primary}18` : tema.bg,
-                                            color: agotada ? tema.textMuted : tema.text,
-                                            fontWeight: 700,
-                                            fontSize: "0.78rem",
-                                            cursor: agotada ? "not-allowed" : "pointer",
-                                            opacity: agotada ? 0.55 : 1,
-                                            transition: "all 0.15s",
-                                        }}
-                                    >
-                                        {v.nombre}
-                                        {stockPorVar && !agotada && (
-                                            <span style={{ fontSize: "0.66rem", fontWeight: 600, opacity: 0.75 }}>{v.stock} uds</span>
-                                        )}
-                                        {agotada
-                                            ? <span style={{ color: "#ef4444", fontWeight: 800, fontSize: "0.7rem" }}>Agotado</span>
-                                            : (config.mostrar_precios && <span style={{ color: tema.primaryDark, fontWeight: 800 }}>${v.precio.toFixed(2)}</span>)}
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    )}
-
-                    {/* Categorías */}
-                    {config.mostrar_categorias && (producto.categoria || []).length > 0 && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                            {(producto.categoria || ["Otros"]).map(c => (
-                                <span key={c} style={{
-                                    fontSize: "0.68rem", fontWeight: 700,
-                                    color: tema.primary,
-                                    background: `${tema.primary}14`,
-                                    borderRadius: 8, padding: "3px 10px",
-                                }}>
-                                    {c}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Divisor estilo post */}
-                    <div style={{ height: 1, background: tema.border, margin: "2px 0" }} />
-
-                    {/* Descripción completa */}
-                    {producto.descripcion && (
-                        <p style={{
-                            margin: 0, fontSize: "0.88rem",
-                            color: tema.textMuted, lineHeight: 1.55, fontWeight: 500,
-                            whiteSpace: "pre-wrap",
-                        }}>
-                            {producto.descripcion}
-                        </p>
-                    )}
+                    {/* Columna derecha: header + contenido scrolleable */}
+                    <div style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        minWidth: 0,
+                        minHeight: 0,
+                        overflowY: "auto",
+                        scrollbarWidth: "none",
+                        borderLeft: `1px solid ${tema.border}`,
+                    }}>
+                        {renderHeader()}
+                        {renderCuerpo()}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 }
