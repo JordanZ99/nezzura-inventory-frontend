@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { api, Producto, type Categoria } from "@/lib/api"
+import { api, descargarDatosJson, descargarDatosXlsx, Producto, type Categoria } from "@/lib/api"
 import { supabase } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
 import dynamic from "next/dynamic"
@@ -50,6 +50,8 @@ export default function Personalizacion() {
     const [guardandoModo, setGuardandoModo] = useState(false)
     const [subiendoLogo, setSubiendoLogo] = useState(false)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+    // Tipo de descarga en curso: "json" | "xlsx" | null (respaldo de datos)
+    const [descargando, setDescargando] = useState<"json" | "xlsx" | null>(null)
     const inputFileRef = useRef<HTMLInputElement>(null)
     const bannerInputRef = useRef<HTMLInputElement>(null)
     const bannerMovilInputRef = useRef<HTMLInputElement>(null)
@@ -156,6 +158,34 @@ export default function Personalizacion() {
 
     function mostrarMsg(ok: boolean, texto: string) {
         setMsg({ ok, texto }); setTimeout(() => setMsg(null), 4000)
+    }
+
+    // Descarga el respaldo JSON con todos los datos del tenant autenticado
+    async function handleDescargarJson() {
+        if (descargando) return
+        setDescargando("json")
+        try {
+            await descargarDatosJson()
+            mostrarMsg(true, "✅ Respaldo JSON descargado — guárdalo en un lugar seguro")
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error al descargar el respaldo"}`)
+        } finally {
+            setDescargando(null)
+        }
+    }
+
+    // Descarga la vista Excel (XLSX) de los datos del tenant autenticado
+    async function handleDescargarXlsx() {
+        if (descargando) return
+        setDescargando("xlsx")
+        try {
+            await descargarDatosXlsx()
+            mostrarMsg(true, "✅ Archivo Excel descargado")
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error al descargar el Excel"}`)
+        } finally {
+            setDescargando(null)
+        }
     }
 
     // Procesa y sube el archivo de imagen, convirtiéndolo a WebP
@@ -589,6 +619,63 @@ export default function Personalizacion() {
                                 <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
                                     <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>Tenant ID</span>
                                     <span style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "var(--text-main)", fontWeight: 700, wordBreak: "break-all" }}>{cargandoTenant ? "Cargando..." : tenant?.tenant_id}</span>
+                                </div>
+                                <div style={{ borderBottom: "1px solid var(--border-light)", paddingBottom: 12 }}>
+                                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Mis Datos</span>
+                                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                        <button
+                                            id="btn-descargar-json"
+                                            onClick={handleDescargarJson}
+                                            disabled={descargando !== null}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 8,
+                                                flex: "1 1 auto",
+                                                padding: "10px 16px",
+                                                background: "none",
+                                                border: "1.5px solid var(--border-primary)",
+                                                borderRadius: 12,
+                                                color: "var(--primary-icons)",
+                                                fontSize: "0.8rem",
+                                                fontWeight: 700,
+                                                cursor: descargando !== null ? "default" : "pointer",
+                                                opacity: descargando !== null ? 0.5 : 1,
+                                                transition: "background 0.15s",
+                                            }}
+                                            onMouseEnter={e => { if (descargando === null) e.currentTarget.style.background = "var(--primary-soft)" }}
+                                            onMouseLeave={e => e.currentTarget.style.background = "none"}
+                                        >
+                                            <Icon name="Download" size={16} />
+                                            {descargando === "json" ? "Descargando..." : "Descargar Datos (JSON)"}
+                                        </button>
+                                        <button
+                                            id="btn-descargar-xlsx"
+                                            onClick={handleDescargarXlsx}
+                                            disabled={descargando !== null}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 8,
+                                                flex: "1 1 auto",
+                                                padding: "10px 16px",
+                                                background: "none",
+                                                border: "1.5px solid var(--border-primary)",
+                                                borderRadius: 12,
+                                                color: "var(--primary-icons)",
+                                                fontSize: "0.8rem",
+                                                fontWeight: 700,
+                                                cursor: descargando !== null ? "default" : "pointer",
+                                                opacity: descargando !== null ? 0.5 : 1,
+                                                transition: "background 0.15s",
+                                            }}
+                                            onMouseEnter={e => { if (descargando === null) e.currentTarget.style.background = "var(--primary-soft)" }}
+                                            onMouseLeave={e => e.currentTarget.style.background = "none"}
+                                        >
+                                            <Icon name="FileSpreadsheet" size={16} />
+                                            {descargando === "xlsx" ? "Descargando..." : "Descargar Excel (XLSX)"}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <button
