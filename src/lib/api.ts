@@ -282,6 +282,69 @@ export async function fetchCatalogoPublico<T = unknown>(slug: string): Promise<T
     return res.json()
 }
 
+/**
+ * Nombre de archivo que envía el servidor en Content-Disposition (con fallback).
+ */
+function nombreArchivoDescarga(header: string | null, fallback: string): string {
+    if (!header) return fallback
+    const m = header.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i)
+    if (m) {
+        const nombre = m[1] || m[2]
+        if (nombre) return nombre.trim()
+    }
+    return fallback
+}
+
+/**
+ * Descarga un archivo del backend con el token de sesión (como una descarga
+ * de navegador normal). El tenant_id lo determina el servidor desde el JWT.
+ */
+async function descargarArchivo(path: string, fallback: string): Promise<void> {
+    const authHeaders = await getAuthHeaders()
+    const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders })
+    if (!res.ok) {
+        let detail = "Error al descargar"
+        try {
+            const err = await res.json()
+            detail = err.detail || detail
+        } catch {
+            // ignore
+        }
+        throw new Error(detail)
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = nombreArchivoDescarga(res.headers.get("Content-Disposition"), fallback)
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+}
+
+/**
+ * Descarga el respaldo JSON con TODOS los datos del tenant autenticado
+ * (mismo flujo que el botón "Descargar Datos").
+ */
+export async function descargarDatosJson(): Promise<void> {
+    await descargarArchivo(
+        "/export/json",
+        `nezzura-respaldo-${new Date().toISOString().slice(0, 10)}.json`
+    )
+}
+
+/**
+ * Descarga la vista Excel (XLSX) de los datos del tenant autenticado
+ * (mismo flujo que el botón "Descargar Excel").
+ */
+export async function descargarDatosXlsx(): Promise<void> {
+    await descargarArchivo(
+        "/export/xlsx",
+        `nezzura-respaldo-${new Date().toISOString().slice(0, 10)}.xlsx`
+    )
+}
+
 export const api = {
     // Inicialización
     initDB: () => request<{ ok: boolean; mensaje: string }>("/init-db"),
