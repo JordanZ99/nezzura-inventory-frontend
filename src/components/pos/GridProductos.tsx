@@ -9,6 +9,7 @@ import Icon from "@/components/ui/Icon"
 import { TarjetaProducto } from "./TarjetaProducto"
 import type { Dispatch, SetStateAction } from "react"
 import type { Producto } from "@/lib/api"
+import { invertirOrden, OPCIONES_ORDEN_PRODUCTO } from "@/lib/ordenamiento"
 
 interface Props {
     categorias: string[]
@@ -79,15 +80,7 @@ export function GridProductos({
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
                     <button
-                        onClick={() => {
-                            setOrdenamiento(prev => {
-                                if (prev === "alfabetico") return "alfabetico-desc"
-                                if (prev === "alfabetico-desc") return "alfabetico"
-                                if (prev.endsWith("-asc")) return prev.replace("-asc", "-desc")
-                                if (prev.endsWith("-desc")) return prev.replace("-desc", "-asc")
-                                return prev
-                            })
-                        }}
+                        onClick={() => setOrdenamiento(prev => invertirOrden(prev))}
                         title="Invertir orden"
                         style={{
                             background: "none", border: "none",
@@ -106,12 +99,9 @@ export function GridProductos({
                         value={ordenamiento}
                         onChange={e => setOrdenamiento(e.target.value)}
                     >
-                        <option value="stock-desc">Mayor stock</option>
-                        <option value="stock-asc">Menor stock</option>
-                        <option value="precio-desc">Mayor precio</option>
-                        <option value="precio-asc">Menor precio</option>
-                        <option value="alfabetico">Alfabético A-Z</option>
-                        <option value="alfabetico-desc">Alfabético Z-A</option>
+                        {OPCIONES_ORDEN_PRODUCTO.map(o => (
+                            <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                        ))}
                     </select>
                 </div>
             </div>
