@@ -24,8 +24,6 @@ interface ProductoPublico {
     tipo_producto?: string
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
     variaciones?: { id: number; nombre: string; precio: number; stock?: number }[]
-    // Fase 6: si true, cada variación lleva su propio inventario
-    stock_por_variacion?: boolean
 }
 
 interface ConfigCatalogo {
@@ -59,13 +57,13 @@ interface Props {
 }
 
 /**
- * Precio mínimo de las variaciones DISPONIBLES (Fase 6): si el producto
- * maneja stock por variación, las variaciones agotadas no cuentan para el
- * "desde $X". Si todas están agotadas, cae al precio del producto.
+ * Precio mínimo de las variaciones DISPONIBLES: si el producto tiene
+ * variaciones, las agotadas no cuentan para el "desde $X". Si todas están
+ * agotadas, cae al precio del producto.
  */
-function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number }[]; stock_por_variacion?: boolean; precio_venta: number }): { desde: boolean; precio: number } {
+function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number }[]; precio_venta: number }): { desde: boolean; precio: number } {
     const vars = p.variaciones || []
-    const disponibles = p.stock_por_variacion ? vars.filter(v => (v.stock ?? 0) > 0) : vars
+    const disponibles = vars.length > 0 ? vars.filter(v => (v.stock ?? 0) > 0) : vars
     if (disponibles.length > 0) return { desde: true, precio: Math.min(...disponibles.map(v => v.precio)) }
     return { desde: false, precio: p.precio_venta }
 }

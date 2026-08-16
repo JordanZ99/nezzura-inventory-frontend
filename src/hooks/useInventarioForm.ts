@@ -90,6 +90,7 @@ export function useInventarioForm({
         // Alta de producto
         form: core.form, setForm: core.setForm,
         nuevasVariaciones: core.nuevasVariaciones, setNuevasVariaciones: core.setNuevasVariaciones,
+        altaConVariaciones: core.altaConVariaciones, setAltaConVariaciones: core.setAltaConVariaciones,
         nuevosMateriales: core.nuevosMateriales, setNuevosMateriales: core.setNuevosMateriales,
         nuevasFotos: core.nuevasFotos, setNuevasFotos: core.setNuevasFotos,
         nuevaCategoria: core.nuevaCategoria, setNuevaCategoria: core.setNuevaCategoria,

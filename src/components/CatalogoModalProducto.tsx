@@ -28,8 +28,6 @@ interface ProductoPublico {
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
     // foto?: URL propia de la variación — encabeza la galería al seleccionarla
     variaciones?: { id: number; nombre: string; precio: number; foto?: string; stock?: number }[]
-    // Fase 6: si true, cada variación lleva su propio inventario
-    stock_por_variacion?: boolean
 }
 
 interface ConfigCatalogo {
@@ -107,9 +105,9 @@ async function descargarImagen(url: string, nombre: string) {
 
 export default function CatalogoModalProducto({ producto, config, tema, onClose }: Props) {
     const variaciones = producto.variaciones || []
-    // Fase 6: si el producto maneja stock por variación, las agotadas no se
-    // pueden elegir (se muestran deshabilitadas con su badge "Agotado").
-    const stockPorVar = !!producto.stock_por_variacion
+    // Si el producto tiene variaciones, las agotadas no se pueden elegir (se
+    // muestran deshabilitadas con su badge "Agotado").
+    const stockPorVar = variaciones.length > 0
     // Estilo AliExpress: NINGUNA variación seleccionada por defecto. Se ven las
     // fotos base primero; al elegir una variación, el precio cambia y el
     // carrusel salta a la foto de esa variación (si tiene).

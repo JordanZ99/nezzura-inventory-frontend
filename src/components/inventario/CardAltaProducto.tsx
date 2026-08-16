@@ -24,6 +24,8 @@ interface Props {
     esMovil: boolean
     nuevasVariaciones: NuevaVariacionAlta[]
     setNuevasVariaciones: Dispatch<SetStateAction<NuevaVariacionAlta[]>>
+    altaConVariaciones: boolean
+    setAltaConVariaciones: Dispatch<SetStateAction<boolean>>
     nuevosMateriales: NuevoMaterialAlta[]
     setNuevosMateriales: Dispatch<SetStateAction<NuevoMaterialAlta[]>>
     inv: Producto[]
@@ -39,6 +41,7 @@ export default function CardAltaProducto({
     nuevasFotos, setNuevasFotos,
     guardando, planLocked, relacionImagen, esMovil,
     nuevasVariaciones, setNuevasVariaciones,
+    altaConVariaciones, setAltaConVariaciones,
     nuevosMateriales, setNuevosMateriales,
     inv, guardarNuevo,
 }: Props) {
@@ -180,8 +183,10 @@ export default function CardAltaProducto({
                 planLocked={planLocked}
                 aspectRatio={relacionImagen === "4 / 5" ? 4 / 5 : 1}
             />
-            <div style={{ display: "grid", gridTemplateColumns: form.tipo_producto === "stock" ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
-                {form.tipo_producto === "stock" && (
+            <div style={{ display: "grid", gridTemplateColumns: form.tipo_producto === "stock" && !altaConVariaciones ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
+                {/* Con variaciones activadas, la cantidad general no aplica: cada
+                    variación lleva su propio stock (se configura abajo). */}
+                {form.tipo_producto === "stock" && !altaConVariaciones && (
                     <Input label="Cantidad" type="number" min={0} step="0.1" placeholder="1" value={form.stock} onChange={e => setForm(p => ({ ...p, stock: e.target.value === "" ? "" : Number(e.target.value) }))} />
                 )}
                 {form.tipo_producto === "compuesto" ? (
@@ -198,6 +203,37 @@ export default function CardAltaProducto({
                     <Icon name="Lightbulb" size={14} /> El costo real se calcula en vivo al vender (según el costo de los ingredientes). Puedes añadirlos aquí abajo o después, en "Editar Prod.".
                 </p>
             )}
+            {/* Toggle "¿tiene variaciones?": abajo de cantidad/costo/precio y
+                arriba de la visibilidad en catálogo. Al activarlo se oculta la
+                cantidad general y se despliega la config de variaciones. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card2)", borderRadius: 12, padding: "10px 14px", flexWrap: "wrap" }}>
+                <Icon name="Layers" size={18} color={altaConVariaciones ? "var(--primary-mid)" : "var(--text-muted)"} />
+                <div style={{ flex: 1, minWidth: 180 }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>¿Este producto tiene variaciones?</p>
+                    <p style={{ margin: "2px 0 0", fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                        Presentaciones con precio propio (ej. S/M/L, Sencilla/Doble). Cada variación lleva su propio stock, costo y precio.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => {
+                        // Al desactivar, descartar las variaciones ya agregadas para
+                        // que no se guarden sin querer (la sección queda oculta).
+                        if (altaConVariaciones) setNuevasVariaciones([])
+                        setAltaConVariaciones(!altaConVariaciones)
+                    }}
+                    style={{
+                        padding: "6px 16px", borderRadius: 14, border: "none", cursor: "pointer",
+                        fontWeight: 700, fontSize: "0.75rem", transition: "all 0.15s",
+                        background: altaConVariaciones ? "var(--primary-mid)" : "var(--bg-card)",
+                        color: altaConVariaciones ? "#fff" : "var(--text-main)",
+                        boxShadow: altaConVariaciones ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
+                    }}
+                >
+                    {altaConVariaciones ? "Sí" : "No"}
+                </button>
+            </div>
+
             {/* Visible en catálogo: por defecto activo, para que un ingrediente
                 (material de compuestos) no aparezca accidentalmente en el catálogo */}
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -215,20 +251,23 @@ export default function CardAltaProducto({
                 </select>
             </div>
 
-            {/* Variaciones e ingredientes: se crean junto al producto (transacción única) */}
-            <AltaVariaciones
-                lista={nuevasVariaciones}
-                tipoStock={form.tipo_producto === "stock"}
-                disabled={guardando}
-                datosBase={{
-                    nombre: String(form.producto || ""),
-                    precio: form.precio_venta === "" ? "" : String(form.precio_venta),
-                    stock: form.stock === "" ? "" : String(form.stock),
-                    costo: form.costo === "" ? "" : String(form.costo),
-                }}
-                onAgregar={(nombre, precio, stockInicial, costo) => setNuevasVariaciones(prev => [...prev, { nombre, precio, stock_inicial: stockInicial, costo }])}
-                onQuitar={(i) => setNuevasVariaciones(prev => prev.filter((_, idx) => idx !== i))}
-            />
+            {/* Variaciones: se crean junto al producto (transacción única). Solo
+                visibles si el toggle "¿tiene variaciones?" está activo. */}
+            {altaConVariaciones && (
+                <AltaVariaciones
+                    lista={nuevasVariaciones}
+                    tipoStock={form.tipo_producto === "stock"}
+                    disabled={guardando}
+                    datosBase={{
+                        nombre: String(form.producto || ""),
+                        precio: form.precio_venta === "" ? "" : String(form.precio_venta),
+                        stock: form.stock === "" ? "" : String(form.stock),
+                        costo: form.costo === "" ? "" : String(form.costo),
+                    }}
+                    onAgregar={(nombre, precio, stockInicial, costo) => setNuevasVariaciones(prev => [...prev, { nombre, precio, stock_inicial: stockInicial, costo }])}
+                    onQuitar={(i) => setNuevasVariaciones(prev => prev.filter((_, idx) => idx !== i))}
+                />
+            )}
             {form.tipo_producto === "compuesto" && (
                 <AltaMateriales
                     inv={inv}

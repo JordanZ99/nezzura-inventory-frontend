@@ -71,6 +71,7 @@ export default function Inventario() {
         msg,
         form, setForm,
         nuevasVariaciones, setNuevasVariaciones,
+        altaConVariaciones, setAltaConVariaciones,
         nuevosMateriales, setNuevosMateriales,
         nuevasFotos, setNuevasFotos,
         nuevaCategoria, setNuevaCategoria,
@@ -269,6 +270,8 @@ export default function Inventario() {
                             esMovil={esMovil}
                             nuevasVariaciones={nuevasVariaciones}
                             setNuevasVariaciones={setNuevasVariaciones}
+                            altaConVariaciones={altaConVariaciones}
+                            setAltaConVariaciones={setAltaConVariaciones}
                             nuevosMateriales={nuevosMateriales}
                             setNuevosMateriales={setNuevosMateriales}
                             inv={inv}

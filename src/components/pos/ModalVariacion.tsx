@@ -39,7 +39,9 @@ export function ModalVariacion({ prod, onSeleccionar, onCancelar }: Props) {
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {(prod.variaciones || []).map(v => {
-                        const stockPorVar = !!prod?.stock_por_variacion
+                        // Si el producto tiene variaciones, cada una lleva su propio
+                        // inventario: las agotadas se marcan pero no bloquean.
+                        const stockPorVar = (prod?.variaciones?.length ?? 0) > 0
                         const agotada = stockPorVar && (v.stock ?? 0) <= 0
                         return (
                             <button
