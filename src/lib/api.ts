@@ -35,10 +35,8 @@ export interface Producto {
     // Costo/precio de venta de un servicio (viven en el producto, no en lotes)
     costo_servicio?: number;
     precio_servicio?: number;
-    // Fase 6: si true, cada variación lleva su propio inventario (lotes por
-    // variación) y el restock pide la variación.
-    stock_por_variacion?: boolean;
-    // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
+    // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L).
+    // Si un producto tiene variaciones, cada una lleva su propio inventario.
     variaciones?: Variacion[];
     // Receta de un producto compuesto (materiales que consume al venderse)
     recetas?: MaterialReceta[];
@@ -54,9 +52,7 @@ export interface Variacion {
     // Foto propia de la variación (URL de Cloudinary) — el catálogo la muestra
     // al seleccionar esta presentación (ej. la foto de la Hamburguesa Doble).
     foto?: string;
-    // Stock EXCLUSIVO de esta variación (Fase 6). Solo es relevante si el
-    // producto activó stock_por_variacion; si no, las variaciones comparten
-    // el stock del producto y esto queda en 0.
+    // Stock EXCLUSIVO de esta variación (suma de sus lotes).
     stock?: number;
 }
 
@@ -95,8 +91,8 @@ export interface Lote {
     estado: string;
     // Presentación opcional del lote (ej. "20cm", "Premium", "Oferta")
     etiqueta?: string;
-    // Fase 6 — stock por variación: a qué variación pertenece este lote
-    // (null/undefined = stock base del producto, compartido)
+    // A qué variación pertenece este lote
+    // (null/undefined = stock base del producto, sin variación)
     variacion_id?: number | null;
     variacion?: string;
 }
@@ -122,8 +118,8 @@ export interface NuevoProducto {
     // si el producto es NUEVO; útil para ingredientes que no deben aparecer.
     visible_en_catalogo?: boolean;
     // Variaciones y receta se crean en la MISMA transacción que el producto.
-    // stock_inicial/costo: opcionales — si alguna variación trae stock, se crea
-    // su lote y el producto pasa a manejar stock por variación (Fase 6).
+    // Si el producto trae variaciones, TODO el stock vive en lotes por variación
+    // (stock_inicial/costo opcionales por variación).
     variaciones?: { nombre: string; precio: number; stock_inicial?: number; costo?: number }[];
     recetas?: { material: string; cantidad: number }[];
 }
@@ -134,8 +130,7 @@ export interface Restock {
     precio_venta: number;
     stock: number;
     etiqueta?: string;
-    // Variación a la que llega el stock (obligatoria si el producto maneja
-    // stock por variación — Fase 6)
+    // Variación a la que llega el stock (obligatoria si el producto tiene variaciones)
     variacion?: string;
 }
 
@@ -354,7 +349,7 @@ export const api = {
     getLotes: () => request<Lote[]>("/inventario/lotes"),
     crearProducto: (data: NuevoProducto & { imagen?: string }) => request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) => request("/inventario/restock", { method: "POST", body: JSON.stringify(data) }),
-    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string; visible_en_catalogo?: boolean; sufijo_precio?: string; fraccionable?: boolean; tipo_producto?: string; costo_servicio?: number; precio_servicio?: number; stock_por_variacion?: boolean }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
+    editarProducto: (prod: string, data: { descripcion: string; imagen: string; estado: string; categoria: string[]; costo?: number; precio_venta?: number; producto?: string; codigo_interno?: string; codigo_barras?: string; ubicacion?: string; visible_en_catalogo?: boolean; sufijo_precio?: string; fraccionable?: boolean; tipo_producto?: string; costo_servicio?: number; precio_servicio?: number }) => request(`/inventario/${encodeURIComponent(prod)}`, { method: "PATCH", body: JSON.stringify(data) }),
     // Categorías
     getCategorias: () => request<Categoria[]>("/inventario/categorias"),
     crearCategoria: (nombre: string) => request<{ ok: boolean; categoria: Categoria; mensaje: string }>("/inventario/categoria/crear", { method: "POST", body: JSON.stringify({ nombre }) }),

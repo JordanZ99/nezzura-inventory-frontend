@@ -53,7 +53,7 @@ export default function AltaVariaciones({ lista, tipoStock = false, disabled = f
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>
-                Variaciones (opcional)
+                Variaciones
             </label>
             <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: 0 }}>
                 Presentaciones con precio propio (ej. S/M/L, Sencilla/Doble). Se crean junto al producto y aparecen en el catálogo como "desde $X".

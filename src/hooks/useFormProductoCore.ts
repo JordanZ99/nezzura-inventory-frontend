@@ -60,7 +60,6 @@ export type FormEditProd = {
     tipo_producto: string
     costo_servicio: number | string
     precio_servicio: number | string
-    stock_por_variacion: boolean
 }
 
 export type FormEditLote = {
@@ -86,7 +85,7 @@ const FORM_EDIT_PROD_INICIAL: FormEditProd = {
     descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"],
     codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true,
     sufijo_precio: "", fraccionable: false, tipo_producto: "stock", costo_servicio: "",
-    precio_servicio: "", stock_por_variacion: false,
+    precio_servicio: "",
 }
 
 interface UseFormProductoCoreArgs {
@@ -128,6 +127,9 @@ export function useFormProductoCore({
     // Variaciones y materiales pendientes del ALTA (se guardan en la misma
     // transacción que el producto, vía crear_producto_completo)
     const [nuevasVariaciones, setNuevasVariaciones] = useState<NuevaVariacionAlta[]>([])
+    // Alta: toggle "¿tiene variaciones?" — si está ON, se oculta la cantidad
+    // general (el stock vive por variación) y se despliega la config de variaciones.
+    const [altaConVariaciones, setAltaConVariaciones] = useState(false)
     const [nuevosMateriales, setNuevosMateriales] = useState<NuevoMaterialAlta[]>([])
     const [nuevasFotos, setNuevasFotos] = useState<FotoGaleria[]>([])
     const [editFotos, setEditFotos] = useState<FotoGaleria[]>([])
@@ -312,6 +314,7 @@ export function useFormProductoCore({
             setNuevasFotos([])
             setNuevasVariaciones([])
             setNuevosMateriales([])
+            setAltaConVariaciones(false)
             setForm(FORM_ALTA_INICIAL)
             recargar()
         } catch (e: unknown) {
@@ -397,8 +400,6 @@ export function useFormProductoCore({
                 costo_servicio: editProdVal.tipo_producto === "servicio" ? Number(editProdVal.costo_servicio === "" ? 0 : editProdVal.costo_servicio) : undefined,
                 // Servicios y compuestos guardan su precio propio en precio_servicio
                 precio_servicio: editProdVal.tipo_producto !== "stock" ? Number(editProdVal.precio_servicio === "" ? 0 : editProdVal.precio_servicio) : undefined,
-                // Fase 6: stock por variación (solo tiene sentido en tipo stock)
-                stock_por_variacion: editProdVal.tipo_producto === "stock" ? editProdVal.stock_por_variacion : undefined,
             }
             await api.editarProducto(prodEditar, payload)
 
@@ -531,7 +532,6 @@ export function useFormProductoCore({
             tipo_producto: prod.tipo_producto ?? "stock",
             costo_servicio: prod.costo_servicio ?? "",
             precio_servicio: prod.precio_servicio ?? "",
-            stock_por_variacion: prod.stock_por_variacion ?? false,
         })
         // Reset de los sub-hooks de variaciones y recetas para el nuevo producto
         resetEstadoVariaciones(prod)
@@ -628,6 +628,7 @@ export function useFormProductoCore({
         // Alta de producto
         form, setForm,
         nuevasVariaciones, setNuevasVariaciones,
+        altaConVariaciones, setAltaConVariaciones,
         nuevosMateriales, setNuevosMateriales,
         nuevasFotos, setNuevasFotos,
         nuevaCategoria, setNuevaCategoria,

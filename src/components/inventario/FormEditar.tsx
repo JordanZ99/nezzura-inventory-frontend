@@ -221,41 +221,8 @@ export default function FormEditar({
                     Presentaciones con su propio precio para este producto (ej. Sencilla $60 / Doble $95, talla S/M/L, Corte Caballero/Dama). Aparecen como selector en el POS, en el catálogo ("desde $X") y se registran en cada venta.
                 </p>
 
-                {/* Fase 6: stock separado por variación (solo tipo stock) */}
-                {editProdVal.tipo_producto === "stock" && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--bg-card2)", borderRadius: 12, padding: "10px 14px", flexWrap: "wrap" }}>
-                        <Icon name="Boxes" size={18} color={editProdVal.stock_por_variacion ? "var(--primary-mid)" : "var(--text-muted)"} />
-                        <div style={{ flex: 1, minWidth: 180 }}>
-                            <p style={{ margin: 0, fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>Stock separado por variación</p>
-                            <p style={{ margin: "2px 0 0", fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                                Cada variación lleva su propio inventario (ej. llavero Corazones: Blanco 3, Rojo 5, Azul 0) y se marca "Agotado" en el catálogo cuando se acaba. El restock pide la variación y la tabla de lotes muestra a cuál pertenece cada lote.
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const nuevo = !editProdVal.stock_por_variacion
-                                if (nuevo) {
-                                    // Advertencia si hay lotes base con stock sin variación asignada
-                                    const sinAsignar = lotes.filter(l => l.producto === prodEditar && !l.variacion && (l.stock_lote || 0) !== 0)
-                                    if (sinAsignar.length > 0 && !confirm(`Este producto tiene ${sinAsignar.length} lote(s) con stock sin variación asignada. Aparecerán en "Sin asignar" en la tabla de lotes para que los asignes manualmente.`)) return
-                                }
-                                setEditProdVal(p => ({ ...p, stock_por_variacion: nuevo }))
-                            }}
-                            style={{
-                                padding: "6px 16px", borderRadius: 14, border: "none", cursor: "pointer",
-                                fontWeight: 700, fontSize: "0.75rem", transition: "all 0.15s",
-                                background: editProdVal.stock_por_variacion ? "var(--primary-mid)" : "var(--bg-card)",
-                                color: editProdVal.stock_por_variacion ? "#fff" : "var(--text-main)",
-                                boxShadow: editProdVal.stock_por_variacion ? "0 2px 8px rgba(0,0,0,0.15)" : "none",
-                            }}
-                        >
-                            {editProdVal.stock_por_variacion ? "Activado" : "Desactivado"}
-                        </button>
-                    </div>
-                )}
-
-                {/* Lista de variaciones existentes */}
+                {/* Lista de variaciones existentes (cada variación lleva su
+                    propio inventario: el botón "Ajustar stock" crea/llena su lote) */}
                 {editVariaciones.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {editVariaciones.map(v => (
@@ -263,7 +230,7 @@ export default function FormEditar({
                                 key={v.id}
                                 variacion={v}
                                 disabled={guardando || guardandoVar}
-                                stockVisible={editProdVal.stock_por_variacion && editProdVal.tipo_producto === "stock"}
+                                stockVisible={editProdVal.tipo_producto === "stock"}
                                 onCambiar={registrarCambioVariacion}
                                 onEliminar={() => eliminarVariacionItem(v.id)}
                                 onCambiarFoto={(file) => solicitarFotoVariacion(v, file)}

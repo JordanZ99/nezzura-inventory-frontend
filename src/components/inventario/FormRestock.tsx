@@ -65,7 +65,7 @@ export default function FormRestock({ producto, restock, setRestock, guardarRest
             <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0 }}>
                 Costo y precio prellenados según el producto. Ajústalos si este nuevo lote tiene valores diferentes.
             </p>
-            {producto.stock_por_variacion && (
+            {(producto.variaciones?.length ?? 0) > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <label style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8 }}>
                         ¿A qué variación llegó el stock? *
@@ -89,7 +89,7 @@ export default function FormRestock({ producto, restock, setRestock, guardarRest
                 <Input label="Precio" type="number" min={0} step="0.01" placeholder="0.00" value={restock.precio_venta} onChange={e => setRestock(r => ({ ...r, precio_venta: e.target.value === "" ? "" : Number(e.target.value) }))} />
             </div>
             <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={restock.etiqueta} onChange={e => setRestock(r => ({ ...r, etiqueta: e.target.value }))} />
-            <button className="btn-primary" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0 || (!!producto.stock_por_variacion && !restock.variacion)}>
+            <button className="btn-primary" onClick={guardarRestock} disabled={guardando || !restock.producto || !restock.stock || Number(restock.stock) <= 0 || (((producto.variaciones?.length ?? 0) > 0) && !restock.variacion)}>
                 {guardando ? "Procesando..." : "Añadir Stock"}
             </button>
         </div>
