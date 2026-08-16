@@ -13,6 +13,7 @@ import { useEffect } from "react"
 import Icon from "@/components/ui/Icon"
 import PageHeader from "@/components/ui/PageHeader"
 import ImageCropperModal from "@/components/ui/ImageCropperModal"
+import { compararProductos, filtrarProductos } from "@/lib/ordenamiento"
 import { useTenant } from "@/contexts/TenantContext"
 import { useInventarioData } from "@/hooks/useInventarioData"
 import { useInventarioForm } from "@/hooks/useInventarioForm"
@@ -159,64 +160,15 @@ export default function Inventario() {
     }
 
     // Productos filtrados y ordenados para "Editar Prod."
-    const productosEditar = inv.filter(p => {
-        const b = buscadorEditar.toLowerCase()
-        const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
-            p.descripcion?.toLowerCase().includes(b) ||
-            (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
-        const porCategoria = catSelecEditar === "Todas" || (p.categoria || ["General"]).includes(catSelecEditar)
-        return porBusqueda && porCategoria
-    }).sort((a, b) => {
-        // Ordenamiento seleccionado por el usuario (mismo control que Punto de Venta y Restock).
-        // Se manejan explícitamente los 6 valores posibles para que cada opción ordene
-        // correctamente en ambas direcciones (asc y desc).
-        switch (editarOrdenamiento) {
-            case "precio-desc":
-                return b.precio_venta - a.precio_venta
-            case "precio-asc":
-                return a.precio_venta - b.precio_venta
-            case "stock-desc":
-                return b.stock_total - a.stock_total
-            case "stock-asc":
-                return a.stock_total - b.stock_total
-            case "alfabetico":
-                return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
-            case "alfabetico-desc":
-                return b.producto.localeCompare(a.producto, "es", { sensitivity: "base" })
-            default:
-                return a.stock_total - b.stock_total
-        }
-    })
-    // Productos filtrados y ordenados para el Restock
-    // Los servicios (sin stock) no se pueden restockear → se excluyen.
-    const productosRestock = inv.filter(p => {
-        if (p.tipo_producto === "servicio") return false
-        const b = restockBuscadorDebounced.toLowerCase()
-        const porBusqueda = !b || p.producto.toLowerCase().includes(b) ||
-            p.descripcion?.toLowerCase().includes(b) ||
-            p.codigo_interno?.toLowerCase().includes(b) ||
-            p.codigo_barras?.toLowerCase().includes(b) ||
-            (p.categoria || ["General"]).join(" ").toLowerCase().includes(b)
-        const porCategoria = restockCatSelec === "Todas" || (p.categoria || ["General"]).includes(restockCatSelec)
-        return porBusqueda && porCategoria
-    }).sort((a, b) => {
-        switch (restockOrdenamiento) {
-            case "precio-desc":
-                return b.precio_venta - a.precio_venta
-            case "precio-asc":
-                return a.precio_venta - b.precio_venta
-            case "stock-desc":
-                return b.stock_total - a.stock_total
-            case "stock-asc":
-                return a.stock_total - b.stock_total
-            case "alfabetico":
-                return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
-            case "alfabetico-desc":
-                return b.producto.localeCompare(a.producto, "es", { sensitivity: "base" })
-            default:
-                return a.stock_total - b.stock_total
-        }
-    })
+    // (filtrado y ordenamiento compartidos con POS y Restock — src/lib/ordenamiento.ts)
+    const productosEditar = filtrarProductos(inv, buscadorEditar, catSelecEditar)
+        .sort((a, b) => compararProductos(a, b, editarOrdenamiento))
+    // Productos filtrados y ordenados para el Restock (búsqueda también por
+    // código interno/barras). Los servicios (sin stock) no se pueden
+    // restockear → se excluyen.
+    const productosRestock = filtrarProductos(inv, restockBuscadorDebounced, restockCatSelec, true)
+        .filter(p => p.tipo_producto !== "servicio")
+        .sort((a, b) => compararProductos(a, b, restockOrdenamiento))
 
     return (
         <div style={{ minHeight: "100vh" }}>

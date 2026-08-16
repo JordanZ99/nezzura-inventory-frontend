@@ -10,6 +10,7 @@
 
 import type { Venta, Gasto, Producto } from "@/lib/api"
 import type { DateRangePickerValue } from "@tremor/react"
+import { categoriasUnicas, compararProductos, filtrarProductos } from "@/lib/ordenamiento"
 
 interface PropsEstadisticasCalculos {
     ventas: Venta[]
@@ -66,7 +67,7 @@ export function useEstadisticasCalculos({ ventas, gastos, productos, dates, busq
     })
 
     // --- Catálogo de productos ---
-    const categoriasCatalogo = ["Todas", ...Array.from(new Set(productos.flatMap(p => (p.categoria || ["General"]).map(c => c.trim())))).sort()]
+    const categoriasCatalogo = categoriasUnicas(productos)
 
     // Unidades totales vendidas por producto (suma de cantidades)
     const unidadesPorProducto = ventas
@@ -83,30 +84,20 @@ export function useEstadisticasCalculos({ ventas, gastos, productos, dates, busq
             return acc
         }, {} as Record<string, number>)
 
-    const productosFiltrados = productos.filter(p => {
-        const q = busquedaProdDebounced.toLowerCase()
-        const porBusqueda = !q || p.producto.toLowerCase().includes(q) ||
-            p.descripcion?.toLowerCase().includes(q) ||
-            p.codigo_interno?.toLowerCase().includes(q) ||
-            p.codigo_barras?.toLowerCase().includes(q) ||
-            (p.categoria || ["General"]).join(" ").toLowerCase().includes(q)
-        const porCategoria = catSelecProd === "Todas" || (p.categoria || ["General"]).includes(catSelecProd)
-        return porBusqueda && porCategoria
-    }).sort((a, b) => {
-        switch (ordenProd) {
-            case "alfabetico-desc": return b.producto.localeCompare(a.producto, "es", { sensitivity: "base" })
-            case "precio-desc": return b.precio_venta - a.precio_venta
-            case "precio-asc": return a.precio_venta - b.precio_venta
-            case "stock-desc": return b.stock_total - a.stock_total
-            case "stock-asc": return a.stock_total - b.stock_total
-            case "ventas-desc": return (unidadesPorProducto[b.producto] || 0) - (unidadesPorProducto[a.producto] || 0)
-            case "ventas-asc": return (unidadesPorProducto[a.producto] || 0) - (unidadesPorProducto[b.producto] || 0)
-            case "ganancia-desc": return (gananciaPorProducto[b.producto] || 0) - (gananciaPorProducto[a.producto] || 0)
-            case "ganancia-asc": return (gananciaPorProducto[a.producto] || 0) - (gananciaPorProducto[b.producto] || 0)
-            case "alfabetico":
-            default: return a.producto.localeCompare(b.producto, "es", { sensitivity: "base" })
-        }
-    })
+    // Filtrado (búsqueda + categoría, incluye códigos) y ordenamiento compartidos
+    // con POS e Inventario (src/lib/ordenamiento.ts). Los 4 órdenes de ventas/
+    // ganancia dependen de los totales por producto calculados arriba, así que
+    // se resuelven localmente y el resto delega en compararProductos.
+    const productosFiltrados = filtrarProductos(productos, busquedaProdDebounced, catSelecProd, true)
+        .sort((a, b) => {
+            switch (ordenProd) {
+                case "ventas-desc": return (unidadesPorProducto[b.producto] || 0) - (unidadesPorProducto[a.producto] || 0)
+                case "ventas-asc": return (unidadesPorProducto[a.producto] || 0) - (unidadesPorProducto[b.producto] || 0)
+                case "ganancia-desc": return (gananciaPorProducto[b.producto] || 0) - (gananciaPorProducto[a.producto] || 0)
+                case "ganancia-asc": return (gananciaPorProducto[a.producto] || 0) - (gananciaPorProducto[b.producto] || 0)
+                default: return compararProductos(a, b, ordenProd)
+            }
+        })
 
     function getVentasProducto(prod: Producto) {
         const ventasProd = ventas.filter(v => v.producto === prod.producto && v.estado !== "Inactivo")

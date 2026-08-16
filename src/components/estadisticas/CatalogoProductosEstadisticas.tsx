@@ -8,6 +8,7 @@ import type { Dispatch, SetStateAction } from "react"
 import type { Producto } from "@/lib/api"
 import Icon from "@/components/ui/Icon"
 import TarjetaProductoEstadistica from "./TarjetaProductoEstadistica"
+import { invertirOrden, OPCIONES_ORDEN_ESTADISTICAS } from "@/lib/ordenamiento"
 
 interface Props {
     categoriasCatalogo: string[]
@@ -80,15 +81,7 @@ export default function CatalogoProductosEstadisticas({
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, borderLeft: "1px solid var(--border-primary)", paddingLeft: 12 }}>
                     <button
-                        onClick={() => {
-                            setOrdenProd(prev => {
-                                if (prev === "alfabetico") return "alfabetico-desc"
-                                if (prev === "alfabetico-desc") return "alfabetico"
-                                if (prev.endsWith("-asc")) return prev.replace("-asc", "-desc")
-                                if (prev.endsWith("-desc")) return prev.replace("-desc", "-asc")
-                                return prev
-                            })
-                        }}
+                        onClick={() => setOrdenProd(prev => invertirOrden(prev))}
                         title="Invertir orden"
                         style={{
                             background: "none", border: "none",
@@ -107,16 +100,9 @@ export default function CatalogoProductosEstadisticas({
                         value={ordenProd}
                         onChange={e => setOrdenProd(e.target.value)}
                     >
-                        <option value="stock-desc">Mayor stock</option>
-                        <option value="stock-asc">Menor stock</option>
-                        <option value="precio-desc">Mayor precio</option>
-                        <option value="precio-asc">Menor precio</option>
-                        <option value="ventas-desc">Más ventas</option>
-                        <option value="ventas-asc">Menos ventas</option>
-                        <option value="ganancia-desc">Más ganancia</option>
-                        <option value="ganancia-asc">Menos ganancia</option>
-                        <option value="alfabetico">Alfabético A-Z</option>
-                        <option value="alfabetico-desc">Alfabético Z-A</option>
+                        {OPCIONES_ORDEN_ESTADISTICAS.map(o => (
+                            <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
+                        ))}
                     </select>
                 </div>
             </div>
