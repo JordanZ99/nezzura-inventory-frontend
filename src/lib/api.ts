@@ -43,6 +43,9 @@ export interface Producto {
     // Solo compuestos: cuántas unidades se pueden vender con el stock actual
     // de sus materiales (min sobre la receta). null = sin receta → no estimable.
     disponibilidad_estimada?: number | null;
+    // Override de la tarjeta de post de ESTE producto (Posts Automáticos, Fase 1).
+    // null/undefined = usa los defaults del negocio (post_config).
+    post_override?: PostOverride | null;
 }
 
 export interface Variacion {
@@ -202,7 +205,36 @@ export interface CatalogoConfig {
     banner_mostrar_texto?: boolean;
     banner_mostrar_logo?: boolean;
     anuncio_texto?: string;
+    // Logo del negocio (vive en la tabla tenants; lo expone el backend en el
+    // GET privado de la config del catálogo para reusarlo en las tarjetas de post)
+    logo?: string;
     created_at?: string;
+}
+
+/**
+ * Override de la tarjeta de post para un producto (Posts Automáticos, Fase 1).
+ * Dict PARCIAL: las claves ausentes se heredan de los defaults del negocio.
+ * null en productos.post_override = sin override (usa defaults).
+ */
+export interface PostOverride {
+    template?: string;   // 'marco' (Fase 1) | 'overlay' | 'tarjeta' (Fase 2)
+    color?: string;      // 'default' | 'midnightBlack' | 'strawberry' | 'cozyYellow' | 'white'
+    font?: string;       // 'moderna' | 'elegante' | 'redondeada'
+    posicion?: string;   // 'arriba' | 'abajo' (solo Overlay, Fase 2)
+    mostrar?: { nombre?: boolean; precio?: boolean; negocio?: boolean };
+}
+
+/**
+ * Defaults de posts del NEGOCIO (tabla post_config).
+ * Los productos SIN override usan estos valores automáticamente.
+ */
+export interface PostConfig {
+    tenant_id: string;
+    template_default: string;  // 'marco' (Fase 1)
+    color: string;
+    font: string;
+    posicion: string;
+    mostrar: { nombre: boolean; precio: boolean; negocio: boolean };
 }
 
 export interface Categoria {
@@ -485,6 +517,27 @@ export const api = {
         request<{ ok: boolean; mensaje: string }>(`/gastos_programados/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     eliminarGastoProgramado: (id: string) =>
         request<{ ok: boolean; mensaje: string }>(`/gastos_programados/${id}`, { method: "DELETE" }),
+
+    // Posts Automáticos (Fase 1) — defaults del negocio + override por producto
+    getPostConfig: () =>
+        request<PostConfig>("/catalogo_gestion/post_config"),
+    actualizarPostConfig: (data: {
+        template_default?: string;
+        color?: string;
+        font?: string;
+        posicion?: string;
+        mostrar?: { nombre?: boolean; precio?: boolean; negocio?: boolean };
+    }) =>
+        request<{ ok: boolean; mensaje: string }>("/catalogo_gestion/post_config", {
+            method: "PUT",
+            body: JSON.stringify(data),
+        }),
+    // Guarda (o quita, con null) el override de la tarjeta de post de un producto
+    guardarPostOverride: (producto: string, post_override: PostOverride | null) =>
+        request<{ ok: boolean; producto: string; post_override: PostOverride | null }>(
+            `/inventario/${encodeURIComponent(producto)}/post_override`,
+            { method: "PATCH", body: JSON.stringify({ post_override }) }
+        ),
 
     // Catálogo público (gestión privada — requiere JWT)
     getConfigCatalogo: () =>
