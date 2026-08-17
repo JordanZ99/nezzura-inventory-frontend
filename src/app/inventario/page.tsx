@@ -9,11 +9,12 @@
 //   - src/components/inventario/*      (componentes visuales por sección)
 // Esta página solo compone los hooks y las secciones, sin lógica de negocio.
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Icon from "@/components/ui/Icon"
 import PageHeader from "@/components/ui/PageHeader"
 import ImageCropperModal from "@/components/ui/ImageCropperModal"
 import { compararProductos, filtrarProductos } from "@/lib/ordenamiento"
+import type { Producto, PostOverride } from "@/lib/api"
 import { useTenant } from "@/contexts/TenantContext"
 import { useInventarioData } from "@/hooks/useInventarioData"
 import { useInventarioForm } from "@/hooks/useInventarioForm"
@@ -24,10 +25,21 @@ import GridRestock from "@/components/inventario/GridRestock"
 import FormRestock from "@/components/inventario/FormRestock"
 import GridEditar from "@/components/inventario/GridEditar"
 import FormEditar from "@/components/inventario/FormEditar"
+import ModalCrearPost from "@/components/inventario/ModalCrearPost"
 
 
 export default function Inventario() {
     const { tenant } = useTenant()
+
+    // ── Modal "Crear post" (Posts Automáticos, Fase 1) ──
+    const [postProducto, setPostProducto] = useState<Producto | null>(null)
+    // Al guardar/quitar un override, refrescar el producto en memoria para que
+    // el badge del modal (override vs defaults) sea correcto la próxima vez.
+    const aplicarOverride = (override: PostOverride | null) => {
+        data.actualizarInv(prev =>
+            prev.map(p => p.producto === postProducto?.producto ? { ...p, post_override: override } : p)
+        )
+    }
 
     // ── Hooks: datos, UI y formularios ──
     const data = useInventarioData()
@@ -354,6 +366,7 @@ export default function Inventario() {
                         productosEditar={productosEditar}
                         cargarProductoEdicion={cargarProductoEdicion}
                         relacionImagen={relacionImagen}
+                        onCrearPost={setPostProducto}
                     />
                 )}
 
@@ -410,6 +423,10 @@ export default function Inventario() {
                         setLoteEliminarConfirm={setLoteEliminarConfirm}
                         guardarLoteIndividual={guardarLoteIndividual}
                         eliminarLoteHandler={eliminarLoteHandler}
+                        onCrearPost={() => {
+                            const prod = inv.find(p => p.producto === prodEditar)
+                            if (prod) setPostProducto(prod)
+                        }}
                     />
                 )}
 
@@ -600,6 +617,15 @@ export default function Inventario() {
                         aspectRatio={relacionImagen === "4 / 5" ? 4 / 5 : 1}
                         onCropComplete={completarFotoVariacion}
                         onCancel={cancelarCropVariacion}
+                    />
+                )}
+
+                {/* ── Modal: Crear post (Posts Automáticos — Fase 1) ── */}
+                {postProducto && (
+                    <ModalCrearPost
+                        producto={postProducto}
+                        onClose={() => setPostProducto(null)}
+                        onOverrideGuardado={aplicarOverride}
                     />
                 )}
             </div>

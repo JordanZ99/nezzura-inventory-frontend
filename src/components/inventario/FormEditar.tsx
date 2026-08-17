@@ -62,6 +62,8 @@ interface Props {
     setLoteEliminarConfirm: Dispatch<SetStateAction<string | null>>
     guardarLoteIndividual: () => Promise<void>
     eliminarLoteHandler: (id: string) => Promise<void>
+    // Abre el modal "Crear post" (Posts Automáticos, Fase 1) con este producto
+    onCrearPost: () => void
 }
 
 /** Formulario completo de edición de producto (info + variaciones + recetas + lotes). */
@@ -92,6 +94,7 @@ export default function FormEditar({
     editLoteVal, setEditLoteVal,
     loteEliminarConfirm, setLoteEliminarConfirm,
     guardarLoteIndividual, eliminarLoteHandler,
+    onCrearPost,
 }: Props) {
     return (
         <>
@@ -107,6 +110,23 @@ export default function FormEditar({
                         <Icon name="ArrowLeft" size={18} color="var(--text-main)" /> Volver
                     </button>
                     <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-muted)" }}>Editando: <strong style={{ color: "var(--text-main)" }}>{prodEditar}</strong></span>
+                    {/* Crear post (Posts Automáticos — Fase 1) */}
+                    <button
+                        onClick={onCrearPost}
+                        title="Genera una tarjeta lista para Instagram/WhatsApp con la foto, el nombre y el precio"
+                        style={{
+                            marginLeft: "auto",
+                            background: "var(--gradient-1)", border: "none", borderRadius: 10,
+                            padding: "7px 14px", cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 6,
+                            fontSize: "0.76rem", fontWeight: 800, color: "#fff",
+                            transition: "all 0.15s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.opacity = "0.9" }}
+                        onMouseLeave={e => { e.currentTarget.style.opacity = "1" }}
+                    >
+                        <Icon name="ImagePlus" size={16} color="#fff" /> Crear post
+                    </button>
                 </div>
                 <Input label="Nombre del producto" value={editProdNombre} onChange={e => setEditProdNombre(e.target.value)} />
 

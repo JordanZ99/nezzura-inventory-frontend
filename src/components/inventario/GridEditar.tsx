@@ -14,6 +14,8 @@ interface Props {
     productosEditar: Producto[]
     cargarProductoEdicion: (prod: Producto) => void
     relacionImagen: string
+    // Abre el modal "Crear post" (Posts Automáticos, Fase 1) con este producto
+    onCrearPost: (prod: Producto) => void
 }
 
 /** Grid de productos de la pestaña Editar (buscador + categorías + tarjetas). */
@@ -25,6 +27,7 @@ export default function GridEditar({
     productosEditar,
     cargarProductoEdicion,
     relacionImagen,
+    onCrearPost,
 }: Props) {
     return (
         <>
@@ -125,6 +128,23 @@ export default function GridEditar({
                                     <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px" }}>{(prod.categoria || ["General"]).join(", ")}</span>
                                     <span style={{ fontSize: "0.62rem", fontWeight: 700, color: prod.stock_total <= 0 ? "#b71c1c" : "#2e7d32", background: prod.stock_total <= 0 ? "#ffeef0" : "#e8f5e9", borderRadius: 6, padding: "2px 6px" }}>Stock: {prod.stock_total}</span>
                                 </div>
+                                {/* Crear post (Posts Automáticos — Fase 1) */}
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onCrearPost(prod) }}
+                                    title="Genera una tarjeta lista para Instagram/WhatsApp con la foto, el nombre y el precio"
+                                    style={{
+                                        marginTop: 8, width: "100%",
+                                        padding: "6px 10px", borderRadius: 10, border: "none", cursor: "pointer",
+                                        background: "var(--gradient-1)", color: "#fff",
+                                        fontSize: "0.68rem", fontWeight: 800,
+                                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                        transition: "all 0.15s",
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.opacity = "0.9" }}
+                                    onMouseLeave={e => { e.currentTarget.style.opacity = "1" }}
+                                >
+                                    <Icon name="ImagePlus" size={14} color="#fff" /> Crear post
+                                </button>
                             </div>
                         )))}
                 </div>
