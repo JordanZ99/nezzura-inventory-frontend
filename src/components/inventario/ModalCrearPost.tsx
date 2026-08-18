@@ -107,6 +107,9 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
     const [errorPreview, setErrorPreview] = useState(false)
     // Sello de la tarjeta (Fase 4): decisión del momento (no se guarda)
     const [sello, setSello] = useState("")
+    // Velo oscuro del Overlay (del momento): si tapa la foto, se apaga y el
+    // texto lleva un panel oscuro detrás (no se guarda, como formato/sello)
+    const [velo, setVelo] = useState(true)
 
     const tieneOverride = Boolean(producto.post_override)
 
@@ -179,10 +182,11 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 negocio: configCatalogo?.titulo,
                 logo: configCatalogo?.logo,
                 sello,
+                velo,
             }))
         }, 300)
         return () => clearTimeout(timer)
-    }, [cfg, formato, configCatalogo, producto, fotoElegida, sello])
+    }, [cfg, formato, configCatalogo, producto, fotoElegida, sello, velo])
 
     // ¿Hay cambios sin guardar respecto a lo persistido (override o defaults)?
     const hayCambios = useMemo(() => {
@@ -468,6 +472,25 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                                 </div>
                                 <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
                                     El texto se apoya en el velo oscuro de ese lado de la foto.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Velo oscuro (solo Overlay con foto): decisión del momento */}
+                        {cfg?.template === "overlay" && fotoElegida && (
+                            <div>
+                                <LabelControles>Velo oscuro</LabelControles>
+                                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, color: "var(--text-main)" }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={velo}
+                                        onChange={e => setVelo(e.target.checked)}
+                                        style={{ width: 16, height: 16, accentColor: "var(--primary-mid)", cursor: "pointer" }}
+                                    />
+                                    Mostrar el velo sobre la foto
+                                </label>
+                                <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
+                                    Si el velo tapa tu imagen, apágalo: el texto lleva un panel oscuro detrás y la foto se ve completa.
                                 </p>
                             </div>
                         )}

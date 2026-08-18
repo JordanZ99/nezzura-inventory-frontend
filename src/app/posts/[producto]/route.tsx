@@ -9,7 +9,7 @@
 //
 // GET /posts/{producto}?template=marco&font=moderna&formato=post
 //     &posicion=abajo&mostrar={...}&precio=35&sufijo=c%2Fu&foto=...&negocio=...&logo=...
-//     &color_primario=...&color_secundario=...
+//     &color_primario=...&color_secundario=...&velo=0
 //
 // Plantillas:
 //   - "marco"   (polaroid): la foto va INSET dentro de un marco blanco que
@@ -214,6 +214,7 @@ interface CtxTarjeta {
     sello: string        // '' | 'oferta' | 'agotado' | 'nuevo' (Fase 4: sticker en la esquina)
     colorPrimario: string    // hex o '' = automático por plantilla (NOMBRE + NEGOCIO)
     colorSecundario: string  // hex o '' = azul por defecto (PRECIO + fondo sin foto)
+    velo: boolean        // Overlay: true = velo degradado sobre la foto (default); false = panel detrás del texto
 }
 
 /**
@@ -497,7 +498,7 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
             </div>
 
             {/* Velo oscuro degradado: se apoya en el lado donde va el texto */}
-            {tieneFoto && (
+            {tieneFoto && ctx.velo && (
                 <div
                     style={{
                         position: "absolute",
@@ -526,6 +527,23 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                     padding: pad,
                 }}
             >
+                {/* Sin velo: panel semitransparente SOLO detrás del texto (la
+                    foto se ve completa). Satori no soporta text-shadow, así que
+                    el panel garantiza la legibilidad sobre fotos claras. */}
+                {tieneFoto && !ctx.velo && (
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: pad,
+                            left: pad,
+                            right: pad,
+                            bottom: pad,
+                            background: "rgba(0,0,0,0.5)",
+                            borderRadius: Math.round(20 * escala),
+                        }}
+                    />
+                )}
+                <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
                 {mostrar.nombre !== false && nombre && (
                     <div
                         style={{
@@ -555,6 +573,7 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                 {mostrar.negocio !== false && (
                     <BloqueNegocio ctx={ctx} color={colorNegocio} />
                 )}
+                </div>
             </div>
         </div>
     )
@@ -589,6 +608,8 @@ export async function GET(request: Request, { params }: { params: { producto: st
     const logo = q.get("logo") || ""
     // Fase 4: sello ('' | oferta | agotado | nuevo)
     const sello = q.get("sello") || ""
+    // Velo del Overlay (del momento): velo=0 lo apaga (panel detrás del texto)
+    const velo = q.get("velo") !== "0"
     // Colores de texto personalizables ('' o hex inválido = automático por plantilla)
     const esHex = (s: string) => /^#[0-9a-fA-F]{6}$/.test(s)
     const colorPrimario = esHex(q.get("color_primario") || "") ? q.get("color_primario")! : ""
@@ -624,7 +645,7 @@ export async function GET(request: Request, { params }: { params: { producto: st
         fontNombre, fontPrecio, fontNegocio,
         nombre, precioTexto, precioFinal, tieneFoto, foto,
         negocio, logo, mostrar, posicion, sello,
-        colorPrimario, colorSecundario,
+        colorPrimario, colorSecundario, velo,
     }
 
     // Plantilla desconocida (incl. la vieja "tarjeta") → Marco (nunca rota)

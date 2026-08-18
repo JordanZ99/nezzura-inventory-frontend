@@ -104,6 +104,8 @@ export function construirUrlPreview(opts: {
     negocio?: string
     logo?: string
     sello?: string
+    /** Overlay: false apaga el velo degradado (panel detrás del texto). Del momento, no se guarda. */
+    velo?: boolean
 }): string {
     const params = new URLSearchParams()
     params.set("template", opts.cfg.template)
@@ -117,6 +119,7 @@ export function construirUrlPreview(opts: {
     if (opts.negocio) params.set("negocio", opts.negocio)
     if (opts.logo) params.set("logo", opts.logo)
     if (opts.sello) params.set("sello", opts.sello)
+    if (opts.velo === false) params.set("velo", "0")
     if (opts.cfg.colorPrimario) params.set("color_primario", opts.cfg.colorPrimario)
     if (opts.cfg.colorSecundario) params.set("color_secundario", opts.cfg.colorSecundario)
     return `${opts.origin}/posts/${encodeURIComponent(opts.producto)}?${params.toString()}`
