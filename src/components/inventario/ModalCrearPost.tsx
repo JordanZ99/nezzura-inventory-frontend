@@ -21,9 +21,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Icon from "@/components/ui/Icon"
+import ImageCropperModal from "@/components/ui/ImageCropperModal"
 import { api, CatalogoConfig, ImagenProducto, PostConfig, PostOverride, Producto } from "@/lib/api"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
-import { ConfigResuelta, construirUrlPreview, generarDescripcion, nombreArchivo, resolverConfig } from "@/lib/posts"
+import { ConfigResuelta, CropFoto, construirUrlPreview, generarDescripcion, nombreArchivo, resolverConfig } from "@/lib/posts"
 
 interface Props {
     producto: Producto
@@ -110,6 +111,10 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
     // Velo oscuro del Overlay (del momento): si tapa la foto, se apaga y el
     // texto lleva un panel oscuro detrás (no se guarda, como formato/sello)
     const [velo, setVelo] = useState(true)
+    // Recorte de la foto (del momento): clic en el preview abre el cropper y
+    // la geometría va a la URL del render (no se sube nada a Cloudinary).
+    const [cropAbierto, setCropAbierto] = useState(false)
+    const [fotoCrop, setFotoCrop] = useState<CropFoto | null>(null)
 
     const tieneOverride = Boolean(producto.post_override)
 
@@ -129,6 +134,24 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
         for (const v of producto.variaciones || []) agregar(v.foto || "", v.nombre || "Variación")
         return lista
     }, [producto.imagen, galeria, producto.variaciones])
+
+    // Relación de recorte según plantilla + formato: en Marco es el área de la
+    // foto dentro del marco (misma fórmula que la ruta de render); en Overlay
+    // es todo el canvas. Así el marco del cropper = exactamente lo que se ve.
+    const aspectoCrop = useMemo(() => {
+        if (!cfg) return 0.8
+        const dims = { post: { width: 1080, height: 1350 }, historia: { width: 1080, height: 1920 }, cuadrado: { width: 1200, height: 1200 } }[formato] || { width: 1080, height: 1350 }
+        if (cfg.template === "overlay") return dims.width / dims.height
+        const { width: W, height: H } = dims
+        const escala = W / 1080
+        const fontNombre = Math.round(64 * escala)
+        const fontPrecio = Math.round(56 * escala)
+        const fontNegocio = Math.round(32 * escala)
+        const altoTexto = Math.round(fontNombre * 1.25 * 2 + fontPrecio * 1.2 + fontNegocio * 1.3 + 16 * escala + 8 * escala)
+        const padding = Math.round(W * 0.05)
+        const altoFoto = Math.max(200, H - padding * 2 - altoTexto - Math.round(24 * escala))
+        return (W - padding * 2) / altoFoto
+    }, [cfg, formato])
 
     // Cargar defaults del negocio + config del catálogo (nombre/logo del negocio)
     // CADA llamada es independiente: si un endpoint falla (p. ej. el backend
@@ -161,7 +184,12 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
 
     // Escape cierra el modal + bloquea el scroll del body (patrón del catálogo)
     useEffect(() => {
-        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== "Escape") return
+            // Con el cropper abierto, Escape cierra el cropper (no el modal)
+            if (cropAbierto) setCropAbierto(false)
+            else onClose()
+        }
         window.addEventListener("keydown", onKey)
         const prev = document.body.style.overflow
         document.body.style.overflow = "hidden"
@@ -169,7 +197,10 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
             window.removeEventListener("keydown", onKey)
             document.body.style.overflow = prev
         }
-    }, [onClose])
+    }, [onClose, cropAbierto])
+
+    // El recorte es del momento: se reinicia al cambiar foto/plantilla/formato
+    useEffect(() => { setFotoCrop(null) }, [fotoElegida, cfg?.template, formato])
 
     // ── Vista previa con debounce (~300ms): la URL cambia al tocar controles ──
     useEffect(() => {
@@ -189,10 +220,11 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 logo: configCatalogo?.logo,
                 sello,
                 velo,
+                fotoCrop: fotoCrop || undefined,
             }))
         }, 300)
         return () => clearTimeout(timer)
-    }, [cfg, formato, configCatalogo, producto, fotoElegida, sello, velo])
+    }, [cfg, formato, configCatalogo, producto, fotoElegida, sello, velo, fotoCrop])
 
     // ¿Hay cambios sin guardar respecto a lo persistido (override o defaults)?
     const hayCambios = useMemo(() => {
@@ -710,23 +742,46 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                                 </div>
                             )}
                             {previewUrl && !errorPreview && (
-                                // key: al cambiar la URL se remonta el <img> y onLoad/onError se re-disparan
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    key={previewUrl}
-                                    src={previewUrl}
-                                    alt={`Vista previa del post de ${producto.producto}`}
-                                    onLoad={() => { setCargandoPreview(false); setErrorPreview(false) }}
-                                    onError={() => { setCargandoPreview(false); setErrorPreview(true) }}
+                                // Botón real: clic (o Enter/Espacio al tabular) abre el cropper
+                                <button
+                                    onClick={() => setCropAbierto(true)}
+                                    disabled={!fotoElegida}
+                                    title={fotoElegida ? "Clic para recortar la foto: delimita qué parte se ve" : "No hay foto para recortar"}
                                     style={{
-                                        maxHeight: "52vh",
-                                        maxWidth: "100%",
-                                        width: "auto",
-                                        borderRadius: 10,
-                                        boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
-                                        display: "block",
+                                        background: "none", border: "none", padding: 0, lineHeight: 0,
+                                        cursor: fotoElegida ? "zoom-in" : "default", display: "block",
                                     }}
-                                />
+                                >
+                                    {/* key: al cambiar la URL se remonta el <img> y onLoad/onError se re-disparan */}
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        key={previewUrl}
+                                        src={previewUrl}
+                                        alt={`Vista previa del post de ${producto.producto}`}
+                                        onLoad={() => { setCargandoPreview(false); setErrorPreview(false) }}
+                                        onError={() => { setCargandoPreview(false); setErrorPreview(true) }}
+                                        style={{
+                                            maxHeight: "52vh",
+                                            maxWidth: "100%",
+                                            width: "auto",
+                                            borderRadius: 10,
+                                            boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+                                            display: "block",
+                                        }}
+                                    />
+                                </button>
+                            )}
+                            {previewUrl && !errorPreview && fotoElegida && (
+                                <div style={{
+                                    position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)",
+                                    display: "flex", alignItems: "center", gap: 6,
+                                    padding: "6px 12px", borderRadius: 999,
+                                    background: "rgba(25,28,32,0.75)", color: "#fff",
+                                    fontSize: "0.68rem", fontWeight: 700, whiteSpace: "nowrap", pointerEvents: "none",
+                                }}>
+                                    <Icon name="Crop" size={13} color="#fff" />
+                                    {fotoCrop ? "Recorte activo — clic para ajustar" : "Clic para recortar la foto"}
+                                </div>
                             )}
                             {errorPreview && (
                                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, color: "#f87171", padding: 16, textAlign: "center" }}>
@@ -873,6 +928,17 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                     </div>
                 </div>
             </div>
+
+            {/* Cropper de la foto (del momento): re-encuadre sin subir nada */}
+            {cropAbierto && fotoElegida && (
+                <ImageCropperModal
+                    imageUrl={fotoElegida}
+                    aspectRatio={aspectoCrop}
+                    dimensionLabel={formato === "historia" ? "Historia 9:16" : formato === "cuadrado" ? "Cuadrado 1:1" : "Post 4:5"}
+                    onGeometryChange={geo => { setFotoCrop(geo); setCropAbierto(false) }}
+                    onCancel={() => setCropAbierto(false)}
+                />
+            )}
             <style>{`@keyframes spin { to { transform: rotate(360deg) } } .modal-post-spin { animation: spin 1s linear infinite; }`}</style>
         </div>
     )

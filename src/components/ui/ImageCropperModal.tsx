@@ -24,17 +24,32 @@ import Icon from "./Icon"
 
 const MAX_ZOOM = 3
 
+export interface CropGeometry {
+    /** Rectángulo visible como fracciones de la imagen natural (0-1). Pueden
+     * salir de rango en zoom out (márgenes): fx/fy negativos, fw/fh > 1. */
+    fx: number
+    fy: number
+    fw: number
+    fh: number
+    /** Color de relleno del área vacía (zoom out) */
+    fondo: "blanco" | "negro"
+}
+
 interface ImageCropperModalProps {
     /** URL (blob) de la imagen original a recortar */
     imageUrl: string
     /** Se dispara con el Blob ya recortado listo para comprimir/subir */
-    onCropComplete: (croppedBlob: Blob) => void
+    onCropComplete?: (croppedBlob: Blob) => void
     /** El usuario canceló el recorte */
     onCancel: () => void
     /** Relación de recorte (ancho/alto). Default 1 (cuadrado) */
     aspectRatio?: number
     /** Etiqueta de dimensiones mostrada en el header (ej. "1920 × 373") */
     dimensionLabel?: string
+    /** Se dispara al aceptar con la geometría del recorte (fracciones de la
+     * imagen natural), para renders que re-encuadran la foto SIN subir el
+     * recorte (ej. la tarjeta de post: la geometría va como params a la URL). */
+    onGeometryChange?: (geo: CropGeometry) => void
 }
 
 /**
@@ -221,6 +236,7 @@ export default function ImageCropperModal({
     onCancel,
     aspectRatio = 1,
     dimensionLabel,
+    onGeometryChange,
 }: ImageCropperModalProps) {
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
@@ -394,22 +410,39 @@ export default function ImageCropperModal({
         }
 
         setErrorRecorte(null)
-        try {
-            const blob = await getCroppedImg(imageUrl, rect, fondo === "negro" ? "#000000" : "#ffffff")
-            onCropComplete(blob)
-        } catch (e) {
-            console.error("Error al recortar imagen:", e)
-            // Fallback: devolver la imagen original completa
+
+        // Geometría del recorte en fracciones de la imagen natural: la usa el
+        // render de la tarjeta de post para re-encuadrar la foto SIN subir nada.
+        const imgW = imageNaturalSize.width
+        const imgH = imageNaturalSize.height
+        if (imgW > 0 && imgH > 0) {
+            onGeometryChange?.({
+                fx: rect.x / imgW,
+                fy: rect.y / imgH,
+                fw: rect.width / imgW,
+                fh: rect.height / imgH,
+                fondo,
+            })
+        }
+
+        if (onCropComplete) {
             try {
-                const resp = await fetch(imageUrl)
-                const blob = await resp.blob()
+                const blob = await getCroppedImg(imageUrl, rect, fondo === "negro" ? "#000000" : "#ffffff")
                 onCropComplete(blob)
-            } catch {
-                setErrorRecorte("Error al procesar la imagen. Intenta con otra foto.")
-                setProcesando(false)
+            } catch (e) {
+                console.error("Error al recortar imagen:", e)
+                // Fallback: devolver la imagen original completa
+                try {
+                    const resp = await fetch(imageUrl)
+                    const blob = await resp.blob()
+                    onCropComplete(blob)
+                } catch {
+                    setErrorRecorte("Error al procesar la imagen. Intenta con otra foto.")
+                    setProcesando(false)
+                }
             }
         }
-    }, [imageUrl, croppedAreaPixels, onCropComplete, procesando, resolveCropRect, fondo])
+    }, [imageUrl, croppedAreaPixels, onCropComplete, procesando, resolveCropRect, fondo, onGeometryChange, imageNaturalSize])
 
     // ── Texto contextual del zoom ──
     const zoomLabel = useMemo(() => {

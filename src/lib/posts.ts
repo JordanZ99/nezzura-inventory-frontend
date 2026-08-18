@@ -8,6 +8,20 @@
 
 import type { PostConfig, PostOverride, Producto } from "@/lib/api"
 
+/**
+ * Geometría de recorte de la foto (fracciones de la imagen natural, 0-1).
+ * En zoom out pueden salir de rango (fx/fy negativos, fw/fh > 1) con el área
+ * vacía rellena del color de `fondo`. El render re-encuadra la foto con esto,
+ * sin subir ningún recorte.
+ */
+export interface CropFoto {
+    fx: number
+    fy: number
+    fw: number
+    fh: number
+    fondo: "blanco" | "negro"
+}
+
 /** Configuración efectiva de una tarjeta (override del producto || defaults del negocio). */
 export interface ConfigResuelta {
     template: string
@@ -106,6 +120,8 @@ export function construirUrlPreview(opts: {
     sello?: string
     /** Overlay: false apaga el velo degradado (panel detrás del texto). Del momento, no se guarda. */
     velo?: boolean
+    /** Recorte de la foto (del momento, no se guarda): fracciones de la imagen. */
+    fotoCrop?: CropFoto
 }): string {
     const params = new URLSearchParams()
     params.set("template", opts.cfg.template)
@@ -120,6 +136,13 @@ export function construirUrlPreview(opts: {
     if (opts.logo) params.set("logo", opts.logo)
     if (opts.sello) params.set("sello", opts.sello)
     if (opts.velo === false) params.set("velo", "0")
+    if (opts.fotoCrop) {
+        params.set("foto_x", String(opts.fotoCrop.fx))
+        params.set("foto_y", String(opts.fotoCrop.fy))
+        params.set("foto_w", String(opts.fotoCrop.fw))
+        params.set("foto_h", String(opts.fotoCrop.fh))
+        params.set("foto_fondo", opts.fotoCrop.fondo)
+    }
     if (opts.cfg.colorPrimario) params.set("color_primario", opts.cfg.colorPrimario)
     if (opts.cfg.colorSecundario) params.set("color_secundario", opts.cfg.colorSecundario)
     return `${opts.origin}/posts/${encodeURIComponent(opts.producto)}?${params.toString()}`

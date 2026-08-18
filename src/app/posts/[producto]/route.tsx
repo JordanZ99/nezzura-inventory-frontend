@@ -10,6 +10,7 @@
 // GET /posts/{producto}?template=marco&font=moderna&formato=post
 //     &posicion=abajo&mostrar={...}&precio=35&sufijo=c%2Fu&foto=...&negocio=...&logo=...
 //     &color_primario=...&color_secundario=...&velo=0
+//     &foto_x=...&foto_y=...&foto_w=...&foto_h=...&foto_fondo=blanco  (recorte del momento)
 //
 // Plantillas:
 //   - "marco"   (polaroid): la foto va INSET dentro de un marco blanco que
@@ -193,6 +194,33 @@ function contrasteTexto(hex: string): string {
     return lum > 0.55 ? "#1a1d21" : "#ffffff"
 }
 
+/**
+ * Estilos del recorte de la foto (del momento): la imagen se dibuja a mayor
+ * tamaño dentro del contenedor y se desplaza para que el rectángulo visible
+ * coincida con el recorte elegido (Satori no soporta object-position, así que
+ * se usa una imagen absoluta sobredimensionada + overflow hidden).
+ *
+ * fw/fh = fracción visible de la imagen (0-1); fx/fy = esquina del rect en
+ * fracciones de la imagen. En zoom out (fw/fh > 1) el área vacía se rellena
+ * con el color de `fondo`.
+ */
+function estilosFotoConCrop(ctx: CtxTarjeta) {
+    if (ctx.fotoFw > 0 && ctx.fotoFh > 0) {
+        return {
+            img: {
+                position: "absolute" as const,
+                width: `${(1 / ctx.fotoFw) * 100}%`,
+                height: `${(1 / ctx.fotoFh) * 100}%`,
+                left: `${-(ctx.fotoFx / ctx.fotoFw) * 100}%`,
+                top: `${-(ctx.fotoFy / ctx.fotoFh) * 100}%`,
+                display: "block",
+            },
+            bg: ctx.fotoFondo === "negro" ? "#000000" : "#ffffff",
+        }
+    }
+    return { img: {} as const, bg: "" }
+}
+
 // ── Contexto resuelto por request (todo lo que las plantillas necesitan) ──
 interface CtxTarjeta {
     W: number
@@ -215,6 +243,12 @@ interface CtxTarjeta {
     colorPrimario: string    // hex o '' = automático por plantilla (NOMBRE + NEGOCIO)
     colorSecundario: string  // hex o '' = azul por defecto (PRECIO + fondo sin foto)
     velo: boolean        // Overlay: true = velo degradado sobre la foto (default); false = sin velo (texto directo sobre la foto)
+    // Recorte del momento (fracciones de la imagen natural; 0 = sin recorte)
+    fotoFx: number
+    fotoFy: number
+    fotoFw: number
+    fotoFh: number
+    fotoFondo: string    // 'blanco' | 'negro' — relleno del área vacía en zoom out
 }
 
 /**
@@ -342,6 +376,8 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
     const colorSecundario = ctx.colorSecundario || AZUL_DEFAULT
     const colorNegocio = ctx.colorPrimario || GRIS_NEGOCIO
     const fondoFoto = ctx.colorSecundario || AZUL_DEFAULT   // sin foto → el secundario es el fondo
+    const cropEstilos = estilosFotoConCrop(ctx)
+    const tieneCropFoto = ctx.fotoFw > 0 && ctx.fotoFh > 0
 
     const altoTexto = Math.round(
         fontNombre * 1.25 * 2 +          // nombre (hasta 2 líneas)
@@ -371,7 +407,7 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
                     height: altoFoto,
                     borderRadius: Math.round(18 * escala),
                     overflow: "hidden",
-                    background: tieneFoto ? "#f1f3f5" : fondoFoto,
+                    background: tieneFoto ? (cropEstilos.bg || "#f1f3f5") : fondoFoto,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -381,10 +417,10 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
                 {tieneFoto ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                        src={fotoComoPng(foto, 1000)}
+                        src={fotoComoPng(foto, tieneCropFoto ? Math.round(1000 / ctx.fotoFw) : 1000)}
                         width="100%"
                         height="100%"
-                        style={{ objectFit: "cover" }}
+                        style={{ objectFit: "cover", ...cropEstilos.img }}
                         alt=""
                     />
                 ) : (
@@ -448,6 +484,8 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
     const { W, H, escala, familiaCss, fontNombre, fontPrecio, fontNegocio, nombre, precioFinal, precioTexto, tieneFoto, foto, mostrar, posicion } = ctx
     const arriba = posicion === "arriba"
     const pad = Math.round(W * 0.07)
+    const cropEstilos = estilosFotoConCrop(ctx)
+    const tieneCropFoto = ctx.fotoFw > 0 && ctx.fotoFh > 0
     const colorSecundario = ctx.colorSecundario || AZUL_DEFAULT
     const colorNombre = ctx.colorPrimario || BLANCO_OVERLAY
     const colorNegocio = ctx.colorPrimario || GRIS_NEGOCIO_OVERLAY
@@ -477,7 +515,7 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                     width: "100%",
                     height: "100%",
                     overflow: "hidden",
-                    background: tieneFoto ? "#14171c" : "transparent",
+                    background: tieneFoto ? (cropEstilos.bg || "#14171c") : "transparent",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -486,10 +524,10 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                 {tieneFoto ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                        src={fotoComoPng(foto, W)}
+                        src={fotoComoPng(foto, tieneCropFoto ? Math.round(W / ctx.fotoFw) : W)}
                         width="100%"
                         height="100%"
-                        style={{ objectFit: "cover" }}
+                        style={{ objectFit: "cover", ...cropEstilos.img }}
                         alt=""
                     />
                 ) : (
@@ -592,6 +630,13 @@ export async function GET(request: Request, { params }: { params: { producto: st
     const sello = q.get("sello") || ""
     // Velo del Overlay (del momento): velo=0 lo apaga (el texto va sin fondo sobre la foto)
     const velo = q.get("velo") !== "0"
+    // Recorte de la foto (del momento): fracciones 0-1 de la imagen natural
+    const num = (s: string | null, def: number) => { const v = Number(s); return Number.isFinite(v) ? v : def }
+    const fotoFx = num(q.get("foto_x"), 0)
+    const fotoFy = num(q.get("foto_y"), 0)
+    const fotoFw = num(q.get("foto_w"), 0)
+    const fotoFh = num(q.get("foto_h"), 0)
+    const fotoFondo = q.get("foto_fondo") === "negro" ? "negro" : "blanco"
     // Colores de texto personalizables ('' o hex inválido = automático por plantilla)
     const esHex = (s: string) => /^#[0-9a-fA-F]{6}$/.test(s)
     const colorPrimario = esHex(q.get("color_primario") || "") ? q.get("color_primario")! : ""
@@ -628,6 +673,7 @@ export async function GET(request: Request, { params }: { params: { producto: st
         nombre, precioTexto, precioFinal, tieneFoto, foto,
         negocio, logo, mostrar, posicion, sello,
         colorPrimario, colorSecundario, velo,
+        fotoFx, fotoFy, fotoFw, fotoFh, fotoFondo,
     }
 
     // Plantilla desconocida (incl. la vieja "tarjeta") → Marco (nunca rota)
