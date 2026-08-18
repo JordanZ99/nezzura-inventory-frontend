@@ -6,8 +6,8 @@
 // - Vista previa EN VIVO: la URL de la tarjeta se regenera sola con debounce
 //   (~300ms) al tocar cualquier control; la imagen la renderiza la ruta edge
 //   /posts/[producto] (Satori, mismo motor que el opengraph del catálogo).
-// - Las 3 plantillas (Marco / Sobre la foto / Tarjeta) + posición del texto
-//   (solo Overlay) + 3 formatos (post / historia / cuadrado).
+// - Las 2 plantillas (Marco / Sobre la foto) + posición del texto (solo
+//   Overlay) + 3 formatos (post / historia / cuadrado).
 // - Elegir foto de la galería (Plan Plus) para la tarjeta.
 // - Configuración en cascada: el modal arranca con el override del producto si
 //   existe (productos.post_override) y si no con los defaults del negocio
@@ -31,14 +31,6 @@ interface Props {
     /** Se dispara al guardar/quitar el override para refrescar el inventario en memoria. */
     onOverrideGuardado?: (override: PostOverride | null) => void
 }
-
-const OPCIONES_COLOR: { clave: string; nombre: string; color: string }[] = [
-    { clave: "default", nombre: "Azul", color: "#3a7dbf" },
-    { clave: "midnightBlack", nombre: "Noche", color: "#1e6456" },
-    { clave: "strawberry", nombre: "Fresa", color: "#f33376" },
-    { clave: "cozyYellow", nombre: "Cálido", color: "#f59e0b" },
-    { clave: "white", nombre: "Blanco", color: "#f2f2ef" },
-]
 
 // Colores de TEXTO personalizables: primario = nombre + negocio (juntos),
 // secundario = precio. Incluye Negro (el default de Marco/Tarjeta era casi
@@ -73,13 +65,11 @@ const MOSTRAR_OPCIONES: { clave: "nombre" | "precio" | "negocio"; nombre: string
 const OPCIONES_PLANTILLA: { clave: string; nombre: string }[] = [
     { clave: "marco", nombre: "Marco" },
     { clave: "overlay", nombre: "Sobre la foto" },
-    { clave: "tarjeta", nombre: "Tarjeta" },
 ]
 
 const DESCRIPCIONES_PLANTILLA: Record<string, string> = {
-    marco: "Marco (polaroid): la foto va dentro del marco y el texto nunca la tapa.",
-    overlay: "Sobre la foto: el texto va encima con un velo oscuro degradado para que siempre se lea.",
-    tarjeta: "Tarjeta (full-bleed): foto arriba a sangre y el texto debajo, sobre el color del negocio.",
+    marco: "Marco (polaroid): la foto va dentro del marco y el texto nunca la tapa. Sin foto, el área de la foto usa el color secundario (azul por defecto).",
+    overlay: "Sobre la foto: el texto va encima con un velo oscuro degradado para que siempre se lea. Sin foto, el color secundario es el fondo.",
 }
 
 const OPCIONES_POSICION: { clave: string; nombre: string }[] = [
@@ -208,11 +198,9 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
         try {
             const ov: PostOverride = {
                 template: cfg.template,
-                color: cfg.color,
                 font: cfg.font,
                 posicion: cfg.posicion,
                 mostrar: cfg.mostrar,
-                cta: cfg.ctaTexto ? { texto: cfg.ctaTexto } : undefined,
                 color_primario: cfg.colorPrimario || undefined,
                 color_secundario: cfg.colorSecundario || undefined,
             }
@@ -252,21 +240,17 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
             const nuevos: PostConfig = {
                 tenant_id: defaults?.tenant_id || "",
                 template_default: cfg.template,
-                color: cfg.color,
                 font: cfg.font,
                 posicion: cfg.posicion,
                 mostrar: cfg.mostrar,
-                cta_texto: cfg.ctaTexto || "",
                 color_primario: cfg.colorPrimario,
                 color_secundario: cfg.colorSecundario,
             }
             await api.actualizarPostConfig({
                 template_default: cfg.template,
-                color: cfg.color,
                 font: cfg.font,
                 posicion: cfg.posicion,
                 mostrar: cfg.mostrar,
-                cta_texto: cfg.ctaTexto || "",
                 color_primario: cfg.colorPrimario,
                 color_secundario: cfg.colorSecundario,
             })
@@ -488,28 +472,6 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                             </div>
                         )}
 
-                        {/* Color */}
-                        <div>
-                            <LabelControles>Color de acento</LabelControles>
-                            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                                {OPCIONES_COLOR.map(c => (
-                                    <button
-                                        key={c.clave}
-                                        title={c.nombre}
-                                        onClick={() => setCfg(p => p ? { ...p, color: c.clave } : p)}
-                                        style={{
-                                            width: 34, height: 34, borderRadius: "50%", cursor: "pointer",
-                                            background: c.color,
-                                            border: cfg?.color === c.clave ? "3px solid var(--primary-mid)" : "2px solid var(--border-primary)",
-                                            outline: cfg?.color === c.clave ? "2px solid var(--primary-glow)" : "none",
-                                            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-                                            transition: "all 0.15s",
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
                         {/* Colores de texto: primario (nombre + negocio) y secundario (precio) */}
                         <div>
                             <LabelControles>Color del texto (nombre y negocio)</LabelControles>
@@ -528,7 +490,7 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                                 onChange={v => setCfg(s => (s ? { ...s, colorSecundario: v } : s))}
                             />
                             <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
-                                "Por defecto" usa el acento de la paleta (o blanco sobre la foto en Sobre la foto).
+                                "Por defecto" usa azul (sobre la foto en Sobre la foto usa el azul igual).
                             </p>
                         </div>
 
@@ -629,27 +591,6 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                             </div>
                             <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
                                 Sello de la esquina (Oferta / Agotado / Nuevo). No se guarda: es del momento.
-                            </p>
-                        </div>
-
-                        {/* CTA configurable (Fase 4, §9.4) */}
-                        <div>
-                            <LabelControles>Botón (CTA)</LabelControles>
-                            <input
-                                type="text"
-                                value={cfg?.ctaTexto || ""}
-                                onChange={e => setCfg(s => (s ? { ...s, ctaTexto: e.target.value } : s))}
-                                placeholder="Ej. Pedir por WhatsApp"
-                                maxLength={40}
-                                style={{
-                                    width: "100%", boxSizing: "border-box", borderRadius: 10,
-                                    padding: "9px 12px", border: "1px solid var(--border-primary)",
-                                    background: "var(--bg-card2)", color: "var(--text-main)",
-                                    fontSize: "0.8rem", fontWeight: 600, fontFamily: "inherit",
-                                }}
-                            />
-                            <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
-                                Texto del botón en la tarjeta (vacío = sin botón). Se guarda en el override o en los defaults.
                             </p>
                         </div>
 

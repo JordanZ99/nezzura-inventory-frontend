@@ -7,17 +7,26 @@
 // el frontend construye la URL con los datos del producto + la config resuelta
 // (defaults del negocio u override del producto) y aquí solo se dibuja.
 //
-// GET /posts/{producto}?template=marco&color=default&font=moderna&formato=post
+// GET /posts/{producto}?template=marco&font=moderna&formato=post
 //     &posicion=abajo&mostrar={...}&precio=35&sufijo=c%2Fu&foto=...&negocio=...&logo=...
+//     &color_primario=...&color_secundario=...
 //
-// Plantillas (Fase 1 + Fase 2):
-//   - "marco"    (polaroid): la foto va INSET dentro de un marco blanco con
-//                sombra; el texto vive en el marco, NUNCA sobre la foto.
-//   - "overlay"  (sobre la foto): el texto va sobre la foto con posición
-//                configurable (arriba/abajo) y un velo oscuro degradado detrás
-//                para legibilidad garantizada.
-//   - "tarjeta"  (full-bleed): foto arriba a sangre y bloque de texto debajo
-//                sobre el color de acento del negocio.
+// Plantillas:
+//   - "marco"   (polaroid): la foto va INSET dentro de un marco blanco que
+//               ocupa TODO el canvas (full-bleed, esquinas cuadradas — así la
+//               imagen queda lista para Instagram/redes). El texto vive en el
+//               marco, NUNCA sobre la foto. Sin foto → el área de la foto usa
+//               el color secundario (default azul) como fondo.
+//   - "overlay" (sobre la foto): la foto a sangre con velo oscuro degradado
+//               (posición configurable arriba/abajo). Sin foto → el color
+//               secundario (default azul) es el fondo de toda la tarjeta.
+//
+// Sin paletas de acento: el color del texto lo decide color_primario (nombre +
+// negocio) y color_secundario (precio). '' o hex inválido → automático:
+//   - primario: Marco casi negro, Overlay blanco (sobre el velo/fondo).
+//   - secundario: AZUL por defecto (#2c5f8f); sin foto el fondo es el secundario
+//     y el precio usa contraste automático sobre él.
+//
 // Formatos: post 4:5 (1080×1350), historia 9:16 (1080×1920), cuadrado 1:1
 // (1200×1200). Fuentes: moderna (Inter), elegante (Playfair Display),
 // redondeada (Nunito).
@@ -34,20 +43,12 @@ const FORMATOS: Record<string, { width: number; height: number }> = {
     cuadrado: { width: 1200, height: 1200 },  // 1:1
 }
 
-// ── Paletas de color (mismas claves que TEMAS en opengraph-image.tsx, + blanco) ──
-// `from`/`to` = gradiente de fondo del canvas; `acento` = color del precio en
-// Marco; `sobreOscuro` = color del precio sobre el velo oscuro del Overlay
-// (los `acento` son oscuros y se perderían sobre negro); `texto` = color del
-// texto sobre el gradiente en Tarjeta (blanco salvo en fondos claros).
-interface Paleta { from: string; to: string; acento: string; sobreOscuro: string; texto: string }
-
-const PALETAS: Record<string, Paleta> = {
-    default:       { from: "#3a7dbf", to: "#5e87a4", acento: "#2c5f8f", sobreOscuro: "#5ea0e0", texto: "#ffffff" },
-    midnightBlack: { from: "#1f2321", to: "#1e6456", acento: "#14b8a6", sobreOscuro: "#14b8a6", texto: "#ffffff" },
-    strawberry:    { from: "#f33376", to: "#fa30df", acento: "#d12e6a", sobreOscuro: "#ff5c9d", texto: "#ffffff" },
-    cozyYellow:    { from: "#ffd05b", to: "#eb7456", acento: "#d97706", sobreOscuro: "#ffd05b", texto: "#241f12" },
-    white:         { from: "#f2f2ef", to: "#e4e2dc", acento: "#3a3a36", sobreOscuro: "#ffffff", texto: "#1f2937" },
-}
+// ── Colores por defecto (sin paletas) ──
+const AZUL_DEFAULT = "#2c5f8f"          // color secundario por defecto (precio + fondo sin foto)
+const NEGRO_MARCO = "#1f2937"           // primario por defecto en Marco (casi negro, como siempre)
+const GRIS_NEGOCIO = "#6b7280"          // negocio por defecto en Marco (gris)
+const BLANCO_OVERLAY = "#ffffff"        // primario por defecto en Overlay (sobre el velo)
+const GRIS_NEGOCIO_OVERLAY = "#e5e7eb"  // negocio por defecto en Overlay
 
 // ── Fuentes: familia CSS → archivos TTF empaquetados junto a la ruta ──
 // Satori necesita los TTF; `new URL(..., import.meta.url)` los empaqueta con la
@@ -162,8 +163,8 @@ function fotoComoPng(url: string, ancho: number): string {
 
 /**
  * Recorta el nombre según la plantilla: el marco está dimensionado para 2
- * líneas como MÁXIMO (44 chars); Overlay/Tarjeta tienen más espacio y toleran
- * 3 líneas (66 chars). Un nombre más largo desbordaría la tarjeta.
+ * líneas como MÁXIMO (44 chars); Overlay tiene más espacio y tolera 3 líneas
+ * (66 chars). Un nombre más largo desbordaría la tarjeta.
  */
 function acortarNombre(nombre: string, max = 44): string {
     const limpio = (nombre || "").trim()
@@ -181,7 +182,7 @@ function formatearPrecio(valor: number): string {
 /**
  * Decide el color del texto sobre un fondo dado (luminancia simple):
  * blanco sobre fondos oscuros, casi-negro sobre fondos claros. Se usa en el
- * pill del precio de la Tarjeta cuando el usuario elige un color secundario.
+ * precio cuando el fondo sin foto ES el color secundario.
  */
 function contrasteTexto(hex: string): string {
     const h = hex.replace("#", "")
@@ -197,7 +198,6 @@ interface CtxTarjeta {
     W: number
     H: number
     escala: number
-    paleta: Paleta
     familiaCss: string
     fontNombre: number
     fontPrecio: number
@@ -212,13 +212,16 @@ interface CtxTarjeta {
     mostrar: { nombre?: boolean; precio?: boolean; negocio?: boolean }
     posicion: string
     sello: string        // '' | 'oferta' | 'agotado' | 'nuevo' (Fase 4: sticker en la esquina)
-    ctaTexto: string     // texto del botón CTA (Fase 4, §9.4); '' = sin CTA
     colorPrimario: string    // hex o '' = automático por plantilla (NOMBRE + NEGOCIO)
-    colorSecundario: string  // hex o '' = automático por plantilla (PRECIO)
+    colorSecundario: string  // hex o '' = azul por defecto (PRECIO + fondo sin foto)
 }
 
-/** Placeholder elegante "SIN FOTO": panel gris con un "lente" (nunca imagen rota). */
-function Placeholder({ escala }: { escala: number }) {
+/**
+ * Placeholder elegante "SIN FOTO": se adapta al fondo (lente + texto en el
+ * color de contraste del fondo). Sin foto, el fondo es el color secundario.
+ */
+function Placeholder({ escala, fondo }: { escala: number; fondo: string }) {
+    const fg = contrasteTexto(fondo)
     return (
         <div
             style={{
@@ -234,15 +237,17 @@ function Placeholder({ escala }: { escala: number }) {
                     width: Math.round(120 * escala),
                     height: Math.round(120 * escala),
                     borderRadius: 999,
-                    border: `${Math.round(10 * escala)}px solid #d7dade`,
-                    background: "#e7eaee",
+                    border: `${Math.round(10 * escala)}px solid ${fg}`,
+                    opacity: 0.55,
+                    background: "transparent",
                 }}
             />
             <div
                 style={{
                     fontSize: Math.round(22 * escala),
                     fontWeight: 700,
-                    color: "#9aa1a9",
+                    color: fg,
+                    opacity: 0.85,
                     letterSpacing: 1,
                 }}
             >
@@ -254,7 +259,7 @@ function Placeholder({ escala }: { escala: number }) {
 
 /**
  * Sello/sticker de la esquina (Fase 4): OFERTA / AGOTADO / NUEVO.
- * Se dibuja sobre la foto (consistente en las 3 plantillas).
+ * Se dibuja sobre la foto (consistente en las 2 plantillas).
  */
 function Sello({ sello, escala }: { sello: string; escala: number }) {
     const estilos: Record<string, { bg: string; label: string }> = {
@@ -285,31 +290,7 @@ function Sello({ sello, escala }: { sello: string; escala: number }) {
     )
 }
 
-/** Botón CTA (Fase 4, §9.4): pill con el texto del negocio; '' = no se dibuja. */
-function BotonCta({ ctx, fondo, color }: { ctx: CtxTarjeta; fondo: string; color: string }) {
-    const { escala, ctaTexto } = ctx
-    if (!ctaTexto) return null
-    return (
-        <div
-            style={{
-                alignSelf: "flex-start",
-                marginTop: Math.round(16 * escala),
-                background: fondo,
-                color,
-                fontSize: Math.round(32 * escala),
-                fontWeight: 800,
-                letterSpacing: 0.2,
-                padding: `${Math.round(12 * escala)}px ${Math.round(26 * escala)}px`,
-                borderRadius: Math.round(18 * escala),
-                boxShadow: "0 3px 10px rgba(0,0,0,0.18)",
-            }}
-        >
-            {ctaTexto}
-        </div>
-    )
-}
-
-/** Bloque de negocio (logo circular + nombre) — común a las 3 plantillas. */
+/** Bloque de negocio (logo circular + nombre) — común a las 2 plantillas. */
 function BloqueNegocio({ ctx, color }: { ctx: CtxTarjeta; color: string }) {
     const { escala, fontNegocio, negocio, logo } = ctx
     if (!negocio) return null
@@ -347,26 +328,28 @@ function BloqueNegocio({ ctx, color }: { ctx: CtxTarjeta; color: string }) {
 }
 
 // ==============================================================================
-// Plantilla "Marco" (polaroid) — Fase 1
-// Foto INSET dentro de un marco blanco con sombra; texto en el marco, nunca
-// sobre la foto. La foto ocupa el espacio restante del marco tras el texto.
+// Plantilla "Marco" (polaroid full-bleed)
+// El marco blanco ocupa TODO el canvas (esquinas cuadradas: listo para
+// Instagram/redes). La foto va INSET dentro del marco y el texto vive en el
+// marco, nunca sobre la foto. Sin foto → el área de la foto usa el color
+// secundario (default azul) como fondo.
 // ==============================================================================
 function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
-    const { W, H, escala, paleta, familiaCss, fontNombre, fontPrecio, fontNegocio, nombre, precioFinal, precioTexto, tieneFoto, foto, mostrar } = ctx
-    const paddingTarjeta = Math.round(W * 0.045)     // margen interno del marco
-    const anchoTarjeta = Math.round(W * 0.82)
-    const hayCta = Boolean(ctx.ctaTexto)
+    const { W, H, escala, familiaCss, fontNombre, fontPrecio, fontNegocio, nombre, precioFinal, precioTexto, tieneFoto, foto, mostrar } = ctx
+    const paddingTarjeta = Math.round(W * 0.05)     // margen interno (look polaroid)
+    const colorPrimario = ctx.colorPrimario || NEGRO_MARCO
+    const colorSecundario = ctx.colorSecundario || AZUL_DEFAULT
+    const colorNegocio = ctx.colorPrimario || GRIS_NEGOCIO
+    const fondoFoto = ctx.colorSecundario || AZUL_DEFAULT   // sin foto → el secundario es el fondo
 
     const altoTexto = Math.round(
         fontNombre * 1.25 * 2 +          // nombre (hasta 2 líneas)
         fontPrecio * 1.2 +
         fontNegocio * 1.3 +
         16 * escala +                     // gap entre bloques
-        8 * escala +
-        (hayCta ? 84 * escala : 0)        // botón CTA (Fase 4): alto + margen
+        8 * escala
     )
-    const altoTarjeta = Math.round(H * 0.84)
-    const altoFoto = Math.max(200, altoTarjeta - paddingTarjeta * 2 - altoTexto - Math.round(24 * escala))
+    const altoFoto = Math.max(200, H - paddingTarjeta * 2 - altoTexto - Math.round(24 * escala))
 
     return (
         <div
@@ -374,118 +357,102 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
                 width: "100%",
                 height: "100%",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: `linear-gradient(150deg, ${paleta.from} 0%, ${paleta.to} 100%)`,
+                flexDirection: "column",
+                background: "#ffffff",
                 fontFamily: familiaCss,
-                padding: Math.round(W * 0.06),
+                padding: paddingTarjeta,
             }}
         >
+            {/* Foto inset (nunca se le superpone texto); sin foto → fondo secundario */}
             <div
                 style={{
-                    width: anchoTarjeta,
-                    height: altoTarjeta,
+                    width: "100%",
+                    height: altoFoto,
+                    borderRadius: Math.round(18 * escala),
+                    overflow: "hidden",
+                    background: tieneFoto ? "#f1f3f5" : fondoFoto,
                     display: "flex",
-                    flexDirection: "column",
-                    background: "#ffffff",
-                    borderRadius: Math.round(34 * escala),
-                    padding: paddingTarjeta,
-                    boxShadow: `0 ${Math.round(36 * escala)}px ${Math.round(80 * escala)}px rgba(0,0,0,0.35)`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
                 }}
             >
-                {/* Foto inset (nunca se le superpone texto) */}
-                <div
-                    style={{
-                        width: "100%",
-                        height: altoFoto,
-                        borderRadius: Math.round(18 * escala),
-                        overflow: "hidden",
-                        background: "#f1f3f5",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        position: "relative",
-                    }}
-                >
-                    {tieneFoto ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={fotoComoPng(foto, 1000)}
-                            width="100%"
-                            height="100%"
-                            style={{ objectFit: "cover" }}
-                            alt=""
-                        />
-                    ) : (
-                        <Placeholder escala={escala} />
-                    )}
-                    <Sello sello={ctx.sello} escala={escala} />
-                </div>
+                {tieneFoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={fotoComoPng(foto, 1000)}
+                        width="100%"
+                        height="100%"
+                        style={{ objectFit: "cover" }}
+                        alt=""
+                    />
+                ) : (
+                    <Placeholder escala={escala} fondo={fondoFoto} />
+                )}
+                <Sello sello={ctx.sello} escala={escala} />
+            </div>
 
-                {/* ── Texto en el marco (debajo de la foto) ── */}
-                <div
-                    style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        flex: 1,
-                        padding: `${Math.round(24 * escala)}px ${Math.round(6 * escala)}px 0`,
-                    }}
-                >
-                    {mostrar.nombre !== false && nombre && (
-                        <div
-                            style={{
-                                fontSize: fontNombre,
-                                fontWeight: 800,
-                                color: ctx.colorPrimario || "#1f2937",
-                                lineHeight: 1.15,
-                                letterSpacing: -0.5,
-                            }}
-                        >
-                            {nombre}
-                        </div>
-                    )}
-                    {mostrar.precio !== false && precioTexto && (
-                        <div
-                            style={{
-                                fontSize: fontPrecio,
-                                fontWeight: 800,
-                                color: ctx.colorSecundario || paleta.acento,
-                                marginTop: Math.round(6 * escala),
-                                letterSpacing: -0.5,
-                            }}
-                        >
-                            {precioFinal}
-                        </div>
-                    )}
-                    {mostrar.negocio !== false && (
-                        <BloqueNegocio ctx={ctx} color={ctx.colorPrimario || "#6b7280"} />
-                    )}
-                    <BotonCta ctx={ctx} fondo={paleta.acento} color="#ffffff" />
-                </div>
+            {/* ── Texto en el marco (debajo de la foto) ── */}
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    flex: 1,
+                    padding: `${Math.round(24 * escala)}px ${Math.round(6 * escala)}px 0`,
+                }}
+            >
+                {mostrar.nombre !== false && nombre && (
+                    <div
+                        style={{
+                            fontSize: fontNombre,
+                            fontWeight: 800,
+                            color: colorPrimario,
+                            lineHeight: 1.15,
+                            letterSpacing: -0.5,
+                        }}
+                    >
+                        {nombre}
+                    </div>
+                )}
+                {mostrar.precio !== false && precioTexto && (
+                    <div
+                        style={{
+                            fontSize: fontPrecio,
+                            fontWeight: 800,
+                            color: colorSecundario,
+                            marginTop: Math.round(6 * escala),
+                            letterSpacing: -0.5,
+                        }}
+                    >
+                        {precioFinal}
+                    </div>
+                )}
+                {mostrar.negocio !== false && (
+                    <BloqueNegocio ctx={ctx} color={colorNegocio} />
+                )}
             </div>
         </div>
     )
 }
 
 // ==============================================================================
-// Plantilla "Overlay" (texto sobre la foto) — Fase 2
+// Plantilla "Overlay" (texto sobre la foto)
 // La foto ocupa TODO el canvas; el texto va sobre ella con posición
 // configurable (arriba/abajo) y un velo oscuro degradado detrás para que
-// siempre se lea. Sin foto → fondo de paleta con el placeholder.
+// siempre se lea. Sin foto → el color secundario (default azul) es el fondo
+// de toda la tarjeta y el precio usa contraste automático sobre él.
 // ==============================================================================
 function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
-    const { W, H, escala, paleta, familiaCss, fontNombre, fontPrecio, fontNegocio, nombre, precioFinal, precioTexto, tieneFoto, foto, mostrar, posicion } = ctx
+    const { W, H, escala, familiaCss, fontNombre, fontPrecio, fontNegocio, nombre, precioFinal, precioTexto, tieneFoto, foto, mostrar, posicion } = ctx
     const arriba = posicion === "arriba"
     const pad = Math.round(W * 0.07)
-
-    // Con foto el texto va sobre el velo oscuro (blanco); sin foto, sobre el
-    // gradiente de la paleta (usa los colores de contraste de la paleta).
-    // color_primario (si el usuario lo eligió) aplica a NOMBRE + NEGOCIO a la
-    // vez; color_secundario al PRECIO.
-    const colorNombre = ctx.colorPrimario || (tieneFoto ? "#ffffff" : paleta.texto)
-    const colorPrecio = ctx.colorSecundario || (tieneFoto ? paleta.sobreOscuro : paleta.acento)
-    const colorNegocio = ctx.colorPrimario || (tieneFoto ? "#e5e7eb" : paleta.texto)
+    const colorSecundario = ctx.colorSecundario || AZUL_DEFAULT
+    const colorNombre = ctx.colorPrimario || BLANCO_OVERLAY
+    const colorNegocio = ctx.colorPrimario || GRIS_NEGOCIO_OVERLAY
+    // Precio: el secundario elegido. Sin foto el fondo ES el secundario → el
+    // precio usa contraste automático para no perderse sobre su propio color.
+    const colorPrecio = tieneFoto ? colorSecundario : contrasteTexto(colorSecundario)
 
     return (
         <div
@@ -496,7 +463,7 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: arriba ? "flex-start" : "flex-end",
-                background: `linear-gradient(150deg, ${paleta.from} 0%, ${paleta.to} 100%)`,
+                background: tieneFoto ? "#14171c" : colorSecundario,
                 fontFamily: familiaCss,
             }}
         >
@@ -509,8 +476,6 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                     width: "100%",
                     height: "100%",
                     overflow: "hidden",
-                    // Sin foto, transparente: se ve el gradiente de la paleta
-                    // (el texto sin foto usa los colores de contraste de la paleta).
                     background: tieneFoto ? "#14171c" : "transparent",
                     display: "flex",
                     alignItems: "center",
@@ -527,7 +492,7 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                         alt=""
                     />
                 ) : (
-                    <Placeholder escala={escala} />
+                    <Placeholder escala={escala} fondo={colorSecundario} />
                 )}
             </div>
 
@@ -590,120 +555,6 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                 {mostrar.negocio !== false && (
                     <BloqueNegocio ctx={ctx} color={colorNegocio} />
                 )}
-                {/* CTA: blanco con texto oscuro (máximo contraste sobre el velo) */}
-                <BotonCta ctx={ctx} fondo="#ffffff" color="#1a1d21" />
-            </div>
-        </div>
-    )
-}
-
-// ==============================================================================
-// Plantilla "Tarjeta" (full-bleed) — Fase 2
-// Foto arriba a sangre completa (~55% del alto) y bloque de texto debajo sobre
-// el gradiente de la paleta del negocio. El precio va en un "pill" de alto
-// contraste (look de catálogo). Es el opengraph-image.tsx con datos reales.
-// ==============================================================================
-function PlantillaTarjeta({ ctx }: { ctx: CtxTarjeta }) {
-    const { W, H, escala, paleta, familiaCss, fontNombre, fontPrecio, fontNegocio, nombre, precioFinal, precioTexto, tieneFoto, foto, mostrar } = ctx
-    const pad = Math.round(W * 0.07)
-    const altoFoto = Math.round(H * 0.55)
-    const colorTexto = ctx.colorPrimario || paleta.texto
-
-    // Pill del precio: invierte el contraste según el fondo (oscuro sobre
-    // claro y viceversa) para que siempre destaque sobre el gradiente.
-    // Si el usuario eligió color_secundario, el pill usa ESE color (con texto
-    // en contraste automático); el CTA conserva el pill por defecto de la paleta.
-    const fondoClaro = paleta.texto === "#ffffff"
-    const pillBgDefault = fondoClaro ? "rgba(255,255,255,0.94)" : "rgba(18,18,16,0.9)"
-    const pillColorDefault = fondoClaro ? "#1a1d21" : "#ffffff"
-    const pillBg = ctx.colorSecundario || pillBgDefault
-    const pillColor = ctx.colorSecundario ? contrasteTexto(ctx.colorSecundario) : pillColorDefault
-
-    return (
-        <div
-            style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                background: `linear-gradient(150deg, ${paleta.from} 0%, ${paleta.to} 100%)`,
-                fontFamily: familiaCss,
-            }}
-        >
-            {/* Foto a sangre arriba */}
-            <div
-                style={{
-                    width: "100%",
-                    height: altoFoto,
-                    flexShrink: 0,
-                    overflow: "hidden",
-                    background: "#14171c",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-                }}
-            >
-                {tieneFoto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={fotoComoPng(foto, W)}
-                        width="100%"
-                        height="100%"
-                        style={{ objectFit: "cover" }}
-                        alt=""
-                    />
-                ) : (
-                    <Placeholder escala={escala} />
-                )}
-                <Sello sello={ctx.sello} escala={escala} />
-            </div>
-
-            {/* Bloque de texto debajo, sobre el color de acento */}
-            <div
-                style={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    padding: pad,
-                }}
-            >
-                {mostrar.nombre !== false && nombre && (
-                    <div
-                        style={{
-                            fontSize: fontNombre,
-                            fontWeight: 800,
-                            color: colorTexto,
-                            lineHeight: 1.12,
-                            letterSpacing: -0.5,
-                        }}
-                    >
-                        {nombre}
-                    </div>
-                )}
-                {mostrar.precio !== false && precioTexto && (
-                    <div
-                        style={{
-                            fontSize: fontPrecio,
-                            fontWeight: 800,
-                            color: pillColor,
-                            background: pillBg,
-                            padding: `${Math.round(10 * escala)}px ${Math.round(22 * escala)}px`,
-                            borderRadius: Math.round(18 * escala),
-                            alignSelf: "flex-start",
-                            marginTop: Math.round(12 * escala),
-                            letterSpacing: -0.5,
-                        }}
-                    >
-                        {precioFinal}
-                    </div>
-                )}
-                {mostrar.negocio !== false && (
-                    <BloqueNegocio ctx={ctx} color={colorTexto} />
-                )}
-                {/* CTA con el mismo contraste invertido que el pill del precio */}
-                <BotonCta ctx={ctx} fondo={pillBgDefault} color={pillColorDefault} />
             </div>
         </div>
     )
@@ -715,7 +566,6 @@ export async function GET(request: Request, { params }: { params: { producto: st
 
     // ── Params (con defaults seguros) ──
     const template = q.get("template") || "marco"
-    const color = q.get("color") || "default"
     const font = q.get("font") || "moderna"
     const formato = q.get("formato") || "post"
     const posicion = q.get("posicion") || "abajo"
@@ -727,7 +577,7 @@ export async function GET(request: Request, { params }: { params: { producto: st
         // mostrar inválido → defaults
     }
 
-    // El marco está dimensionado para 2 líneas; Overlay/Tarjeta toleran 3.
+    // El marco está dimensionado para 2 líneas; Overlay tolera 3.
     const nombre = acortarNombre(
         q.get("nombre") || decodeURIComponent(params.producto) || "",
         template === "marco" ? 44 : 66
@@ -737,16 +587,14 @@ export async function GET(request: Request, { params }: { params: { producto: st
     const foto = q.get("foto") || ""
     const negocio = (q.get("negocio") || "").trim()
     const logo = q.get("logo") || ""
-    // Fase 4: sello ('' | oferta | agotado | nuevo) + CTA configurable (§9.4)
+    // Fase 4: sello ('' | oferta | agotado | nuevo)
     const sello = q.get("sello") || ""
-    const ctaTexto = (q.get("cta_texto") || "").trim()
     // Colores de texto personalizables ('' o hex inválido = automático por plantilla)
     const esHex = (s: string) => /^#[0-9a-fA-F]{6}$/.test(s)
     const colorPrimario = esHex(q.get("color_primario") || "") ? q.get("color_primario")! : ""
     const colorSecundario = esHex(q.get("color_secundario") || "") ? q.get("color_secundario")! : ""
 
     const dims = FORMATOS[formato] ?? FORMATOS.post
-    const paleta = PALETAS[color] ?? PALETAS.default
     const familia = FAMILIAS[font] ?? FAMILIAS.moderna
 
     // ── Cargar las fuentes de la familia elegida ──
@@ -772,17 +620,16 @@ export async function GET(request: Request, { params }: { params: { producto: st
     const precioFinal = sufijo ? `${precioTexto} · ${sufijo}` : precioTexto
 
     const ctx: CtxTarjeta = {
-        W, H, escala, paleta, familiaCss: familia.css,
+        W, H, escala, familiaCss: familia.css,
         fontNombre, fontPrecio, fontNegocio,
         nombre, precioTexto, precioFinal, tieneFoto, foto,
-        negocio, logo, mostrar, posicion, sello, ctaTexto,
+        negocio, logo, mostrar, posicion, sello,
         colorPrimario, colorSecundario,
     }
 
-    // Plantilla desconocida → Marco (nunca una tarjeta rota)
+    // Plantilla desconocida (incl. la vieja "tarjeta") → Marco (nunca rota)
     const contenido =
         template === "overlay" ? <PlantillaOverlay ctx={ctx} /> :
-        template === "tarjeta" ? <PlantillaTarjeta ctx={ctx} /> :
         <PlantillaMarco ctx={ctx} />
 
     // La tarjeta es una función pura de los query params (precio/foto incluidos

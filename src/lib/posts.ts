@@ -11,13 +11,11 @@ import type { PostConfig, PostOverride, Producto } from "@/lib/api"
 /** Configuración efectiva de una tarjeta (override del producto || defaults del negocio). */
 export interface ConfigResuelta {
     template: string
-    color: string
     font: string
     posicion: string
     mostrar: { nombre: boolean; precio: boolean; negocio: boolean }
-    ctaTexto: string
     // Colores de texto: '' = automático por plantilla. primario = NOMBRE +
-    // NEGOCIO (mismo color); secundario = PRECIO.
+    // NEGOCIO (mismo color); secundario = PRECIO (default azul).
     colorPrimario: string
     colorSecundario: string
 }
@@ -30,7 +28,6 @@ export function resolverConfig(override: PostOverride | null | undefined, defaul
     const d = defaults
     return {
         template: override?.template || d?.template_default || "marco",
-        color: override?.color || d?.color || "default",
         font: override?.font || d?.font || "moderna",
         posicion: override?.posicion || d?.posicion || "abajo",
         mostrar: {
@@ -38,7 +35,6 @@ export function resolverConfig(override: PostOverride | null | undefined, defaul
             precio: override?.mostrar?.precio ?? d?.mostrar?.precio ?? true,
             negocio: override?.mostrar?.negocio ?? d?.mostrar?.negocio ?? true,
         },
-        ctaTexto: override?.cta?.texto || d?.cta_texto || "",
         colorPrimario: override?.color_primario || d?.color_primario || "",
         colorSecundario: override?.color_secundario || d?.color_secundario || "",
     }
@@ -111,7 +107,6 @@ export function construirUrlPreview(opts: {
 }): string {
     const params = new URLSearchParams()
     params.set("template", opts.cfg.template)
-    params.set("color", opts.cfg.color)
     params.set("font", opts.cfg.font)
     params.set("posicion", opts.cfg.posicion)
     params.set("mostrar", JSON.stringify(opts.cfg.mostrar))
@@ -122,7 +117,6 @@ export function construirUrlPreview(opts: {
     if (opts.negocio) params.set("negocio", opts.negocio)
     if (opts.logo) params.set("logo", opts.logo)
     if (opts.sello) params.set("sello", opts.sello)
-    if (opts.cfg.ctaTexto) params.set("cta_texto", opts.cfg.ctaTexto)
     if (opts.cfg.colorPrimario) params.set("color_primario", opts.cfg.colorPrimario)
     if (opts.cfg.colorSecundario) params.set("color_secundario", opts.cfg.colorSecundario)
     return `${opts.origin}/posts/${encodeURIComponent(opts.producto)}?${params.toString()}`
