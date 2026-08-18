@@ -113,16 +113,22 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
 
     const tieneOverride = Boolean(producto.post_override)
 
-    // Fotos disponibles para la tarjeta: la principal + las de la galería
-    // (sin duplicados; la orden 1 de la galería es la principal).
+    // Fotos disponibles para la tarjeta: la principal + las de la galería +
+    // la foto de CADA variación (sin duplicados; la orden 1 de la galería es
+    // la principal). Cada opción lleva su etiqueta para saber qué es.
     const fotosDisponibles = useMemo(() => {
-        const set = new Set<string>()
-        if (producto.imagen && producto.imagen !== "No hay foto") set.add(producto.imagen)
-        for (const img of galeria) {
-            if (img.url && img.url !== "No hay foto") set.add(img.url)
+        const lista: { url: string; etiqueta: string }[] = []
+        const vistas = new Set<string>()
+        const agregar = (url: string, etiqueta: string) => {
+            if (!url || url === "No hay foto" || vistas.has(url)) return
+            vistas.add(url)
+            lista.push({ url, etiqueta })
         }
-        return [...set]
-    }, [producto.imagen, galeria])
+        if (producto.imagen && producto.imagen !== "No hay foto") agregar(producto.imagen, "Principal")
+        for (const img of galeria) agregar(img.url, "Galería")
+        for (const v of producto.variaciones || []) agregar(v.foto || "", v.nombre || "Variación")
+        return lista
+    }, [producto.imagen, galeria, producto.variaciones])
 
     // Cargar defaults del negocio + config del catálogo (nombre/logo del negocio)
     // CADA llamada es independiente: si un endpoint falla (p. ej. el backend
@@ -632,38 +638,46 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                             </p>
                         </div>
 
-                        {/* Foto de la tarjeta (galería, Plan Plus) */}
+                        {/* Foto de la tarjeta: principal + galería + fotos de variaciones */}
                         {fotosDisponibles.length > 1 && (
                             <div>
                                 <LabelControles>Foto de la tarjeta</LabelControles>
                                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                    {fotosDisponibles.map(url => (
+                                    {fotosDisponibles.map(f => (
                                         <button
-                                            key={url}
-                                            title="Usar esta foto en la tarjeta"
-                                            onClick={() => setFotoElegida(url)}
+                                            key={f.url}
+                                            title={`Usar esta foto en la tarjeta (${f.etiqueta})`}
+                                            onClick={() => setFotoElegida(f.url)}
                                             style={{
                                                 padding: 2,
-                                                border: fotoElegida === url ? "3px solid var(--primary-mid)" : "2px solid var(--border-primary)",
+                                                border: fotoElegida === f.url ? "3px solid var(--primary-mid)" : "2px solid var(--border-primary)",
                                                 borderRadius: 10,
                                                 background: "none",
                                                 cursor: "pointer",
                                                 transition: "all 0.15s",
+                                                display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
                                             }}
                                         >
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
-                                                src={optimizarImagenCloudinary(url, 96)}
+                                                src={optimizarImagenCloudinary(f.url, 96)}
                                                 alt=""
                                                 width={46}
                                                 height={46}
                                                 style={{ objectFit: "cover", borderRadius: 7, display: "block" }}
                                             />
+                                            <span style={{
+                                                fontSize: "0.58rem", fontWeight: 700, maxWidth: 64,
+                                                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                                color: fotoElegida === f.url ? "var(--primary-mid)" : "var(--text-muted)",
+                                            }}>
+                                                {f.etiqueta}
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
                                 <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
-                                    Elige qué foto va en la tarjeta (la elección no se guarda: es del momento).
+                                    Elige qué foto va en la tarjeta: la principal, la galería o la de cada variación (la elección no se guarda: es del momento).
                                 </p>
                             </div>
                         )}
