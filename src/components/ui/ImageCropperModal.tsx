@@ -472,7 +472,14 @@ export default function ImageCropperModal({
                 WebkitBackdropFilter: "blur(6px)",
                 padding: 16,
             }}
-            onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
+            onClick={(e) => {
+                // No burbujear a modales/backdrops de atrás (ej. el modal de
+                // post): el cropper es un overlay propio y sus clicks no deben
+                // cerrar lo que hay debajo. Solo se cancela al hacer click en
+                // el backdrop del PROPIO cropper.
+                e.stopPropagation()
+                if (e.target === e.currentTarget) onCancel()
+            }}
         >
             <div
                 className="card"

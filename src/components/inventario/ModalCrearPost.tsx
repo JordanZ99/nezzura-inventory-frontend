@@ -383,7 +383,13 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
                 padding: 20,
             }}
-            onClick={onClose}
+            onClick={(e) => {
+                // Con el cropper abierto, sus eventos ya no llegan acá (tiene
+                // stopPropagation), pero por seguridad no cerramos el modal
+                // mientras el crop esté abierto.
+                if (cropAbierto) return
+                onClose()
+            }}
         >
             <div
                 className="fade-up"
