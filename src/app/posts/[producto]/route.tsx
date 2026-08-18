@@ -178,6 +178,20 @@ function formatearPrecio(valor: number): string {
     return `$${valor.toFixed(2)}`
 }
 
+/**
+ * Decide el color del texto sobre un fondo dado (luminancia simple):
+ * blanco sobre fondos oscuros, casi-negro sobre fondos claros. Se usa en el
+ * pill del precio de la Tarjeta cuando el usuario elige un color secundario.
+ */
+function contrasteTexto(hex: string): string {
+    const h = hex.replace("#", "")
+    const r = parseInt(h.slice(0, 2), 16) / 255
+    const g = parseInt(h.slice(2, 4), 16) / 255
+    const b = parseInt(h.slice(4, 6), 16) / 255
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    return lum > 0.55 ? "#1a1d21" : "#ffffff"
+}
+
 // ── Contexto resuelto por request (todo lo que las plantillas necesitan) ──
 interface CtxTarjeta {
     W: number
@@ -199,6 +213,8 @@ interface CtxTarjeta {
     posicion: string
     sello: string        // '' | 'oferta' | 'agotado' | 'nuevo' (Fase 4: sticker en la esquina)
     ctaTexto: string     // texto del botón CTA (Fase 4, §9.4); '' = sin CTA
+    colorPrimario: string    // hex o '' = automático por plantilla (NOMBRE + NEGOCIO)
+    colorSecundario: string  // hex o '' = automático por plantilla (PRECIO)
 }
 
 /** Placeholder elegante "SIN FOTO": panel gris con un "lente" (nunca imagen rota). */
@@ -421,7 +437,7 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
                             style={{
                                 fontSize: fontNombre,
                                 fontWeight: 800,
-                                color: "#1f2937",
+                                color: ctx.colorPrimario || "#1f2937",
                                 lineHeight: 1.15,
                                 letterSpacing: -0.5,
                             }}
@@ -434,7 +450,7 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
                             style={{
                                 fontSize: fontPrecio,
                                 fontWeight: 800,
-                                color: paleta.acento,
+                                color: ctx.colorSecundario || paleta.acento,
                                 marginTop: Math.round(6 * escala),
                                 letterSpacing: -0.5,
                             }}
@@ -443,7 +459,7 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
                         </div>
                     )}
                     {mostrar.negocio !== false && (
-                        <BloqueNegocio ctx={ctx} color="#6b7280" />
+                        <BloqueNegocio ctx={ctx} color={ctx.colorPrimario || "#6b7280"} />
                     )}
                     <BotonCta ctx={ctx} fondo={paleta.acento} color="#ffffff" />
                 </div>
@@ -465,9 +481,11 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
 
     // Con foto el texto va sobre el velo oscuro (blanco); sin foto, sobre el
     // gradiente de la paleta (usa los colores de contraste de la paleta).
-    const colorNombre = tieneFoto ? "#ffffff" : paleta.texto
-    const colorPrecio = tieneFoto ? paleta.sobreOscuro : paleta.acento
-    const colorNegocio = tieneFoto ? "#e5e7eb" : paleta.texto
+    // color_primario (si el usuario lo eligió) aplica a NOMBRE + NEGOCIO a la
+    // vez; color_secundario al PRECIO.
+    const colorNombre = ctx.colorPrimario || (tieneFoto ? "#ffffff" : paleta.texto)
+    const colorPrecio = ctx.colorSecundario || (tieneFoto ? paleta.sobreOscuro : paleta.acento)
+    const colorNegocio = ctx.colorPrimario || (tieneFoto ? "#e5e7eb" : paleta.texto)
 
     return (
         <div
@@ -589,13 +607,17 @@ function PlantillaTarjeta({ ctx }: { ctx: CtxTarjeta }) {
     const { W, H, escala, paleta, familiaCss, fontNombre, fontPrecio, fontNegocio, nombre, precioFinal, precioTexto, tieneFoto, foto, mostrar } = ctx
     const pad = Math.round(W * 0.07)
     const altoFoto = Math.round(H * 0.55)
-    const colorTexto = paleta.texto
+    const colorTexto = ctx.colorPrimario || paleta.texto
 
     // Pill del precio: invierte el contraste según el fondo (oscuro sobre
     // claro y viceversa) para que siempre destaque sobre el gradiente.
-    const fondoClaro = colorTexto === "#ffffff"
-    const pillBg = fondoClaro ? "rgba(255,255,255,0.94)" : "rgba(18,18,16,0.9)"
-    const pillColor = fondoClaro ? "#1a1d21" : "#ffffff"
+    // Si el usuario eligió color_secundario, el pill usa ESE color (con texto
+    // en contraste automático); el CTA conserva el pill por defecto de la paleta.
+    const fondoClaro = paleta.texto === "#ffffff"
+    const pillBgDefault = fondoClaro ? "rgba(255,255,255,0.94)" : "rgba(18,18,16,0.9)"
+    const pillColorDefault = fondoClaro ? "#1a1d21" : "#ffffff"
+    const pillBg = ctx.colorSecundario || pillBgDefault
+    const pillColor = ctx.colorSecundario ? contrasteTexto(ctx.colorSecundario) : pillColorDefault
 
     return (
         <div
@@ -681,7 +703,7 @@ function PlantillaTarjeta({ ctx }: { ctx: CtxTarjeta }) {
                     <BloqueNegocio ctx={ctx} color={colorTexto} />
                 )}
                 {/* CTA con el mismo contraste invertido que el pill del precio */}
-                <BotonCta ctx={ctx} fondo={pillBg} color={pillColor} />
+                <BotonCta ctx={ctx} fondo={pillBgDefault} color={pillColorDefault} />
             </div>
         </div>
     )
@@ -718,6 +740,10 @@ export async function GET(request: Request, { params }: { params: { producto: st
     // Fase 4: sello ('' | oferta | agotado | nuevo) + CTA configurable (§9.4)
     const sello = q.get("sello") || ""
     const ctaTexto = (q.get("cta_texto") || "").trim()
+    // Colores de texto personalizables ('' o hex inválido = automático por plantilla)
+    const esHex = (s: string) => /^#[0-9a-fA-F]{6}$/.test(s)
+    const colorPrimario = esHex(q.get("color_primario") || "") ? q.get("color_primario")! : ""
+    const colorSecundario = esHex(q.get("color_secundario") || "") ? q.get("color_secundario")! : ""
 
     const dims = FORMATOS[formato] ?? FORMATOS.post
     const paleta = PALETAS[color] ?? PALETAS.default
@@ -750,6 +776,7 @@ export async function GET(request: Request, { params }: { params: { producto: st
         fontNombre, fontPrecio, fontNegocio,
         nombre, precioTexto, precioFinal, tieneFoto, foto,
         negocio, logo, mostrar, posicion, sello, ctaTexto,
+        colorPrimario, colorSecundario,
     }
 
     // Plantilla desconocida → Marco (nunca una tarjeta rota)

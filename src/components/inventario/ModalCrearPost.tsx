@@ -40,6 +40,18 @@ const OPCIONES_COLOR: { clave: string; nombre: string; color: string }[] = [
     { clave: "white", nombre: "Blanco", color: "#f2f2ef" },
 ]
 
+// Colores de TEXTO personalizables: primario = nombre + negocio (juntos),
+// secundario = precio. Incluye Negro (el default de Marco/Tarjeta era casi
+// negro) y un picker libre para el color exacto de la marca.
+const OPCIONES_COLOR_TEXTO: { clave: string; nombre: string; color: string }[] = [
+    { clave: "#000000", nombre: "Negro", color: "#000000" },
+    { clave: "#ffffff", nombre: "Blanco", color: "#ffffff" },
+    { clave: "#2c5f8f", nombre: "Azul", color: "#2c5f8f" },
+    { clave: "#d12e6a", nombre: "Fresa", color: "#d12e6a" },
+    { clave: "#059669", nombre: "Verde", color: "#059669" },
+    { clave: "#d97706", nombre: "Ámbar", color: "#d97706" },
+]
+
 const OPCIONES_FUENTE: { clave: string; nombre: string; css: string }[] = [
     { clave: "moderna", nombre: "Moderna", css: "Inter, sans-serif" },
     { clave: "elegante", nombre: "Elegante", css: "'Playfair Display', serif" },
@@ -201,6 +213,8 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 posicion: cfg.posicion,
                 mostrar: cfg.mostrar,
                 cta: cfg.ctaTexto ? { texto: cfg.ctaTexto } : undefined,
+                color_primario: cfg.colorPrimario || undefined,
+                color_secundario: cfg.colorSecundario || undefined,
             }
             await api.guardarPostOverride(producto.producto, ov)
             setMsg({ ok: true, texto: "Override guardado: este producto usará esta tarjeta." })
@@ -243,6 +257,8 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 posicion: cfg.posicion,
                 mostrar: cfg.mostrar,
                 cta_texto: cfg.ctaTexto || "",
+                color_primario: cfg.colorPrimario,
+                color_secundario: cfg.colorSecundario,
             }
             await api.actualizarPostConfig({
                 template_default: cfg.template,
@@ -251,6 +267,8 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 posicion: cfg.posicion,
                 mostrar: cfg.mostrar,
                 cta_texto: cfg.ctaTexto || "",
+                color_primario: cfg.colorPrimario,
+                color_secundario: cfg.colorSecundario,
             })
             setDefaults(nuevos)
             // Re-resuelve: si el producto no tiene override, ahora usa los
@@ -490,6 +508,28 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                                     />
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Colores de texto: primario (nombre + negocio) y secundario (precio) */}
+                        <div>
+                            <LabelControles>Color del texto (nombre y negocio)</LabelControles>
+                            <SelectorColorTexto
+                                valor={cfg?.colorPrimario || ""}
+                                onChange={v => setCfg(s => (s ? { ...s, colorPrimario: v } : s))}
+                            />
+                            <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
+                                Mismo color para el nombre del producto y del negocio. "Por defecto" usa el color automático de la plantilla.
+                            </p>
+                        </div>
+                        <div>
+                            <LabelControles>Color del precio</LabelControles>
+                            <SelectorColorTexto
+                                valor={cfg?.colorSecundario || ""}
+                                onChange={v => setCfg(s => (s ? { ...s, colorSecundario: v } : s))}
+                            />
+                            <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
+                                "Por defecto" usa el acento de la paleta (o blanco sobre la foto en Sobre la foto).
+                            </p>
                         </div>
 
                         {/* Fuente */}
@@ -855,6 +895,68 @@ function LabelControles({ children, style }: { children: React.ReactNode; style?
         }}>
             {children}
         </label>
+    )
+}
+
+/**
+ * Selector de color de TEXTO: "Por defecto" ('' = automático por plantilla) +
+ * swatches (Negro, Blanco, marca) + picker libre para el color exacto.
+ */
+function SelectorColorTexto({ valor, onChange }: { valor: string; onChange: (v: string) => void }) {
+    const esPreset = OPCIONES_COLOR_TEXTO.some(c => c.clave === valor)
+    const customActivo = Boolean(valor) && !esPreset
+    return (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+                onClick={() => onChange("")}
+                title="Color automático por plantilla"
+                style={{
+                    padding: "6px 10px", borderRadius: 10, border: "none", cursor: "pointer",
+                    fontSize: "0.66rem", fontWeight: 800, whiteSpace: "nowrap",
+                    background: !valor ? "var(--primary-mid)" : "var(--bg-card2)",
+                    color: !valor ? "#fff" : "var(--text-main)",
+                    boxShadow: !valor ? "0 2px 6px var(--primary-glow)" : "none",
+                    transition: "all 0.15s",
+                }}
+            >
+                Por defecto
+            </button>
+            {OPCIONES_COLOR_TEXTO.map(c => (
+                <button
+                    key={c.clave}
+                    title={c.nombre}
+                    onClick={() => onChange(c.clave)}
+                    style={{
+                        width: 30, height: 30, borderRadius: "50%", cursor: "pointer",
+                        background: c.color,
+                        border: valor === c.clave ? "3px solid var(--primary-mid)" : "2px solid var(--border-primary)",
+                        outline: valor === c.clave ? "2px solid var(--primary-glow)" : "none",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                        transition: "all 0.15s",
+                    }}
+                />
+            ))}
+            {/* Picker libre: un círculo con el color elegido (o un + si no hay) */}
+            <label
+                title="Elegir un color personalizado"
+                style={{
+                    width: 30, height: 30, borderRadius: "50%", cursor: "pointer",
+                    border: customActivo ? "3px solid var(--primary-mid)" : "2px dashed var(--border-primary)",
+                    outline: customActivo ? "2px solid var(--primary-glow)" : "none",
+                    background: customActivo ? valor : "var(--bg-card2)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    position: "relative", overflow: "hidden", transition: "all 0.15s",
+                }}
+            >
+                {!customActivo && <Icon name="Plus" size={14} color="var(--text-muted)" />}
+                <input
+                    type="color"
+                    value={/^#[0-9a-fA-F]{6}$/.test(valor) ? valor : "#000000"}
+                    onChange={e => onChange(e.target.value)}
+                    style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%", border: "none", padding: 0 }}
+                />
+            </label>
+        </div>
     )
 }
 
