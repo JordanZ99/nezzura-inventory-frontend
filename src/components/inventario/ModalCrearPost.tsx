@@ -480,17 +480,32 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                         {cfg?.template === "overlay" && fotoElegida && (
                             <div>
                                 <LabelControles>Velo oscuro</LabelControles>
-                                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, color: "var(--text-main)" }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={velo}
-                                        onChange={e => setVelo(e.target.checked)}
-                                        style={{ width: 16, height: 16, accentColor: "var(--primary-mid)", cursor: "pointer" }}
-                                    />
-                                    Mostrar el velo sobre la foto
-                                </label>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                    <button
+                                        onClick={() => setVelo(v => !v)}
+                                        role="switch"
+                                        aria-checked={velo}
+                                        title={velo ? "Apagar el velo" : "Mostrar el velo"}
+                                        style={{
+                                            width: 42, height: 24, borderRadius: 999, border: "none",
+                                            cursor: "pointer", padding: 0, position: "relative", flexShrink: 0,
+                                            background: velo ? "var(--primary-mid)" : "var(--bg-card2)",
+                                            boxShadow: velo ? "0 2px 6px var(--primary-glow)" : "inset 0 0 0 1px var(--border-primary)",
+                                            transition: "all 0.15s",
+                                        }}
+                                    >
+                                        <span style={{
+                                            position: "absolute", top: 3, left: velo ? 21 : 3,
+                                            width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                                            boxShadow: "0 1px 3px rgba(0,0,0,0.25)", transition: "all 0.15s",
+                                        }} />
+                                    </button>
+                                    <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-main)" }}>
+                                        Velo oscuro sobre la foto
+                                    </span>
+                                </div>
                                 <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
-                                    Si el velo tapa tu imagen, apágalo: el texto lleva un panel oscuro detrás y la foto se ve completa.
+                                    Si el velo tapa tu imagen, apágalo para verla completa. Sin velo el texto no lleva fondo: revisa que se lea sobre tu foto.
                                 </p>
                             </div>
                         )}

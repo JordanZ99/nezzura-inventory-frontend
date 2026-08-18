@@ -214,7 +214,7 @@ interface CtxTarjeta {
     sello: string        // '' | 'oferta' | 'agotado' | 'nuevo' (Fase 4: sticker en la esquina)
     colorPrimario: string    // hex o '' = automático por plantilla (NOMBRE + NEGOCIO)
     colorSecundario: string  // hex o '' = azul por defecto (PRECIO + fondo sin foto)
-    velo: boolean        // Overlay: true = velo degradado sobre la foto (default); false = panel detrás del texto
+    velo: boolean        // Overlay: true = velo degradado sobre la foto (default); false = sin velo (texto directo sobre la foto)
 }
 
 /**
@@ -527,23 +527,6 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                     padding: pad,
                 }}
             >
-                {/* Sin velo: panel semitransparente SOLO detrás del texto (la
-                    foto se ve completa). Satori no soporta text-shadow, así que
-                    el panel garantiza la legibilidad sobre fotos claras. */}
-                {tieneFoto && !ctx.velo && (
-                    <div
-                        style={{
-                            position: "absolute",
-                            top: pad,
-                            left: pad,
-                            right: pad,
-                            bottom: pad,
-                            background: "rgba(0,0,0,0.5)",
-                            borderRadius: Math.round(20 * escala),
-                        }}
-                    />
-                )}
-                <div style={{ position: "relative", display: "flex", flexDirection: "column" }}>
                 {mostrar.nombre !== false && nombre && (
                     <div
                         style={{
@@ -573,7 +556,6 @@ function PlantillaOverlay({ ctx }: { ctx: CtxTarjeta }) {
                 {mostrar.negocio !== false && (
                     <BloqueNegocio ctx={ctx} color={colorNegocio} />
                 )}
-                </div>
             </div>
         </div>
     )
@@ -608,7 +590,7 @@ export async function GET(request: Request, { params }: { params: { producto: st
     const logo = q.get("logo") || ""
     // Fase 4: sello ('' | oferta | agotado | nuevo)
     const sello = q.get("sello") || ""
-    // Velo del Overlay (del momento): velo=0 lo apaga (panel detrás del texto)
+    // Velo del Overlay (del momento): velo=0 lo apaga (el texto va sin fondo sobre la foto)
     const velo = q.get("velo") !== "0"
     // Colores de texto personalizables ('' o hex inválido = automático por plantilla)
     const esHex = (s: string) => /^#[0-9a-fA-F]{6}$/.test(s)
