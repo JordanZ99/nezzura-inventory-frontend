@@ -1,35 +1,35 @@
 "use client"
 // ==============================================================================
 // src/components/inventario/ModalCrearPost.tsx
-// Modal "Crear post" (Posts Automáticos — Fase 1, plantilla Marco).
+// Modal "Crear post" (Posts Automáticos — Fases 1, 2 y 3).
 //
 // - Vista previa EN VIVO: la URL de la tarjeta se regenera sola con debounce
 //   (~300ms) al tocar cualquier control; la imagen la renderiza la ruta edge
 //   /posts/[producto] (Satori, mismo motor que el opengraph del catálogo).
+// - Las 3 plantillas (Marco / Sobre la foto / Tarjeta) + posición del texto
+//   (solo Overlay) + 3 formatos (post / historia / cuadrado).
+// - Elegir foto de la galería (Plan Plus) para la tarjeta.
 // - Configuración en cascada: el modal arranca con el override del producto si
 //   existe (productos.post_override) y si no con los defaults del negocio
 //   (post_config). "Guardar para este producto" persiste el override;
-//   "Usar defaults" lo quita (el producto vuelve a los defaults del negocio).
-// - "Descargar PNG" baja la tarjeta en el formato elegido.
+//   "Usar defaults" lo quita; "Guardar como default" actualiza los defaults
+//   del negocio con la configuración actual.
+// - "Descargar PNG" baja la tarjeta; "Compartir" abre el share sheet nativo
+//   con la imagen + la descripción (con hashtags) copiada al portapapeles;
+//   en desktop sin share sheet descarga el PNG como fallback.
 // ==============================================================================
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Icon from "@/components/ui/Icon"
-import { api, CatalogoConfig, PostConfig, PostOverride, Producto } from "@/lib/api"
+import { api, CatalogoConfig, ImagenProducto, PostConfig, PostOverride, Producto } from "@/lib/api"
+import { optimizarImagenCloudinary } from "@/lib/image-utils"
+import { ConfigResuelta, construirUrlPreview, generarDescripcion, nombreArchivo, resolverConfig } from "@/lib/posts"
 
 interface Props {
     producto: Producto
     onClose: () => void
     /** Se dispara al guardar/quitar el override para refrescar el inventario en memoria. */
     onOverrideGuardado?: (override: PostOverride | null) => void
-}
-
-interface ConfigResuelta {
-    template: string
-    color: string
-    font: string
-    posicion: string
-    mostrar: { nombre: boolean; precio: boolean; negocio: boolean }
 }
 
 const OPCIONES_COLOR: { clave: string; nombre: string; color: string }[] = [
@@ -58,32 +58,32 @@ const MOSTRAR_OPCIONES: { clave: "nombre" | "precio" | "negocio"; nombre: string
     { clave: "negocio", nombre: "Nombre del negocio" },
 ]
 
-/**
- * Resuelve la configuración efectiva de la tarjeta: override del producto si
- * existe, con las claves ausentes heredadas de los defaults del negocio.
- */
-function resolverConfig(override: PostOverride | null | undefined, defaults: PostConfig | null): ConfigResuelta {
-    const d = defaults
-    return {
-        template: override?.template || d?.template_default || "marco",
-        color: override?.color || d?.color || "default",
-        font: override?.font || d?.font || "moderna",
-        posicion: override?.posicion || d?.posicion || "abajo",
-        mostrar: {
-            nombre: override?.mostrar?.nombre ?? d?.mostrar?.nombre ?? true,
-            precio: override?.mostrar?.precio ?? d?.mostrar?.precio ?? true,
-            negocio: override?.mostrar?.negocio ?? d?.mostrar?.negocio ?? true,
-        },
-    }
+const OPCIONES_PLANTILLA: { clave: string; nombre: string }[] = [
+    { clave: "marco", nombre: "Marco" },
+    { clave: "overlay", nombre: "Sobre la foto" },
+    { clave: "tarjeta", nombre: "Tarjeta" },
+]
+
+const DESCRIPCIONES_PLANTILLA: Record<string, string> = {
+    marco: "Marco (polaroid): la foto va dentro del marco y el texto nunca la tapa.",
+    overlay: "Sobre la foto: el texto va encima con un velo oscuro degradado para que siempre se lea.",
+    tarjeta: "Tarjeta (full-bleed): foto arriba a sangre y el texto debajo, sobre el color del negocio.",
 }
 
-/** Nombre de archivo seguro para la descarga (conserva acentos y ñ). */
-function nombreArchivo(producto: string, formato: string): string {
-    const base = producto
-        .replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ]+/g, "-")
-        .replace(/^-+|-+$/g, "") || "producto"
-    return `${base}-${formato}.png`
-}
+const OPCIONES_POSICION: { clave: string; nombre: string }[] = [
+    { clave: "arriba", nombre: "Arriba" },
+    { clave: "abajo", nombre: "Abajo" },
+]
+
+// Sello/sticker de la esquina (Fase 4): decisión del momento, no se guarda.
+const OPCIONES_SELLO: { clave: string; nombre: string; color: string }[] = [
+    { clave: "", nombre: "Sin sello", color: "" },
+    { clave: "oferta", nombre: "Oferta", color: "#e11d48" },
+    { clave: "agotado", nombre: "Agotado", color: "#1f2937" },
+    { clave: "nuevo", nombre: "Nuevo", color: "#059669" },
+]
+
+
 
 export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }: Props) {
     const [defaults, setDefaults] = useState<PostConfig | null>(null)
@@ -94,8 +94,28 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
     const [cargandoPreview, setCargandoPreview] = useState(false)
     const [guardando, setGuardando] = useState(false)
     const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null)
+    // Fase 3 — Compartir: galería (elegir foto), descripción editable, share sheet
+    const [galeria, setGaleria] = useState<ImagenProducto[]>([])
+    const [fotoElegida, setFotoElegida] = useState(
+        producto.imagen && producto.imagen !== "No hay foto" ? producto.imagen : ""
+    )
+    const [descripcion, setDescripcion] = useState("")
+    const [compartiendo, setCompartiendo] = useState(false)
+    // Sello de la tarjeta (Fase 4): decisión del momento (no se guarda)
+    const [sello, setSello] = useState("")
 
     const tieneOverride = Boolean(producto.post_override)
+
+    // Fotos disponibles para la tarjeta: la principal + las de la galería
+    // (sin duplicados; la orden 1 de la galería es la principal).
+    const fotosDisponibles = useMemo(() => {
+        const set = new Set<string>()
+        if (producto.imagen && producto.imagen !== "No hay foto") set.add(producto.imagen)
+        for (const img of galeria) {
+            if (img.url && img.url !== "No hay foto") set.add(img.url)
+        }
+        return [...set]
+    }, [producto.imagen, galeria])
 
     // Cargar defaults del negocio + config del catálogo (nombre/logo del negocio)
     useEffect(() => {
@@ -106,12 +126,23 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 setDefaults(pc)
                 setConfigCatalogo(cc)
                 setCfg(resolverConfig(producto.post_override, pc))
+                // Descripción lista para publicar (editable después)
+                setDescripcion(generarDescripcion(producto, cc?.titulo || ""))
             })
             .catch(() => {
                 if (activo) setCfg(resolverConfig(producto.post_override, null))
             })
         return () => { activo = false }
     }, [producto])
+
+    // Galería del producto (Plan Plus): para elegir qué foto va en la tarjeta
+    useEffect(() => {
+        let activo = true
+        api.getImagenesProducto(producto.producto)
+            .then(imgs => { if (activo) setGaleria(imgs || []) })
+            .catch(() => { /* sin galería → solo la foto principal */ })
+        return () => { activo = false }
+    }, [producto.producto])
 
     // Escape cierra el modal + bloquea el scroll del body (patrón del catálogo)
     useEffect(() => {
@@ -130,22 +161,21 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
         if (!cfg || !configCatalogo) return
         setCargandoPreview(true)
         const timer = setTimeout(() => {
-            const params = new URLSearchParams()
-            params.set("template", cfg.template)
-            params.set("color", cfg.color)
-            params.set("font", cfg.font)
-            params.set("posicion", cfg.posicion)
-            params.set("mostrar", JSON.stringify(cfg.mostrar))
-            params.set("formato", formato)
-            params.set("precio", String(producto.precio_venta ?? 0))
-            if (producto.sufijo_precio) params.set("sufijo", producto.sufijo_precio)
-            if (producto.imagen && producto.imagen !== "No hay foto") params.set("foto", producto.imagen)
-            if (configCatalogo?.titulo) params.set("negocio", configCatalogo.titulo)
-            if (configCatalogo?.logo) params.set("logo", configCatalogo.logo)
-            setPreviewUrl(`${window.location.origin}/posts/${encodeURIComponent(producto.producto)}?${params.toString()}`)
+            setPreviewUrl(construirUrlPreview({
+                origin: window.location.origin,
+                producto: producto.producto,
+                cfg,
+                formato,
+                precio: producto.precio_venta ?? 0,
+                sufijo: producto.sufijo_precio,
+                foto: fotoElegida,
+                negocio: configCatalogo?.titulo,
+                logo: configCatalogo?.logo,
+                sello,
+            }))
         }, 300)
         return () => clearTimeout(timer)
-    }, [cfg, formato, configCatalogo, producto])
+    }, [cfg, formato, configCatalogo, producto, fotoElegida, sello])
 
     // ¿Hay cambios sin guardar respecto a lo persistido (override o defaults)?
     const hayCambios = useMemo(() => {
@@ -165,6 +195,7 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 font: cfg.font,
                 posicion: cfg.posicion,
                 mostrar: cfg.mostrar,
+                cta: cfg.ctaTexto ? { texto: cfg.ctaTexto } : undefined,
             }
             await api.guardarPostOverride(producto.producto, ov)
             setMsg({ ok: true, texto: "Override guardado: este producto usará esta tarjeta." })
@@ -190,6 +221,110 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
             setGuardando(false)
         }
     }, [producto.producto, defaults, onOverrideGuardado])
+
+    // "Guardar como default" (Fase 2): persiste la config actual como defaults
+    // del negocio (post_config). Si el producto tiene override, este sigue
+    // ganando en su propia tarjeta; el resto del catálogo usa los nuevos defaults.
+    const guardarDefaults = useCallback(async () => {
+        if (!cfg) return
+        setGuardando(true)
+        setMsg(null)
+        try {
+            const nuevos: PostConfig = {
+                tenant_id: defaults?.tenant_id || "",
+                template_default: cfg.template,
+                color: cfg.color,
+                font: cfg.font,
+                posicion: cfg.posicion,
+                mostrar: cfg.mostrar,
+                cta_texto: cfg.ctaTexto || "",
+            }
+            await api.actualizarPostConfig({
+                template_default: cfg.template,
+                color: cfg.color,
+                font: cfg.font,
+                posicion: cfg.posicion,
+                mostrar: cfg.mostrar,
+                cta_texto: cfg.ctaTexto || "",
+            })
+            setDefaults(nuevos)
+            // Re-resuelve: si el producto no tiene override, ahora usa los
+            // nuevos defaults (que coinciden con lo que se acaba de ver).
+            setCfg(resolverConfig(producto.post_override, nuevos))
+            setMsg({
+                ok: true,
+                texto: tieneOverride
+                    ? "Defaults del negocio actualizados (este producto seguirá usando su override)."
+                    : "Defaults del negocio actualizados: las tarjetas nuevas usarán esta configuración.",
+            })
+        } catch (e) {
+            setMsg({ ok: false, texto: e instanceof Error ? e.message : "Error al guardar los defaults" })
+        } finally {
+            setGuardando(false)
+        }
+    }, [cfg, defaults, producto.post_override, tieneOverride])
+
+    // Copia la descripción (con hashtags) al portapapeles
+    const copiarDescripcion = useCallback(async () => {
+        if (!descripcion) return
+        try {
+            await navigator.clipboard.writeText(descripcion)
+            setMsg({ ok: true, texto: "Descripción copiada al portapapeles. Lista para pegar en la publicación." })
+        } catch {
+            setMsg({ ok: false, texto: "No se pudo copiar: selecciona el texto manualmente." })
+        }
+    }, [descripcion])
+
+    // Compartir (Fase 3): share sheet nativo con la imagen PNG + la descripción.
+    // - navegadores con navigator.share({files}) → sheet nativo (móvil/Safari).
+    // - el resto (desktop) → descarga el PNG como fallback.
+    // En AMBOS casos la descripción se copia al portapapeles en el mismo tap.
+    const compartir = useCallback(async () => {
+        if (!previewUrl) return
+        setCompartiendo(true)
+        setMsg(null)
+        try {
+            const res = await fetch(previewUrl)
+            if (!res.ok) throw new Error("No se pudo generar la imagen")
+            const blob = await res.blob()
+            const archivo = new File([blob], nombreArchivo(producto.producto, formato), { type: "image/png" })
+
+            let copiada = false
+            try {
+                await navigator.clipboard.writeText(descripcion)
+                copiada = true
+            } catch { /* el share igual funciona */ }
+
+            // Share sheet nativo (requiere contexto seguro + soporte de files)
+            const nav = navigator as unknown as {
+                canShare?: (data: { files?: File[] }) => boolean
+                share?: (data: { files?: File[]; text?: string; title?: string }) => Promise<void>
+            }
+            const datos = { files: [archivo], text: descripcion, title: producto.producto }
+            if (nav.share && (!nav.canShare || nav.canShare(datos))) {
+                await nav.share(datos)
+                setMsg({ ok: true, texto: "Compartido ✅ (la descripción quedó copiada en el portapapeles)." })
+                return
+            }
+
+            // Fallback desktop: descargar el PNG + avisar que la descripción ya está copiada
+            const a = document.createElement("a")
+            a.href = URL.createObjectURL(blob)
+            a.download = nombreArchivo(producto.producto, formato)
+            a.click()
+            URL.revokeObjectURL(a.href)
+            setMsg({
+                ok: true,
+                texto: copiada
+                    ? "Este navegador no tiene share sheet: la tarjeta se descargó y la descripción quedó copiada."
+                    : "Este navegador no tiene share sheet: la tarjeta se descargó.",
+            })
+        } catch (e) {
+            setMsg({ ok: false, texto: e instanceof Error ? e.message : "Error al compartir" })
+        } finally {
+            setCompartiendo(false)
+        }
+    }, [previewUrl, descripcion, producto, formato])
 
     return (
         <div
@@ -274,14 +409,61 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                         <div>
                             <LabelControles>Plantilla</LabelControles>
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                <Chip activo>Marco</Chip>
-                                <Chip deshabilitado>Overlay <span style={{ fontSize: "0.55rem", opacity: 0.7 }}>(Fase 2)</span></Chip>
-                                <Chip deshabilitado>Tarjeta <span style={{ fontSize: "0.55rem", opacity: 0.7 }}>(Fase 2)</span></Chip>
+                                {OPCIONES_PLANTILLA.map(p => {
+                                    const activo = cfg?.template === p.clave
+                                    return (
+                                        <button
+                                            key={p.clave}
+                                            onClick={() => setCfg(s => (s ? { ...s, template: p.clave } : s))}
+                                            style={{
+                                                padding: "7px 14px", borderRadius: 12, border: "none", cursor: "pointer",
+                                                fontSize: "0.78rem", fontWeight: 700, whiteSpace: "nowrap",
+                                                background: activo ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                color: activo ? "#fff" : "var(--text-main)",
+                                                boxShadow: activo ? "0 2px 6px var(--primary-glow)" : "none",
+                                                transition: "all 0.15s",
+                                            }}
+                                        >
+                                            {p.nombre}
+                                        </button>
+                                    )
+                                })}
                             </div>
                             <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
-                                Marco (polaroid): la foto va dentro del marco y el texto nunca la tapa.
+                                {DESCRIPCIONES_PLANTILLA[cfg?.template || "marco"]}
                             </p>
                         </div>
+
+                        {/* Posición del texto (solo Overlay) */}
+                        {cfg?.template === "overlay" && (
+                            <div>
+                                <LabelControles>Posición del texto</LabelControles>
+                                <div style={{ display: "flex", gap: 6 }}>
+                                    {OPCIONES_POSICION.map(p => {
+                                        const activo = cfg.posicion === p.clave
+                                        return (
+                                            <button
+                                                key={p.clave}
+                                                onClick={() => setCfg(s => (s ? { ...s, posicion: p.clave } : s))}
+                                                style={{
+                                                    padding: "7px 14px", borderRadius: 12, border: "none", cursor: "pointer",
+                                                    fontSize: "0.78rem", fontWeight: 700, whiteSpace: "nowrap",
+                                                    background: activo ? "var(--primary-mid)" : "var(--bg-card2)",
+                                                    color: activo ? "#fff" : "var(--text-main)",
+                                                    boxShadow: activo ? "0 2px 6px var(--primary-glow)" : "none",
+                                                    transition: "all 0.15s",
+                                                }}
+                                            >
+                                                {p.nombre}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                                <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
+                                    El texto se apoya en el velo oscuro de ese lado de la foto.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Color */}
                         <div>
@@ -376,6 +558,92 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                             </p>
                         </div>
 
+                        {/* Sello de la esquina (Fase 4): decisión del momento */}
+                        <div>
+                            <LabelControles>Sello</LabelControles>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                {OPCIONES_SELLO.map(s => {
+                                    const activo = sello === s.clave
+                                    return (
+                                        <button
+                                            key={s.clave || "sin-sello"}
+                                            onClick={() => setSello(s.clave)}
+                                            style={{
+                                                padding: "7px 12px", borderRadius: 12, border: "none", cursor: "pointer",
+                                                fontSize: "0.72rem", fontWeight: 700, whiteSpace: "nowrap",
+                                                background: activo ? (s.clave ? s.color : "var(--primary-mid)") : "var(--bg-card2)",
+                                                color: activo ? "#fff" : "var(--text-main)",
+                                                boxShadow: activo ? "0 2px 6px var(--primary-glow)" : "none",
+                                                transition: "all 0.15s",
+                                            }}
+                                        >
+                                            {s.nombre}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                            <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
+                                Sello de la esquina (Oferta / Agotado / Nuevo). No se guarda: es del momento.
+                            </p>
+                        </div>
+
+                        {/* CTA configurable (Fase 4, §9.4) */}
+                        <div>
+                            <LabelControles>Botón (CTA)</LabelControles>
+                            <input
+                                type="text"
+                                value={cfg?.ctaTexto || ""}
+                                onChange={e => setCfg(s => (s ? { ...s, ctaTexto: e.target.value } : s))}
+                                placeholder="Ej. Pedir por WhatsApp"
+                                maxLength={40}
+                                style={{
+                                    width: "100%", boxSizing: "border-box", borderRadius: 10,
+                                    padding: "9px 12px", border: "1px solid var(--border-primary)",
+                                    background: "var(--bg-card2)", color: "var(--text-main)",
+                                    fontSize: "0.8rem", fontWeight: 600, fontFamily: "inherit",
+                                }}
+                            />
+                            <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
+                                Texto del botón en la tarjeta (vacío = sin botón). Se guarda en el override o en los defaults.
+                            </p>
+                        </div>
+
+                        {/* Foto de la tarjeta (galería, Plan Plus) */}
+                        {fotosDisponibles.length > 1 && (
+                            <div>
+                                <LabelControles>Foto de la tarjeta</LabelControles>
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                    {fotosDisponibles.map(url => (
+                                        <button
+                                            key={url}
+                                            title="Usar esta foto en la tarjeta"
+                                            onClick={() => setFotoElegida(url)}
+                                            style={{
+                                                padding: 2,
+                                                border: fotoElegida === url ? "3px solid var(--primary-mid)" : "2px solid var(--border-primary)",
+                                                borderRadius: 10,
+                                                background: "none",
+                                                cursor: "pointer",
+                                                transition: "all 0.15s",
+                                            }}
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={optimizarImagenCloudinary(url, 96)}
+                                                alt=""
+                                                width={46}
+                                                height={46}
+                                                style={{ objectFit: "cover", borderRadius: 7, display: "block" }}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                                <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: "4px 0 0" }}>
+                                    Elige qué foto va en la tarjeta (la elección no se guarda: es del momento).
+                                </p>
+                            </div>
+                        )}
+
                         {hayCambios && !tieneOverride && (
                             <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--primary-dark)", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
                                 <Icon name="Info" size={14} /> Cambios sin guardar: usa "Guardar para este producto" o se pierden.
@@ -422,6 +690,41 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                             )}
                         </div>
 
+                        {/* Descripción para publicar (editable, Fase 3) */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                <LabelControles style={{ marginBottom: 0 }}>Descripción para publicar</LabelControles>
+                                <button
+                                    onClick={copiarDescripcion}
+                                    disabled={!descripcion}
+                                    title="Copiar la descripción al portapapeles"
+                                    style={{
+                                        padding: "5px 10px", borderRadius: 8, cursor: descripcion ? "pointer" : "not-allowed",
+                                        border: "1px solid var(--border-primary)", background: "var(--bg-card2)",
+                                        color: "var(--text-main)", fontWeight: 700, fontSize: "0.68rem",
+                                        display: "flex", alignItems: "center", gap: 5, opacity: descripcion ? 1 : 0.5,
+                                    }}
+                                >
+                                    <Icon name="Copy" size={13} color="var(--primary-mid)" /> Copiar
+                                </button>
+                            </div>
+                            <textarea
+                                value={descripcion}
+                                onChange={e => setDescripcion(e.target.value)}
+                                rows={5}
+                                style={{
+                                    width: "100%", boxSizing: "border-box", borderRadius: 10,
+                                    padding: "10px 12px", border: "1px solid var(--border-primary)",
+                                    background: "var(--bg-card2)", color: "var(--text-main)",
+                                    fontSize: "0.78rem", lineHeight: 1.5, resize: "vertical",
+                                    fontFamily: "inherit",
+                                }}
+                            />
+                            <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: 0 }}>
+                                Se genera sola con hashtags sugeridos y se copia al portapapeles al compartir. Edítala si quieres.
+                            </p>
+                        </div>
+
                         {/* Acciones */}
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                             <a
@@ -437,6 +740,19 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                                 <Icon name="Download" size={18} color="#fff" /> Descargar PNG
                             </a>
                             <button
+                                onClick={compartir}
+                                disabled={compartiendo || !previewUrl}
+                                style={{
+                                    padding: "11px 20px", borderRadius: 12, cursor: previewUrl ? "pointer" : "not-allowed",
+                                    border: "none", background: "var(--primary-dark)", color: "#fff", fontWeight: 800, fontSize: "0.82rem",
+                                    display: "flex", alignItems: "center", gap: 8, opacity: previewUrl ? 1 : 0.5,
+                                    transition: "all 0.15s",
+                                }}
+                            >
+                                <Icon name="Share2" size={17} color="#fff" />
+                                {compartiendo ? "Compartiendo..." : "Compartir"}
+                            </button>
+                            <button
                                 onClick={guardarOverride}
                                 disabled={guardando || !cfg}
                                 style={{
@@ -448,6 +764,20 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                             >
                                 <Icon name="Save" size={18} color="var(--primary-mid)" />
                                 {guardando ? "Guardando..." : "Guardar para este producto"}
+                            </button>
+                            <button
+                                onClick={guardarDefaults}
+                                disabled={guardando || !cfg}
+                                title="Actualiza los defaults del negocio con la configuración actual"
+                                style={{
+                                    padding: "11px 20px", borderRadius: 12, cursor: guardando ? "not-allowed" : "pointer",
+                                    border: "1px dashed var(--border-primary)", background: "transparent",
+                                    color: "var(--text-main)", fontWeight: 700, fontSize: "0.8rem",
+                                    display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s",
+                                }}
+                            >
+                                <Icon name="Settings" size={16} color="var(--primary-mid)" />
+                                {guardando ? "Guardando..." : "Guardar como default"}
                             </button>
                             {tieneOverride && (
                                 <button
@@ -466,6 +796,16 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                         <p style={{ fontSize: "0.66rem", color: "var(--text-muted)", margin: 0 }}>
                             El PNG se genera en el navegador al instante (sin subir nada). Listo para publicar en Instagram, Facebook o WhatsApp.
                         </p>
+                        <a
+                            href="/inventario/posts"
+                            style={{
+                                fontSize: "0.72rem", fontWeight: 700, color: "var(--primary-mid)",
+                                display: "flex", alignItems: "center", gap: 6, textDecoration: "none",
+                                alignSelf: "flex-start",
+                            }}
+                        >
+                            <Icon name="LayoutGrid" size={15} color="var(--primary-mid)" /> Ver todas las tarjetas del catálogo
+                        </a>
                     </div>
                 </div>
             </div>
@@ -475,29 +815,16 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
 }
 
 /** Etiqueta pequeña de sección de controles. */
-function LabelControles({ children }: { children: React.ReactNode }) {
+function LabelControles({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
     return (
         <label style={{
             fontSize: "0.68rem", fontWeight: 800, color: "var(--text-muted)",
             textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8,
+            ...style,
         }}>
             {children}
         </label>
     )
 }
 
-/** Chip de selección (activo / deshabilitado). */
-function Chip({ children, activo, deshabilitado }: { children: React.ReactNode; activo?: boolean; deshabilitado?: boolean }) {
-    return (
-        <span style={{
-            padding: "7px 14px", borderRadius: 12, fontSize: "0.78rem", fontWeight: 700,
-            background: activo ? "var(--primary-mid)" : deshabilitado ? "var(--bg-card2)" : "var(--bg-card2)",
-            color: activo ? "#fff" : deshabilitado ? "var(--text-muted)" : "var(--text-main)",
-            border: activo ? "none" : "1px dashed var(--border-primary)",
-            opacity: deshabilitado ? 0.75 : 1,
-            display: "inline-flex", alignItems: "center", gap: 4,
-        }}>
-            {children}
-        </span>
-    )
-}
+
