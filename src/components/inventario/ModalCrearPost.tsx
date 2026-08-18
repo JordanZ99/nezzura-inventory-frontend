@@ -308,7 +308,7 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
             const datos = { files: [archivo], text: descripcion, title: producto.producto }
             if (nav.share && (!nav.canShare || nav.canShare(datos))) {
                 await nav.share(datos)
-                setMsg({ ok: true, texto: "Compartido ✅ (la descripción quedó copiada en el portapapeles)." })
+                setMsg({ ok: true, texto: "Compartido (la descripción quedó copiada en el portapapeles)." })
                 return
             }
 

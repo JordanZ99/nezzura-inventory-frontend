@@ -64,15 +64,15 @@ export function generarHashtags(nombre: string, categorias: string[]): string {
 }
 
 /**
- * Descripción lista para publicar: emoji + nombre + precio + negocio + hashtags.
+ * Descripción lista para publicar: nombre + precio + negocio + hashtags.
  * Se genera al abrir el modal y es editable.
  */
 export function generarDescripcion(producto: Producto, negocio: string): string {
     const precio = formatearPrecio(producto.precio_venta ?? 0)
     const lineas = [
-        `🌿 ${producto.producto || ""}`,
-        precio ? `💰 ${precio}${producto.sufijo_precio ? ` · ${producto.sufijo_precio}` : ""}` : "",
-        negocio ? `📍 ${negocio}` : "",
+        producto.producto || "",
+        precio ? `${precio}${producto.sufijo_precio ? ` · ${producto.sufijo_precio}` : ""}` : "",
+        negocio ? negocio : "",
     ].filter(Boolean)
     const hashtags = generarHashtags(producto.producto, producto.categoria)
     return [...lineas, "", hashtags].join("\n")
