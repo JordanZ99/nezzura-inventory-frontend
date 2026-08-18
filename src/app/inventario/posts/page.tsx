@@ -113,7 +113,7 @@ export default function PostsLote() {
         setMsg({
             ok: err === 0,
             texto: err === 0
-                ? `${ok} tarjetas descargadas ✅`
+                ? `${ok} tarjetas descargadas.`
                 : `${ok} descargadas, ${err} fallaron (el navegador puede bloquear varias descargas: hazlas de a poco).`,
         })
     }, [productos, urls, formato])
