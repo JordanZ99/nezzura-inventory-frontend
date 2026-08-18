@@ -217,12 +217,10 @@ export interface CatalogoConfig {
  * null en productos.post_override = sin override (usa defaults).
  */
 export interface PostOverride {
-    template?: string;   // 'marco' (Fase 1) | 'overlay' | 'tarjeta' (Fase 2)
-    color?: string;      // 'default' | 'midnightBlack' | 'strawberry' | 'cozyYellow' | 'white'
+    template?: string;   // 'marco' | 'overlay'
     font?: string;       // 'moderna' | 'elegante' | 'redondeada'
     posicion?: string;   // 'arriba' | 'abajo' (solo Overlay, Fase 2)
     mostrar?: { nombre?: boolean; precio?: boolean; negocio?: boolean };
-    cta?: { texto?: string; url?: string };  // CTA configurable (Fase 4, §9.4)
     // Colores de texto personalizables: primario = NOMBRE + NEGOCIO,
     // secundario = PRECIO (hex #RRGGBB o '' = automático por plantilla).
     color_primario?: string;
@@ -235,13 +233,10 @@ export interface PostOverride {
  */
 export interface PostConfig {
     tenant_id: string;
-    template_default: string;  // 'marco' | 'overlay' | 'tarjeta'
-    color: string;
+    template_default: string;  // 'marco' | 'overlay'
     font: string;
     posicion: string;
     mostrar: { nombre: boolean; precio: boolean; negocio: boolean };
-    cta_texto?: string;  // Texto del botón CTA (Fase 4); ''/undefined = sin CTA
-    cta_url?: string;    // URL opcional del CTA
     // Colores de texto personalizables: primario = NOMBRE + NEGOCIO,
     // secundario = PRECIO (hex #RRGGBB o '' = automático por plantilla).
     color_primario?: string;
@@ -534,12 +529,9 @@ export const api = {
         request<PostConfig>("/catalogo_gestion/post_config"),
     actualizarPostConfig: (data: {
         template_default?: string;
-        color?: string;
         font?: string;
         posicion?: string;
         mostrar?: { nombre?: boolean; precio?: boolean; negocio?: boolean };
-        cta_texto?: string;
-        cta_url?: string;
         color_primario?: string;
         color_secundario?: string;
     }) =>
