@@ -101,6 +101,8 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
     )
     const [descripcion, setDescripcion] = useState("")
     const [compartiendo, setCompartiendo] = useState(false)
+    // Diagnóstico: true si el <img> del preview falló (muestra la URL para reportar)
+    const [errorPreview, setErrorPreview] = useState(false)
     // Sello de la tarjeta (Fase 4): decisión del momento (no se guarda)
     const [sello, setSello] = useState("")
 
@@ -118,20 +120,22 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
     }, [producto.imagen, galeria])
 
     // Cargar defaults del negocio + config del catálogo (nombre/logo del negocio)
+    // CADA llamada es independiente: si un endpoint falla (p. ej. el backend
+    // desplegado aún no tiene post_config), la otra igual se aplica y la vista
+    // previa se genera (con defaults de fábrica y/o sin el nombre del negocio).
     useEffect(() => {
         let activo = true
-        Promise.all([api.getPostConfig(), api.getConfigCatalogo()])
-            .then(([pc, cc]) => {
+        api.getPostConfig()
+            .then(pc => { if (activo) { setDefaults(pc); setCfg(resolverConfig(producto.post_override, pc)) } })
+            .catch(() => { if (activo) setCfg(resolverConfig(producto.post_override, null)) })
+        api.getConfigCatalogo()
+            .then(cc => {
                 if (!activo) return
-                setDefaults(pc)
                 setConfigCatalogo(cc)
-                setCfg(resolverConfig(producto.post_override, pc))
                 // Descripción lista para publicar (editable después)
                 setDescripcion(generarDescripcion(producto, cc?.titulo || ""))
             })
-            .catch(() => {
-                if (activo) setCfg(resolverConfig(producto.post_override, null))
-            })
+            .catch(() => { /* sin config del catálogo → tarjeta sin nombre del negocio */ })
         return () => { activo = false }
     }, [producto])
 
@@ -158,9 +162,10 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
 
     // ── Vista previa con debounce (~300ms): la URL cambia al tocar controles ──
     useEffect(() => {
-        if (!cfg || !configCatalogo) return
+        if (!cfg) return
         setCargandoPreview(true)
         const timer = setTimeout(() => {
+            setErrorPreview(false)
             setPreviewUrl(construirUrlPreview({
                 origin: window.location.origin,
                 producto: producto.producto,
@@ -671,13 +676,15 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                                     </div>
                                 </div>
                             )}
-                            {previewUrl && (
+                            {previewUrl && !errorPreview && (
+                                // key: al cambiar la URL se remonta el <img> y onLoad/onError se re-disparan
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
+                                    key={previewUrl}
                                     src={previewUrl}
                                     alt={`Vista previa del post de ${producto.producto}`}
-                                    onLoad={() => setCargandoPreview(false)}
-                                    onError={() => setCargandoPreview(false)}
+                                    onLoad={() => { setCargandoPreview(false); setErrorPreview(false) }}
+                                    onError={() => { setCargandoPreview(false); setErrorPreview(true) }}
                                     style={{
                                         maxHeight: "52vh",
                                         maxWidth: "100%",
@@ -687,6 +694,30 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                                         display: "block",
                                     }}
                                 />
+                            )}
+                            {errorPreview && (
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, color: "#f87171", padding: 16, textAlign: "center" }}>
+                                    <Icon name="TriangleAlert" size={26} color="#f87171" />
+                                    <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 800 }}>
+                                        No se pudo generar la vista previa
+                                    </p>
+                                    <p style={{ margin: 0, fontSize: "0.68rem", color: "#94a3b8", wordBreak: "break-all", maxWidth: "100%" }}>
+                                        {previewUrl}
+                                    </p>
+                                    {previewUrl && (
+                                        <a
+                                            href={previewUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                fontSize: "0.72rem", fontWeight: 700, color: "#60a5fa",
+                                                textDecoration: "underline",
+                                            }}
+                                        >
+                                            Abrir la URL en otra pestaña para diagnosticar
+                                        </a>
+                                    )}
+                                </div>
                             )}
                         </div>
 
