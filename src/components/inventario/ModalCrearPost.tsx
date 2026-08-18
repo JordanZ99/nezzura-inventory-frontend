@@ -135,22 +135,14 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
         return lista
     }, [producto.imagen, galeria, producto.variaciones])
 
-    // Relación de recorte según plantilla + formato: en Marco es el área de la
-    // foto dentro del marco (misma fórmula que la ruta de render); en Overlay
-    // es todo el canvas. Así el marco del cropper = exactamente lo que se ve.
+    // Relación de recorte según plantilla + formato: en Marco la foto es
+    // CUADRADA (1:1, polaroid real); en Overlay es todo el canvas del formato.
+    // Así el marco del cropper = exactamente lo que se ve.
     const aspectoCrop = useMemo(() => {
         if (!cfg) return 0.8
+        if (cfg.template === "marco") return 1
         const dims = { post: { width: 1080, height: 1350 }, historia: { width: 1080, height: 1920 }, cuadrado: { width: 1200, height: 1200 } }[formato] || { width: 1080, height: 1350 }
-        if (cfg.template === "overlay") return dims.width / dims.height
-        const { width: W, height: H } = dims
-        const escala = W / 1080
-        const fontNombre = Math.round(64 * escala)
-        const fontPrecio = Math.round(56 * escala)
-        const fontNegocio = Math.round(32 * escala)
-        const altoTexto = Math.round(fontNombre * 1.25 * 2 + fontPrecio * 1.2 + fontNegocio * 1.3 + 16 * escala + 8 * escala)
-        const padding = Math.round(W * 0.05)
-        const altoFoto = Math.max(200, H - padding * 2 - altoTexto - Math.round(24 * escala))
-        return (W - padding * 2) / altoFoto
+        return dims.width / dims.height
     }, [cfg, formato])
 
     // Cargar defaults del negocio + config del catálogo (nombre/logo del negocio)

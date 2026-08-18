@@ -386,7 +386,11 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
         16 * escala +                     // gap entre bloques
         8 * escala
     )
-    const altoFoto = Math.max(200, H - paddingTarjeta * 2 - altoTexto - Math.round(24 * escala))
+    // Foto polaroid REAL: la imagen es CUADRADA (1:1), centrada en el marco
+    // con margen blanco alrededor (como una polaroid de verdad).
+    const anchoDisponible = W - paddingTarjeta * 2
+    const altoDisponible = Math.max(200, H - paddingTarjeta * 2 - altoTexto - Math.round(24 * escala))
+    const ladoFoto = Math.min(anchoDisponible, altoDisponible)
 
     return (
         <div
@@ -400,11 +404,12 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
                 padding: paddingTarjeta,
             }}
         >
-            {/* Foto inset (nunca se le superpone texto); sin foto → fondo secundario */}
+            {/* Foto cuadrada centrada (nunca se le superpone texto); sin foto → fondo secundario */}
             <div
                 style={{
-                    width: "100%",
-                    height: altoFoto,
+                    width: ladoFoto,
+                    height: ladoFoto,
+                    alignSelf: "center",
                     borderRadius: Math.round(18 * escala),
                     overflow: "hidden",
                     background: tieneFoto ? (cropEstilos.bg || "#f1f3f5") : fondoFoto,
@@ -434,7 +439,7 @@ function PlantillaMarco({ ctx }: { ctx: CtxTarjeta }) {
                 style={{
                     display: "flex",
                     flexDirection: "column",
-                    justifyContent: "center",
+                    justifyContent: "flex-end",
                     flex: 1,
                     padding: `${Math.round(24 * escala)}px ${Math.round(6 * escala)}px 0`,
                 }}
