@@ -222,6 +222,7 @@ export interface PostOverride {
     font?: string;       // 'moderna' | 'elegante' | 'redondeada'
     posicion?: string;   // 'arriba' | 'abajo' (solo Overlay, Fase 2)
     mostrar?: { nombre?: boolean; precio?: boolean; negocio?: boolean };
+    cta?: { texto?: string; url?: string };  // CTA configurable (Fase 4, §9.4)
 }
 
 /**
@@ -230,11 +231,13 @@ export interface PostOverride {
  */
 export interface PostConfig {
     tenant_id: string;
-    template_default: string;  // 'marco' (Fase 1)
+    template_default: string;  // 'marco' | 'overlay' | 'tarjeta'
     color: string;
     font: string;
     posicion: string;
     mostrar: { nombre: boolean; precio: boolean; negocio: boolean };
+    cta_texto?: string;  // Texto del botón CTA (Fase 4); ''/undefined = sin CTA
+    cta_url?: string;    // URL opcional del CTA
 }
 
 export interface Categoria {
@@ -527,6 +530,8 @@ export const api = {
         font?: string;
         posicion?: string;
         mostrar?: { nombre?: boolean; precio?: boolean; negocio?: boolean };
+        cta_texto?: string;
+        cta_url?: string;
     }) =>
         request<{ ok: boolean; mensaje: string }>("/catalogo_gestion/post_config", {
             method: "PUT",
