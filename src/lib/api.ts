@@ -223,6 +223,10 @@ export interface PostOverride {
     posicion?: string;   // 'arriba' | 'abajo' (solo Overlay, Fase 2)
     mostrar?: { nombre?: boolean; precio?: boolean; negocio?: boolean };
     cta?: { texto?: string; url?: string };  // CTA configurable (Fase 4, §9.4)
+    // Colores de texto personalizables: primario = NOMBRE + NEGOCIO,
+    // secundario = PRECIO (hex #RRGGBB o '' = automático por plantilla).
+    color_primario?: string;
+    color_secundario?: string;
 }
 
 /**
@@ -238,6 +242,10 @@ export interface PostConfig {
     mostrar: { nombre: boolean; precio: boolean; negocio: boolean };
     cta_texto?: string;  // Texto del botón CTA (Fase 4); ''/undefined = sin CTA
     cta_url?: string;    // URL opcional del CTA
+    // Colores de texto personalizables: primario = NOMBRE + NEGOCIO,
+    // secundario = PRECIO (hex #RRGGBB o '' = automático por plantilla).
+    color_primario?: string;
+    color_secundario?: string;
 }
 
 export interface Categoria {
@@ -532,6 +540,8 @@ export const api = {
         mostrar?: { nombre?: boolean; precio?: boolean; negocio?: boolean };
         cta_texto?: string;
         cta_url?: string;
+        color_primario?: string;
+        color_secundario?: string;
     }) =>
         request<{ ok: boolean; mensaje: string }>("/catalogo_gestion/post_config", {
             method: "PUT",

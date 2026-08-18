@@ -16,6 +16,10 @@ export interface ConfigResuelta {
     posicion: string
     mostrar: { nombre: boolean; precio: boolean; negocio: boolean }
     ctaTexto: string
+    // Colores de texto: '' = automático por plantilla. primario = NOMBRE +
+    // NEGOCIO (mismo color); secundario = PRECIO.
+    colorPrimario: string
+    colorSecundario: string
 }
 
 /**
@@ -35,6 +39,8 @@ export function resolverConfig(override: PostOverride | null | undefined, defaul
             negocio: override?.mostrar?.negocio ?? d?.mostrar?.negocio ?? true,
         },
         ctaTexto: override?.cta?.texto || d?.cta_texto || "",
+        colorPrimario: override?.color_primario || d?.color_primario || "",
+        colorSecundario: override?.color_secundario || d?.color_secundario || "",
     }
 }
 
@@ -117,6 +123,8 @@ export function construirUrlPreview(opts: {
     if (opts.logo) params.set("logo", opts.logo)
     if (opts.sello) params.set("sello", opts.sello)
     if (opts.cfg.ctaTexto) params.set("cta_texto", opts.cfg.ctaTexto)
+    if (opts.cfg.colorPrimario) params.set("color_primario", opts.cfg.colorPrimario)
+    if (opts.cfg.colorSecundario) params.set("color_secundario", opts.cfg.colorSecundario)
     return `${opts.origin}/posts/${encodeURIComponent(opts.producto)}?${params.toString()}`
 }
 
