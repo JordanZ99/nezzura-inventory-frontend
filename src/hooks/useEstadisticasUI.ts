@@ -9,7 +9,7 @@
 // ==============================================================================
 
 import { useEffect, useState } from "react"
-import { api, type Producto } from "@/lib/api"
+import { api, type Orden, type Producto } from "@/lib/api"
 import { useToast } from "@/components/ui/Toast"
 import type { DateRangePickerValue } from "@tremor/react"
 
@@ -44,11 +44,16 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
     const [fotosModal, setFotosModal] = useState<{ url: string; orden: number }[]>([])
     const [indiceFoto, setIndiceFoto] = useState(0)
 
-    // Edición / anulación de ventas
+    // Edición / anulación de ventas (renglones)
     const [editando, setEditando] = useState<number | null>(null)
     const [editVal, setEditVal] = useState<EditVenta>({ fecha: "", cantidad: 0, precio_real: 0, total_venta: 0, ganancia_bruta: 0, costo_unitario: 0 })
     const [guardando, setGuardando] = useState(false)
     const [confirmAnularVentaId, setConfirmAnularVentaId] = useState<number | null>(null)
+
+    // Edición / anulación de TICKETS (órdenes)
+    const [confirmAnularOrdenId, setConfirmAnularOrdenId] = useState<string | null>(null)
+    const [ordenEditando, setOrdenEditando] = useState<string | null>(null)
+    const [ordenFecha, setOrdenFecha] = useState("")
 
     // Cargar todas las imágenes del producto al abrir el modal
     useEffect(() => {
@@ -94,6 +99,38 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
+    /** Entra en modo edición de la fecha de un ticket */
+    function iniciarEdicionOrden(o: Orden) {
+        setOrdenEditando(o.id)
+        setOrdenFecha(new Date(o.fecha).toISOString().substring(0, 10))
+    }
+
+    /** Guarda la nueva fecha del ticket (cascada a sus renglones) */
+    async function guardarEdicionOrden() {
+        if (!ordenEditando || guardando) return
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(ordenFecha)) {
+            mostrarMsg(false, "❌ Selecciona una fecha válida")
+            return
+        }
+        setGuardando(true)
+        try {
+            await api.actualizarOrden(ordenEditando, { fecha: ordenFecha })
+            mostrarMsg(true, "Ticket actualizado")
+            setOrdenEditando(null); recargar()
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+        finally { setGuardando(false) }
+    }
+
+    /** Anula el ticket completo: restaura el stock de todos sus renglones */
+    async function anularOrden(ordenId: string) {
+        setConfirmAnularOrdenId(null)
+        try {
+            const r = await api.anularOrden(ordenId)
+            mostrarMsg(true, `Ticket anulado — ${(r.anuladas ?? 0)} renglón(es), stock devuelto`)
+            setOrdenEditando(null); recargar()
+        } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
+    }
+
     /** Descarga una imagen desde una URL con el nombre del producto */
     function descargarImagen(url: string, nombre: string) {
         const a = document.createElement("a")
@@ -134,8 +171,17 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
         setGuardando,
         confirmAnularVentaId,
         setConfirmAnularVentaId,
+        confirmAnularOrdenId,
+        setConfirmAnularOrdenId,
+        ordenEditando,
+        setOrdenEditando,
+        ordenFecha,
+        setOrdenFecha,
         guardarEdicion,
         anularVenta,
+        iniciarEdicionOrden,
+        guardarEdicionOrden,
+        anularOrden,
         descargarImagen,
     }
 }

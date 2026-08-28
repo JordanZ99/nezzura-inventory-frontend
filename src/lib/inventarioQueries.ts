@@ -1,4 +1,4 @@
-import { api, type CatalogoConfig, type Categoria, type Gasto, type Lote, type Producto, type Venta } from "@/lib/api"
+import { api, type CatalogoConfig, type Categoria, type Gasto, type Lote, type Orden, type Producto, type Venta } from "@/lib/api"
 
 // La identidad del tenant forma parte de cada clave para que una sesión no
 // pueda reutilizar accidentalmente datos cacheados de otro negocio.
@@ -8,6 +8,7 @@ export const inventarioQueryKeys = {
     categorias: (tenantId: string) => ["categorias", tenantId] as const,
     configCatalogo: (tenantId: string) => ["config-catalogo", tenantId] as const,
     ventas: (tenantId: string) => ["ventas", tenantId] as const,
+    ordenes: (tenantId: string) => ["ordenes", tenantId] as const,
     gastos: (tenantId: string) => ["gastos", tenantId] as const,
     categoriasGasto: (tenantId: string) => ["categorias-gasto", tenantId] as const,
 }
@@ -41,6 +42,10 @@ export function obtenerConfigCatalogo(): Promise<CatalogoConfig> {
 
 export function obtenerVentas(): Promise<Venta[]> {
     return api.getVentas()
+}
+
+export function obtenerOrdenes(): Promise<Orden[]> {
+    return api.getOrdenes()
 }
 
 export function obtenerGastos(): Promise<Gasto[]> {

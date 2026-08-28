@@ -149,12 +149,26 @@ export interface Venta {
     total_venta: number;
     ganancia_bruta: number;
     estado: string;
-    // 'stock' | 'servicio' — para saber en el historial si la venta consumió inventario
+    // 'stock' | 'servicio' | 'compuesto' — para saber en el historial si la venta consumió inventario
     tipo_producto?: string;
     // Nombre de la variación vendida (ej. "Doble", "S") — vacío = sin variación
     variacion?: string;
     // Consumo real de materiales de una venta COMPUESTA (solo compuestos)
     consumo?: { material: string; id_lote: string | null; cantidad: number; costo: number }[] | null;
+    // Orden (ticket) a la que pertenece el renglón (migración 032)
+    orden_id?: string;
+}
+
+// Ticket/orden de venta: cabecera de un cobro que agrupa sus renglones
+export interface Orden {
+    id: string;
+    n_ticket: number;
+    fecha: string;
+    total: number;
+    ganancia: number;
+    cantidad_items: number;
+    estado: string; // 'Activa' | 'Anulada'
+    ventas: Venta[];
 }
 
 export interface Gasto {
@@ -496,6 +510,13 @@ export const api = {
 
     // Ventas
     getVentas: () => request<Venta[]>("/ventas/"),
+    getOrdenes: (limit = 500) => request<Orden[]>(`/ventas/ordenes?limit=${limit}`),
+    // Edita la fecha de un ticket (cascada a todos sus renglones)
+    actualizarOrden: (ordenId: string, data: { fecha: string }) =>
+        request<{ ok: boolean; n_ticket: number }>(`/ventas/ordenes/${ordenId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    // Anula un ticket completo: restaura el stock de todos sus renglones
+    anularOrden: (ordenId: string) =>
+        request<{ ok: boolean; anuladas: number; stock_restaurado?: number }>(`/ventas/ordenes/${ordenId}`, { method: "DELETE" }),
     cobrarCarrito: (items: ItemCarrito[]) => request<{ ok: boolean; ventas: number; total_cobrado: number }>("/ventas/cobrar", { method: "POST", body: JSON.stringify({ items }) }),
     actualizarVenta: (id: number, data: { fecha?: string; precio_real?: number; costo_unitario?: number; cantidad?: number; total_venta?: number; ganancia_bruta?: number }) => request(`/ventas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarVenta: (id: number) => request(`/ventas/${id}`, { method: "DELETE" }),

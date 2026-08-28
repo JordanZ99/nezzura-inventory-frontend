@@ -8,12 +8,13 @@
 // getPaginationRange y la paginación (totalPaginas / ventasPaginadas).
 // ==============================================================================
 
-import type { Venta, Gasto, Producto } from "@/lib/api"
+import type { Venta, Gasto, Producto, Orden } from "@/lib/api"
 import type { DateRangePickerValue } from "@tremor/react"
 import { categoriasUnicas, compararProductos, filtrarProductos } from "@/lib/ordenamiento"
 
 interface PropsEstadisticasCalculos {
     ventas: Venta[]
+    ordenes: Orden[]
     gastos: Gasto[]
     productos: Producto[]
     dates: DateRangePickerValue
@@ -32,7 +33,7 @@ interface FilaCostoGanancia {
     total: number
 }
 
-export function useEstadisticasCalculos({ ventas, gastos, productos, dates, busquedaVentas, ordenVentas, busquedaProdDebounced, catSelecProd, ordenProd, paginaActual }: PropsEstadisticasCalculos) {
+export function useEstadisticasCalculos({ ventas, ordenes, gastos, productos, dates, busquedaVentas, ordenVentas, busquedaProdDebounced, catSelecProd, ordenProd, paginaActual }: PropsEstadisticasCalculos) {
     const ITEMS_POR_PAGINA = 10
 
     // --- Filtrado ---
@@ -113,10 +114,34 @@ export function useEstadisticasCalculos({ ventas, gastos, productos, dates, busq
         return { totalVentas: ventasEnRango.length, totalVendido, totalGanancia, totalUnidades }
     }
 
-    // --- Paginación ---
-    const totalPaginas = Math.max(1, Math.ceil(ventasFiltradas.length / ITEMS_POR_PAGINA))
+    // ── Órdenes (tickets): filtro + búsqueda + orden para el Historial ──
+    const ordenesFiltradas = ordenes.filter(o => {
+        const f = new Date(o.fecha)
+        if (dates.from && f < dates.from) return false
+        if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
+        if (busquedaVentas.trim()) {
+            const q = busquedaVentas.toLowerCase()
+            const porFolio = String(o.n_ticket).includes(q)
+            const porProducto = (o.ventas || []).some(v => v.producto?.toLowerCase().includes(q))
+            if (!porFolio && !porProducto) return false
+        }
+        return true
+    }).sort((a, b) => {
+        switch (ordenVentas) {
+            case "fecha-asc": return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+            case "monto-desc": return (b.total || 0) - (a.total || 0)
+            case "monto-asc": return (a.total || 0) - (b.total || 0)
+            case "ganancia-desc": return (b.ganancia || 0) - (a.ganancia || 0)
+            case "fecha-desc":
+            case "producto":
+            default: return new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+        }
+    })
+
+    // --- Paginación (sobre órdenes: el historial agrupa por ticket) ---
+    const totalPaginas = Math.max(1, Math.ceil(ordenesFiltradas.length / ITEMS_POR_PAGINA))
     const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA
-    const ventasPaginadas = ventasFiltradas.slice(inicio, inicio + ITEMS_POR_PAGINA)
+    const ordenesPaginadas = ordenesFiltradas.slice(inicio, inicio + ITEMS_POR_PAGINA)
 
     // --- KPIs ---
     const ventasActivas = ventasFiltradas.filter(v => v.estado !== "Inactivo")
@@ -126,6 +151,10 @@ export function useEstadisticasCalculos({ ventas, gastos, productos, dates, busq
     const totalGastos = gastosFiltrados.reduce((a, g) => a + g.monto, 0)
     const gananciaNeta = gananciaBruta - totalGastos
     const costoTotalGlobal = totalVendido - gananciaBruta
+
+    // Ticket promedio: ventas del período / tickets con al menos un renglón activo
+    const ordenesActivasPeriodo = ordenesFiltradas.filter(o => o.estado !== "Anulada")
+    const ticketPromedio = ordenesActivasPeriodo.length > 0 ? totalVendido / ordenesActivasPeriodo.length : 0
 
     // --- Transformación de datos para Gráficas ---
     const globalCostProfit = [
@@ -200,15 +229,17 @@ export function useEstadisticasCalculos({ ventas, gastos, productos, dates, busq
         ITEMS_POR_PAGINA,
         ventasFiltradas,
         gastosFiltrados,
+        ordenesFiltradas,
+        ordenesPaginadas,
         categoriasCatalogo,
         productosFiltrados,
         getVentasProducto,
         totalPaginas,
-        ventasPaginadas,
         totalVendido,
         gananciaBruta,
         totalGastos,
         gananciaNeta,
+        ticketPromedio,
         globalCostProfit,
         top5,
         chartDataLine,
