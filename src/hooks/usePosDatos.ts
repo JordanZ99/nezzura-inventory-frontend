@@ -39,7 +39,9 @@ export function usePosDatos() {
     const userId = tenantId || (tenant ? "Sesión Inválida" : "Cargando...")
     const cargando = productosQuery.isPending
 
-    /** Refresca inventario + lotes tras una venta (lo invoca usePosCarrito.cobrar) */
+    /** Refresca inventario + lotes tras una venta (lo invoca usePosCarrito.cobrar).
+     * También invalida ventas/órdenes: con el cache global de 2 minutos, sin esto
+     * el nuevo ticket tardaría hasta 2 minutos en verse en Estadísticas. */
     async function recargar() {
         if (!tenantId) return
         await Promise.all([
@@ -49,6 +51,14 @@ export function usePosDatos() {
             }),
             queryClient.invalidateQueries({
                 queryKey: inventarioQueryKeys.lotes(tenantId),
+                refetchType: "active",
+            }),
+            queryClient.invalidateQueries({
+                queryKey: inventarioQueryKeys.ventas(tenantId),
+                refetchType: "active",
+            }),
+            queryClient.invalidateQueries({
+                queryKey: inventarioQueryKeys.ordenes(tenantId),
                 refetchType: "active",
             }),
         ])
