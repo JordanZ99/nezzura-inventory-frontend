@@ -238,6 +238,51 @@ export interface GastoProgramado {
     ultimo_monto?: number | null;  // monto del último gasto generado por esta regla
 }
 
+// ── Estadísticas server-side: respuestas de la BDD, no dumps de renglones ──
+
+// KPIs del período (GET /stats/resumen)
+export interface ResumenStats {
+    total_vendido: number;
+    ganancia_bruta: number;
+    unidades: number;
+    num_ventas: number;
+    num_anuladas: number;
+    tickets: number;
+    ticket_promedio: number;
+    total_gastos: number;
+    cobros_por_metodo: { efectivo: number; tarjeta_debito: number; tarjeta_credito: number; no_registrado: number };
+    propinas: number;
+    con_metodo: boolean;
+    por_terminal: { nombre: string; cobrado: number; comision: number }[];
+    top_productos: StatsProducto[];
+}
+
+// Cubo temporal de la serie (GET /stats/serie): día/semana/més según el rango
+export interface FilaSerie {
+    periodo: string;   // 'YYYY-MM-DD' (inicio del cubo)
+    ventas: number;
+    ganancia: number;
+    gastos: number;
+}
+
+// Totales de UN producto en el período (GET /stats/productos)
+export interface StatsProducto {
+    producto: string;
+    total: number;
+    unidades: number;
+    ganancia: number;
+    num_ventas: number;
+}
+
+// Historial de tickets paginado en servidor (GET /ventas/ordenes/paginadas)
+export interface RespuestaOrdenesPaginadas {
+    ordenes: Orden[];
+    total: number;
+    pagina: number;
+    por_pagina: number;
+    total_paginas: number;
+}
+
 /**
  * Configuración del catálogo público de un tenant.
  */
@@ -381,13 +426,20 @@ export interface RangoFechas {
     hasta?: string
 }
 
+/** Agrega pares clave/valor como querystring, omitiendo vacíos. */
+function conQuery(path: string, params: Record<string, string | number | boolean | undefined | null>): string {
+    const qs = new URLSearchParams()
+    for (const [clave, valor] of Object.entries(params)) {
+        if (valor === undefined || valor === null || valor === "") continue
+        qs.set(clave, String(valor))
+    }
+    const s = qs.toString()
+    return s ? `${path}${path.includes("?") ? "&" : "?"}${s}` : path
+}
+
 /** Agrega ?desde/?hasta a un path solo cuando el rango trae límites. */
 function conRango(path: string, rango?: RangoFechas): string {
-    if (!rango?.desde && !rango?.hasta) return path
-    const qs = new URLSearchParams()
-    if (rango.desde) qs.set("desde", rango.desde)
-    if (rango.hasta) qs.set("hasta", rango.hasta)
-    return `${path}${path.includes("?") ? "&" : "?"}${qs.toString()}`
+    return conQuery(path, { desde: rango?.desde, hasta: rango?.hasta })
 }
 
 /**
@@ -592,6 +644,19 @@ export const api = {
     // Ventas — sin rango el backend devuelve el mes contable actual
     getVentas: (rango?: RangoFechas) => request<Venta[]>(conRango("/ventas/", rango)),
     getOrdenes: (limit = 500, rango?: RangoFechas) => request<Orden[]>(conRango(`/ventas/ordenes?limit=${limit}`, rango)),
+    // Historial paginado en servidor (una página por request)
+    getOrdenesPaginadas: (params: RangoFechas & { pagina?: number; por_pagina?: number; busqueda?: string; orden?: string }) =>
+        request<RespuestaOrdenesPaginadas>(conQuery("/ventas/ordenes/paginadas", { ...params })),
+
+    // Estadísticas server-side: la BDD calcula, el frontend solo dibuja
+    getStatsResumen: (rango?: RangoFechas & { todo?: boolean }) =>
+        request<ResumenStats>(conQuery("/stats/resumen", { desde: rango?.desde, hasta: rango?.hasta, todo: rango?.todo ? 1 : undefined })),
+    getStatsSerie: (params?: RangoFechas & { granularidad?: string }) =>
+        request<FilaSerie[]>(conQuery("/stats/serie", { ...params })),
+    getStatsProductos: (rango?: RangoFechas) =>
+        request<StatsProducto[]>(conRango("/stats/productos", rango)),
+    getVentasProductoStats: (producto: string, rango?: RangoFechas) =>
+        request<Venta[]>(conQuery("/stats/ventas-producto", { producto, desde: rango?.desde, hasta: rango?.hasta })),
     // Edita la fecha de un ticket (cascada a todos sus renglones)
     actualizarOrden: (ordenId: string, data: { fecha: string }) =>
         request<{ ok: boolean; n_ticket: number }>(`/ventas/ordenes/${ordenId}`, { method: "PATCH", body: JSON.stringify(data) }),

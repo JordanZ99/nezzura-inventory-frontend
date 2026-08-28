@@ -29,6 +29,13 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
     // Paginación
     const [paginaActual, setPaginaActual] = useState(1)
     const [busquedaVentas, setBusquedaVentas] = useState("")
+    // La búsqueda del historial viaja al SERVIDOR: se debounced para no
+    // disparar una petición por tecla.
+    const [busquedaVentasDebounced, setBusquedaVentasDebounced] = useState("")
+    useEffect(() => {
+        const timer = setTimeout(() => setBusquedaVentasDebounced(busquedaVentas), 300)
+        return () => clearTimeout(timer)
+    }, [busquedaVentas])
     const [ordenVentas, setOrdenVentas] = useState("fecha-desc")
 
     // Catálogo de productos en estadísticas
@@ -148,6 +155,7 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
         setPaginaActual,
         busquedaVentas,
         setBusquedaVentas,
+        busquedaVentasDebounced,
         ordenVentas,
         setOrdenVentas,
         busquedaProd,

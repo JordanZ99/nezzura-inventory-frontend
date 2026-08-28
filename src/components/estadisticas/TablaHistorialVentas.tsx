@@ -16,7 +16,7 @@ import PaginacionTabla from "./PaginacionTabla"
 import type { EditVenta } from "@/hooks/useEstadisticasUI"
 
 interface Props {
-    ordenesFiltradas: Orden[]
+    totalTickets: number
     ordenesPaginadas: Orden[]
     busquedaVentas: string
     setBusquedaVentas: Dispatch<SetStateAction<string>>
@@ -60,7 +60,7 @@ function resumenProductos(orden: Orden) {
 }
 
 export default function TablaHistorialVentas({
-    ordenesFiltradas,
+    totalTickets,
     ordenesPaginadas,
     busquedaVentas,
     setBusquedaVentas,
@@ -94,7 +94,7 @@ export default function TablaHistorialVentas({
             <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-primary)", display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                     <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800 }}>Historial de Tickets</h2>
-                    <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>{ordenesFiltradas.length} ticket(s)</span>
+                    <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600 }}>{totalTickets} ticket(s)</span>
                 </div>
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                     <div style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 10, padding: "0 12px", border: "1px solid var(--border-primary)" }}>
@@ -278,14 +278,14 @@ export default function TablaHistorialVentas({
                                 </>
                             )
                         })}
-                        {ordenesFiltradas.length === 0 && (
+                        {totalTickets === 0 && (
                             <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: "var(--text-muted)" }}>No hay tickets registrados en este período.</td></tr>
                         )}
                     </tbody>
                 </table>
             </div>
             <PaginacionTabla
-                totalVentas={ordenesFiltradas.length}
+                totalVentas={totalTickets}
                 ITEMS_POR_PAGINA={ITEMS_POR_PAGINA}
                 paginaActual={paginaActual}
                 setPaginaActual={setPaginaActual}
