@@ -331,6 +331,23 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
     return { Authorization: `Bearer ${token}` }
 }
 
+/**
+ * Error de la API con metadatos del cuerpo de respuesta (status, codigo,
+ * sqlstate). Los reintentos controlados (ej. tablas faltantes 42P01)
+ * inspeccionan estos campos; el texto solo es para mostrar al usuario.
+ */
+export class ApiError extends Error {
+    status?: number
+    codigo?: string
+    sqlstate?: string
+
+    constructor(mensaje: string, detalles: { status?: number; codigo?: string; sqlstate?: string } = {}) {
+        super(mensaje)
+        this.name = "ApiError"
+        Object.assign(this, detalles)
+    }
+}
+
 async function request<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
     const authHeaders = await getAuthHeaders()
     const res = await fetch(`${BASE_URL}${path}`, {
@@ -343,15 +360,34 @@ async function request<T = unknown>(path: string, options: RequestInit = {}): Pr
     })
     if (!res.ok) {
         let errStr = "Error en la petición"
+        let codigo: string | undefined
+        let sqlstate: string | undefined
         try {
             const err = await res.json()
-            errStr = err.detail || JSON.stringify(err)
+            errStr = err.detail || err.mensaje || JSON.stringify(err)
+            codigo = err.codigo
+            sqlstate = err.sqlstate
         } catch {
             // ignore
         }
-        throw new Error(errStr)
+        throw new ApiError(errStr, { status: res.status, codigo, sqlstate })
     }
     return res.json()
+}
+
+/** Rango de fechas contable para listados ('YYYY-MM-DD', ambos opcionales). */
+export interface RangoFechas {
+    desde?: string
+    hasta?: string
+}
+
+/** Agrega ?desde/?hasta a un path solo cuando el rango trae límites. */
+function conRango(path: string, rango?: RangoFechas): string {
+    if (!rango?.desde && !rango?.hasta) return path
+    const qs = new URLSearchParams()
+    if (rango.desde) qs.set("desde", rango.desde)
+    if (rango.hasta) qs.set("hasta", rango.hasta)
+    return `${path}${path.includes("?") ? "&" : "?"}${qs.toString()}`
 }
 
 /**
@@ -553,9 +589,9 @@ export const api = {
             { method: "PATCH", body: JSON.stringify({ ids }) }
         ),
 
-    // Ventas
-    getVentas: () => request<Venta[]>("/ventas/"),
-    getOrdenes: (limit = 500) => request<Orden[]>(`/ventas/ordenes?limit=${limit}`),
+    // Ventas — sin rango el backend devuelve el mes contable actual
+    getVentas: (rango?: RangoFechas) => request<Venta[]>(conRango("/ventas/", rango)),
+    getOrdenes: (limit = 500, rango?: RangoFechas) => request<Orden[]>(conRango(`/ventas/ordenes?limit=${limit}`, rango)),
     // Edita la fecha de un ticket (cascada a todos sus renglones)
     actualizarOrden: (ordenId: string, data: { fecha: string }) =>
         request<{ ok: boolean; n_ticket: number }>(`/ventas/ordenes/${ordenId}`, { method: "PATCH", body: JSON.stringify(data) }),
@@ -595,8 +631,8 @@ export const api = {
     actualizarGastoComision: (activo: boolean) =>
         request<{ ok: boolean; gasto_comision_automatico: boolean }>("/inventario/me", { method: "PATCH", body: JSON.stringify({ gasto_comision_automatico: activo }) }),
 
-    // Gastos
-    getGastos: () => request<Gasto[]>("/gastos/"),
+    // Gastos — sin rango el backend devuelve el mes contable actual
+    getGastos: (rango?: RangoFechas) => request<Gasto[]>(conRango("/gastos/", rango)),
     crearGasto: (data: { fecha: string; categoria: string; descripcion: string; monto: number; estado?: string; gasto_programado_id?: string }) => request("/gastos/", { method: "POST", body: JSON.stringify(data) }),
     actualizarGasto: (id: number, data: { monto: number; categoria: string; descripcion: string }) => request(`/gastos/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     confirmarGasto: (id: number) => request(`/gastos/${id}/confirmar`, { method: "PUT" }),
