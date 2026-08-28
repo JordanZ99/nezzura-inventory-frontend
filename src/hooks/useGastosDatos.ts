@@ -5,11 +5,21 @@
 // ==============================================================================
 
 import { useEffect, useState } from "react"
-import { api, type Gasto } from "@/lib/api"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTenant } from "@/contexts/TenantContext"
+import { inventarioQueryKeys, obtenerGastos } from "@/lib/inventarioQueries"
 
 export function useGastosDatos() {
-    const [gastos, setGastos] = useState<Gasto[]>([])
-    const [cargando, setCargando] = useState(true)
+    const { tenant } = useTenant()
+    const queryClient = useQueryClient()
+    const tenantId = tenant?.tenant_id
+    const gastosQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.gastos(tenantId) : ["gastos", "sin-tenant"],
+        queryFn: obtenerGastos,
+        enabled: Boolean(tenantId),
+    })
+    const gastos = gastosQuery.data ?? []
+    const cargando = gastosQuery.isPending
     const [esMobile, setEsMobile] = useState(true) // mobile-first para evitar flash de contenido
 
     useEffect(() => {
@@ -22,10 +32,12 @@ export function useGastosDatos() {
     }, [])
 
     async function recargar() {
-        const g = await api.getGastos()
-        setGastos(g)
+        if (!tenantId) return
+        await queryClient.invalidateQueries({
+            queryKey: inventarioQueryKeys.gastos(tenantId),
+            refetchType: "active",
+        })
     }
-    useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
 
     return {
         gastos,
