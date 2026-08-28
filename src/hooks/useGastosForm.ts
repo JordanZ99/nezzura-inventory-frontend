@@ -10,9 +10,12 @@
 // circulares. Usa el toast global.
 // ==============================================================================
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTenant } from "@/contexts/TenantContext"
 import { api, type Gasto } from "@/lib/api"
 import { useToast } from "@/components/ui/Toast"
+import { inventarioQueryKeys, obtenerCategoriasGasto } from "@/lib/inventarioQueries"
 
 export interface FormGasto {
     fecha: string
@@ -23,6 +26,9 @@ export interface FormGasto {
 
 export function useGastosForm(recargar: () => Promise<void>) {
     const { mostrarMsg } = useToast()
+    const { tenant } = useTenant()
+    const queryClient = useQueryClient()
+    const tenantId = tenant?.tenant_id
     const [form, setForm] = useState<FormGasto>({
         fecha: new Date().toISOString().substring(0, 10),
         categoria: "Otros",
@@ -39,8 +45,14 @@ export function useGastosForm(recargar: () => Promise<void>) {
     const [confirmDescartarGastoId, setConfirmDescartarGastoId] = useState<number | null>(null)
 
     // ── Estado para categorías de gasto editables ──
-    const [categoriasGasto, setCategoriasGasto] = useState<string[]>(["Otros"])
-    const [cargandoCats, setCargandoCats] = useState(false)
+    const categoriasQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.categoriasGasto(tenantId) : ["categorias-gasto", "sin-tenant"],
+        queryFn: obtenerCategoriasGasto,
+        enabled: Boolean(tenantId),
+        staleTime: 5 * 60 * 1000,
+    })
+    const categoriasGasto = categoriasQuery.data?.map(c => c.nombre) ?? ["Otros"]
+    const cargandoCats = categoriasQuery.isPending || categoriasQuery.isFetching
     const [nuevaCatNombre, setNuevaCatNombre] = useState("")
     const [catEditandoNombre, setCatEditandoNombre] = useState<string | null>(null)
     const [catEditandoVal, setCatEditandoVal] = useState("")
@@ -53,26 +65,12 @@ export function useGastosForm(recargar: () => Promise<void>) {
      * por defecto para que el usuario no vea una lista vacía.
      */
     async function cargarCategoriasGasto() {
-        setCargandoCats(true)
-        try {
-            const cats = await api.getCategoriasGasto()
-            if (cats.length === 0) {
-                // Seed inicial: crear las categorías por defecto
-                const defaults = ["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"]
-                await Promise.all(defaults.map(n => api.crearCategoriaGasto(n).catch(() => {})))
-                const cats2 = await api.getCategoriasGasto()
-                setCategoriasGasto(cats2.map(c => c.nombre))
-            } else {
-                setCategoriasGasto(cats.map(c => c.nombre))
-            }
-        } catch {
-            // Si falla la API, usamos las categorías por defecto como fallback
-            setCategoriasGasto(["Evento", "Decoración", "Materiales", "Alimentos", "Envíos", "Otros"])
-        } finally {
-            setCargandoCats(false)
-        }
+        if (!tenantId) return
+        await queryClient.invalidateQueries({
+            queryKey: inventarioQueryKeys.categoriasGasto(tenantId),
+            refetchType: "active",
+        })
     }
-    useEffect(() => { cargarCategoriasGasto() }, [])
 
     async function guardarNuevaCategoriaGasto() {
         const nombre = nuevaCatNombre.trim()

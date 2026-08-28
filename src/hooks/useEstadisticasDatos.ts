@@ -6,20 +6,39 @@
 // ==============================================================================
 
 import { useEffect, useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTenant } from "@/contexts/TenantContext"
-import { api, type Venta, type Gasto, type Producto } from "@/lib/api"
-import { inventarioQueryKeys } from "@/lib/inventarioQueries"
+import { inventarioQueryKeys, obtenerConfigCatalogo, obtenerGastos, obtenerInventario, obtenerVentas } from "@/lib/inventarioQueries"
 
 export function useEstadisticasDatos() {
     const { tenant } = useTenant()
     const queryClient = useQueryClient()
-    const [ventas, setVentas] = useState<Venta[]>([])
-    const [gastos, setGastos] = useState<Gasto[]>([])
-    const [productos, setProductos] = useState<Producto[]>([])
-    const [cargando, setCargando] = useState(true)
-    // Relación global de las fotos de producto ('1' | '4 / 5') — config del catálogo
-    const [relacionImagen, setRelacionImagen] = useState("1")
+    const tenantId = tenant?.tenant_id
+    const ventasQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.ventas(tenantId) : ["ventas", "sin-tenant"],
+        queryFn: obtenerVentas,
+        enabled: Boolean(tenantId),
+    })
+    const gastosQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.gastos(tenantId) : ["gastos", "sin-tenant"],
+        queryFn: obtenerGastos,
+        enabled: Boolean(tenantId),
+    })
+    const productosQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.productos(tenantId) : ["inventario", "sin-tenant"],
+        queryFn: obtenerInventario,
+        enabled: Boolean(tenantId),
+    })
+    const configQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.configCatalogo(tenantId) : ["config-catalogo", "sin-tenant"],
+        queryFn: obtenerConfigCatalogo,
+        enabled: Boolean(tenantId),
+    })
+    const ventas = ventasQuery.data ?? []
+    const gastos = gastosQuery.data ?? []
+    const productos = productosQuery.data ?? []
+    const relacionImagen = configQuery.data?.relacion_imagen === "4:5" ? "4 / 5" : "1"
+    const cargando = ventasQuery.isPending || gastosQuery.isPending || productosQuery.isPending
     // Responsive
     const [isMobile, setIsMobile] = useState(false)
 
@@ -31,37 +50,15 @@ export function useEstadisticasDatos() {
         return () => mq.removeEventListener("change", handler)
     }, [])
 
-    useEffect(() => {
-        api.getConfigCatalogo()
-            .then(c => setRelacionImagen(c?.relacion_imagen === "4:5" ? "4 / 5" : "1"))
-            .catch(() => {})
-    }, [])
-
     async function recargar() {
-        try {
-            const [v, g, p] = await Promise.all([api.getVentas(), api.getGastos(), api.getInventario()])
-            setVentas(v)
-            setGastos(g)
-            setProductos(p)
-            // Editar o anular una venta puede modificar el stock. Se marca la
-            // cache del POS como obsoleta para que se actualice al regresar.
-            if (tenant?.tenant_id) {
-                await Promise.all([
-                    queryClient.invalidateQueries({
-                        queryKey: inventarioQueryKeys.productos(tenant.tenant_id),
-                        refetchType: "active",
-                    }),
-                    queryClient.invalidateQueries({
-                        queryKey: inventarioQueryKeys.lotes(tenant.tenant_id),
-                        refetchType: "active",
-                    }),
-                ])
-            }
-        } catch (e) {
-            console.error(e)
-        }
+        if (!tenantId) return
+        await Promise.all([
+            queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.ventas(tenantId), refetchType: "active" }),
+            queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.gastos(tenantId), refetchType: "active" }),
+            queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.productos(tenantId), refetchType: "active" }),
+            queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.lotes(tenantId), refetchType: "active" }),
+        ])
     }
-    useEffect(() => { recargar().finally(() => setCargando(false)) }, [])
 
     return {
         ventas,
