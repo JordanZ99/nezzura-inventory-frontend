@@ -12,6 +12,8 @@ import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import { api, descargarDatosJson, descargarDatosXlsx } from "@/lib/api"
 import { useToast } from "@/components/ui/Toast"
+import { useQueryClient } from "@tanstack/react-query"
+import { inventarioQueryKeys } from "@/lib/inventarioQueries"
 
 interface UsePersonalizacionCuentaArgs {
     tenant: { tenant_id: string; empresa: string; logo: string; plan: string } | null
@@ -20,6 +22,7 @@ interface UsePersonalizacionCuentaArgs {
 
 export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizacionCuentaArgs) {
     const { mostrarMsg } = useToast()
+    const queryClient = useQueryClient()
     const router = useRouter()
 
     // Email del usuario (y flag de carga del bloque de cuenta)
@@ -83,6 +86,12 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         setGuardandoModo(true)
         try {
             await api.actualizarModoPrecioSugerido(modo)
+            if (tenant?.tenant_id) {
+                await queryClient.invalidateQueries({
+                    queryKey: inventarioQueryKeys.productos(tenant.tenant_id),
+                    refetchType: "active",
+                })
+            }
             mostrarMsg(true, "Modo de precio sugerido actualizado")
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error guardando el modo de precio"}`)

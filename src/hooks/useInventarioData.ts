@@ -6,31 +6,56 @@
 // - Derivados: KPIs de la cabecera y categorías existentes (usados por la UI).
 // ==============================================================================
 
-import { useCallback, useEffect, useState } from "react"
-import { api, Categoria, Lote, Producto } from "@/lib/api"
+import { useCallback } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useTenant } from "@/contexts/TenantContext"
+import { inventarioQueryKeys, obtenerCategorias, obtenerConfigCatalogo, obtenerInventario, obtenerLotes } from "@/lib/inventarioQueries"
+import type { Producto } from "@/lib/api"
 
 export function useInventarioData() {
-    const [lotes, setLotes] = useState<Lote[]>([])
-    const [inv, setInv] = useState<Producto[]>([])
-    const [categorias, setCategorias] = useState<Categoria[]>([])
-    const [cargandoCats, setCargandoCats] = useState(false)
-    // Relación global de las fotos (catálogo/POS/gestor): se lee de la config del catálogo
-    const [relacionImagen, setRelacionImagen] = useState("1")
+    const { tenant } = useTenant()
+    const queryClient = useQueryClient()
+    const tenantId = tenant?.tenant_id
+
+    const productosQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.productos(tenantId) : ["inventario", "sin-tenant"],
+        queryFn: obtenerInventario,
+        enabled: Boolean(tenantId),
+    })
+    const lotesQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.lotes(tenantId) : ["lotes", "sin-tenant"],
+        queryFn: obtenerLotes,
+        enabled: Boolean(tenantId),
+    })
+    const categoriasQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.categorias(tenantId) : ["categorias", "sin-tenant"],
+        queryFn: obtenerCategorias,
+        enabled: Boolean(tenantId),
+        staleTime: 5 * 60 * 1000,
+    })
+    const configQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.configCatalogo(tenantId) : ["config-catalogo", "sin-tenant"],
+        queryFn: obtenerConfigCatalogo,
+        enabled: Boolean(tenantId),
+    })
+
+    const lotes = lotesQuery.data ?? []
+    const inv = productosQuery.data ?? []
+    const categorias = categoriasQuery.data ?? []
+    const relacionImagen = configQuery.data?.relacion_imagen === "4:5" ? "4 / 5" : "1"
 
     async function recargar() {
-        try {
-            const [l, i] = await Promise.all([api.getLotes(), api.getInventario()])
-            setLotes(l); setInv(i)
-        } catch {
-            // Tables might not exist — force creation and retry
-            try {
-                await api.initDB()
-                const [l, i] = await Promise.all([api.getLotes(), api.getInventario()])
-                setLotes(l); setInv(i)
-            } catch {
-                // DB is empty, keep empty state
-            }
-        }
+        if (!tenantId) return
+        await Promise.all([
+            queryClient.invalidateQueries({
+                queryKey: inventarioQueryKeys.productos(tenantId),
+                refetchType: "active",
+            }),
+            queryClient.invalidateQueries({
+                queryKey: inventarioQueryKeys.lotes(tenantId),
+                refetchType: "active",
+            }),
+        ])
     }
 
     /**
@@ -38,30 +63,19 @@ export function useInventarioData() {
      * (tabla 'categorias' con conteo de productos asociados)
      */
     async function cargarCategorias() {
-        setCargandoCats(true)
-        try {
-            const cats = await api.getCategorias()
-            setCategorias(cats)
-        } catch {
-            // Si falla, ignoramos silenciosamente
-        } finally {
-            setCargandoCats(false)
-        }
+        if (!tenantId) return
+        await queryClient.invalidateQueries({
+            queryKey: inventarioQueryKeys.categorias(tenantId),
+            refetchType: "active",
+        })
     }
 
     // Permite al hook de formularios actualizar el inventario en memoria
     // (ej. al cambiar la foto de una variación, para reflejarla en el grid).
-    const actualizarInv = useCallback((fn: (prev: Producto[]) => Producto[]) => setInv(fn), [])
-
-    // Carga inicial de lotes + inventario
-    useEffect(() => { recargar() }, [])
-
-    // Relación global de las fotos (catálogo/POS/gestor): se lee de la config del catálogo
-    useEffect(() => {
-        api.getConfigCatalogo()
-            .then(c => setRelacionImagen(c?.relacion_imagen === "4:5" ? "4 / 5" : "1"))
-            .catch(() => {})
-    }, [])
+    const actualizarInv = useCallback((fn: (prev: Producto[]) => Producto[]) => {
+        if (!tenantId) return
+        queryClient.setQueryData<Producto[]>(inventarioQueryKeys.productos(tenantId), prev => fn(prev ?? []))
+    }, [queryClient, tenantId])
 
     // ── Derivados: KPIs de la cabecera ──
     const totalActivos = inv.filter(p => p.stock_total > 0).length
@@ -79,7 +93,7 @@ export function useInventarioData() {
         lotes,
         inv,
         categorias,
-        cargandoCats,
+        cargandoCats: categoriasQuery.isPending || categoriasQuery.isFetching,
         relacionImagen,
         recargar,
         cargarCategorias,

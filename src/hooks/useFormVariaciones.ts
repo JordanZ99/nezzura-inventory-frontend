@@ -22,6 +22,7 @@ export type NuevaVariacionAlta = { nombre: string; precio: number; stock_inicial
 interface UseFormVariacionesArgs {
     inv: Producto[]
     actualizarInv: (fn: (prev: Producto[]) => Producto[]) => void
+    recargar: () => Promise<void>
     prodEditar: string
     setRestock: React.Dispatch<React.SetStateAction<FormRestock>>
     setTab: (tab: Tab) => void
@@ -32,6 +33,7 @@ interface UseFormVariacionesArgs {
 export function useFormVariaciones({
     inv,
     actualizarInv,
+    recargar,
     prodEditar,
     setRestock,
     setTab,
@@ -99,6 +101,7 @@ export function useFormVariaciones({
             )
             if (res.ok) {
                 setEditVariaciones(prev => [...prev, res.variacion])
+                void recargar()
                 setNuevaVarNombre(""); setNuevaVarPrecio(""); setNuevaVarStock("1")
                 mostrarMsg(true, `Variación '${res.variacion.nombre}' agregada${(res.variacion.stock ?? 0) > 0 ? ` con ${res.variacion.stock} uds de stock` : ""}`)
             } else {
@@ -116,6 +119,7 @@ export function useFormVariaciones({
             const res = await api.eliminarVariacion(id)
             if (res.ok) {
                 setEditVariaciones(prev => prev.filter(v => v.id !== id))
+                void recargar()
                 mostrarMsg(true, "Variación eliminada")
             } else if ("requiere_confirmacion" in res && res.requiere_confirmacion) {
                 // La variación tiene stock: advertir y ofrecer eliminar de todos modos
@@ -128,6 +132,7 @@ export function useFormVariaciones({
                 const res2 = await api.eliminarVariacion(id, true)
                 if (res2.ok) {
                     setEditVariaciones(prev => prev.filter(v => v.id !== id))
+                    void recargar()
                     mostrarMsg(true, "Variación eliminada")
                 } else {
                     mostrarMsg(false, (res2 as { mensaje?: string }).mensaje ?? "Error al eliminar")

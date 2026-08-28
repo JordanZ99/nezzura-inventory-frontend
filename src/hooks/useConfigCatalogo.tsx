@@ -11,6 +11,9 @@
 import { useState, useEffect, useRef } from "react"
 import { api, type CatalogoConfig, type Categoria } from "@/lib/api"
 import { useToast } from "@/components/ui/Toast"
+import { useQueryClient } from "@tanstack/react-query"
+import { useTenant } from "@/contexts/TenantContext"
+import { inventarioQueryKeys } from "@/lib/inventarioQueries"
 
 /**
  * Hook de configuración del catálogo. Recibe la tab activa para cargar la
@@ -18,6 +21,8 @@ import { useToast } from "@/components/ui/Toast"
  */
 export function useConfigCatalogo(tab: string) {
     const { mostrarMsg } = useToast()
+    const { tenant } = useTenant()
+    const queryClient = useQueryClient()
 
     // ── Configuración del catálogo público ──
     const [catalogoConfig, setCatalogoConfig] = useState<CatalogoConfig | null>(null)
@@ -42,6 +47,12 @@ export function useConfigCatalogo(tab: string) {
         setCampoGuardando(campo)
         try {
             await api.actualizarConfigCatalogo(data)
+            if (tenant?.tenant_id) {
+                await queryClient.invalidateQueries({
+                    queryKey: inventarioQueryKeys.configCatalogo(tenant.tenant_id),
+                    refetchType: "active",
+                })
+            }
             return true
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error guardando configuración"}`)
@@ -133,6 +144,12 @@ export function useConfigCatalogo(tab: string) {
                         : c
                 )
             )
+            if (tenant?.tenant_id) {
+                await queryClient.invalidateQueries({
+                    queryKey: inventarioQueryKeys.categorias(tenant.tenant_id),
+                    refetchType: "active",
+                })
+            }
             mostrarMsg(true, res.mensaje)
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error al cambiar visibilidad"}`)

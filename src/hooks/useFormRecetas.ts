@@ -19,10 +19,11 @@ export type NuevoMaterialAlta = { material: string; cantidad: number }
 interface UseFormRecetasArgs {
     inv: Producto[]
     prodEditar: string
+    recargar: () => Promise<void>
     mostrarMsg: (ok: boolean, texto: string) => void
 }
 
-export function useFormRecetas({ inv, prodEditar, mostrarMsg }: UseFormRecetasArgs) {
+export function useFormRecetas({ inv, prodEditar, recargar, mostrarMsg }: UseFormRecetasArgs) {
     // ── Materiales de la receta del compuesto en edición (Fases 3 y 4) ──
     const [editRecetas, setEditRecetas] = useState<MaterialReceta[]>([])
     const [matBuscador, setMatBuscador] = useState("")
@@ -54,6 +55,7 @@ export function useFormRecetas({ inv, prodEditar, mostrarMsg }: UseFormRecetasAr
                 // Recargar la receta completa (para reflejar el id y orden)
                 const recetas = await api.getRecetas(prodEditar)
                 setEditRecetas(recetas)
+                void recargar()
                 setMatBuscador(""); setMatSeleccionado(""); setMatCantidad("")
                 mostrarMsg(true, `Material '${matSeleccionado}' agregado a la receta`)
             } else {
@@ -70,6 +72,7 @@ export function useFormRecetas({ inv, prodEditar, mostrarMsg }: UseFormRecetasAr
             const res = await api.editarMaterial(id, cantidad)
             if (res.ok) {
                 setEditRecetas(prev => prev.map(r => r.id === id ? { ...r, cantidad: res.cantidad } : r))
+                void recargar()
                 mostrarMsg(true, "Cantidad actualizada")
             } else {
                 mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al actualizar")
@@ -86,6 +89,7 @@ export function useFormRecetas({ inv, prodEditar, mostrarMsg }: UseFormRecetasAr
             const res = await api.eliminarMaterial(id)
             if (res.ok) {
                 setEditRecetas(prev => prev.filter(r => r.id !== id))
+                void recargar()
                 mostrarMsg(true, "Material eliminado de la receta")
             } else {
                 mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al eliminar")
