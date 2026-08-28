@@ -1,14 +1,17 @@
 // ==============================================================================
 // src/components/pos/DrawerCarritoMovil.tsx
-// Drawer inferior del carrito (móvil): overlay, header con toggle de descuento,
-// lista de ItemCarrito (variante movil) y footer con total + cobrar + vaciar.
-// Todo el estado/handlers vienen de usePosCarrito + usePosUI vía props.
+// Drawer inferior del carrito (móvil): overlay, header con engranaje de cobro;
+// cuerpo alternando lista de ItemCarrito / PanelCobro; footer con total
+// (+propina si el panel está activo) + cobrar + vaciar. Todo el estado/handlers
+// vienen de usePosCarrito + usePosUI vía props.
 // ==============================================================================
 
 import Icon from "@/components/ui/Icon"
 import { ItemCarrito } from "./ItemCarrito"
+import { PanelCobro } from "./PanelCobro"
 import type { AccionesItemCarrito } from "./tipos"
-import type { ItemCarrito as ItemCarritoType, Producto } from "@/lib/api"
+import type { ItemCarrito as ItemCarritoType, Producto, Terminal } from "@/lib/api"
+import type { MetodoCobro, MetodoPagoSimple, LineaPagoMixto } from "@/hooks/usePosCarrito"
 
 interface Props {
     carrito: ItemCarritoType[]
@@ -16,8 +19,30 @@ interface Props {
     precios: Record<string, string>
     totalItems: number
     totalCarrito: number
+    totalAPagar: number
+    cambio: number
+    sumaMixta: number
+    faltanteMixto: number
     modoDescuento: boolean
     cobrando: boolean
+    panelCobro: boolean
+    togglePanelCobro: () => void
+    metodoPago: MetodoCobro
+    setMetodoPago: (m: MetodoCobro) => void
+    propina: string
+    setPropina: (v: string) => void
+    montoRecibido: string
+    setMontoRecibido: (v: string) => void
+    pagosMixtos: LineaPagoMixto[]
+    setLineaMixta: (idx: number, campo: "metodo" | "monto" | "terminal_id", valor: string) => void
+    agregarLineaMixta: () => void
+    quitarLineaMixta: (idx: number) => void
+    terminalId: string
+    setTerminalId: (v: string) => void
+    terminales: Terminal[]
+    comisionEstimada: (metodo: MetodoPagoSimple, monto: number, terminalId: string) => number
+    subtotalAlAbrir: number
+    aplicarSubtotal: (texto: string) => void
     manejarToggleDescuento: () => void
     cobrarConAdvertencia: () => void
     vaciarCarrito: () => void
@@ -31,8 +56,30 @@ export function DrawerCarritoMovil({
     precios,
     totalItems,
     totalCarrito,
+    totalAPagar,
+    cambio,
+    sumaMixta,
+    faltanteMixto,
     modoDescuento,
     cobrando,
+    panelCobro,
+    togglePanelCobro,
+    metodoPago,
+    setMetodoPago,
+    propina,
+    setPropina,
+    montoRecibido,
+    setMontoRecibido,
+    pagosMixtos,
+    setLineaMixta,
+    agregarLineaMixta,
+    quitarLineaMixta,
+    terminalId,
+    setTerminalId,
+    terminales,
+    comisionEstimada,
+    subtotalAlAbrir,
+    aplicarSubtotal,
     manejarToggleDescuento,
     cobrarConAdvertencia,
     vaciarCarrito,
@@ -52,41 +99,73 @@ export function DrawerCarritoMovil({
                     </h2>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <button
-                            onClick={manejarToggleDescuento}
+                            onClick={togglePanelCobro}
+                            disabled={carrito.length === 0}
+                            title="Opciones de cobro"
                             style={{
-                                fontSize: "0.7rem", fontWeight: 800, padding: "5px 10px", borderRadius: 10, border: "none", cursor: "pointer",
-                                background: modoDescuento ? "var(--primary-mid)" : "var(--bg-card2)",
-                                color: modoDescuento ? "#fff" : "var(--text-muted)",
-                                display: "flex", alignItems: "center", gap: 4,
-                                transition: "all 0.2s"
+                                padding: "7px", borderRadius: 10, border: "none", cursor: carrito.length === 0 ? "not-allowed" : "pointer",
+                                background: panelCobro ? "var(--primary-mid)" : "var(--bg-card2)",
+                                color: panelCobro ? "#fff" : "var(--text-muted)",
+                                display: "flex", alignItems: "center",
+                                transition: "all 0.2s", opacity: carrito.length === 0 ? 0.4 : 1
                             }}
                         >
-                            {modoDescuento ? (
-                                <><Icon name="Sparkles" size={14} color="#fff" /> DESC. ON</>
-                            ) : (
-                                <><Icon name="Tag" size={14} /> DESCUENTO</>
-                            )}
+                            <Icon name={panelCobro ? "ChevronUp" : "Settings"} size={16} />
                         </button>
                         <button onClick={() => setCarritoAbierto(false)}
                             style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: "1.2rem", padding: 4 }}>✕</button>
                     </div>
                 </div>
-                {carrito.map(item => (
-                    <ItemCarrito
-                        key={acciones.keyCarrito(item)}
-                        item={item}
-                        prod={productos.find(p => p.producto === item.producto)}
-                        lotesProd={acciones.lotesParaProducto(item.producto)}
-                        variante="movil"
-                        precios={precios}
-                        carrito={carrito}
+                {carrito.length === 0 ? (
+                    <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem", padding: "24px 0" }}>
+                        Agrega productos
+                    </p>
+                ) : panelCobro ? (
+                    <PanelCobro
+                        abierto={panelCobro}
+                        totalCarrito={totalCarrito}
+                        subtotalAlAbrir={subtotalAlAbrir}
+                        totalAPagar={totalAPagar}
+                        cambio={cambio}
+                        sumaMixta={sumaMixta}
+                        faltanteMixto={faltanteMixto}
+                        metodoPago={metodoPago}
+                        setMetodoPago={setMetodoPago}
+                        propina={propina}
+                        setPropina={setPropina}
+                        montoRecibido={montoRecibido}
+                        setMontoRecibido={setMontoRecibido}
+                        pagosMixtos={pagosMixtos}
+                        setLineaMixta={setLineaMixta}
+                        agregarLineaMixta={agregarLineaMixta}
+                        quitarLineaMixta={quitarLineaMixta}
+                        terminalId={terminalId}
+                        setTerminalId={setTerminalId}
+                        terminales={terminales}
+                        comisionEstimada={comisionEstimada}
+                        aplicarSubtotal={aplicarSubtotal}
                         modoDescuento={modoDescuento}
-                        acciones={acciones}
+                        manejarToggleDescuento={manejarToggleDescuento}
+                        volver={togglePanelCobro}
                     />
-                ))}
+                ) : (
+                    carrito.map(item => (
+                        <ItemCarrito
+                            key={acciones.keyCarrito(item)}
+                            item={item}
+                            prod={productos.find(p => p.producto === item.producto)}
+                            lotesProd={acciones.lotesParaProducto(item.producto)}
+                            variante="movil"
+                            precios={precios}
+                            carrito={carrito}
+                            modoDescuento={modoDescuento}
+                            acciones={acciones}
+                        />
+                    ))
+                )}
                 <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.1rem", marginBottom: 16 }}>
-                    <span style={{ color: "var(--text-main)" }}>Total</span>
-                    <span style={{ color: "var(--primary-dark)" }}>${totalCarrito.toFixed(2)}</span>
+                    <span style={{ color: "var(--text-main)" }}>{panelCobro ? "A pagar" : "Total"}</span>
+                    <span style={{ color: "var(--primary-dark)" }}>${(panelCobro ? totalAPagar : totalCarrito).toFixed(2)}</span>
                 </div>
                 <button className="btn-primary" style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={cobrarConAdvertencia} disabled={cobrando}>
                     {cobrando ? "Procesando..." : <><Icon name="Check" size={18} /> Cobrar</>}

@@ -159,6 +159,43 @@ export interface Venta {
     orden_id?: string;
 }
 
+// Pago individual dentro de un ticket (efectivo o tarjeta; el mixto son varios)
+export interface PagoOrden {
+    metodo: string;
+    monto: number;
+    referencia?: string | null;
+    terminal_id?: string | null;
+    terminal_nombre?: string | null;
+    comision?: number;
+}
+
+// Terminal bancaria del negocio con su tarifa real (Fase B)
+export interface Terminal {
+    id: string;
+    nombre: string;
+    banco?: string | null;
+    comision_debito_pct: number;
+    comision_credito_pct: number;
+    comision_fija: number;
+    activo: boolean;
+}
+
+// Turno de caja con arqueo (Fase C)
+export interface Turno {
+    id: string;
+    estado: "Abierto" | "Cerrado";
+    abierta_en: string;
+    cerrada_en: string | null;
+    monto_apertura: number;
+    efectivo_esperado: number | null;
+    efectivo_contado: number | null;
+    diferencia: number | null;
+    notas?: string | null;
+    num_ordenes: number;
+    total_turno: number;
+    efectivo_cobrado: number;
+}
+
 // Ticket/orden de venta: cabecera de un cobro que agrupa sus renglones
 export interface Orden {
     id: string;
@@ -169,6 +206,14 @@ export interface Orden {
     cantidad_items: number;
     estado: string; // 'Activa' | 'Anulada'
     ventas: Venta[];
+    // Cobro (Fase A): NULL/undefined en órdenes legadas = "No registrado"
+    metodo_pago?: string | null; // 'efectivo' | 'tarjeta_debito' | 'tarjeta_credito' | 'mixto'
+    pagos?: PagoOrden[] | null;
+    propina?: number;
+    monto_recibido?: number | null;
+    cambio?: number | null;
+    comision_total?: number;
+    turno_id?: string | null;
 }
 
 export interface Gasto {
@@ -465,7 +510,7 @@ export const api = {
     },
 
     // Perfil
-    getPerfil: () => request<{ tenant_id: string; modo_precio_sugerido: string; zona_horaria: string }>("/inventario/me"),
+    getPerfil: () => request<{ tenant_id: string; modo_precio_sugerido: string; zona_horaria: string; metodo_pago_default: string; gasto_comision_automatico: boolean }>("/inventario/me"),
     // Modo de precio sugerido del POS: 'antiguo' | 'maximo' | 'reciente'
     actualizarModoPrecioSugerido: (modo: string) =>
         request<{ ok: boolean; modo_precio_sugerido: string }>("/inventario/me", { method: "PATCH", body: JSON.stringify({ modo_precio_sugerido: modo }) }),
@@ -517,9 +562,38 @@ export const api = {
     // Anula un ticket completo: restaura el stock de todos sus renglones
     anularOrden: (ordenId: string) =>
         request<{ ok: boolean; anuladas: number; stock_restaurado?: number }>(`/ventas/ordenes/${ordenId}`, { method: "DELETE" }),
-    cobrarCarrito: (items: ItemCarrito[]) => request<{ ok: boolean; ventas: number; total_cobrado: number }>("/ventas/cobrar", { method: "POST", body: JSON.stringify({ items }) }),
+    // Pago de un carrito (Fase A/B): método único o mixto + propina + terminal + recibido
+    cobrarCarrito: (items: ItemCarrito[], pago?: {
+        metodo: string;
+        propina?: number;
+        pagos?: { metodo: string; monto: number; referencia?: string; terminal_id?: string }[];
+        monto_recibido?: number;
+        terminal_id?: string;
+    }) => request<{ ok: boolean; ventas: number; total_cobrado: number; n_ticket?: number | null; metodo_pago?: string | null; propina?: number; cambio?: number | null }>(
+        "/ventas/cobrar",
+        { method: "POST", body: JSON.stringify({ items, pago: pago ?? null }) }
+    ),
     actualizarVenta: (id: number, data: { fecha?: string; precio_real?: number; costo_unitario?: number; cantidad?: number; total_venta?: number; ganancia_bruta?: number }) => request(`/ventas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     eliminarVenta: (id: number) => request(`/ventas/${id}`, { method: "DELETE" }),
+
+    // Terminales bancarias con comisiones (Fase B)
+    getTerminales: () => request<Terminal[]>("/terminales/"),
+    crearTerminal: (data: { nombre: string; banco?: string; comision_debito_pct: number; comision_credito_pct: number; comision_fija: number }) =>
+        request<{ ok: boolean }>("/terminales/", { method: "POST", body: JSON.stringify(data) }),
+    actualizarTerminal: (id: string, data: Partial<{ nombre: string; banco: string; comision_debito_pct: number; comision_credito_pct: number; comision_fija: number; activo: boolean }>) =>
+        request<{ ok: boolean }>(`/terminales/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    eliminarTerminal: (id: string) => request<{ ok: boolean }>(`/terminales/${id}`, { method: "DELETE" }),
+
+    // Turnos de caja con arqueo (Fase C)
+    getTurnos: (limit = 50) => request<Turno[]>(`/turnos/?limit=${limit}`),
+    abrirTurno: (monto_apertura: number) =>
+        request<{ ok: boolean; turno: Turno }>("/turnos/", { method: "POST", body: JSON.stringify({ monto_apertura }) }),
+    cerrarTurno: (turnoId: string, efectivo_contado: number, notas?: string) =>
+        request<{ ok: boolean; efectivo_esperado: number; efectivo_contado: number; diferencia: number }>(`/turnos/${turnoId}/cerrar`, { method: "POST", body: JSON.stringify({ efectivo_contado, notas }) }),
+
+    // Gasto automático de comisiones (Fase B)
+    actualizarGastoComision: (activo: boolean) =>
+        request<{ ok: boolean; gasto_comision_automatico: boolean }>("/inventario/me", { method: "PATCH", body: JSON.stringify({ gasto_comision_automatico: activo }) }),
 
     // Gastos
     getGastos: () => request<Gasto[]>("/gastos/"),

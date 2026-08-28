@@ -32,14 +32,16 @@ export default function PuntoDeVenta() {
     const posCarrito = usePosCarrito({
         productos: datos.productos,
         lotes: datos.lotes,
+        terminales: datos.terminales,
         recargar: datos.recargar,
         setCarritoAbierto: ui.setCarritoAbierto,
+        metodoPagoInicial: tenant?.metodo_pago_default,
     })
 
     // Destructure con los nombres originales para que el JSX no cambie
-    const { productos, cargando, relacionImagen } = datos
+    const { productos, terminales, cargando, relacionImagen } = datos
     const { busqueda, setBusqueda, categoriaSeleccionada, setCategoriaSeleccionada, ordenamiento, setOrdenamiento, carritoAbierto, setCarritoAbierto, categorias, productosFiltrados } = ui
-    const { carrito, precios, cobrando, modoDescuento, modalAdvertencia, modalVariacion, setModalVariacion, manejarToggleDescuento, agregarAlCarrito, agregarConVariacion, cambiarVariacionCarrito, cambiarLoteCarrito, cambiarCantidad, pasoCantidad, cambiarPrecio, cambiarTotal, quitarDelCarrito, vaciarCarrito, cobrarConAdvertencia, confirmarCobroConAdvertencia, cancelarAdvertencia, keyCarrito, lotesParaProducto, nombreLote, totalCarrito, totalItems } = posCarrito
+    const { carrito, precios, cobrando, modoDescuento, modalAdvertencia, modalVariacion, setModalVariacion, manejarToggleDescuento, agregarAlCarrito, agregarConVariacion, cambiarVariacionCarrito, cambiarLoteCarrito, cambiarCantidad, pasoCantidad, cambiarPrecio, cambiarTotal, quitarDelCarrito, vaciarCarrito, cobrarConAdvertencia, confirmarCobroConAdvertencia, cancelarAdvertencia, keyCarrito, lotesParaProducto, nombreLote, totalCarrito, totalItems, panelCobro, togglePanelCobro, metodoPago, setMetodoPago, propina, setPropina, montoRecibido, setMontoRecibido, pagosMixtos, setLineaMixta, agregarLineaMixta, quitarLineaMixta, terminalId, setTerminalId, comisionEstimada, subtotalAlAbrir, aplicarSubtotal, totalAPagar, cambio, sumaMixta, faltanteMixto } = posCarrito
 
     // Handlers del carrito que comparten los componentes (flujo unidireccional)
     const accionesCarrito = {
@@ -118,8 +120,30 @@ export default function PuntoDeVenta() {
                         precios={precios}
                         totalItems={totalItems}
                         totalCarrito={totalCarrito}
+                        totalAPagar={totalAPagar}
+                        cambio={cambio}
+                        sumaMixta={sumaMixta}
+                        faltanteMixto={faltanteMixto}
                         modoDescuento={modoDescuento}
                         cobrando={cobrando}
+                        panelCobro={panelCobro}
+                        togglePanelCobro={togglePanelCobro}
+                        metodoPago={metodoPago}
+                        setMetodoPago={setMetodoPago}
+                        propina={propina}
+                        setPropina={setPropina}
+                        montoRecibido={montoRecibido}
+                        setMontoRecibido={setMontoRecibido}
+                        pagosMixtos={pagosMixtos}
+                        setLineaMixta={setLineaMixta}
+                        agregarLineaMixta={agregarLineaMixta}
+                        quitarLineaMixta={quitarLineaMixta}
+                        terminalId={terminalId}
+                        setTerminalId={setTerminalId}
+                        terminales={terminales}
+                        comisionEstimada={comisionEstimada}
+                        subtotalAlAbrir={subtotalAlAbrir}
+                        aplicarSubtotal={aplicarSubtotal}
                         manejarToggleDescuento={manejarToggleDescuento}
                         cobrarConAdvertencia={cobrarConAdvertencia}
                         vaciarCarrito={vaciarCarrito}
@@ -145,8 +169,30 @@ export default function PuntoDeVenta() {
                     precios={precios}
                     totalItems={totalItems}
                     totalCarrito={totalCarrito}
+                    totalAPagar={totalAPagar}
+                    cambio={cambio}
+                    sumaMixta={sumaMixta}
+                    faltanteMixto={faltanteMixto}
                     modoDescuento={modoDescuento}
                     cobrando={cobrando}
+                    panelCobro={panelCobro}
+                    togglePanelCobro={togglePanelCobro}
+                    metodoPago={metodoPago}
+                    setMetodoPago={setMetodoPago}
+                    propina={propina}
+                    setPropina={setPropina}
+                    montoRecibido={montoRecibido}
+                    setMontoRecibido={setMontoRecibido}
+                    pagosMixtos={pagosMixtos}
+                    setLineaMixta={setLineaMixta}
+                    agregarLineaMixta={agregarLineaMixta}
+                    quitarLineaMixta={quitarLineaMixta}
+                    terminalId={terminalId}
+                    setTerminalId={setTerminalId}
+                    terminales={terminales}
+                    comisionEstimada={comisionEstimada}
+                    subtotalAlAbrir={subtotalAlAbrir}
+                    aplicarSubtotal={aplicarSubtotal}
                     manejarToggleDescuento={manejarToggleDescuento}
                     cobrarConAdvertencia={cobrarConAdvertencia}
                     vaciarCarrito={vaciarCarrito}

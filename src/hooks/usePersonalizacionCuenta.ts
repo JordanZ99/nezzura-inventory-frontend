@@ -16,8 +16,11 @@ import { useQueryClient } from "@tanstack/react-query"
 import { inventarioQueryKeys } from "@/lib/inventarioQueries"
 
 interface UsePersonalizacionCuentaArgs {
-    tenant: { tenant_id: string; empresa: string; logo: string; plan: string; zona_horaria: string } | null
-    actualizar: (data: { empresa?: string; logo?: string; zona_horaria?: string }) => Promise<void>
+    tenant: {
+        tenant_id: string; empresa: string; logo: string; plan: string
+        zona_horaria: string; metodo_pago_default: string; gasto_comision_automatico: boolean
+    } | null
+    actualizar: (data: { empresa?: string; logo?: string; zona_horaria?: string; metodo_pago_default?: string; gasto_comision_automatico?: boolean }) => Promise<void>
 }
 
 export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizacionCuentaArgs) {
@@ -41,6 +44,8 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
     // Zona horaria IANA del negocio (tab "Mi Negocio")
     const [zonaHorario, setZonaHorario] = useState("America/Cancun")
     const [guardandoZona, setGuardandoZona] = useState(false)
+    // Gasto automático de comisiones de terminal (Fase B)
+    const [gastoComision, setGastoComision] = useState(false)
     const [subiendoLogo, setSubiendoLogo] = useState(false)
     // Tipo de descarga en curso: "json" | "xlsx" | null (respaldo de datos)
     const [descargando, setDescargando] = useState<"json" | "xlsx" | null>(null)
@@ -58,6 +63,7 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             setLogoUrl(tenant.logo || "")
             setLogoOriginal(tenant.logo || "")
             setZonaHorario(tenant.zona_horaria || "America/Cancun")
+            setGastoComision(tenant.gasto_comision_automatico)
         }
     }, [tenant])
 
@@ -205,6 +211,19 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         }
     }
 
+    /** Activa/desactiva el gasto automático de comisiones de terminal */
+    async function toggleGastoComision(v: boolean) {
+        const previo = gastoComision
+        setGastoComision(v)
+        try {
+            await actualizar({ gasto_comision_automatico: v })
+            mostrarMsg(true, v ? "✅ Comisiones se registrarán como gasto" : "Comisiones solo informativas")
+        } catch (err: unknown) {
+            setGastoComision(previo)
+            mostrarMsg(false, `❌ ${err instanceof Error ? err.message : "Error"}`)
+        }
+    }
+
     return {
         // Estado (lectura + escritura según lo que consume el JSX)
         cargando,
@@ -219,6 +238,8 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         zonaHorario,
         setZonaHorario,
         guardandoZona,
+        gastoComision,
+        toggleGastoComision,
         subiendoLogo,
         descargando,
         inputFileRef,

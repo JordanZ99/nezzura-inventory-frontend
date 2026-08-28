@@ -11,6 +11,7 @@ import { useBanners } from "@/hooks/useBanners"
 import { CardInfoCuenta } from "@/components/personalizacion/CardInfoCuenta"
 import { CardIdentidadNegocio } from "@/components/personalizacion/CardIdentidadNegocio"
 import { CardMiNegocio } from "@/components/personalizacion/CardMiNegocio"
+import { CardTerminales } from "@/components/personalizacion/CardTerminales"
 import { ConfigCatalogo } from "@/components/personalizacion/ConfigCatalogo"
 import { CardCompartir } from "@/components/personalizacion/CardCompartir"
 
@@ -190,7 +191,10 @@ export default function Personalizacion() {
                             guardarZonaHoraria={cuenta.guardarZonaHoraria}
                             guardando={cuenta.guardandoZona}
                             cargandoTenant={cargandoTenant}
+                            gastoComision={cuenta.gastoComision}
+                            toggleGastoComision={cuenta.toggleGastoComision}
                         />
+                        <CardTerminales />
                     </div>
                 )}
 

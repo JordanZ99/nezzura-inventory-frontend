@@ -156,6 +156,24 @@ export function useEstadisticasCalculos({ ventas, ordenes, gastos, productos, da
     const ordenesActivasPeriodo = ordenesFiltradas.filter(o => o.estado !== "Anulada")
     const ticketPromedio = ordenesActivasPeriodo.length > 0 ? totalVendido / ordenesActivasPeriodo.length : 0
 
+    // Desglose de cobros del período por método (Fase A de pagos).
+    // La propina va aparte: es del staff, no es ganancia del negocio.
+    const cobrosPorMetodo = { efectivo: 0, tarjeta_debito: 0, tarjeta_credito: 0, no_registrado: 0 }
+    let propinasPeriodo = 0
+    for (const o of ordenesActivasPeriodo) {
+        propinasPeriodo += o.propina || 0
+        if (o.pagos && o.pagos.length > 0) {
+            for (const p of o.pagos) {
+                if (p.metodo === "efectivo") cobrosPorMetodo.efectivo += p.monto
+                else if (p.metodo === "tarjeta_debito") cobrosPorMetodo.tarjeta_debito += p.monto
+                else if (p.metodo === "tarjeta_credito") cobrosPorMetodo.tarjeta_credito += p.monto
+                else cobrosPorMetodo.no_registrado += p.monto
+            }
+        } else {
+            cobrosPorMetodo.no_registrado += o.total || 0
+        }
+    }
+
     // --- Transformación de datos para Gráficas ---
     const globalCostProfit = [
         { name: "Costo de Productos", value: costoTotalGlobal },
@@ -240,6 +258,8 @@ export function useEstadisticasCalculos({ ventas, ordenes, gastos, productos, da
         totalGastos,
         gananciaNeta,
         ticketPromedio,
+        cobrosPorMetodo,
+        propinasPeriodo,
         globalCostProfit,
         top5,
         chartDataLine,

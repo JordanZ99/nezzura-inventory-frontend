@@ -11,17 +11,32 @@
 // ==============================================================================
 
 import { useEffect, useState } from "react"
-import { api, type Producto, type Lote, type ItemCarrito } from "@/lib/api"
+import { api, type Producto, type Lote, type ItemCarrito, type Terminal } from "@/lib/api"
 import { useToast } from "@/components/ui/Toast"
 
 interface Args {
     productos: Producto[]
     lotes: Lote[]
+    terminales: Terminal[]
     recargar: () => Promise<void>
     setCarritoAbierto: (abierto: boolean) => void
+    metodoPagoInicial?: string
 }
 
-export function usePosCarrito({ productos, lotes, recargar, setCarritoAbierto }: Args) {
+export type MetodoCobro = "efectivo" | "tarjeta_debito" | "tarjeta_credito" | "mixto"
+export type MetodoPagoSimple = "efectivo" | "tarjeta_debito" | "tarjeta_credito"
+export interface LineaPagoMixto {
+    metodo: MetodoPagoSimple
+    monto: string
+    terminal_id: string
+}
+
+function aNumero(texto: string): number {
+    const n = parseFloat(texto.replace(",", "."))
+    return isNaN(n) ? 0 : n
+}
+
+export function usePosCarrito({ productos, lotes, terminales, recargar, setCarritoAbierto, metodoPagoInicial }: Args) {
     // Mensajes globales (toast): reemplaza el estado local mensaje del POS.
     const { mostrarMsg } = useToast()
 
@@ -39,6 +54,21 @@ export function usePosCarrito({ productos, lotes, recargar, setCarritoAbierto }:
     })
     const [cobrando, setCobrando] = useState(false)
     const [modoDescuento, setModoDescuento] = useState(false)
+    // ── Panel de cobro (engranaje, Fase A) ──
+    const [panelCobro, setPanelCobro] = useState(false)
+    const [metodoPago, setMetodoPago] = useState<MetodoCobro>(
+        metodoPagoInicial === "tarjeta_debito" || metodoPagoInicial === "tarjeta_credito" || metodoPagoInicial === "mixto"
+            ? metodoPagoInicial as MetodoCobro
+            : "efectivo"
+    )
+    const [propina, setPropina] = useState("0")
+    const [montoRecibido, setMontoRecibido] = useState("")
+    const [pagosMixtos, setPagosMixtos] = useState<LineaPagoMixto[]>([
+        { metodo: "efectivo", monto: "", terminal_id: "" },
+        { metodo: "tarjeta_credito", monto: "", terminal_id: "" },
+    ])
+    const [terminalId, setTerminalId] = useState("")  // terminal para método tarjeta simple
+    const [subtotalAlAbrir, setSubtotalAlAbrir] = useState(0)
     // Estado para el modal de advertencia por stock insuficiente
     const [modalAdvertencia, setModalAdvertencia] = useState<{
         visible: boolean;
@@ -261,7 +291,114 @@ export function usePosCarrito({ productos, lotes, recargar, setCarritoAbierto }:
     /** Vacía el carrito y limpia la persistencia (cierra también el drawer móvil) */
     function vaciarCarrito() {
         setCarrito([]); setPrecios({}); setCarritoAbierto(false);
+        setPanelCobro(false); setPropina("0"); setMontoRecibido("")
+        setPagosMixtos([
+            { metodo: "efectivo", monto: "", terminal_id: "" },
+            { metodo: "tarjeta_credito", monto: "", terminal_id: "" },
+        ])
         localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
+    }
+
+    const totalCarrito = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_real, 0)
+    const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0)
+
+    // ── Panel de cobro: derivados y handlers ──
+    const propinaNum = Math.max(0, aNumero(propina))
+    const totalAPagar = totalCarrito + propinaNum
+    const recibidoNum = aNumero(montoRecibido)
+    // Efectivo: si no se capturó "recibió", se asume pago exacto (cambio 0)
+    const cambio = metodoPago === "efectivo"
+        ? Math.max(0, +((isNaN(parseFloat(montoRecibido.replace(",", "."))) ? totalAPagar : recibidoNum) - totalAPagar).toFixed(2))
+        : 0
+    const sumaMixta = pagosMixtos.reduce((a, p) => a + aNumero(p.monto), 0)
+    const faltanteMixto = metodoPago === "mixto" ? +(totalAPagar - sumaMixta).toFixed(2) : 0
+
+    /** Entra/sale del panel de cobro; al entrar congela el subtotal original
+     *  (para poder restaurarlo después de un descuento). */
+    function togglePanelCobro() {
+        setPanelCobro(v => {
+            if (!v) setSubtotalAlAbrir(totalCarrito)
+            return !v
+        })
+    }
+
+    /** Fija el subtotal del carrito a un monto concreto (descuento directo):
+     *  reparte proporcionalmente entre los renglones; el último absorbe el
+     *  redondeo para que la suma cuadre al centavo. */
+    function aplicarSubtotal(texto: string) {
+        const nuevo = parseFloat(texto.replace(",", "."))
+        if (isNaN(nuevo) || nuevo < 0 || carrito.length === 0) return
+        const actual = carrito.reduce((a, i) => a + i.cantidad * i.precio_real, 0)
+        if (actual <= 0) return
+        const factor = nuevo / actual
+        const totalEscala = (i: ItemCarrito) => Math.round(i.cantidad * i.precio_real * factor * 100) / 100
+        setCarrito(prev => prev.map((i, idx) => {
+            const totalItem = idx === prev.length - 1
+                ? +(nuevo - prev.slice(0, idx).reduce((a, j) => a + totalEscala(j), 0)).toFixed(2)
+                : totalEscala(i)
+            return { ...i, precio_real: i.cantidad > 0 ? totalItem / i.cantidad : i.precio_real }
+        }))
+        // Los inputs de precio por renglón se re-derivan del carrito (fallback item.precio_real)
+        setPrecios({})
+    }
+
+    function setLineaMixta(idx: number, campo: "metodo" | "monto" | "terminal_id", valor: string) {
+        setPagosMixtos(prev => prev.map((l, i) => i === idx
+            ? (campo === "metodo" ? { ...l, metodo: valor as MetodoPagoSimple } : { ...l, [campo]: valor })
+            : l
+        ))
+    }
+
+    function agregarLineaMixta() {
+        setPagosMixtos(prev => [...prev, { metodo: "tarjeta_debito", monto: "", terminal_id: "" }])
+    }
+
+    function quitarLineaMixta(idx: number) {
+        setPagosMixtos(prev => prev.length > 2 ? prev.filter((_, i) => i !== idx) : prev)
+    }
+
+    /** Comisión estimada de un pago con tarjeta según su terminal (Fase B) */
+    function comisionEstimada(metodo: MetodoPagoSimple, monto: number, terminal_id: string): number {
+        if (monto <= 0 || (metodo !== "tarjeta_debito" && metodo !== "tarjeta_credito")) return 0
+        const t = terminales.find(x => x.id === terminal_id)
+        if (!t) return 0
+        const pct = metodo === "tarjeta_debito" ? t.comision_debito_pct : t.comision_credito_pct
+        return +(monto * pct / 100 + t.comision_fija).toFixed(2)
+    }
+
+    /** Construye el payload de pago; devuelve null (con toast) si no cuadra */
+    function construirPago(): { metodo: string; propina: number; pagos?: { metodo: string; monto: number }[]; monto_recibido?: number } | null {
+        if (metodoPago === "efectivo") {
+            const recibio = montoRecibido.trim() !== ""
+            if (recibio && recibidoNum < totalAPagar - 0.005) {
+                mostrarMsg(false, `El monto recibido ($${recibidoNum.toFixed(2)}) es menor al total a pagar ($${totalAPagar.toFixed(2)})`)
+                return null
+            }
+            return {
+                metodo: "efectivo",
+                propina: +propinaNum.toFixed(2),
+                ...(recibio ? { monto_recibido: +recibidoNum.toFixed(2) } : {}),
+            }
+        }
+        if (metodoPago === "mixto") {
+            const lineas = pagosMixtos
+                .map(l => ({ metodo: l.metodo, monto: +aNumero(l.monto).toFixed(2), terminal_id: l.terminal_id || undefined }))
+                .filter(l => l.monto > 0)
+            if (lineas.length < 2) {
+                mostrarMsg(false, "El pago mixto necesita al menos dos montos")
+                return null
+            }
+            if (Math.abs(faltanteMixto) > 0.01) {
+                mostrarMsg(false, `Los pagos suman $${sumaMixta.toFixed(2)} de $${totalAPagar.toFixed(2)} — ajusta los montos`)
+                return null
+            }
+            return { metodo: "mixto", propina: +propinaNum.toFixed(2), pagos: lineas }
+        }
+        return {
+            metodo: metodoPago,
+            propina: +propinaNum.toFixed(2),
+            ...(terminalId ? { terminal_id: terminalId } : {}),
+        }
     }
 
     /**
@@ -334,6 +471,8 @@ export function usePosCarrito({ productos, lotes, recargar, setCarritoAbierto }:
 
     async function cobrar() {
         if (carrito.length === 0) return
+        const pago = construirPago()
+        if (pago === null) return
         setCobrando(true)
         try {
             // Limpiar id_lote vacío/indefinido antes de enviar
@@ -341,11 +480,17 @@ export function usePosCarrito({ productos, lotes, recargar, setCarritoAbierto }:
                 ...i,
                 id_lote: i.id_lote || undefined
             }))
-            const res = await api.cobrarCarrito(itemsParaCobro)
-            mostrarMsg(true, `Venta registrada — $${res.total_cobrado.toFixed(2)}`)
+            const res = await api.cobrarCarrito(itemsParaCobro, pago)
+            const cambioTxt = res.cambio && res.cambio > 0 ? ` · Cambio: $${res.cambio.toFixed(2)}` : ""
+            mostrarMsg(true, `Venta registrada — $${res.total_cobrado.toFixed(2)}${cambioTxt}`)
             setCarrito([]); setPrecios({}); setCarritoAbierto(false);
+            setPanelCobro(false); setPropina("0"); setMontoRecibido(""); setTerminalId("")
+            setPagosMixtos([
+                { metodo: "efectivo", monto: "", terminal_id: "" },
+                { metodo: "tarjeta_credito", monto: "", terminal_id: "" },
+            ])
             localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
-            // Refrescar inventario + lotes para reflejar el nuevo stock en el grid
+            // Refrescar inventario + lotes + ventas/órdenes (ticket nuevo en Estadísticas)
             await recargar()
         } catch (e: unknown) {
             mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
@@ -366,9 +511,6 @@ export function usePosCarrito({ productos, lotes, recargar, setCarritoAbierto }:
         return lotes.find(l => l.id_lote === id)
     }
 
-    const totalCarrito = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_real, 0)
-    const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0)
-
     return {
         // Estado
         carrito,
@@ -378,6 +520,28 @@ export function usePosCarrito({ productos, lotes, recargar, setCarritoAbierto }:
         modalAdvertencia,
         modalVariacion,
         setModalVariacion,
+        // Panel de cobro (Fase A)
+        panelCobro,
+        togglePanelCobro,
+        metodoPago,
+        setMetodoPago,
+        propina,
+        setPropina,
+        montoRecibido,
+        setMontoRecibido,
+        pagosMixtos,
+        setLineaMixta,
+        agregarLineaMixta,
+        quitarLineaMixta,
+        terminalId,
+        setTerminalId,
+        comisionEstimada,
+        subtotalAlAbrir,
+        aplicarSubtotal,
+        totalAPagar,
+        cambio,
+        sumaMixta,
+        faltanteMixto,
         // Handlers del carrito
         manejarToggleDescuento,
         agregarAlCarrito,

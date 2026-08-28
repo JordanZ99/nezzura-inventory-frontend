@@ -7,6 +7,7 @@
 import { DateRangePicker } from "@tremor/react"
 import PageHeader from "@/components/ui/PageHeader"
 import { ToastBanner } from "@/components/ui/Toast"
+import CardTurnos from "@/components/estadisticas/CardTurnos"
 import { useChartColors } from "@/components/hooks/useChartColors"
 import { useTenant } from "@/contexts/TenantContext"
 import { useEstadisticasDatos } from "@/hooks/useEstadisticasDatos"
@@ -14,6 +15,7 @@ import { useEstadisticasCalculos } from "@/hooks/useEstadisticasCalculos"
 import { useEstadisticasUI } from "@/hooks/useEstadisticasUI"
 import ReporteHeader from "@/components/estadisticas/ReporteHeader"
 import KpisReporte from "@/components/estadisticas/KpisReporte"
+import ResumenCobros from "@/components/estadisticas/ResumenCobros"
 import GraficasReporte from "@/components/estadisticas/GraficasReporte"
 import TablaHistorialVentas from "@/components/estadisticas/TablaHistorialVentas"
 import CatalogoProductosEstadisticas from "@/components/estadisticas/CatalogoProductosEstadisticas"
@@ -24,7 +26,7 @@ import ModalConfirmarAnularOrden from "@/components/estadisticas/ModalConfirmarA
 export default function Estadisticas() {
     const { ventas, ordenes, gastos, productos, cargando, recargar, relacionImagen, isMobile } = useEstadisticasDatos()
     const { dates, setDates, paginaActual, setPaginaActual, busquedaVentas, setBusquedaVentas, ordenVentas, setOrdenVentas, busquedaProd, setBusquedaProd, busquedaProdDebounced, catSelecProd, setCatSelecProd, ordenProd, setOrdenProd, prodSeleccionado, setProdSeleccionado, fotosModal, indiceFoto, setIndiceFoto, editando, setEditando, editVal, setEditVal, guardando, confirmAnularVentaId, setConfirmAnularVentaId, confirmAnularOrdenId, setConfirmAnularOrdenId, ordenEditando, setOrdenEditando, ordenFecha, setOrdenFecha, guardarEdicion, anularVenta, iniciarEdicionOrden, guardarEdicionOrden, anularOrden, descargarImagen } = useEstadisticasUI(recargar)
-    const { ITEMS_POR_PAGINA, ventasFiltradas, ordenesFiltradas, ordenesPaginadas, categoriasCatalogo, productosFiltrados, getVentasProducto, totalPaginas, totalVendido, gananciaBruta, totalGastos, gananciaNeta, ticketPromedio, globalCostProfit, top5, chartDataLine, chartDataBar, valFormatter, getPaginationRange } = useEstadisticasCalculos({ ventas, ordenes, gastos, productos, dates, busquedaVentas, ordenVentas, busquedaProdDebounced, catSelecProd, ordenProd, paginaActual })
+    const { ITEMS_POR_PAGINA, ventasFiltradas, ordenesFiltradas, ordenesPaginadas, categoriasCatalogo, productosFiltrados, getVentasProducto, totalPaginas, totalVendido, gananciaBruta, totalGastos, gananciaNeta, ticketPromedio, cobrosPorMetodo, propinasPeriodo, globalCostProfit, top5, chartDataLine, chartDataBar, valFormatter, getPaginationRange } = useEstadisticasCalculos({ ventas, ordenes, gastos, productos, dates, busquedaVentas, ordenVentas, busquedaProdDebounced, catSelecProd, ordenProd, paginaActual })
     const chartColors = useChartColors();
     const { tenant } = useTenant()
     const logoSrc = tenant?.logo || "/logo.png"
@@ -60,10 +62,14 @@ export default function Estadisticas() {
 
                 <ToastBanner />
 
+                {/* ── Corte de caja por turnos (Fase C) ── */}
+                <CardTurnos />
+
                 {/* ── CONTENEDOR PARA EL PDF ── */}
                 <div id="report-container" style={{ padding: 16, background: "var(--bg-card)", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
                     <ReporteHeader logoSrc={logoSrc} empresa={empresa} dates={dates} />
                     <KpisReporte totalVendido={totalVendido} gananciaBruta={gananciaBruta} totalGastos={totalGastos} gananciaNeta={gananciaNeta} ticketPromedio={ticketPromedio} />
+                    <ResumenCobros cobrosPorMetodo={cobrosPorMetodo} propinasPeriodo={propinasPeriodo} ordenes={ordenesFiltradas} />
                     <GraficasReporte cargando={cargando} totalVendido={totalVendido} top5={top5} globalCostProfit={globalCostProfit} chartDataLine={chartDataLine} chartDataBar={chartDataBar} chartColors={chartColors} valFormatter={valFormatter} />
                 </div>
 

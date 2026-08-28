@@ -10,7 +10,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTenant } from "@/contexts/TenantContext"
-import { inventarioQueryKeys, obtenerConfigCatalogo, obtenerInventario, obtenerLotes } from "@/lib/inventarioQueries"
+import { inventarioQueryKeys, obtenerConfigCatalogo, obtenerInventario, obtenerLotes, obtenerTerminales } from "@/lib/inventarioQueries"
 
 export function usePosDatos() {
     const { tenant } = useTenant()
@@ -32,9 +32,15 @@ export function usePosDatos() {
         queryFn: obtenerConfigCatalogo,
         enabled: Boolean(tenantId),
     })
+    const terminalesQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.terminales(tenantId) : ["terminales", "sin-tenant"],
+        queryFn: obtenerTerminales,
+        enabled: Boolean(tenantId),
+    })
 
     const productos = productosQuery.data ?? []
     const lotes = lotesQuery.data ?? []
+    const terminales = (terminalesQuery.data ?? []).filter(t => t.activo)
     const relacionImagen = configQuery.data?.relacion_imagen === "4:5" ? "4 / 5" : "1"
     const userId = tenantId || (tenant ? "Sesión Inválida" : "Cargando...")
     const cargando = productosQuery.isPending
@@ -67,6 +73,7 @@ export function usePosDatos() {
     return {
         productos,
         lotes,
+        terminales,
         cargando,
         relacionImagen,
         userId,
