@@ -16,8 +16,8 @@ import { useQueryClient } from "@tanstack/react-query"
 import { inventarioQueryKeys } from "@/lib/inventarioQueries"
 
 interface UsePersonalizacionCuentaArgs {
-    tenant: { tenant_id: string; empresa: string; logo: string; plan: string } | null
-    actualizar: (data: { empresa?: string; logo?: string }) => Promise<void>
+    tenant: { tenant_id: string; empresa: string; logo: string; plan: string; zona_horaria: string } | null
+    actualizar: (data: { empresa?: string; logo?: string; zona_horaria?: string }) => Promise<void>
 }
 
 export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizacionCuentaArgs) {
@@ -38,6 +38,9 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
     // Modo de precio sugerido del Punto de Venta ('antiguo' | 'maximo' | 'reciente')
     const [modoPrecio, setModoPrecio] = useState("antiguo")
     const [guardandoModo, setGuardandoModo] = useState(false)
+    // Zona horaria IANA del negocio (tab "Mi Negocio")
+    const [zonaHorario, setZonaHorario] = useState("America/Cancun")
+    const [guardandoZona, setGuardandoZona] = useState(false)
     const [subiendoLogo, setSubiendoLogo] = useState(false)
     // Tipo de descarga en curso: "json" | "xlsx" | null (respaldo de datos)
     const [descargando, setDescargando] = useState<"json" | "xlsx" | null>(null)
@@ -54,6 +57,7 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             setEmpresa(tenant.empresa || "")
             setLogoUrl(tenant.logo || "")
             setLogoOriginal(tenant.logo || "")
+            setZonaHorario(tenant.zona_horaria || "America/Cancun")
         }
     }, [tenant])
 
@@ -184,6 +188,23 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         }
     }
 
+    // Guarda la zona horaria del negocio (día contable de ventas/gastos/cortes)
+    async function guardarZonaHoraria() {
+        if (!zonaHorario.trim()) {
+            mostrarMsg(false, "❌ Selecciona una zona horaria válida")
+            return
+        }
+        try {
+            setGuardandoZona(true)
+            await actualizar({ zona_horaria: zonaHorario.trim() })
+            mostrarMsg(true, "✅ Zona horaria del negocio actualizada")
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error al guardar la zona horaria"}`)
+        } finally {
+            setGuardandoZona(false)
+        }
+    }
+
     return {
         // Estado (lectura + escritura según lo que consume el JSX)
         cargando,
@@ -195,6 +216,9 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         guardando,
         modoPrecio,
         guardandoModo,
+        zonaHorario,
+        setZonaHorario,
+        guardandoZona,
         subiendoLogo,
         descargando,
         inputFileRef,
@@ -204,6 +228,7 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         handleDescargarXlsx,
         handleLogoFile,
         cambiarModoPrecio,
+        guardarZonaHoraria,
         guardarCambios,
     }
 }
