@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTenant } from "@/contexts/TenantContext"
-import { inventarioQueryKeys, obtenerConfigCatalogo, obtenerGastos, obtenerInventario, obtenerVentas } from "@/lib/inventarioQueries"
+import { inventarioQueryKeys, obtenerConfigCatalogo, obtenerGastos, obtenerInventario, obtenerOrdenes, obtenerVentas } from "@/lib/inventarioQueries"
 
 export function useEstadisticasDatos() {
     const { tenant } = useTenant()
@@ -17,6 +17,11 @@ export function useEstadisticasDatos() {
     const ventasQuery = useQuery({
         queryKey: tenantId ? inventarioQueryKeys.ventas(tenantId) : ["ventas", "sin-tenant"],
         queryFn: obtenerVentas,
+        enabled: Boolean(tenantId),
+    })
+    const ordenesQuery = useQuery({
+        queryKey: tenantId ? inventarioQueryKeys.ordenes(tenantId) : ["ordenes", "sin-tenant"],
+        queryFn: obtenerOrdenes,
         enabled: Boolean(tenantId),
     })
     const gastosQuery = useQuery({
@@ -35,6 +40,7 @@ export function useEstadisticasDatos() {
         enabled: Boolean(tenantId),
     })
     const ventas = ventasQuery.data ?? []
+    const ordenes = ordenesQuery.data ?? []
     const gastos = gastosQuery.data ?? []
     const productos = productosQuery.data ?? []
     const relacionImagen = configQuery.data?.relacion_imagen === "4:5" ? "4 / 5" : "1"
@@ -54,6 +60,7 @@ export function useEstadisticasDatos() {
         if (!tenantId) return
         await Promise.all([
             queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.ventas(tenantId), refetchType: "active" }),
+            queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.ordenes(tenantId), refetchType: "active" }),
             queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.gastos(tenantId), refetchType: "active" }),
             queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.productos(tenantId), refetchType: "active" }),
             queryClient.invalidateQueries({ queryKey: inventarioQueryKeys.lotes(tenantId), refetchType: "active" }),
@@ -62,6 +69,7 @@ export function useEstadisticasDatos() {
 
     return {
         ventas,
+        ordenes,
         gastos,
         productos,
         cargando,

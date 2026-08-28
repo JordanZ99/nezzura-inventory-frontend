@@ -1,7 +1,7 @@
 // ==============================================================================
 // src/components/estadisticas/KpisReporte.tsx
-// Las 4 cards KPI del reporte (Total Vendido, Margen Bruto, Gastos del Periodo
-// y Ganancia Neta condicional verde/roja con Pill de margen neto).
+// Las 5 cards KPI del reporte (Total Vendido, Ticket Promedio, Margen Bruto,
+// Gastos del Periodo y Ganancia Neta condicional verde/roja con Pill).
 // ==============================================================================
 
 import Pill from "@/components/ui/Pill"
@@ -11,14 +11,19 @@ interface Props {
     gananciaBruta: number
     totalGastos: number
     gananciaNeta: number
+    ticketPromedio: number
 }
 
-export default function KpisReporte({ totalVendido, gananciaBruta, totalGastos, gananciaNeta }: Props) {
+export default function KpisReporte({ totalVendido, gananciaBruta, totalGastos, gananciaNeta, ticketPromedio }: Props) {
     return (
         <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
             <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-1))", borderRadius: 12, background: "var(--bg-card2)" }}>
                 <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Total Vendido</p>
                 <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>${totalVendido.toFixed(2)}</p>
+            </div>
+            <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-4))", borderRadius: 12, background: "var(--bg-card2)" }}>
+                <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Ticket Promedio</p>
+                <p style={{ margin: 0, fontWeight: 800, fontSize: "1.3rem", color: "var(--text-main)" }}>${ticketPromedio.toFixed(2)}</p>
             </div>
             <div style={{ padding: "16px 20px", borderLeft: "4px solid rgb(var(--chart-2))", borderRadius: 12, background: "var(--bg-card2)" }}>
                 <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Margen Bruto (%)</p>
