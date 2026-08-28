@@ -11,6 +11,7 @@ import CardTurnos from "@/components/estadisticas/CardTurnos"
 import { useChartColors } from "@/components/hooks/useChartColors"
 import { useTenant } from "@/contexts/TenantContext"
 import { useEstadisticasDatos } from "@/hooks/useEstadisticasDatos"
+import { rangoDeDates, useEstadisticasRango } from "@/hooks/useEstadisticasRango"
 import { useEstadisticasCalculos } from "@/hooks/useEstadisticasCalculos"
 import { useEstadisticasUI } from "@/hooks/useEstadisticasUI"
 import ReporteHeader from "@/components/estadisticas/ReporteHeader"
@@ -24,9 +25,20 @@ import ModalConfirmarAnular from "@/components/estadisticas/ModalConfirmarAnular
 import ModalConfirmarAnularOrden from "@/components/estadisticas/ModalConfirmarAnularOrden"
 
 export default function Estadisticas() {
-    const { ventas, ordenes, gastos, productos, cargando, recargar, relacionImagen, isMobile } = useEstadisticasDatos()
-    const { dates, setDates, paginaActual, setPaginaActual, busquedaVentas, setBusquedaVentas, ordenVentas, setOrdenVentas, busquedaProd, setBusquedaProd, busquedaProdDebounced, catSelecProd, setCatSelecProd, ordenProd, setOrdenProd, prodSeleccionado, setProdSeleccionado, fotosModal, indiceFoto, setIndiceFoto, editando, setEditando, editVal, setEditVal, guardando, confirmAnularVentaId, setConfirmAnularVentaId, confirmAnularOrdenId, setConfirmAnularOrdenId, ordenEditando, setOrdenEditando, ordenFecha, setOrdenFecha, guardarEdicion, anularVenta, iniciarEdicionOrden, guardarEdicionOrden, anularOrden, descargarImagen } = useEstadisticasUI(recargar)
-    const { ITEMS_POR_PAGINA, ventasFiltradas, ordenesFiltradas, ordenesPaginadas, categoriasCatalogo, productosFiltrados, getVentasProducto, totalPaginas, totalVendido, gananciaBruta, totalGastos, gananciaNeta, ticketPromedio, cobrosPorMetodo, propinasPeriodo, globalCostProfit, top5, chartDataLine, chartDataBar, valFormatter, getPaginationRange } = useEstadisticasCalculos({ ventas, ordenes, gastos, productos, dates, busquedaVentas, ordenVentas, busquedaProdDebounced, catSelecProd, ordenProd, paginaActual })
+    const { productos, cargando: cargandoBase, recargar, relacionImagen, isMobile } = useEstadisticasDatos()
+    const { dates, setDates, paginaActual, setPaginaActual, busquedaVentas, setBusquedaVentas, busquedaVentasDebounced, ordenVentas, setOrdenVentas, busquedaProd, setBusquedaProd, busquedaProdDebounced, catSelecProd, setCatSelecProd, ordenProd, setOrdenProd, prodSeleccionado, setProdSeleccionado, fotosModal, indiceFoto, setIndiceFoto, editando, setEditando, editVal, setEditVal, guardando, confirmAnularVentaId, setConfirmAnularVentaId, confirmAnularOrdenId, setConfirmAnularOrdenId, ordenEditando, setOrdenEditando, ordenFecha, setOrdenFecha, guardarEdicion, anularVenta, iniciarEdicionOrden, guardarEdicionOrden, anularOrden, descargarImagen } = useEstadisticasUI(recargar)
+
+    // Rango contable elegido en el picker → métricas "respuestas de la BDD"
+    const rango = rangoDeDates(dates)
+    const { resumen, serie, statsProductos, historial, ventasProducto, cargando: cargandoStats } = useEstadisticasRango({
+        rango,
+        pagina: paginaActual,
+        busqueda: busquedaVentasDebounced,
+        orden: ordenVentas,
+        productoDetalle: prodSeleccionado?.producto ?? null,
+    })
+    const { ITEMS_POR_PAGINA, ordenesPaginadas, totalTickets, totalPaginas, categoriasCatalogo, productosFiltrados, getVentasProducto, totalVendido, gananciaBruta, totalGastos, gananciaNeta, ticketPromedio, cobrosPorMetodo, propinasPeriodo, conMetodo, porTerminal, globalCostProfit, top5, chartDataLine, chartDataBar, valFormatter, getPaginationRange } = useEstadisticasCalculos({ resumen, serie, statsProductos, historial, productos, busquedaProdDebounced, catSelecProd, ordenProd })
+    const cargando = cargandoBase || cargandoStats
     const chartColors = useChartColors();
     const { tenant } = useTenant()
     const logoSrc = tenant?.logo || "/logo.png"
@@ -69,14 +81,14 @@ export default function Estadisticas() {
                 <div id="report-container" style={{ padding: 16, background: "var(--bg-card)", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
                     <ReporteHeader logoSrc={logoSrc} empresa={empresa} dates={dates} />
                     <KpisReporte totalVendido={totalVendido} gananciaBruta={gananciaBruta} totalGastos={totalGastos} gananciaNeta={gananciaNeta} ticketPromedio={ticketPromedio} />
-                    <ResumenCobros cobrosPorMetodo={cobrosPorMetodo} propinasPeriodo={propinasPeriodo} ordenes={ordenesFiltradas} />
+                    <ResumenCobros cobrosPorMetodo={cobrosPorMetodo} propinasPeriodo={propinasPeriodo} conMetodo={conMetodo} porTerminal={porTerminal} />
                     <GraficasReporte cargando={cargando} totalVendido={totalVendido} top5={top5} globalCostProfit={globalCostProfit} chartDataLine={chartDataLine} chartDataBar={chartDataBar} chartColors={chartColors} valFormatter={valFormatter} />
                 </div>
 
                 {/* ── Tabla del Historial de Ventas ── */}
                 <div style={{ marginTop: 32 }}>
                     <TablaHistorialVentas
-                        ordenesFiltradas={ordenesFiltradas}
+                        totalTickets={totalTickets}
                         ordenesPaginadas={ordenesPaginadas}
                         busquedaVentas={busquedaVentas}
                         setBusquedaVentas={setBusquedaVentas}
@@ -126,7 +138,7 @@ export default function Estadisticas() {
                     fotosModal={fotosModal}
                     indiceFoto={indiceFoto}
                     setIndiceFoto={setIndiceFoto}
-                    ventas={ventas}
+                    ventas={ventasProducto}
                     getVentasProducto={getVentasProducto}
                     descargarImagen={descargarImagen}
                     onClose={() => setProdSeleccionado(null)}
@@ -142,7 +154,7 @@ export default function Estadisticas() {
                 {/* ── Modal: Confirmar anular ticket completo ── */}
                 <ModalConfirmarAnularOrden
                     confirmAnularOrdenId={confirmAnularOrdenId}
-                    nTicket={ordenes.find(o => o.id === confirmAnularOrdenId)?.n_ticket ?? null}
+                    nTicket={ordenesPaginadas.find(o => o.id === confirmAnularOrdenId)?.n_ticket ?? null}
                     onCancel={() => setConfirmAnularOrdenId(null)}
                     onConfirm={anularOrden}
                 />

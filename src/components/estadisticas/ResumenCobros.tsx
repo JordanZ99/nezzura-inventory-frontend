@@ -2,16 +2,16 @@
 // src/components/estadisticas/ResumenCobros.tsx
 // Desglose de cobros del período por método de pago (Fase A): efectivo,
 // tarjeta débito/crédito, propinas aparte y órdenes legadas sin método
-// ("No registrado"). Solo muestra los rubros con monto mayor a cero.
+// ("No registrado"). Los desgloses llegan YA AGREGADOS desde /stats/resumen.
 // ==============================================================================
 
-import type { Orden } from "@/lib/api"
 import Icon from "@/components/ui/Icon"
 
 interface Props {
     cobrosPorMetodo: { efectivo: number; tarjeta_debito: number; tarjeta_credito: number; no_registrado: number }
     propinasPeriodo: number
-    ordenes: Orden[]
+    conMetodo: boolean
+    porTerminal: { nombre: string; cobrado: number; comision: number }[]
 }
 
 const RUBROS: { key: keyof Props["cobrosPorMetodo"]; label: string; icon: string }[] = [
@@ -21,24 +21,12 @@ const RUBROS: { key: keyof Props["cobrosPorMetodo"]; label: string; icon: string
     { key: "no_registrado", label: "No registrado", icon: "CircleHelp" },
 ] as const
 
-export default function ResumenCobros({ cobrosPorMetodo, propinasPeriodo, ordenes }: Props) {
-    const conMetodo = ordenes.some(o => o.metodo_pago)
+export default function ResumenCobros({ cobrosPorMetodo, propinasPeriodo, conMetodo, porTerminal }: Props) {
     const activos = RUBROS.filter(r => cobrosPorMetodo[r.key] > 0)
 
-    // Desglose por terminal (Fase B): cobrado vs comisión = depósito esperado
-    const porTerminal = new Map<string, { nombre: string; cobrado: number; comision: number }>()
-    for (const o of ordenes) {
-        if (o.estado === "Anulada" || !o.pagos) continue
-        for (const p of o.pagos) {
-            if (p.comision && p.comision > 0 && p.terminal_nombre) {
-                const e = porTerminal.get(p.terminal_nombre) ?? { nombre: p.terminal_nombre, cobrado: 0, comision: 0 }
-                e.cobrado += p.monto
-                e.comision += p.comision
-                porTerminal.set(p.terminal_nombre, e)
-            }
-        }
-    }
-    const lineasTerminal = [...porTerminal.values()].sort((a, b) => b.cobrado - a.cobrado)
+    // Desglose por terminal (Fase B): cobrado vs comisión = depósito esperado.
+    // Llega ordenado por cobrado desde el backend.
+    const lineasTerminal = porTerminal
 
     if (activos.length === 0 && propinasPeriodo <= 0 && !conMetodo) return null
 

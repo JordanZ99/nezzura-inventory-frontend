@@ -1,29 +1,24 @@
 // ==============================================================================
 // src/hooks/useEstadisticasCalculos.ts
-// Cálculos puros de Estadísticas: recibe ventas/gastos/productos + los estados
-// de filtro por props (patrón useInventarioForm) y devuelve los derivados:
-// ventasFiltradas (fechas + búsqueda + 6 órdenes), gastosFiltrados, KPIs,
-// datos de las 4 gráficas, unidadesPorProducto / gananciaPorProducto,
-// categoriasCatalogo, productosFiltrados (10 órdenes), getVentasProducto,
-// getPaginationRange y la paginación (totalPaginas / ventasPaginadas).
+// Transformación de las RESPUESTAS del servidor (resumen/serie/statsProductos/
+// historial) al contrato de los componentes: KPIs, cobros, top5, datos de las
+// 4 gráficas, catálogo de productos con sus métricas, paginación del historial.
+// Ya no recibe ni recalcula dumps de ventas/gastos: la BDD suma, esto dibuja.
 // ==============================================================================
 
-import type { Venta, Gasto, Producto, Orden } from "@/lib/api"
-import type { DateRangePickerValue } from "@tremor/react"
+import type { Producto } from "@/lib/api"
+import type { ResumenStats, FilaSerie, StatsProducto, RespuestaOrdenesPaginadas } from "@/lib/api"
 import { categoriasUnicas, compararProductos, filtrarProductos } from "@/lib/ordenamiento"
 
 interface PropsEstadisticasCalculos {
-    ventas: Venta[]
-    ordenes: Orden[]
-    gastos: Gasto[]
+    resumen: ResumenStats | null
+    serie: FilaSerie[]
+    statsProductos: StatsProducto[]
+    historial: RespuestaOrdenesPaginadas | null
     productos: Producto[]
-    dates: DateRangePickerValue
-    busquedaVentas: string
-    ordenVentas: string
     busquedaProdDebounced: string
     catSelecProd: string
     ordenProd: string
-    paginaActual: number
 }
 
 interface FilaCostoGanancia {
@@ -33,177 +28,78 @@ interface FilaCostoGanancia {
     total: number
 }
 
-export function useEstadisticasCalculos({ ventas, ordenes, gastos, productos, dates, busquedaVentas, ordenVentas, busquedaProdDebounced, catSelecProd, ordenProd, paginaActual }: PropsEstadisticasCalculos) {
-    const ITEMS_POR_PAGINA = 10
+const CERO_COBROS = { efectivo: 0, tarjeta_debito: 0, tarjeta_credito: 0, no_registrado: 0 }
 
-    // --- Filtrado ---
-    const ventasFiltradas = ventas.filter(v => {
-        const f = new Date(v.fecha)
-        if (dates.from && f < dates.from) return false
-        if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
-        // Buscador por nombre o descripción del producto
-        if (busquedaVentas.trim()) {
-            const q = busquedaVentas.toLowerCase()
-            const prod = v.producto?.toLowerCase().includes(q)
-            if (!prod) return false
-        }
-        return true
-    }).sort((a, b) => {
-        switch (ordenVentas) {
-            case "fecha-asc": return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
-            case "monto-desc": return (b.total_venta || 0) - (a.total_venta || 0)
-            case "monto-asc": return (a.total_venta || 0) - (b.total_venta || 0)
-            case "producto": return (a.producto || "").localeCompare(b.producto || "")
-            case "ganancia-desc": return (b.ganancia_bruta || 0) - (a.ganancia_bruta || 0)
-            case "fecha-desc":
-            default: return new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-        }
-    })
+export function useEstadisticasCalculos({ resumen, serie, statsProductos, historial, productos, busquedaProdDebounced, catSelecProd, ordenProd }: PropsEstadisticasCalculos) {
+    const ITEMS_POR_PAGINA = historial?.por_pagina ?? 10
 
-    const gastosFiltrados = gastos.filter(g => {
-        const f = new Date(g.fecha)
-        if (dates.from && f < dates.from) return false
-        if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
-        return true
-    })
+    // ── Historial de tickets: paginado en servidor ──
+    const ordenesPaginadas = historial?.ordenes ?? []
+    const totalTickets = historial?.total ?? 0
+    const totalPaginas = historial?.total_paginas ?? 1
 
-    // --- Catálogo de productos ---
-    const categoriasCatalogo = categoriasUnicas(productos)
-
-    // Unidades totales vendidas por producto (suma de cantidades)
-    const unidadesPorProducto = ventas
-        .filter(v => v.estado !== "Inactivo")
-        .reduce((acc, v) => {
-            acc[v.producto] = (acc[v.producto] || 0) + v.cantidad
-            return acc
-        }, {} as Record<string, number>)
-    // Ganancia bruta total por producto
-    const gananciaPorProducto = ventas
-        .filter(v => v.estado !== "Inactivo")
-        .reduce((acc, v) => {
-            acc[v.producto] = (acc[v.producto] || 0) + v.ganancia_bruta
-            return acc
-        }, {} as Record<string, number>)
-
-    // Filtrado (búsqueda + categoría, incluye códigos) y ordenamiento compartidos
-    // con POS e Inventario (src/lib/ordenamiento.ts). Los 4 órdenes de ventas/
-    // ganancia dependen de los totales por producto calculados arriba, así que
-    // se resuelven localmente y el resto delega en compararProductos.
-    const productosFiltrados = filtrarProductos(productos, busquedaProdDebounced, catSelecProd, true)
-        .sort((a, b) => {
-            switch (ordenProd) {
-                case "ventas-desc": return (unidadesPorProducto[b.producto] || 0) - (unidadesPorProducto[a.producto] || 0)
-                case "ventas-asc": return (unidadesPorProducto[a.producto] || 0) - (unidadesPorProducto[b.producto] || 0)
-                case "ganancia-desc": return (gananciaPorProducto[b.producto] || 0) - (gananciaPorProducto[a.producto] || 0)
-                case "ganancia-asc": return (gananciaPorProducto[a.producto] || 0) - (gananciaPorProducto[b.producto] || 0)
-                default: return compararProductos(a, b, ordenProd)
-            }
-        })
-
-    function getVentasProducto(prod: Producto) {
-        const ventasProd = ventas.filter(v => v.producto === prod.producto && v.estado !== "Inactivo")
-        const ventasEnRango = ventasProd.filter(v => {
-            const f = new Date(v.fecha)
-            if (dates.from && f < dates.from) return false
-            if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
-            return true
-        })
-        const totalVendido = ventasEnRango.reduce((a, v) => a + v.total_venta, 0)
-        const totalGanancia = ventasEnRango.reduce((a, v) => a + v.ganancia_bruta, 0)
-        const totalUnidades = ventasEnRango.reduce((a, v) => a + v.cantidad, 0)
-        return { totalVentas: ventasEnRango.length, totalVendido, totalGanancia, totalUnidades }
-    }
-
-    // ── Órdenes (tickets): filtro + búsqueda + orden para el Historial ──
-    const ordenesFiltradas = ordenes.filter(o => {
-        const f = new Date(o.fecha)
-        if (dates.from && f < dates.from) return false
-        if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
-        if (busquedaVentas.trim()) {
-            const q = busquedaVentas.toLowerCase()
-            const porFolio = String(o.n_ticket).includes(q)
-            const porProducto = (o.ventas || []).some(v => v.producto?.toLowerCase().includes(q))
-            if (!porFolio && !porProducto) return false
-        }
-        return true
-    }).sort((a, b) => {
-        switch (ordenVentas) {
-            case "fecha-asc": return new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
-            case "monto-desc": return (b.total || 0) - (a.total || 0)
-            case "monto-asc": return (a.total || 0) - (b.total || 0)
-            case "ganancia-desc": return (b.ganancia || 0) - (a.ganancia || 0)
-            case "fecha-desc":
-            case "producto":
-            default: return new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-        }
-    })
-
-    // --- Paginación (sobre órdenes: el historial agrupa por ticket) ---
-    const totalPaginas = Math.max(1, Math.ceil(ordenesFiltradas.length / ITEMS_POR_PAGINA))
-    const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA
-    const ordenesPaginadas = ordenesFiltradas.slice(inicio, inicio + ITEMS_POR_PAGINA)
-
-    // --- KPIs ---
-    const ventasActivas = ventasFiltradas.filter(v => v.estado !== "Inactivo")
-
-    const totalVendido = ventasActivas.reduce((a, v) => a + v.total_venta, 0)
-    const gananciaBruta = ventasActivas.reduce((a, v) => a + v.ganancia_bruta, 0)
-    const totalGastos = gastosFiltrados.reduce((a, g) => a + g.monto, 0)
+    // ── KPIs: llegan ya calculados por la BDD ──
+    const totalVendido = resumen?.total_vendido ?? 0
+    const gananciaBruta = resumen?.ganancia_bruta ?? 0
+    const totalGastos = resumen?.total_gastos ?? 0
     const gananciaNeta = gananciaBruta - totalGastos
     const costoTotalGlobal = totalVendido - gananciaBruta
+    const ticketPromedio = resumen?.ticket_promedio ?? 0
 
-    // Ticket promedio: ventas del período / tickets con al menos un renglón activo
-    const ordenesActivasPeriodo = ordenesFiltradas.filter(o => o.estado !== "Anulada")
-    const ticketPromedio = ordenesActivasPeriodo.length > 0 ? totalVendido / ordenesActivasPeriodo.length : 0
+    const cobrosPorMetodo = resumen?.cobros_por_metodo ?? CERO_COBROS
+    const propinasPeriodo = resumen?.propinas ?? 0
+    const conMetodo = resumen?.con_metodo ?? false
+    const porTerminal = resumen?.por_terminal ?? []
 
-    // Desglose de cobros del período por método (Fase A de pagos).
-    // La propina va aparte: es del staff, no es ganancia del negocio.
-    const cobrosPorMetodo = { efectivo: 0, tarjeta_debito: 0, tarjeta_credito: 0, no_registrado: 0 }
-    let propinasPeriodo = 0
-    for (const o of ordenesActivasPeriodo) {
-        propinasPeriodo += o.propina || 0
-        if (o.pagos && o.pagos.length > 0) {
-            for (const p of o.pagos) {
-                if (p.metodo === "efectivo") cobrosPorMetodo.efectivo += p.monto
-                else if (p.metodo === "tarjeta_debito") cobrosPorMetodo.tarjeta_debito += p.monto
-                else if (p.metodo === "tarjeta_credito") cobrosPorMetodo.tarjeta_credito += p.monto
-                else cobrosPorMetodo.no_registrado += p.monto
-            }
-        } else {
-            cobrosPorMetodo.no_registrado += o.total || 0
-        }
-    }
-
-    // --- Transformación de datos para Gráficas ---
+    // ── Gráficas (transformaciones de las respuestas) ──
     const globalCostProfit = [
         { name: "Costo de Productos", value: costoTotalGlobal },
         { name: "Ganancia Bruta", value: gananciaBruta }
     ]
 
-    const productSales = ventasActivas.reduce((acc, v) => {
-        acc[v.producto] = (acc[v.producto] || 0) + v.total_venta
-        return acc
-    }, {} as Record<string, number>)
-    const sortedProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1])
-    const top5 = sortedProducts.slice(0, 5).map(p => ({ name: p[0], value: p[1] }))
-    const otros = sortedProducts.slice(5).reduce((a, p) => a + p[1], 0)
-    if (otros > 0) top5.push({ name: "Otros", value: otros })
+    // Top 5 productos + "Otros" (lo que no está en el top, respecto al total)
+    const topOrdenados = [...(resumen?.top_productos ?? [])].sort((a, b) => b.total - a.total)
+    const top5 = topOrdenados.slice(0, 5).map(p => ({ name: p.producto, value: p.total }))
+    const sumaTop5 = top5.reduce((a, p) => a + p.value, 0)
+    const otros = totalVendido - sumaTop5
+    if (otros > 0.005) top5.push({ name: "Otros", value: otros })
 
-    const salesByDate = ventasActivas.reduce((acc, v) => {
-        const d = v.fecha.substring(0, 10)
-        acc[d] = (acc[d] || 0) + v.total_venta
-        return acc
-    }, {} as Record<string, number>)
-    const chartDataLine = Object.entries(salesByDate).sort((a, b) => a[0].localeCompare(b[0])).map(d => ({ date: d[0], "Ventas": d[1] }))
+    // Línea de evolución: un punto por cubo (día/semana/mes según el rango)
+    const chartDataLine = serie.map(f => ({ date: f.periodo, "Ventas": f.ventas }))
 
-    const productCostProfit = ventasActivas.reduce((acc, v) => {
-        if (!acc[v.producto]) acc[v.producto] = { name: v.producto, "Costo Lotes": 0, "Ganancia": 0, total: 0 }
-        acc[v.producto]["Costo Lotes"] += (v.total_venta - v.ganancia_bruta)
-        acc[v.producto]["Ganancia"] += v.ganancia_bruta
-        acc[v.producto].total += v.total_venta
-        return acc
-    }, {} as Record<string, FilaCostoGanancia>)
-    const chartDataBar = Object.values(productCostProfit).sort((a, b) => b.total - a.total)
+    // Contribución marginal por producto: un renglón por producto vendido
+    const chartDataBar: FilaCostoGanancia[] = statsProductos
+        .map(p => ({ name: p.producto, "Costo Lotes": p.total - p.ganancia, "Ganancia": p.ganancia, total: p.total }))
+        .sort((a, b) => b.total - a.total)
+
+    // ── Catálogo de productos con métricas del período ──
+    const categoriasCatalogo = categoriasUnicas(productos)
+    const statsPorProducto = new Map(statsProductos.map(p => [p.producto, p]))
+    // Los 4 órdenes de ventas/ganancia dependen de los totales por producto
+    // que llegan del servidor; el resto delega en compararProductos.
+    const productosFiltrados = filtrarProductos(productos, busquedaProdDebounced, catSelecProd, true)
+        .sort((a, b) => {
+            const sa = statsPorProducto.get(a.producto)
+            const sb = statsPorProducto.get(b.producto)
+            switch (ordenProd) {
+                case "ventas-desc": return (sb?.unidades ?? 0) - (sa?.unidades ?? 0)
+                case "ventas-asc": return (sa?.unidades ?? 0) - (sb?.unidades ?? 0)
+                case "ganancia-desc": return (sb?.ganancia ?? 0) - (sa?.ganancia ?? 0)
+                case "ganancia-asc": return (sa?.ganancia ?? 0) - (sb?.ganancia ?? 0)
+                default: return compararProductos(a, b, ordenProd)
+            }
+        })
+
+    /** Métricas de un producto: búsqueda en el mapa de respuestas (sin recorrer ventas). */
+    function getVentasProducto(prod: Producto) {
+        const s = statsPorProducto.get(prod.producto)
+        return {
+            totalVentas: s?.num_ventas ?? 0,
+            totalVendido: s?.total ?? 0,
+            totalGanancia: s?.ganancia ?? 0,
+            totalUnidades: s?.unidades ?? 0,
+        }
+    }
 
     const valFormatter = (number: number) => `$${Intl.NumberFormat("us").format(number).toString()}`
 
@@ -245,14 +141,12 @@ export function useEstadisticasCalculos({ ventas, ordenes, gastos, productos, da
 
     return {
         ITEMS_POR_PAGINA,
-        ventasFiltradas,
-        gastosFiltrados,
-        ordenesFiltradas,
         ordenesPaginadas,
+        totalTickets,
+        totalPaginas,
         categoriasCatalogo,
         productosFiltrados,
         getVentasProducto,
-        totalPaginas,
         totalVendido,
         gananciaBruta,
         totalGastos,
@@ -260,6 +154,8 @@ export function useEstadisticasCalculos({ ventas, ordenes, gastos, productos, da
         ticketPromedio,
         cobrosPorMetodo,
         propinasPeriodo,
+        conMetodo,
+        porTerminal,
         globalCostProfit,
         top5,
         chartDataLine,
