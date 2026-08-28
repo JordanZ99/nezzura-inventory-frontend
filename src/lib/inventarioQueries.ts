@@ -14,12 +14,28 @@ export const inventarioQueryKeys = {
     terminales: (tenantId: string) => ["terminales", tenantId] as const,
 }
 
-// Conserva el comportamiento existente: si las tablas aún no existen, se
-// inicializa la base y se repite la consulta una sola vez.
+// Marcador que emite el backend cuando el error es exactamente SQLSTATE
+// 42P01 (tabla inexistente). Cualquier otro fallo (timeout de cold start,
+// red, 5xx, pool agotado) NO debe disparar /init-db: si 5 queries fallan en
+// paralelo, serían 5 corridas concurrentes de migraciones DDL contra la DB.
+const CODIGO_DB_SIN_TABLAS = "DB_NO_INICIALIZADA"
+const SQLSTATE_TABLA_INEXISTENTE = "42P01"
+
+function esErrorTablaInexistente(error: unknown): boolean {
+    if (!(error instanceof Error)) return false
+    const e = error as Error & { codigo?: string; sqlstate?: string }
+    return e.codigo === CODIGO_DB_SIN_TABLAS || e.sqlstate === SQLSTATE_TABLA_INEXISTENTE
+}
+
+// Conserva el comportamiento original SOLO para el caso real de tablas
+// faltantes: se inicializa la base y se repite la consulta una sola vez.
+// Con las migraciones corriendo en el arranque del backend (evento startup,
+// que se ejecuta en cada deploy), este caso es excepcional.
 async function conReintentoInitDB<T>(consulta: () => Promise<T>): Promise<T> {
     try {
         return await consulta()
     } catch (error) {
+        if (!esErrorTablaInexistente(error)) throw error
         await api.initDB()
         return consulta()
     }
