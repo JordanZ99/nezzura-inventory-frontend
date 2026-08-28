@@ -14,6 +14,8 @@ interface Props {
     guardarZonaHoraria: () => void
     guardando: boolean
     cargandoTenant: boolean
+    gastoComision: boolean
+    toggleGastoComision: (v: boolean) => void
 }
 
 // Zonas IANA curadas (las más relevantes para negocios de LATAM + referencia).
@@ -88,6 +90,8 @@ export function CardMiNegocio({
     guardarZonaHoraria,
     guardando,
     cargandoTenant,
+    gastoComision,
+    toggleGastoComision,
 }: Props) {
     const [reloj, setReloj] = useState(() => horaEnZona(zonaHoraria))
 
@@ -184,6 +188,19 @@ export function CardMiNegocio({
                     <Icon name="Save" size={16} />
                     {guardando ? "Guardando..." : "Guardar Zona Horaria"}
                 </button>
+
+                {/* Gasto automático de comisiones de terminal (Fase B) */}
+                <div style={{ marginTop: 20 }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                        Comisiones de terminal
+                    </span>
+                    <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: "0.78rem", fontWeight: 500, color: "var(--text-main)", cursor: "pointer" }}>
+                        <input type="checkbox" checked={gastoComision} onChange={e => toggleGastoComision(e.target.checked)} style={{ marginTop: 2 }} />
+                        <span>
+                            Registrar automáticamente cada comisión como gasto ("Comisiones bancarias") al cobrar con tarjeta. Recomendado para que la ganancia neta cuadre contra el depósito del banco.
+                        </span>
+                    </label>
+                </div>
             </div>
         </div>
     )
