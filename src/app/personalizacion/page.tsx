@@ -10,10 +10,11 @@ import { useConfigCatalogo } from "@/hooks/useConfigCatalogo"
 import { useBanners } from "@/hooks/useBanners"
 import { CardInfoCuenta } from "@/components/personalizacion/CardInfoCuenta"
 import { CardIdentidadNegocio } from "@/components/personalizacion/CardIdentidadNegocio"
+import { CardMiNegocio } from "@/components/personalizacion/CardMiNegocio"
 import { ConfigCatalogo } from "@/components/personalizacion/ConfigCatalogo"
 import { CardCompartir } from "@/components/personalizacion/CardCompartir"
 
-type Tab = "cuenta" | "catalogo"
+type Tab = "cuenta" | "negocio" | "catalogo"
 
 /**
  * Mapa que traduce las claves de tema guardadas en localStorage
@@ -32,6 +33,7 @@ const NOMBRES_TEMA: Record<string, string> = {
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
     { id: "cuenta", label: "Mi Cuenta", icon: "User" },
+    { id: "negocio", label: "Mi Negocio", icon: "Store" },
     { id: "catalogo", label: "Catálogo", icon: "ClipboardList" },
 ]
 
@@ -176,6 +178,18 @@ export default function Personalizacion() {
                             guardando={cuenta.guardando}
                             cargandoTenant={cargandoTenant}
                             guardarCambios={cuenta.guardarCambios}
+                        />
+                    </div>
+                )}
+
+                {tab === "negocio" && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
+                        <CardMiNegocio
+                            zonaHoraria={cuenta.zonaHorario}
+                            setZonaHoraria={cuenta.setZonaHorario}
+                            guardarZonaHoraria={cuenta.guardarZonaHoraria}
+                            guardando={cuenta.guardandoZona}
+                            cargandoTenant={cargandoTenant}
                         />
                     </div>
                 )}

@@ -451,10 +451,13 @@ export const api = {
     },
 
     // Perfil
-    getPerfil: () => request<{ tenant_id: string; modo_precio_sugerido: string }>("/inventario/me"),
+    getPerfil: () => request<{ tenant_id: string; modo_precio_sugerido: string; zona_horaria: string }>("/inventario/me"),
     // Modo de precio sugerido del POS: 'antiguo' | 'maximo' | 'reciente'
     actualizarModoPrecioSugerido: (modo: string) =>
         request<{ ok: boolean; modo_precio_sugerido: string }>("/inventario/me", { method: "PATCH", body: JSON.stringify({ modo_precio_sugerido: modo }) }),
+    // Zona horaria IANA del negocio: define el día contable de ventas/gastos/cortes
+    actualizarZonaHoraria: (zona: string) =>
+        request<{ ok: boolean; zona_horaria: string }>("/inventario/me", { method: "PATCH", body: JSON.stringify({ zona_horaria: zona }) }),
 
     // Galería de imágenes (Plan Plus) — hasta 5 imágenes extra por producto
     getImagenesProducto: (producto: string) =>

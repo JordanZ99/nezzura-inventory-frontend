@@ -13,13 +13,16 @@ interface TenantInfo {
     empresa: string
     logo: string
     plan: string  // "basico" | "plus" — controla features como galería de imágenes
+    zona_horaria: string  // IANA (ej. "America/Cancun") — día contable del negocio
 }
 
 interface TenantContextValue {
     tenant: TenantInfo | null
     cargando: boolean
-    actualizar: (data: Partial<Pick<TenantInfo, "empresa" | "logo">>) => Promise<void>
+    actualizar: (data: Partial<Pick<TenantInfo, "empresa" | "logo" | "zona_horaria">>) => Promise<void>
 }
+
+const ZONA_DEFAULT = "America/Cancun"
 
 const TenantContext = createContext<TenantContextValue>({
     tenant: null,
@@ -52,11 +55,12 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                     tenant_id: data.id,
                     empresa: data.empresa || "",
                     logo: data.logo || "",
-                    plan: data.plan || "basico"
+                    plan: data.plan || "basico",
+                    zona_horaria: perfil.zona_horaria || ZONA_DEFAULT
                 })
             } else {
                 // Si no tiene fila aún, guardamos solo el tenant_id
-                setTenant({ tenant_id: perfil.tenant_id, empresa: "", logo: "", plan: "basico" })
+                setTenant({ tenant_id: perfil.tenant_id, empresa: "", logo: "", plan: "basico", zona_horaria: perfil.zona_horaria || ZONA_DEFAULT })
             }
         } catch (e) {
             console.error("Error cargando tenant:", e)
@@ -76,15 +80,23 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         return () => listener.subscription.unsubscribe()
     }, [])
 
-    const actualizar = useCallback(async (data: Partial<Pick<TenantInfo, "empresa" | "logo">>) => {
+    const actualizar = useCallback(async (data: Partial<Pick<TenantInfo, "empresa" | "logo" | "zona_horaria">>) => {
         if (!tenant?.tenant_id) throw new Error("No hay tenant activo")
 
-        const { error } = await supabase
-            .from("tenants")
-            .update(data)
-            .eq("id", tenant.tenant_id)
-
-        if (error) throw new Error(error.message)
+        // La zona horaria vive en el backend (define el día contable de ventas,
+        // gastos y cortes; además invalida su cache). El resto va directo a Supabase.
+        if (data.zona_horaria !== undefined) {
+            const r = await api.actualizarZonaHoraria(data.zona_horaria)
+            data = { ...data, zona_horaria: r.zona_horaria || data.zona_horaria }
+        }
+        const { zona_horaria: _zona, ...datosSupabase } = data
+        if (Object.keys(datosSupabase).length > 0) {
+            const { error } = await supabase
+                .from("tenants")
+                .update(datosSupabase)
+                .eq("id", tenant.tenant_id)
+            if (error) throw new Error(error.message)
+        }
 
         // Actualizar el estado local inmediatamente (optimistic update)
         setTenant(prev => prev ? { ...prev, ...data } : null)
