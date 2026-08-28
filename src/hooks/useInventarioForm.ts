@@ -59,13 +59,14 @@ export function useInventarioForm({
     const variaciones = useFormVariaciones({
         inv,
         actualizarInv,
+        recargar,
         prodEditar,
         setRestock,
         setTab,
         setRestockProdSeleccionado,
         mostrarMsg,
     })
-    const recetas = useFormRecetas({ inv, prodEditar, mostrarMsg })
+    const recetas = useFormRecetas({ inv, prodEditar, recargar, mostrarMsg })
     const core = useFormProductoCore({
         inv,
         recargar,

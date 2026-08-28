@@ -9,7 +9,7 @@
 //   - src/components/inventario/*      (componentes visuales por sección)
 // Esta página solo compone los hooks y las secciones, sin lógica de negocio.
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Icon from "@/components/ui/Icon"
 import PageHeader from "@/components/ui/PageHeader"
 import ImageCropperModal from "@/components/ui/ImageCropperModal"
@@ -138,13 +138,6 @@ export default function Inventario() {
         cancelarEditarCategoria,
         confirmarEliminarCategoria,
     } = formHook
-
-    // Al cambiar al tab "nuevo", cargamos las categorías si no están
-    useEffect(() => {
-        if (tab === "nuevo") {
-            cargarCategorias()
-        }
-    }, [tab])
 
     const TABS: { id: "nuevo" | "restock" | "editar"; label: string; icon: string }[] = [
         { id: "nuevo", label: "Nuevo", icon: "ClipboardPlus" },

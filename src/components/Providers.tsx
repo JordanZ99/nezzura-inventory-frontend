@@ -6,11 +6,14 @@
 // ==============================================================================
 
 import { TenantProvider } from "@/contexts/TenantContext"
+import QueryProvider from "@/components/QueryProvider"
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
-        <TenantProvider>
-            {children}
-        </TenantProvider>
+        <QueryProvider>
+            <TenantProvider>
+                {children}
+            </TenantProvider>
+        </QueryProvider>
     )
 }

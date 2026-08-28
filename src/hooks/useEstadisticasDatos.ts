@@ -6,9 +6,14 @@
 // ==============================================================================
 
 import { useEffect, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { useTenant } from "@/contexts/TenantContext"
 import { api, type Venta, type Gasto, type Producto } from "@/lib/api"
+import { inventarioQueryKeys } from "@/lib/inventarioQueries"
 
 export function useEstadisticasDatos() {
+    const { tenant } = useTenant()
+    const queryClient = useQueryClient()
     const [ventas, setVentas] = useState<Venta[]>([])
     const [gastos, setGastos] = useState<Gasto[]>([])
     const [productos, setProductos] = useState<Producto[]>([])
@@ -38,6 +43,20 @@ export function useEstadisticasDatos() {
             setVentas(v)
             setGastos(g)
             setProductos(p)
+            // Editar o anular una venta puede modificar el stock. Se marca la
+            // cache del POS como obsoleta para que se actualice al regresar.
+            if (tenant?.tenant_id) {
+                await Promise.all([
+                    queryClient.invalidateQueries({
+                        queryKey: inventarioQueryKeys.productos(tenant.tenant_id),
+                        refetchType: "active",
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: inventarioQueryKeys.lotes(tenant.tenant_id),
+                        refetchType: "active",
+                    }),
+                ])
+            }
         } catch (e) {
             console.error(e)
         }
