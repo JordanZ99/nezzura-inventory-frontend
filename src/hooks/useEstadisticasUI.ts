@@ -22,9 +22,45 @@ export interface EditVenta {
     costo_unitario: number
 }
 
+// Presets del selector de período (en español; el "custom" muestra el picker)
+export type PresetPeriodo = "mtd" | "mes-anterior" | "ultimos-30" | "ytd" | "custom"
+
 export function useEstadisticasUI(recargar: () => Promise<void>) {
     const { mostrarMsg } = useToast()
     const [dates, setDates] = useState<DateRangePickerValue>({ from: undefined, to: undefined })
+
+    // Período seleccionado. "Desde este mes" es el DEFAULT y NO envía fechas:
+    // el backend aplica el mes contable del negocio según su zona horaria,
+    // así el tenant ve (y entiende) que los datos son "desde este mes".
+    const [preset, setPresetEstado] = useState<PresetPeriodo>("mtd")
+
+    function setPreset(valor: PresetPeriodo) {
+        setPresetEstado(valor)
+        if (valor === "mtd") {
+            setDates({ from: undefined, to: undefined })
+            return
+        }
+        const hoy = new Date()
+        if (valor === "ytd") {
+            setDates({ from: new Date(hoy.getFullYear(), 0, 1), to: undefined })
+            return
+        }
+        if (valor === "ultimos-30") {
+            const desde = new Date(hoy)
+            desde.setDate(desde.getDate() - 29)
+            setDates({ from: desde, to: undefined })
+            return
+        }
+        if (valor === "mes-anterior") {
+            // new Date(año, mes, 0) = último día del mes anterior
+            setDates({
+                from: new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1),
+                to: new Date(hoy.getFullYear(), hoy.getMonth(), 0),
+            })
+            return
+        }
+        // "custom": conserva las fechas actuales; el usuario ajusta el picker
+    }
 
     // Paginación
     const [paginaActual, setPaginaActual] = useState(1)
@@ -151,6 +187,8 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
     return {
         dates,
         setDates,
+        preset,
+        setPreset,
         paginaActual,
         setPaginaActual,
         busquedaVentas,
