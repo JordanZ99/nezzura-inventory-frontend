@@ -22,6 +22,10 @@ export function useMesas() {
         queryKey: tenantId ? ["mesas", tenantId] : ["mesas", "sin-tenant"],
         queryFn: () => api.getMesas(),
         enabled: Boolean(tenantId),
+        // Auto-refresco (Fase 3): la parrilla, el panel y la vista de cocina se
+        // mantienen sincronizados entre dispositivos (mesero pide en su tablet,
+        // la cocina lo ve sin recargar). Pausa cuando la pestaña no está activa.
+        refetchInterval: 30_000,
     })
 
     const mesas = mesasQuery.data ?? []
@@ -143,6 +147,7 @@ export function useMesas() {
     return {
         mesas,
         cargando: mesasQuery.isPending,
+        actualizando: mesasQuery.isFetching,
         mesa,
         mesaId,
         setMesaId,

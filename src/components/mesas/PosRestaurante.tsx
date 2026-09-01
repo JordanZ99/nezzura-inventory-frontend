@@ -1,10 +1,12 @@
 "use client"
 // ==============================================================================
 // src/components/mesas/PosRestaurante.tsx
-// POS del preset RESTAURANTE (Fase 2). Tres vistas:
+// POS del preset RESTAURANTE (Fases 2-3). Cuatro vistas:
 //   1. Parrilla de mesas (default) — arrastrables, con estado y totales.
 //   2. Panel de mesa — orden abierta + menú para pedir (PanelMesa).
-//   3. Menú / cobro — el cuerpo clásico del POS (GridProductos + carrito), que
+//   3. Cocina (Fase 3, read-only) — renglones de todas las órdenes abiertas
+//      agrupados por mesa con hora del pedido (VistaCocina).
+//   4. Menú / cobro — el cuerpo clásico del POS (GridProductos + carrito), que
 //      se usa para ventas rápidas/takeout Y para cobrar la mesa: al cobrar, el
 //      orden abierto se carga en el carrito (iniciarCobroMesa) y el ticket se
 //      cobra con el flujo de cobro EXISTENTE (método, propina, mixto, turnos);
@@ -16,6 +18,7 @@ import Icon from "@/components/ui/Icon"
 import PageHeader from "@/components/ui/PageHeader"
 import { ToastBanner } from "@/components/ui/Toast"
 import { useTenant } from "@/contexts/TenantContext"
+import { useModulo } from "@/hooks/useModulo"
 import { usePosDatos } from "@/hooks/usePosDatos"
 import { usePosUI } from "@/hooks/usePosUI"
 import { usePosCarrito } from "@/hooks/usePosCarrito"
@@ -29,9 +32,10 @@ import { ModalVentaLibre } from "@/components/pos/ModalVentaLibre"
 import { ModalAdvertenciaStock } from "@/components/pos/ModalAdvertenciaStock"
 import { ParrillaMesas } from "./ParrillaMesas"
 import { PanelMesa } from "./PanelMesa"
+import { VistaCocina } from "./VistaCocina"
 import { ModalNuevaMesa } from "./ModalNuevaMesa"
 
-type Vista = "mesas" | "menu"
+type Vista = "mesas" | "cocina" | "menu"
 
 export default function PosRestaurante() {
     const { tenant } = useTenant()
@@ -52,6 +56,7 @@ export default function PosRestaurante() {
     const mesas = useMesas()
 
     const [vista, setVista] = useState<Vista>("mesas")
+    const tieneCocina = useModulo("cocina")
     const [modalVentaLibre, setModalVentaLibre] = useState(false)
     const [modalMesa, setModalMesa] = useState<{ visible: boolean; mesaId: string | null }>({ visible: false, mesaId: null })
 
@@ -206,11 +211,12 @@ export default function PosRestaurante() {
                     </div>
                 )}
 
-                {/* Toggle de vista: Mesas ↔ Menú (solo fuera del cobro) */}
+                {/* Toggle de vista: Mesas · Cocina · Menú (solo fuera del cobro) */}
                 {!cobrandoMesa && (
-                    <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
                         {([
                             { valor: "mesas" as Vista, etiqueta: "Mesas", icono: "UtensilsCrossed" as const },
+                            ...(tieneCocina ? [{ valor: "cocina" as Vista, etiqueta: "Cocina", icono: "ChefHat" as const }] : []),
                             { valor: "menu" as Vista, etiqueta: "Menú", icono: "ShoppingBag" as const },
                         ]).map(v => (
                             <button
@@ -234,8 +240,17 @@ export default function PosRestaurante() {
                 {/* ── Cuerpo por vista ── */}
                 {cobrandoMesa
                     ? cuerpoMenu
-                    : vista === "mesas"
-                        ? (mesas.mesa
+                    : vista === "cocina"
+                        ? (
+                            <VistaCocina
+                                mesas={mesas.mesas}
+                                cargando={mesas.cargando}
+                                actualizando={mesas.actualizando}
+                                onActualizar={mesas.recargar}
+                            />
+                        )
+                        : vista === "mesas"
+                            ? (mesas.mesa
                             ? (
                                 <PanelMesa
                                     mesa={mesas.mesa}

@@ -12,10 +12,11 @@
 import { useTenant } from "@/contexts/TenantContext"
 
 // Preset de módulos por giro. 'tienda' es el comportamiento actual (sin
-// módulos extra); 'restaurante' prende mesas (Fase 2) y comandera (Fase 3).
+// módulos extra); 'restaurante' prende mesas (Fase 2), cocina (Fase 3, vista
+// read-only de órdenes abiertas) y comandera (Fase roles, push en tiempo real).
 export const PRESETS_GIRO: Record<string, string[]> = {
     tienda: [],
-    restaurante: ["mesas"],
+    restaurante: ["mesas", "cocina"],
 }
 
 // Giros ofrecidos al crear un tenant (para el selector de alta futura).
