@@ -77,6 +77,14 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
     }>({ visible: false, nombres: "" })
     // Modal de selección de variación (productos con presentaciones y precio propio)
     const [modalVariacion, setModalVariacion] = useState<{ visible: boolean; prod: Producto | null }>({ visible: false, prod: null })
+    // ── Cobro de mesa (Fase 2) ──
+    // Id de la mesa cuyo orden abierto está en el carrito para cobrarse. El
+    // backend usa mesa_id para convertir el carrito en el ticket de ESA mesa y
+    // liberarla en la misma transacción. Persiste en localStorage porque el
+    // carrito también persiste.
+    const [mesaCobrando, setMesaCobrando] = useState<string | null>(() => {
+        try { return localStorage.getItem("pos_mesa_cobrando") || null } catch { return null }
+    })
 
     function manejarToggleDescuento() {
         if (modoDescuento) {
@@ -328,6 +336,30 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
             { metodo: "tarjeta_credito", monto: "", terminal_id: "" },
         ])
         localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
+        // Si se estaba cobrando una mesa, el cobro quedó cancelado
+        setMesaCobrando(null); localStorage.removeItem("pos_mesa_cobrando")
+    }
+
+    // ── Cobro de mesa (Fase 2) ──
+    // Carga los renglones de la orden abierta de una mesa EN el carrito y abre
+    // el panel de cobro: el ticket se cobra con el flujo de cobro EXISTENTE
+    // (método, propina, mixto, cambio, terminal, turno). Al cobrar, el backend
+    // recibe mesa_id y libera la mesa en la misma transacción del cobro.
+    function iniciarCobroMesa(items: ItemCarrito[], mesaId: string) {
+        setCarrito(items)
+        setPrecios({})
+        setCarritoAbierto(false)
+        setPanelCobro(true)
+        setPropina("0")
+        setMontoRecibido("")
+        setMesaCobrando(mesaId)
+        localStorage.setItem("pos_mesa_cobrando", mesaId)
+    }
+
+    /** Cancela el cobro de mesa: el carrito se vacía y la orden abierta queda
+     *  intacta en el servidor (nada se tocó todavía). */
+    function cancelarCobroMesa() {
+        vaciarCarrito()
     }
 
     const totalCarrito = carrito.reduce((acc, i) => acc + i.cantidad * i.precio_real, 0)
@@ -515,9 +547,10 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
                 ...i,
                 id_lote: i.id_lote || undefined
             }))
-            const res = await api.cobrarCarrito(itemsParaCobro, pago)
+            const res = await api.cobrarCarrito(itemsParaCobro, pago, mesaCobrando)
             const cambioTxt = res.cambio && res.cambio > 0 ? ` · Cambio: $${res.cambio.toFixed(2)}` : ""
-            mostrarMsg(true, `Venta registrada — $${res.total_cobrado.toFixed(2)}${cambioTxt}`)
+            const mesaTxt = res.mesa_nombre ? ` · Mesa ${res.mesa_nombre} liberada` : ""
+            mostrarMsg(true, `Venta registrada — $${res.total_cobrado.toFixed(2)}${cambioTxt}${mesaTxt}`)
             setCarrito([]); setPrecios({}); setCarritoAbierto(false);
             setPanelCobro(false); setPropina("0"); setMontoRecibido(""); setTerminalId("")
             setPagosMixtos([
@@ -525,6 +558,8 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
                 { metodo: "tarjeta_credito", monto: "", terminal_id: "" },
             ])
             localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
+            // El cobro de mesa terminó bien: el backend ya liberó la mesa
+            setMesaCobrando(null); localStorage.removeItem("pos_mesa_cobrando")
             // Refrescar inventario + lotes + ventas/órdenes (ticket nuevo en Estadísticas)
             await recargar()
         } catch (e: unknown) {
@@ -555,6 +590,10 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
         modalAdvertencia,
         modalVariacion,
         setModalVariacion,
+        // Cobro de mesa (Fase 2)
+        mesaCobrando,
+        iniciarCobroMesa,
+        cancelarCobroMesa,
         // Panel de cobro (Fase A)
         panelCobro,
         togglePanelCobro,
