@@ -96,7 +96,10 @@ export default function PosClasico() {
             />
 
             {/* ── Contenido sobre el hero ── */}
-            <div style={{ padding: "0 16px", marginTop: -16 }}>
+            {/* position+Z-index: el hero es `position: relative` y pinta encima
+                del contenido estático que sube con marginTop negativo — sin esto
+                tapa los primeros 16px del toast/tarjetas. */}
+            <div style={{ padding: "0 16px", marginTop: -16, position: "relative", zIndex: 2 }}>
 
                 {/* Mensaje de resultado (toast global) */}
                 <ToastBanner />
