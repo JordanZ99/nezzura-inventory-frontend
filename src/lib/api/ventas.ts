@@ -32,7 +32,8 @@ export const ventasApi = {
             pagos?: { metodo: string; monto: number; referencia?: string; terminal_id?: string }[]
             monto_recibido?: number
             terminal_id?: string
-        }
+        },
+        mesa_id?: string | null
     ) =>
         request<{
             ok: boolean
@@ -42,9 +43,11 @@ export const ventasApi = {
             metodo_pago?: string | null
             propina?: number
             cambio?: number | null
+            mesa_id?: string | null
+            mesa_nombre?: string | null
         }>("/ventas/cobrar", {
             method: "POST",
-            body: JSON.stringify({ items, pago: pago ?? null }),
+            body: JSON.stringify({ items, pago: pago ?? null, mesa_id: mesa_id || null }),
         }),
     actualizarVenta: (
         id: number,
