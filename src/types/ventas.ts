@@ -5,6 +5,11 @@ export interface ItemCarrito {
     id_lote?: string;
     // Nombre de la variación vendida (ej. "Doble", "S") — cambia el precio
     variacion?: string;
+    // Venta libre (migración 036): texto libre para el ticket ("Cereal",
+    // "Silla usada") y costo opcional capturado en el POS. Solo el renglón
+    // del producto genérico 'Venta libre' los lleva.
+    descripcion?: string;
+    costo?: number;
 }
 
 export interface Venta {
@@ -23,6 +28,9 @@ export interface Venta {
     tipo_producto?: string;
     // Nombre de la variación vendida (ej. "Doble", "S") — vacío = sin variación
     variacion?: string;
+    // Venta libre (migración 036): texto libre del renglón ("Cereal",
+    // "Silla usada"); solo lo traen las ventas del producto genérico.
+    descripcion?: string | null;
     // Consumo real de materiales de una venta COMPUESTA (solo compuestos)
     consumo?: { material: string; id_lote: string | null; cantidad: number; costo: number }[] | null;
     // Orden (ticket) a la que pertenece el renglón (migración 032)

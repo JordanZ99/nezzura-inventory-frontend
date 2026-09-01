@@ -9,7 +9,7 @@ import type { ItemCarrito, Lote, Producto } from "@/lib/api"
 
 /** Handlers del carrito que comparten ItemCarrito, CarritoDesktop y el Drawer. */
 export interface AccionesItemCarrito {
-    keyCarrito: (item: { producto: string; variacion?: string }) => string
+    keyCarrito: (item: { producto: string; variacion?: string; descripcion?: string }) => string
     lotesParaProducto: (producto: string) => Lote[]
     pasoCantidad: (actual: number, dir: 1 | -1, fracc: boolean) => number
     cambiarCantidad: (key: string, cantidad: number) => void

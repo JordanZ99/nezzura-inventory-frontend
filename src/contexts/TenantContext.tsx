@@ -16,6 +16,8 @@ interface TenantInfo {
     zona_horaria: string  // IANA (ej. "America/Cancun") — día contable del negocio
     metodo_pago_default: string  // método con el que el POS preselecciona el cobro
     gasto_comision_automatico: boolean  // registra comisiones de terminal como gasto al cobrar
+    giro: string  // 'tienda' | 'restaurante' — preset de módulos del negocio (migración 035)
+    modulos: Record<string, boolean> | null  // override de módulos; null = preset del giro
 }
 
 interface TenantContextValue {
@@ -45,10 +47,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             const perfil = await api.getPerfil()
             if (!perfil?.tenant_id) { setCargando(false); return }
 
-            // Leer empresa, logo y plan desde la tabla tenants de Supabase usando el 'id' (UserID)
+            // Leer empresa, logo, plan y giro desde la tabla tenants de Supabase usando el 'id' (UserID)
             const { data, error } = await supabase
                 .from("tenants")
-                .select("id, empresa, logo, plan")
+                .select("id, empresa, logo, plan, giro, modulos")
                 .eq("id", perfil.tenant_id)
                 .single()
 
@@ -60,6 +62,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                 zona_horaria: perfil.zona_horaria || ZONA_DEFAULT,
                 metodo_pago_default: perfil.metodo_pago_default || "efectivo",
                 gasto_comision_automatico: perfil.gasto_comision_automatico ?? false,
+                // Giro del negocio (migración 035): si la fila aún no tiene la
+                // columna poblada, 'tienda' = comportamiento actual.
+                giro: data?.giro || "tienda",
+                modulos: (data?.modulos as Record<string, boolean> | null) ?? null,
             })
             if (!error && data) {
                 setTenant(mapaTenant(data.id))

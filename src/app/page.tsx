@@ -7,6 +7,7 @@
 // persistencia) vive en src/hooks/usePos*.ts
 // ==============================================================================
 
+import { useState } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import { ToastBanner } from "@/components/ui/Toast"
 import { useTenant } from "@/contexts/TenantContext"
@@ -18,6 +19,7 @@ import { CarritoDesktop } from "@/components/pos/CarritoDesktop"
 import { BotonCarritoFlotante } from "@/components/pos/BotonCarritoFlotante"
 import { DrawerCarritoMovil } from "@/components/pos/DrawerCarritoMovil"
 import { ModalVariacion } from "@/components/pos/ModalVariacion"
+import { ModalVentaLibre } from "@/components/pos/ModalVentaLibre"
 import { ModalAdvertenciaStock } from "@/components/pos/ModalAdvertenciaStock"
 
 
@@ -25,6 +27,10 @@ export default function PuntoDeVenta() {
     const { tenant } = useTenant()
     const logoSrc = tenant?.logo || "/logo.png"
     const empresa = tenant?.empresa || "Nezzura Digital"
+
+    // Modal de Venta libre (tile fijo del grid): su lógica de carrito vive en
+    // posCarrito.agregarVentaLibre
+    const [modalVentaLibre, setModalVentaLibre] = useState(false)
 
     // ── Hooks de dominio (Fase 1) ──
     const datos = usePosDatos()
@@ -41,7 +47,7 @@ export default function PuntoDeVenta() {
     // Destructure con los nombres originales para que el JSX no cambie
     const { productos, terminales, cargando, relacionImagen } = datos
     const { busqueda, setBusqueda, categoriaSeleccionada, setCategoriaSeleccionada, ordenamiento, setOrdenamiento, carritoAbierto, setCarritoAbierto, categorias, productosFiltrados } = ui
-    const { carrito, precios, cobrando, modoDescuento, modalAdvertencia, modalVariacion, setModalVariacion, manejarToggleDescuento, agregarAlCarrito, agregarConVariacion, cambiarVariacionCarrito, cambiarLoteCarrito, cambiarCantidad, pasoCantidad, cambiarPrecio, cambiarTotal, quitarDelCarrito, vaciarCarrito, cobrarConAdvertencia, confirmarCobroConAdvertencia, cancelarAdvertencia, keyCarrito, lotesParaProducto, nombreLote, totalCarrito, totalItems, panelCobro, togglePanelCobro, metodoPago, setMetodoPago, propina, setPropina, montoRecibido, setMontoRecibido, pagosMixtos, setLineaMixta, agregarLineaMixta, quitarLineaMixta, terminalId, setTerminalId, comisionEstimada, subtotalAlAbrir, aplicarSubtotal, totalAPagar, cambio, sumaMixta, faltanteMixto } = posCarrito
+    const { carrito, precios, cobrando, modoDescuento, modalAdvertencia, modalVariacion, setModalVariacion, manejarToggleDescuento, agregarAlCarrito, agregarConVariacion, agregarVentaLibre, cambiarVariacionCarrito, cambiarLoteCarrito, cambiarCantidad, pasoCantidad, cambiarPrecio, cambiarTotal, quitarDelCarrito, vaciarCarrito, cobrarConAdvertencia, confirmarCobroConAdvertencia, cancelarAdvertencia, keyCarrito, lotesParaProducto, nombreLote, totalCarrito, totalItems, panelCobro, togglePanelCobro, metodoPago, setMetodoPago, propina, setPropina, montoRecibido, setMontoRecibido, pagosMixtos, setLineaMixta, agregarLineaMixta, quitarLineaMixta, terminalId, setTerminalId, comisionEstimada, subtotalAlAbrir, aplicarSubtotal, totalAPagar, cambio, sumaMixta, faltanteMixto } = posCarrito
 
     // Handlers del carrito que comparten los componentes (flujo unidireccional)
     const accionesCarrito = {
@@ -110,6 +116,7 @@ export default function PuntoDeVenta() {
                             productosFiltrados={productosFiltrados}
                             relacionImagen={relacionImagen}
                             agregarAlCarrito={agregarAlCarrito}
+                            onVentaLibre={() => setModalVentaLibre(true)}
                         />
                     </div>
 
@@ -207,6 +214,17 @@ export default function PuntoDeVenta() {
                     prod={modalVariacion.prod}
                     onSeleccionar={agregarConVariacion}
                     onCancelar={() => setModalVariacion({ visible: false, prod: null })}
+                />
+            )}
+
+            {/* ── Modal de Venta libre (tile fijo del grid) ── */}
+            {modalVentaLibre && (
+                <ModalVentaLibre
+                    onAgregar={(descripcion, precio, costo) => {
+                        agregarVentaLibre(descripcion, precio, costo)
+                        setModalVentaLibre(false)
+                    }}
+                    onCancelar={() => setModalVentaLibre(false)}
                 />
             )}
 

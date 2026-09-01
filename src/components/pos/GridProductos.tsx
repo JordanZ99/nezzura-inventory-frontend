@@ -23,6 +23,7 @@ interface Props {
     productosFiltrados: Producto[]
     relacionImagen: string
     agregarAlCarrito: (prod: Producto) => void
+    onVentaLibre: () => void
 }
 
 export function GridProductos({
@@ -37,6 +38,7 @@ export function GridProductos({
     productosFiltrados,
     relacionImagen,
     agregarAlCarrito,
+    onVentaLibre,
 }: Props) {
     return (
         <>
@@ -116,6 +118,47 @@ export function GridProductos({
                     gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
                     gap: 12,
                 }}>
+                    {/* ── Tile fijo VENTA LIBRE: SIEMPRE primero (arriba-izquierda),
+                        sin importar búsqueda, categoría ni ordenamiento ── */}
+                    <button
+                        onClick={onVentaLibre}
+                        title="Cobrar algo que no está registrado en inventario"
+                        style={{
+                            textAlign: "left",
+                            padding: 12,
+                            cursor: "pointer",
+                            borderRadius: 16,
+                            border: "2px dashed var(--border-primary)",
+                            background: "var(--bg-card)",
+                            display: "flex", flexDirection: "column",
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.transform = "translateY(-3px)"
+                            e.currentTarget.style.boxShadow = "0 8px 30px var(--primary-glow)"
+                            e.currentTarget.style.borderColor = "var(--primary-mid)"
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.transform = ""
+                            e.currentTarget.style.boxShadow = ""
+                            e.currentTarget.style.borderColor = "var(--border-primary)"
+                        }}
+                    >
+                        <div style={{
+                            aspectRatio: relacionImagen, borderRadius: 12,
+                            background: "var(--gradient-bg-login)",
+                            marginBottom: 10,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            border: "2px dashed var(--border-primary)",
+                        }}>
+                            <Icon name="Plus" size={38} color="var(--primary-mid)" />
+                        </div>
+                        <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px" }}>
+                            Venta libre
+                        </p>
+                        <p style={{ fontWeight: 600, fontSize: "0.66rem", color: "var(--text-muted)", margin: 0, lineHeight: 1.3 }}>
+                            Cobra algo no registrado
+                        </p>
+                    </button>
                     {productosFiltrados.map(prod => (
                         <TarjetaProducto
                             key={prod.producto}

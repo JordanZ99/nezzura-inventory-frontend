@@ -44,12 +44,14 @@ interface Props {
     setConfirmAnularOrdenId: Dispatch<SetStateAction<string | null>>
 }
 
-/** Resume los renglones de una orden en pills "2x Producto" (máx 3 + "+N"). */
+/** Resume los renglones de una orden en pills "2x Producto" (máx 3 + "+N").
+ *  Los renglones de venta libre muestran su descripción ("2x Cereal"). */
 function resumenProductos(orden: Orden) {
     const porProducto = new Map<string, number>()
     for (const v of orden.ventas || []) {
         if (v.estado === "Inactivo") continue
-        porProducto.set(v.producto, (porProducto.get(v.producto) || 0) + (v.cantidad || 0))
+        const nombre = v.descripcion || v.producto
+        porProducto.set(nombre, (porProducto.get(nombre) || 0) + (v.cantidad || 0))
     }
     const items = [...porProducto.entries()].map(([producto, cantidad]) => ({
         producto,

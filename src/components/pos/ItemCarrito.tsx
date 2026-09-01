@@ -8,6 +8,7 @@
 // ==============================================================================
 
 import type { PropsItemCarrito } from "./tipos"
+import { NOMBRE_VENTA_LIBRE } from "@/lib/ventaLibre"
 
 export function ItemCarrito({
     item,
@@ -22,6 +23,10 @@ export function ItemCarrito({
     const esMovil = variante === "movil"
     const key = acciones.keyCarrito(item)
     const fracc = !!prod?.fraccionable
+    // Renglón de venta libre: su "producto" es el genérico 'Venta libre'; lo
+    // que se vendió de verdad vive en item.descripcion. No tiene lote ni variación.
+    const esLibre = item.producto === NOMBRE_VENTA_LIBRE
+    const nombreMostrar = item.descripcion || item.producto
 
     return (
         <div style={esMovil
@@ -32,7 +37,7 @@ export function ItemCarrito({
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 8, alignItems: esMovil ? undefined : "flex-start" }}>
                 <div style={{ display: "flex", flexDirection: esMovil ? "column" : undefined, gap: 2, minWidth: 0, flex: esMovil ? undefined : 1, marginRight: esMovil ? undefined : 6 }}>
                     <p style={{ margin: 0, fontWeight: 600, fontSize: esMovil ? "0.9rem" : "0.8rem", color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {item.producto}
+                        {nombreMostrar}
                     </p>
                     {item.variacion && (
                         <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "var(--bg-card2)", borderRadius: 6, padding: "1px 6px", alignSelf: esMovil ? "flex-start" : undefined }}>
@@ -132,8 +137,9 @@ export function ItemCarrito({
                 </div>
             )}
 
-            {/* ── Selector de lote (solo productos con stock) ── */}
-            {(prod?.tipo_producto ?? "stock") === "stock" && (
+            {/* ── Selector de lote (solo productos con stock; la venta libre no
+                tiene inventario y su producto genérico no viene en la lista) ── */}
+            {!esLibre && (prod?.tipo_producto ?? "stock") === "stock" && (
                 <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: esMovil ? "0.65rem" : "0.6rem", fontWeight: 700, color: esMovil ? "var(--text-muted)" : "#999", whiteSpace: "nowrap" }}>LOTE:</span>
                     <select

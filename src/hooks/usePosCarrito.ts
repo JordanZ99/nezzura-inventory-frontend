@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react"
 import { api, type Producto, type Lote, type ItemCarrito, type Terminal } from "@/lib/api"
+import { NOMBRE_VENTA_LIBRE } from "@/lib/ventaLibre"
 import { useToast } from "@/components/ui/Toast"
 
 interface Args {
@@ -110,11 +111,14 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
             .sort((a, b) => new Date(a.fecha_entrada).getTime() - new Date(b.fecha_entrada).getTime())
     }
 
-    // Clave única de cada línea del carrito: producto + variación. Permite tener
-    // VARIAS variaciones del mismo producto en el mismo ticket (ej. Sencilla y
-    // Doble como líneas independientes, cada una con su precio y cantidad).
-    function keyCarrito(item: { producto: string; variacion?: string }): string {
-        return item.variacion ? `${item.producto}::${item.variacion}` : item.producto
+    // Clave única de cada línea del carrito: producto + variación (o producto +
+    // descripción en la venta libre). Permite tener VARIAS variaciones del mismo
+    // producto en el mismo ticket (ej. Sencilla y Doble como líneas independientes,
+    // cada una con su precio y cantidad) y varios artículos libres distintos.
+    function keyCarrito(item: { producto: string; variacion?: string; descripcion?: string }): string {
+        if (item.variacion) return `${item.producto}::${item.variacion}`
+        if (item.descripcion) return `${item.producto}::${item.descripcion}`
+        return item.producto
     }
 
     // Cambia la variación de un ítem ya en el carrito (precio propio de la variación).
@@ -240,6 +244,33 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
             return nuevo
         })
         setModalVariacion({ visible: false, prod: null })
+    }
+
+    // ── Venta libre (migración 036) ──
+    // Renglón del producto genérico 'Venta libre' (tile fijo del POS): cobra
+    // algo que NO está registrado en inventario con descripción y precio
+    // capturados al vuelo; costo opcional (0 = ganancia = precio completo).
+    // Dos capturas con la MISMA descripción fusionan cantidad; con otra
+    // descripción crean una línea independiente (misma mecánica que variaciones).
+    function agregarVentaLibre(descripcion: string, precio: number, costo: number) {
+        const desc = descripcion.trim()
+        const item: ItemCarrito = {
+            producto: NOMBRE_VENTA_LIBRE,
+            cantidad: 1,
+            precio_real: Math.max(0, precio),
+            ...(desc ? { descripcion: desc } : {}),
+            ...(costo > 0 ? { costo } : {}),
+        }
+        const key = keyCarrito(item)
+        setCarrito(prev => {
+            const idx = prev.findIndex(i => keyCarrito(i) === key)
+            if (idx >= 0) {
+                const nuevo = [...prev]
+                nuevo[idx] = { ...nuevo[idx], cantidad: nuevo[idx].cantidad + 1, precio_real: item.precio_real, costo: item.costo }
+                return nuevo
+            }
+            return [...prev, item]
+        })
     }
 
     function cambiarCantidad(key: string, cantidad: number) {
@@ -421,6 +452,10 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
         // Identificar productos del carrito que no tienen stock suficiente.
         // Los servicios y compuestos (sin stock por diseño) nunca disparan la advertencia.
         const sinStock = carrito.filter(item => {
+            // Venta libre: no tiene inventario por diseño (y su producto genérico
+            // no viene en la lista de productos, así que sin este guard el
+            // `!prod` de abajo la marcaría como "sin stock" siempre).
+            if (item.producto === NOMBRE_VENTA_LIBRE) return false
             const prod = productos.find(p => p.producto === item.producto)
             if (prod?.tipo_producto && prod.tipo_producto !== "stock") return false
             // Si el producto tiene variaciones, la comparación es contra el stock
@@ -547,6 +582,7 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
         agregarAlCarrito,
         agregarDirecto,
         agregarConVariacion,
+        agregarVentaLibre,
         cambiarVariacionCarrito,
         cambiarLoteCarrito,
         cambiarCantidad,
