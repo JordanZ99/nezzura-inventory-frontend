@@ -184,7 +184,11 @@ export default function PosRestaurante() {
             />
 
             {/* ── Contenido sobre el hero ── */}
-            <div style={{ padding: "0 16px", marginTop: -16 }}>
+            {/* position+Z-index: el hero es `position: relative`, y los elementos
+                posicionados pintan ENCIMA del contenido estático que sube con
+                marginTop negativo — sin esto, el hero tapa la mitad superior de
+                las pills de vista (Mesas/Cocina/Menú) que se solapan 16px. */}
+            <div style={{ padding: "0 16px", marginTop: -16, position: "relative", zIndex: 2 }}>
 
                 <ToastBanner />
 
