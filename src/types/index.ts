@@ -1,0 +1,5 @@
+export * from "./productos"
+export * from "./catalogo"
+export * from "./ventas"
+export * from "./gastos"
+export * from "./common"
