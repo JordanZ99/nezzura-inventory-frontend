@@ -37,7 +37,7 @@ export default function CardTurnos() {
         <div className="card fade-up" style={{ padding: "16px 20px", marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                 <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, display: "flex", alignItems: "center", gap: 8 }}>
-                    <Icon name="Vault" size={18} color="var(--primary-alter)" /> Corte de Caja (Turnos)
+                    <Icon name="HandCoins" size={18} color="var(--primary-alter)" /> Corte de Caja (Turnos)
                 </h2>
             </div>
 
