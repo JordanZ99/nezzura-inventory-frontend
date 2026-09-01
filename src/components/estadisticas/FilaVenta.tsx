@@ -46,7 +46,7 @@ export default function FilaVenta({ v, editando, setEditando, editVal, setEditVa
                     </div>
                 ) : (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        <Pill color="gray">{v.cantidad}x {v.producto}</Pill>
+                        <Pill color="gray">{v.cantidad}x {v.descripcion || v.producto}</Pill>
                     </div>
                 )}
             </td>
