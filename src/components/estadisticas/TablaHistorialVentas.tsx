@@ -170,7 +170,14 @@ export default function TablaHistorialVentas({
                                         style={{ borderBottom: "1px solid var(--border-light)", cursor: "pointer", opacity: anulada ? 0.6 : 1, background: abierta ? "var(--bg-card2)" : "transparent" }}
                                         className="hover:bg-primary-50/30"
                                     >
-                                        <td style={{ padding: "12px 16px", fontWeight: 700 }}>#{o.n_ticket}</td>
+                                        <td style={{ padding: "12px 16px", fontWeight: 700 }}>
+                                            #{o.n_ticket}
+                                            {o.mesa_nombre && (
+                                                <span style={{ marginLeft: 6, fontSize: "0.62rem", fontWeight: 800, color: "#6d28d9", background: "#ede9fe", borderRadius: 6, padding: "2px 6px", whiteSpace: "nowrap" }}>
+                                                    {o.mesa_nombre}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{new Date(o.fecha).toLocaleDateString()}</td>
                                         <td style={{ padding: "12px 16px" }}>
                                             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>

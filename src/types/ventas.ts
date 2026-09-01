@@ -92,6 +92,9 @@ export interface Orden {
     cambio?: number | null;
     comision_total?: number;
     turno_id?: string | null;
+    // Mesa de origen (Fase 2): snapshot del ticket cobrado en mesa
+    mesa_id?: string | null;
+    mesa_nombre?: string | null;
 }
 
 // ── Estadísticas server-side: respuestas de la BDD, no dumps de renglones ──
