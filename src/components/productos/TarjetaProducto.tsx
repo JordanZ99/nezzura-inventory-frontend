@@ -74,7 +74,7 @@ export function TarjetaProducto({
                          * objectFit "contain": las imágenes verticales no se
                          * recortan; el gradiente rellena los bordes vacíos.
                          */
-                        style={{ width: "100%", height: "100%", objectFit: "contain", padding: 8, borderRadius: 12 }}
+                        style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 12 }}
                         onError={e => { e.currentTarget.style.display = "none" }}
                         loading="lazy"
                     />
