@@ -142,9 +142,8 @@ export function GridProductos({
                             background: "var(--gradient-bg-login)",
                             marginBottom: 10,
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            border: "2px dashed var(--border-primary)",
                         }}>
-                            <Icon name="Plus" size={38} color="var(--primary-mid)" />
+                            <Icon name="Plus" size={38} color="var(--text-white)" />
                         </div>
                         <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px" }}>
                             Venta libre
