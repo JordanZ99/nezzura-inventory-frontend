@@ -170,7 +170,22 @@ export const productosApi = {
             zona_horaria: string
             metodo_pago_default: string
             gasto_comision_automatico: boolean
+            // Cartera de clientes + sistema de puntos (migraciones 038/039)
+            clientes_activos: boolean
+            cliente_campos: import("@/types").ClienteCampos
+            puntos_activos: boolean
+            puntos_valor_punto: number
+            puntos_modo: import("@/types").ModoPuntos
+            puntos_gasto_monto: number
+            puntos_gasto_pts: number
+            puntos_fijos: number | null
         }>("/inventario/me"),
+    // PATCH genérico de la config del perfil (zona, clientes, puntos...).
+    actualizarPerfilNegocio: (data: Record<string, unknown>) =>
+        request<Record<string, unknown>>("/inventario/me", {
+            method: "PATCH",
+            body: JSON.stringify(data),
+        }),
     actualizarModoPrecioSugerido: (modo: string) =>
         request<{ ok: boolean; modo_precio_sugerido: string }>("/inventario/me", {
             method: "PATCH",

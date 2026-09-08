@@ -44,7 +44,14 @@ export const ventasApi = {
             monto_recibido?: number
             terminal_id?: string
         },
-        mesa_id?: string | null
+        mesa_id?: string | null,
+        // ── Cliente + puntos (Fase B): canje y ajuste manual en el ticket ──
+        cliente?: {
+            cliente_id: string
+            puntos_usados?: number
+            ajuste_puntos?: number
+            ajuste_concepto?: string
+        } | null
     ) =>
         request<{
             ok: boolean
@@ -56,9 +63,24 @@ export const ventasApi = {
             cambio?: number | null
             mesa_id?: string | null
             mesa_nombre?: string | null
+            cliente_id?: string | null
+            cliente_nombre?: string | null
+            puntos_ganados?: number
+            puntos_canjeados?: number
+            saldo_cliente?: number | null
         }>("/ventas/cobrar", {
             method: "POST",
-            body: JSON.stringify({ items, pago: pago ?? null, mesa_id: mesa_id || null }),
+            body: JSON.stringify({
+                items,
+                pago: pago ?? null,
+                mesa_id: mesa_id || null,
+                ...(cliente ? {
+                    cliente_id: cliente.cliente_id,
+                    puntos_usados: cliente.puntos_usados ?? 0,
+                    ajuste_puntos: cliente.ajuste_puntos ?? 0,
+                    ajuste_concepto: cliente.ajuste_concepto ?? null,
+                } : {}),
+            }),
         }),
     actualizarVenta: (
         id: number,

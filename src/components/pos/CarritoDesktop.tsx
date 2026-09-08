@@ -11,7 +11,7 @@ import { ItemCarrito } from "./ItemCarrito"
 import { PanelCobro } from "./PanelCobro"
 import type { AccionesItemCarrito } from "./tipos"
 import type { ItemCarrito as ItemCarritoType, Producto } from "@/lib/api"
-import type { MetodoCobro, MetodoPagoSimple, LineaPagoMixto } from "@/hooks/usePosCarrito"
+import type { MetodoCobro, MetodoPagoSimple, LineaPagoMixto, ClientePos } from "@/hooks/usePosCarrito"
 import type { Terminal } from "@/lib/api"
 
 interface Props {
@@ -48,6 +48,24 @@ interface Props {
     cobrarConAdvertencia: () => void
     vaciarCarrito: () => void
     acciones: AccionesItemCarrito
+    // ── Cliente + puntos (Fase B) — pasa íntegro al PanelCobro ──
+    mostrarCliente?: boolean
+    cliente?: ClientePos | null
+    abrirModalCliente?: () => void
+    quitarCliente?: () => void
+    puntosActivos?: boolean
+    valorPunto?: number
+    puntosCanjeNum?: number
+    valorCanje?: number
+    cambiarPuntosCanje?: (v: string) => void
+    topeCanje?: number
+    puntosGanadosEstimados?: number
+    saldoTrasCobro?: number
+    ajusteNum?: number
+    cambiarAjustePuntos?: (v: string) => void
+    conceptoAjuste?: string
+    setConceptoAjuste?: (v: string) => void
+    totalAPagarDinero?: number
 }
 
 export function CarritoDesktop({
@@ -84,6 +102,23 @@ export function CarritoDesktop({
     cobrarConAdvertencia,
     vaciarCarrito,
     acciones,
+    mostrarCliente,
+    cliente,
+    abrirModalCliente,
+    quitarCliente,
+    puntosActivos,
+    valorPunto,
+    puntosCanjeNum,
+    valorCanje,
+    cambiarPuntosCanje,
+    topeCanje,
+    puntosGanadosEstimados,
+    saldoTrasCobro,
+    ajusteNum,
+    cambiarAjustePuntos,
+    conceptoAjuste,
+    setConceptoAjuste,
+    totalAPagarDinero,
 }: Props) {
     return (
         <div className="card hidden md:flex" style={{
@@ -165,6 +200,23 @@ export function CarritoDesktop({
                         modoDescuento={modoDescuento}
                         manejarToggleDescuento={manejarToggleDescuento}
                         volver={togglePanelCobro}
+                        mostrarCliente={mostrarCliente}
+                        cliente={cliente}
+                        abrirModalCliente={abrirModalCliente}
+                        quitarCliente={quitarCliente}
+                        puntosActivos={puntosActivos}
+                        valorPunto={valorPunto}
+                        puntosCanjeNum={puntosCanjeNum}
+                        valorCanje={valorCanje}
+                        cambiarPuntosCanje={cambiarPuntosCanje}
+                        topeCanje={topeCanje}
+                        puntosGanadosEstimados={puntosGanadosEstimados}
+                        saldoTrasCobro={saldoTrasCobro}
+                        ajusteNum={ajusteNum}
+                        cambiarAjustePuntos={cambiarAjustePuntos}
+                        conceptoAjuste={conceptoAjuste}
+                        setConceptoAjuste={setConceptoAjuste}
+                        totalAPagarDinero={totalAPagarDinero}
                     />
                 ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -188,8 +240,8 @@ export function CarritoDesktop({
             {carrito.length > 0 && (
                 <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border-primary)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1rem", color: "var(--text-main)", marginBottom: 12 }}>
-                        <span>{panelCobro ? "A pagar" : "Total"}</span>
-                        <span style={{ color: "var(--primary-dark)" }}>${(panelCobro ? totalAPagar : totalCarrito).toFixed(2)}</span>
+                        <span>{panelCobro ? (totalAPagarDinero && totalAPagarDinero < totalAPagar ? "A pagar en dinero" : "A pagar") : "Total"}</span>
+                        <span style={{ color: "var(--primary-dark)" }}>${(panelCobro ? (totalAPagarDinero ?? totalAPagar) : totalCarrito).toFixed(2)}</span>
                     </div>
                     <button className="btn-primary" style={{ width: "100%", marginBottom: 8 }} onClick={cobrarConAdvertencia} disabled={cobrando}>
                         {cobrando ? "Procesando..." : "Cobrar"}

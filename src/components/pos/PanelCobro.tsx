@@ -8,7 +8,7 @@
 // ==============================================================================
 
 import Icon from "@/components/ui/Icon"
-import type { MetodoCobro, MetodoPagoSimple, LineaPagoMixto } from "@/hooks/usePosCarrito"
+import type { MetodoCobro, MetodoPagoSimple, LineaPagoMixto, ClientePos } from "@/hooks/usePosCarrito"
 import type { Terminal } from "@/lib/api"
 
 interface Props {
@@ -37,6 +37,24 @@ interface Props {
     modoDescuento: boolean
     manejarToggleDescuento: () => void
     volver: () => void
+    // ── Cliente + puntos (Fase B) — opcionales: solo el POS clásico los envía ──
+    mostrarCliente?: boolean
+    cliente?: ClientePos | null
+    abrirModalCliente?: () => void
+    quitarCliente?: () => void
+    puntosActivos?: boolean
+    valorPunto?: number
+    puntosCanjeNum?: number
+    valorCanje?: number
+    cambiarPuntosCanje?: (v: string) => void
+    topeCanje?: number
+    puntosGanadosEstimados?: number
+    saldoTrasCobro?: number
+    ajusteNum?: number
+    cambiarAjustePuntos?: (v: string) => void
+    conceptoAjuste?: string
+    setConceptoAjuste?: (v: string) => void
+    totalAPagarDinero?: number
 }
 
 const ETIQUETAS_METODO: Record<string, string> = {
@@ -84,12 +102,32 @@ export function PanelCobro({
     modoDescuento,
     manejarToggleDescuento,
     volver,
+    // ── Cliente + puntos (Fase B) ──
+    mostrarCliente = false,
+    cliente = null,
+    abrirModalCliente,
+    quitarCliente,
+    puntosActivos = false,
+    valorPunto = 1,
+    puntosCanjeNum = 0,
+    valorCanje = 0,
+    cambiarPuntosCanje,
+    topeCanje = 0,
+    puntosGanadosEstimados = 0,
+    saldoTrasCobro = 0,
+    ajusteNum = 0,
+    cambiarAjustePuntos,
+    conceptoAjuste = "",
+    setConceptoAjuste,
+    totalAPagarDinero,
 }: Props) {
     if (!abierto) return null
 
     const propinaNum = parseFloat(propina.replace(",", ".")) || 0
     const recibidoNum = parseFloat(montoRecibido.replace(",", "."))
-    const efectivoInsuficiente = metodoPago === "efectivo" && montoRecibido.trim() !== "" && recibidoNum < totalAPagar - 0.005
+    // Lo que realmente queda por pagar en dinero (el canje de puntos cubre productos)
+    const dineroAPagar = totalAPagarDinero ?? totalAPagar
+    const efectivoInsuficiente = metodoPago === "efectivo" && montoRecibido.trim() !== "" && recibidoNum < dineroAPagar - 0.005
 
     /** Selector de terminal + comisión estimada para un pago con tarjeta */
     function bloqueTerminal(metodo: MetodoPagoSimple, monto: number, valor: string, onCambiar: (v: string) => void) {
@@ -115,6 +153,84 @@ export function PanelCobro({
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {/* ── Cliente + puntos (Fase B, migraciones 038/039) ──
+                Se muestra HASTA ARRIBA de las opciones, tal como se pidió. ── */}
+            {mostrarCliente && (
+                <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Cliente</span>
+                        {cliente && (
+                            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                                {Math.round(cliente.saldo).toLocaleString("us")} pts (≈${(cliente.saldo * valorPunto).toFixed(2)})
+                            </span>
+                        )}
+                    </div>
+                    {cliente ? (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 10, background: "var(--bg-card2)", border: "1px solid var(--border-primary)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                                <Icon name="UserRound" size={16} color="var(--primary-alter)" />
+                                <span style={{ fontSize: "0.8rem", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cliente.nombre}</span>
+                            </div>
+                            <button onClick={quitarCliente} title="Quitar cliente del ticket" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
+                                <Icon name="X" size={14} color="#b71c1c" />
+                            </button>
+                        </div>
+                    ) : (
+                        <button onClick={abrirModalCliente} className="btn-ghost" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                            <Icon name="UserRoundPlus" size={15} /> Añadir cliente
+                        </button>
+                    )}
+
+                    {/* Pagar con puntos (canje) + ajuste manual */}
+                    {cliente && puntosActivos && (
+                        <div style={{ marginTop: 10 }}>
+                            <div>
+                                <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                                    Pagar con puntos (1 pt = ${valorPunto})
+                                </span>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <input
+                                        type="number" min="0" max={topeCanje} step="1"
+                                        value={puntosCanjeNum || ""}
+                                        onChange={e => cambiarPuntosCanje?.(e.target.value)}
+                                        placeholder="0 pts"
+                                        style={{ ...inputStyle, flex: 1 }}
+                                    />
+                                    <span style={{ fontSize: "0.72rem", fontWeight: 800, color: valorCanje > 0 ? "var(--primary-dark)" : "var(--text-muted)", whiteSpace: "nowrap" }}>
+                                        −${valorCanje.toFixed(2)}
+                                    </span>
+                                </div>
+                                <p style={{ margin: "4px 0 0", fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                    Máximo {topeCanje} pts · al cobrar quedará en <strong style={{ color: "var(--text-main)" }}>{Math.max(0, Math.round(saldoTrasCobro)).toLocaleString("us")} pts</strong>
+                                </p>
+                            </div>
+                            <div style={{ marginTop: 8 }}>
+                                <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                                    Ajuste manual (+ dar / − quitar)
+                                </span>
+                                <div style={{ display: "flex", gap: 6 }}>
+                                    <input
+                                        type="number" step="1" value={ajusteNum || ""}
+                                        onChange={e => cambiarAjustePuntos?.(e.target.value)}
+                                        placeholder="Ej. −10" style={{ ...inputStyle, width: 90 }}
+                                    />
+                                    <input
+                                        type="text" value={conceptoAjuste}
+                                        onChange={e => setConceptoAjuste?.(e.target.value)}
+                                        placeholder="Motivo (ej. promo 50%)" style={inputStyle}
+                                    />
+                                </div>
+                                {ajusteNum !== 0 && puntosGanadosEstimados > 0 && (
+                                    <p style={{ margin: "4px 0 0", fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                        Esta venta generaría {puntosGanadosEstimados} pts por la regla de la casa.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Subtotal editable (descuento directo) */}
             <div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -195,11 +311,11 @@ export function PanelCobro({
                     <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>¿Con cuánto pagó?</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontWeight: 800, color: "var(--text-muted)" }}>$</span>
-                        <input type="number" min="0" step="0.01" value={montoRecibido} onChange={e => setMontoRecibido(e.target.value)} placeholder={totalAPagar.toFixed(2)} style={inputStyle} />
+                        <input type="number" min="0" step="0.01" value={montoRecibido} onChange={e => setMontoRecibido(e.target.value)} placeholder={dineroAPagar.toFixed(2)} style={inputStyle} />
                     </div>
                     {efectivoInsuficiente ? (
                         <p style={{ margin: "6px 0 0", fontSize: "0.7rem", fontWeight: 700, color: "var(--error-text, #b71c1c)" }}>
-                            Faltan ${(totalAPagar - recibidoNum).toFixed(2)}
+                            Faltan ${(dineroAPagar - recibidoNum).toFixed(2)}
                         </p>
                     ) : (
                         <p style={{ margin: "6px 0 0", fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>
@@ -209,8 +325,8 @@ export function PanelCobro({
                 </div>
             )}
 
-            {metodoPago === "tarjeta_debito" && bloqueTerminal("tarjeta_debito", totalAPagar, terminalId, setTerminalId)}
-            {metodoPago === "tarjeta_credito" && bloqueTerminal("tarjeta_credito", totalAPagar, terminalId, setTerminalId)}
+            {metodoPago === "tarjeta_debito" && bloqueTerminal("tarjeta_debito", dineroAPagar, terminalId, setTerminalId)}
+            {metodoPago === "tarjeta_credito" && bloqueTerminal("tarjeta_credito", dineroAPagar, terminalId, setTerminalId)}
 
             {metodoPago === "mixto" && (
                 <div>
@@ -260,7 +376,7 @@ export function PanelCobro({
                         </span>
                     </div>
                     <p style={{ margin: "4px 0 0", fontSize: "0.65rem", color: "var(--text-muted)" }}>
-                        Suma: ${sumaMixta.toFixed(2)} de ${totalAPagar.toFixed(2)}
+                        Suma: ${sumaMixta.toFixed(2)} de ${dineroAPagar.toFixed(2)}{valorCanje > 0 ? ` (${totalAPagar.toFixed(2)} con canje incluido)` : ""}
                     </p>
                 </div>
             )}
@@ -271,10 +387,15 @@ export function PanelCobro({
                 padding: "10px 12px", borderRadius: 10, background: "var(--bg-card2)", border: "1px solid var(--border-primary)",
             }}>
                 <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
-                    Total a pagar{propinaNum > 0 ? " (con propina)" : ""}
+                    {valorCanje > 0 ? "A pagar en dinero" : "Total a pagar"}{propinaNum > 0 ? " (con propina)" : ""}
                 </span>
-                <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--primary-dark)" }}>${totalAPagar.toFixed(2)}</span>
+                <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--primary-dark)" }}>${dineroAPagar.toFixed(2)}</span>
             </div>
+            {valorCanje > 0 && (
+                <p style={{ margin: "-8px 0 0", fontSize: "0.68rem", fontWeight: 700, color: "var(--success-text, #2e7d32)", textAlign: "right" }}>
+                    {puntosCanjeNum} pts cubren ${valorCanje.toFixed(2)} del ticket
+                </p>
+            )}
 
             {/* Extras: edición por renglón (la vieja función de descuento) */}
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", cursor: "pointer" }}>

@@ -11,7 +11,7 @@ import { ItemCarrito } from "./ItemCarrito"
 import { PanelCobro } from "./PanelCobro"
 import type { AccionesItemCarrito } from "./tipos"
 import type { ItemCarrito as ItemCarritoType, Producto, Terminal } from "@/lib/api"
-import type { MetodoCobro, MetodoPagoSimple, LineaPagoMixto } from "@/hooks/usePosCarrito"
+import type { MetodoCobro, MetodoPagoSimple, LineaPagoMixto, ClientePos } from "@/hooks/usePosCarrito"
 
 interface Props {
     carrito: ItemCarritoType[]
@@ -48,6 +48,24 @@ interface Props {
     vaciarCarrito: () => void
     setCarritoAbierto: (abierto: boolean) => void
     acciones: AccionesItemCarrito
+    // ── Cliente + puntos (Fase B) — pasa íntegro al PanelCobro ──
+    mostrarCliente?: boolean
+    cliente?: ClientePos | null
+    abrirModalCliente?: () => void
+    quitarCliente?: () => void
+    puntosActivos?: boolean
+    valorPunto?: number
+    puntosCanjeNum?: number
+    valorCanje?: number
+    cambiarPuntosCanje?: (v: string) => void
+    topeCanje?: number
+    puntosGanadosEstimados?: number
+    saldoTrasCobro?: number
+    ajusteNum?: number
+    cambiarAjustePuntos?: (v: string) => void
+    conceptoAjuste?: string
+    setConceptoAjuste?: (v: string) => void
+    totalAPagarDinero?: number
 }
 
 export function DrawerCarritoMovil({
@@ -85,6 +103,23 @@ export function DrawerCarritoMovil({
     vaciarCarrito,
     setCarritoAbierto,
     acciones,
+    mostrarCliente,
+    cliente,
+    abrirModalCliente,
+    quitarCliente,
+    puntosActivos,
+    valorPunto,
+    puntosCanjeNum,
+    valorCanje,
+    cambiarPuntosCanje,
+    topeCanje,
+    puntosGanadosEstimados,
+    saldoTrasCobro,
+    ajusteNum,
+    cambiarAjustePuntos,
+    conceptoAjuste,
+    setConceptoAjuste,
+    totalAPagarDinero,
 }: Props) {
     return (
         <div className="flex md:hidden" style={{
@@ -147,6 +182,23 @@ export function DrawerCarritoMovil({
                         modoDescuento={modoDescuento}
                         manejarToggleDescuento={manejarToggleDescuento}
                         volver={togglePanelCobro}
+                        mostrarCliente={mostrarCliente}
+                        cliente={cliente}
+                        abrirModalCliente={abrirModalCliente}
+                        quitarCliente={quitarCliente}
+                        puntosActivos={puntosActivos}
+                        valorPunto={valorPunto}
+                        puntosCanjeNum={puntosCanjeNum}
+                        valorCanje={valorCanje}
+                        cambiarPuntosCanje={cambiarPuntosCanje}
+                        topeCanje={topeCanje}
+                        puntosGanadosEstimados={puntosGanadosEstimados}
+                        saldoTrasCobro={saldoTrasCobro}
+                        ajusteNum={ajusteNum}
+                        cambiarAjustePuntos={cambiarAjustePuntos}
+                        conceptoAjuste={conceptoAjuste}
+                        setConceptoAjuste={setConceptoAjuste}
+                        totalAPagarDinero={totalAPagarDinero}
                     />
                 ) : (
                     carrito.map(item => (
@@ -164,8 +216,8 @@ export function DrawerCarritoMovil({
                     ))
                 )}
                 <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.1rem", marginBottom: 16 }}>
-                    <span style={{ color: "var(--text-main)" }}>{panelCobro ? "A pagar" : "Total"}</span>
-                    <span style={{ color: "var(--primary-dark)" }}>${(panelCobro ? totalAPagar : totalCarrito).toFixed(2)}</span>
+                    <span style={{ color: "var(--text-main)" }}>{panelCobro ? (totalAPagarDinero && totalAPagarDinero < totalAPagar ? "A pagar en dinero" : "A pagar") : "Total"}</span>
+                    <span style={{ color: "var(--primary-dark)" }}>${(panelCobro ? (totalAPagarDinero ?? totalAPagar) : totalCarrito).toFixed(2)}</span>
                 </div>
                 <button className="btn-primary" style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={cobrarConAdvertencia} disabled={cobrando}>
                     {cobrando ? "Procesando..." : <><Icon name="Check" size={18} /> Cobrar</>}

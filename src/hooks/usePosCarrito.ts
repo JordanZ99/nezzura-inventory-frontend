@@ -14,6 +14,14 @@ import { useEffect, useState } from "react"
 import { api, type Producto, type Lote, type ItemCarrito, type Terminal } from "@/lib/api"
 import { NOMBRE_VENTA_LIBRE } from "@/lib/ventaLibre"
 import { useToast } from "@/components/ui/Toast"
+import { useTenant } from "@/contexts/TenantContext"
+
+/** Cliente de la cartera ligado al ticket del POS (Fase B del sistema de puntos). */
+export interface ClientePos {
+    id: string
+    nombre: string
+    saldo: number
+}
 
 interface Args {
     productos: Producto[]
@@ -40,6 +48,8 @@ function aNumero(texto: string): number {
 export function usePosCarrito({ productos, lotes, terminales, recargar, setCarritoAbierto, metodoPagoInicial }: Args) {
     // Mensajes globales (toast): reemplaza el estado local mensaje del POS.
     const { mostrarMsg } = useToast()
+    // Config del negocio: activación de la cartera, puntos y su regla de ganancia
+    const { tenant } = useTenant()
 
     const [carrito, setCarrito] = useState<ItemCarrito[]>(() => {
         try {
@@ -85,6 +95,13 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
     const [mesaCobrando, setMesaCobrando] = useState<string | null>(() => {
         try { return localStorage.getItem("pos_mesa_cobrando") || null } catch { return null }
     })
+    // ── Cliente de la cartera + puntos (Fase B, migraciones 038/039) ──
+    // El cliente seleccionado NO persiste en localStorage: se elige por venta.
+    const [clientePos, setClientePos] = useState<ClientePos | null>(null)
+    const [modalCliente, setModalCliente] = useState(false)
+    const [puntosCanje, setPuntosCanje] = useState("")        // puntos que se usan para pagar
+    const [ajustePuntos, setAjustePuntos] = useState("")      // ± puntos manuales (promo especial)
+    const [conceptoAjuste, setConceptoAjuste] = useState("")   // motivo obligatorio del ajuste
 
     function manejarToggleDescuento() {
         if (modoDescuento) {
@@ -335,6 +352,7 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
             { metodo: "efectivo", monto: "", terminal_id: "" },
             { metodo: "tarjeta_credito", monto: "", terminal_id: "" },
         ])
+        limpiarClientePos()
         localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
         // Si se estaba cobrando una mesa, el cobro quedó cancelado
         setMesaCobrando(null); localStorage.removeItem("pos_mesa_cobrando")
@@ -368,13 +386,72 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
     // ── Panel de cobro: derivados y handlers ──
     const propinaNum = Math.max(0, aNumero(propina))
     const totalAPagar = totalCarrito + propinaNum
+
+    // ── Cliente + canje de puntos (Fase B, migraciones 038/039) ──
+    // Reglas del espejo del backend:
+    //  - Tope del canje: min(saldo del cliente, total de productos / valor del punto).
+    //  - La propina siempre se paga en dinero.
+    //  - Los puntos ganados se calculan sobre el DINERO pagado de productos,
+    //    con la regla del tenant y redondeo al entero (más cercano).
+    const clientesActivos = tenant?.clientes_activos ?? false
+    const puntosActivos = tenant?.puntos_activos ?? false
+    const valorPunto = tenant?.puntos_valor_punto ?? 1
+    const topeCanje = clientePos
+        ? Math.max(0, Math.min(
+            Math.floor(clientePos.saldo || 0),
+            Math.floor(totalCarrito / ((valorPunto > 0 ? valorPunto : 1)) + 1e-9),
+        ))
+        : 0
+    const puntosCanjeNum = Math.min(Math.max(parseInt(puntosCanje, 10) || 0, 0), topeCanje)
+    const valorCanje = +(puntosCanjeNum * (valorPunto > 0 ? valorPunto : 1)).toFixed(2)
+    const puntosGanadosEstimados = clientePos && puntosActivos
+        ? (tenant?.puntos_modo === "fijo"
+            ? Math.max(0, tenant?.puntos_fijos ?? 0)
+            : Math.max(0, Math.round(((totalCarrito - valorCanje) / (tenant?.puntos_gasto_monto || 1)) * (tenant?.puntos_gasto_pts ?? 0))))
+        : 0
+    const saldoTrasCobro = clientePos ? Math.max(0, clientePos.saldo + puntosGanadosEstimados - puntosCanjeNum) : 0
+    const ajusteNum = parseInt(ajustePuntos.replace(/[^0-9\-]/g, ""), 10) || 0
+    // Lo que queda por pagar en DINERO (el canje cubre productos, no propina)
+    const totalAPagarDinero = Math.max(0, +(totalAPagar - valorCanje).toFixed(2))
+
     const recibidoNum = aNumero(montoRecibido)
     // Efectivo: si no se capturó "recibió", se asume pago exacto (cambio 0)
     const cambio = metodoPago === "efectivo"
-        ? Math.max(0, +((isNaN(parseFloat(montoRecibido.replace(",", "."))) ? totalAPagar : recibidoNum) - totalAPagar).toFixed(2))
+        ? Math.max(0, +((isNaN(parseFloat(montoRecibido.replace(",", "."))) ? totalAPagarDinero : recibidoNum) - totalAPagarDinero).toFixed(2))
         : 0
     const sumaMixta = pagosMixtos.reduce((a, p) => a + aNumero(p.monto), 0)
-    const faltanteMixto = metodoPago === "mixto" ? +(totalAPagar - sumaMixta).toFixed(2) : 0
+    const faltanteMixto = metodoPago === "mixto" ? +(totalAPagarDinero - sumaMixta).toFixed(2) : 0
+
+    /** Limpia la selección de cliente y sus inputs de puntos */
+    function limpiarClientePos() {
+        setClientePos(null)
+        setPuntosCanje("")
+        setAjustePuntos("")
+        setConceptoAjuste("")
+    }
+
+    function abrirModalCliente() { setModalCliente(true) }
+
+    function seleccionarClientePos(c: ClientePos) {
+        setClientePos(c)
+        setModalCliente(false)
+        setPuntosCanje("")
+        setAjustePuntos("")
+        setConceptoAjuste("")
+    }
+
+    function quitarClientePos() {
+        limpiarClientePos()
+    }
+
+    function cambiarPuntosCanje(texto: string) {
+        setPuntosCanje(texto.replace(/[^0-9]/g, ""))
+    }
+
+    function cambiarAjustePuntos(texto: string) {
+        // Solo dígitos y el signo inicial − (para quitar puntos)
+        setAjustePuntos(texto.replace(/[^0-9-]/g, "").replace(/(?!^)-/g, ""))
+    }
 
     /** Entra/sale del panel de cobro; al entrar congela el subtotal original
      *  (para poder restaurarlo después de un descuento). */
@@ -429,12 +506,13 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
         return +(monto * pct / 100 + t.comision_fija).toFixed(2)
     }
 
-    /** Construye el payload de pago; devuelve null (con toast) si no cuadra */
+    /** Construye el payload de pago; devuelve null (con toast) si no cuadra.
+     *  El canje de puntos ya se aplicó: todo valida contra el DINERO restante. */
     function construirPago(): { metodo: string; propina: number; pagos?: { metodo: string; monto: number }[]; monto_recibido?: number } | null {
         if (metodoPago === "efectivo") {
             const recibio = montoRecibido.trim() !== ""
-            if (recibio && recibidoNum < totalAPagar - 0.005) {
-                mostrarMsg(false, `El monto recibido ($${recibidoNum.toFixed(2)}) es menor al total a pagar ($${totalAPagar.toFixed(2)})`)
+            if (recibio && recibidoNum < totalAPagarDinero - 0.005) {
+                mostrarMsg(false, `El monto recibido ($${recibidoNum.toFixed(2)}) es menor al total a pagar ($${totalAPagarDinero.toFixed(2)})`)
                 return null
             }
             return {
@@ -452,7 +530,7 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
                 return null
             }
             if (Math.abs(faltanteMixto) > 0.01) {
-                mostrarMsg(false, `Los pagos suman $${sumaMixta.toFixed(2)} de $${totalAPagar.toFixed(2)} — ajusta los montos`)
+                mostrarMsg(false, `Los pagos suman $${sumaMixta.toFixed(2)} de $${totalAPagarDinero.toFixed(2)} — ajusta los montos`)
                 return null
             }
             return { metodo: "mixto", propina: +propinaNum.toFixed(2), pagos: lineas }
@@ -540,6 +618,17 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
         if (carrito.length === 0) return
         const pago = construirPago()
         if (pago === null) return
+
+        // ── Validaciones del ajuste manual de puntos (Fase B) ──
+        if (clientePos && ajusteNum !== 0 && !conceptoAjuste.trim()) {
+            mostrarMsg(false, "Indica el motivo del ajuste de puntos")
+            return
+        }
+        if (clientePos && ajusteNum !== 0 && (clientePos.saldo + puntosGanadosEstimados - puntosCanjeNum + ajusteNum) < 0) {
+            mostrarMsg(false, `No puedes quitar puntos de más: el saldo de ${clientePos.nombre} quedaría negativo`)
+            return
+        }
+
         setCobrando(true)
         try {
             // Limpiar id_lote vacío/indefinido antes de enviar
@@ -547,16 +636,28 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
                 ...i,
                 id_lote: i.id_lote || undefined
             }))
-            const res = await api.cobrarCarrito(itemsParaCobro, pago, mesaCobrando)
+            const res = await api.cobrarCarrito(
+                itemsParaCobro, pago, mesaCobrando,
+                clientePos ? {
+                    cliente_id: clientePos.id,
+                    puntos_usados: puntosCanjeNum,
+                    ...(ajusteNum !== 0 ? { ajuste_puntos: ajusteNum, ajuste_concepto: conceptoAjuste.trim() } : {}),
+                } : null
+            )
             const cambioTxt = res.cambio && res.cambio > 0 ? ` · Cambio: $${res.cambio.toFixed(2)}` : ""
             const mesaTxt = res.mesa_nombre ? ` · Mesa ${res.mesa_nombre} liberada` : ""
-            mostrarMsg(true, `Venta registrada — $${res.total_cobrado.toFixed(2)}${cambioTxt}${mesaTxt}`)
+            const ptasTxt: string[] = []
+            if (res.puntos_canjeados && res.puntos_canjeados > 0) ptasTxt.push(`canje ${res.puntos_canjeados} pts`)
+            if (res.puntos_ganados && res.puntos_ganados > 0 && res.cliente_nombre) ptasTxt.push(`+${res.puntos_ganados} pts para ${res.cliente_nombre}`)
+            const puntosTxt = ptasTxt.length > 0 ? ` · ${ptasTxt.join(" · ")}` : ""
+            mostrarMsg(true, `Venta registrada — $${res.total_cobrado.toFixed(2)}${cambioTxt}${mesaTxt}${puntosTxt}`)
             setCarrito([]); setPrecios({}); setCarritoAbierto(false);
             setPanelCobro(false); setPropina("0"); setMontoRecibido(""); setTerminalId("")
             setPagosMixtos([
                 { metodo: "efectivo", monto: "", terminal_id: "" },
                 { metodo: "tarjeta_credito", monto: "", terminal_id: "" },
             ])
+            limpiarClientePos()
             localStorage.removeItem("pos_carrito"); localStorage.removeItem("pos_precios")
             // El cobro de mesa terminó bien: el backend ya liberó la mesa
             setMesaCobrando(null); localStorage.removeItem("pos_mesa_cobrando")
@@ -616,6 +717,27 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
         cambio,
         sumaMixta,
         faltanteMixto,
+        // ── Cliente + puntos (Fase B del sistema de puntos) ──
+        clientesActivos,
+        puntosActivos,
+        valorPunto,
+        clientePos,
+        modalCliente,
+        setOpenModalCliente: setModalCliente,
+        abrirModalCliente,
+        seleccionarClientePos,
+        quitarClientePos,
+        cambiarPuntosCanje,
+        puntosCanjeNum,
+        valorCanje,
+        topeCanje,
+        puntosGanadosEstimados,
+        saldoTrasCobro,
+        ajusteNum,
+        cambiarAjustePuntos,
+        conceptoAjuste,
+        setConceptoAjuste,
+        totalAPagarDinero,
         // Handlers del carrito
         manejarToggleDescuento,
         agregarAlCarrito,

@@ -12,6 +12,8 @@ import { CardInfoCuenta } from "@/components/personalizacion/CardInfoCuenta"
 import { CardIdentidadNegocio } from "@/components/personalizacion/CardIdentidadNegocio"
 import { CardMiNegocio } from "@/components/personalizacion/CardMiNegocio"
 import { CardTerminales } from "@/components/personalizacion/CardTerminales"
+import { CardClientesConfig } from "@/components/personalizacion/CardClientesConfig"
+import { CardPuntosConfig } from "@/components/personalizacion/CardPuntosConfig"
 import { ConfigCatalogo } from "@/components/personalizacion/ConfigCatalogo"
 import { CardCompartir } from "@/components/personalizacion/CardCompartir"
 
@@ -194,6 +196,9 @@ export default function Personalizacion() {
                             gastoComision={cuenta.gastoComision}
                             toggleGastoComision={cuenta.toggleGastoComision}
                         />
+                        {/* Cartera de clientes + sistema de puntos (migraciones 038/039) */}
+                        <CardClientesConfig cargandoTenant={cargandoTenant} />
+                        <CardPuntosConfig cargandoTenant={cargandoTenant} />
                         <CardTerminales />
                     </div>
                 )}
