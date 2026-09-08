@@ -15,6 +15,14 @@ import FilaVenta from "./FilaVenta"
 import PaginacionTabla from "./PaginacionTabla"
 import type { EditVenta } from "@/hooks/useEstadisticasUI"
 
+/** Etiquetas de los métodos de pago (Fase A de cobro) */
+const ETIQUETA_METODO: Record<string, string> = {
+    efectivo: "Efectivo",
+    tarjeta_debito: "Tarjeta débito",
+    tarjeta_credito: "Tarjeta crédito",
+    mixto: "Mixto",
+}
+
 interface Props {
     totalTickets: number
     ordenesPaginadas: Orden[]
@@ -39,6 +47,8 @@ interface Props {
     setOrdenEditando: Dispatch<SetStateAction<string | null>>
     ordenFecha: string
     setOrdenFecha: Dispatch<SetStateAction<string>>
+    ordenMetodo: string
+    setOrdenMetodo: Dispatch<SetStateAction<string>>
     iniciarEdicionOrden: (o: Orden) => void
     guardarEdicionOrden: () => void
     setConfirmAnularOrdenId: Dispatch<SetStateAction<string | null>>
@@ -85,6 +95,8 @@ export default function TablaHistorialVentas({
     setOrdenEditando,
     ordenFecha,
     setOrdenFecha,
+    ordenMetodo,
+    setOrdenMetodo,
     iniciarEdicionOrden,
     guardarEdicionOrden,
     setConfirmAnularOrdenId,
@@ -217,7 +229,21 @@ export default function TablaHistorialVentas({
                                                                 className="input-primary"
                                                                 style={{ width: 150, padding: "6px 8px", fontSize: "0.8rem" }}
                                                             />
-                                                            <button onClick={guardarEdicionOrden} disabled={guardando} title="Guardar fecha" style={{ background: "none", border: "none", cursor: guardando ? "not-allowed" : "pointer" }}>
+                                                            <select
+                                                                value={ordenMetodo}
+                                                                onChange={e => setOrdenMetodo(e.target.value)}
+                                                                className="input-primary"
+                                                                disabled={guardando}
+                                                                title="Método de pago del ticket"
+                                                                style={{ width: 150, padding: "6px 8px", fontSize: "0.8rem", outline: "none", cursor: "pointer" }}
+                                                            >
+                                                                <option value="">Sin registrar</option>
+                                                                {ordenMetodo === "mixto" && <option value="mixto" disabled>Mixto</option>}
+                                                                <option value="efectivo">Efectivo</option>
+                                                                <option value="tarjeta_debito">Tarjeta débito</option>
+                                                                <option value="tarjeta_credito">Tarjeta crédito</option>
+                                                            </select>
+                                                            <button onClick={guardarEdicionOrden} disabled={guardando} title="Guardar ticket" style={{ background: "none", border: "none", cursor: guardando ? "not-allowed" : "pointer" }}>
                                                                 <Icon name="Save" size={16} color="var(--primary-dark)" />
                                                             </button>
                                                             <button onClick={() => setOrdenEditando(null)} disabled={guardando} title="Cancelar" style={{ background: "none", border: "none", cursor: "pointer" }}>
@@ -229,8 +255,11 @@ export default function TablaHistorialVentas({
                                                             <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>
                                                                 {new Date(o.fecha).toLocaleDateString()}
                                                             </span>
+                                                            {o.metodo_pago && (
+                                                                <Pill color="gray">{ETIQUETA_METODO[o.metodo_pago] || o.metodo_pago}</Pill>
+                                                            )}
                                                             {!anulada && (
-                                                                <button onClick={() => iniciarEdicionOrden(o)} title="Editar fecha del ticket" style={{ background: "none", border: "none", cursor: "pointer" }}>
+                                                                <button onClick={() => iniciarEdicionOrden(o)} title="Editar fecha y pago del ticket" style={{ background: "none", border: "none", cursor: "pointer" }}>
                                                                     <Icon name="Pencil" size={15} color="var(--text-muted)" />
                                                                 </button>
                                                             )}

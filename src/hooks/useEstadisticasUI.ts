@@ -100,6 +100,10 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
     const [confirmAnularOrdenId, setConfirmAnularOrdenId] = useState<string | null>(null)
     const [ordenEditando, setOrdenEditando] = useState<string | null>(null)
     const [ordenFecha, setOrdenFecha] = useState("")
+    // Método de pago del ticket en edición (alimenta "Cobros del Periodo").
+    // Recordamos el valor inicial para solo mandar el cambio si el usuario lo tocó.
+    const [ordenMetodo, setOrdenMetodo] = useState("")
+    const [ordenMetodoInicial, setOrdenMetodoInicial] = useState("")
 
     // Cargar todas las imágenes del producto al abrir el modal
     useEffect(() => {
@@ -145,22 +149,27 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
     }
 
-    /** Entra en modo edición de la fecha de un ticket */
+    /** Entra en modo edición del ticket: fecha + método de pago */
     function iniciarEdicionOrden(o: Orden) {
         setOrdenEditando(o.id)
         setOrdenFecha(new Date(o.fecha).toISOString().substring(0, 10))
+        const metodo = o.metodo_pago || ""
+        setOrdenMetodo(metodo)
+        setOrdenMetodoInicial(metodo)
     }
 
-    /** Guarda la nueva fecha del ticket (cascada a sus renglones) */
+    /** Guarda la nueva fecha/método de pago del ticket (cascada a sus renglones) */
     async function guardarEdicionOrden() {
         if (!ordenEditando || guardando) return
         if (!/^\d{4}-\d{2}-\d{2}$/.test(ordenFecha)) {
             mostrarMsg(false, "❌ Selecciona una fecha válida")
             return
         }
+        const data: { fecha?: string; metodo_pago?: string } = { fecha: ordenFecha }
+        if (ordenMetodo !== ordenMetodoInicial && ordenMetodo) data.metodo_pago = ordenMetodo
         setGuardando(true)
         try {
-            await api.actualizarOrden(ordenEditando, { fecha: ordenFecha })
+            await api.actualizarOrden(ordenEditando, data)
             mostrarMsg(true, "Ticket actualizado")
             setOrdenEditando(null); recargar()
         } catch (e: unknown) { mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`) }
@@ -226,6 +235,8 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
         setOrdenEditando,
         ordenFecha,
         setOrdenFecha,
+        ordenMetodo,
+        setOrdenMetodo,
         guardarEdicion,
         anularVenta,
         iniciarEdicionOrden,
