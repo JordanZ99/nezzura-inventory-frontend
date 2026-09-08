@@ -33,30 +33,33 @@ function fechaISO(d: Date): string {
 
 interface Opciones {
     rango: RangoFechas
+    /** Histórico completo (preset "Desde el principio") → ?todo=true en la BDD. */
+    todo?: boolean
     pagina: number
     busqueda: string
     orden: string
     productoDetalle: string | null
 }
 
-export function useEstadisticasRango({ rango, pagina, busqueda, orden, productoDetalle }: Opciones) {
+export function useEstadisticasRango({ rango, todo = false, pagina, busqueda, orden, productoDetalle }: Opciones) {
     const { tenant } = useTenant()
     const tenantId = tenant?.tenant_id
-    const rangoKey = `${rango.desde ?? ""}|${rango.hasta ?? ""}`
+    // "todo" comparte rango vacío con "mtd": debe distinguirse en la key de caché.
+    const rangoKey = `${rango.desde ?? ""}|${rango.hasta ?? ""}|${todo ? "todo" : ""}`
 
     const resumenQuery = useQuery({
         queryKey: ["stats-resumen", tenantId, rangoKey],
-        queryFn: () => api.getStatsResumen(rango),
+        queryFn: () => api.getStatsResumen({ ...rango, todo }),
         enabled: Boolean(tenantId),
     })
     const serieQuery = useQuery({
         queryKey: ["stats-serie", tenantId, rangoKey],
-        queryFn: () => api.getStatsSerie({ desde: rango.desde, hasta: rango.hasta, granularidad: "auto" }),
+        queryFn: () => api.getStatsSerie({ desde: rango.desde, hasta: rango.hasta, granularidad: "auto", todo }),
         enabled: Boolean(tenantId),
     })
     const productosStatsQuery = useQuery({
         queryKey: ["stats-productos", tenantId, rangoKey],
-        queryFn: () => api.getStatsProductos(rango),
+        queryFn: () => api.getStatsProductos({ ...rango, todo }),
         enabled: Boolean(tenantId),
     })
     // Historial paginado en servidor: keepPreviousData evita el parpadeo al
@@ -67,6 +70,7 @@ export function useEstadisticasRango({ rango, pagina, busqueda, orden, productoD
             api.getOrdenesPaginadas({
                 desde: rango.desde,
                 hasta: rango.hasta,
+                todo,
                 pagina,
                 por_pagina: POR_PAGINA_HISTORIAL,
                 busqueda: busqueda || undefined,
@@ -78,7 +82,7 @@ export function useEstadisticasRango({ rango, pagina, busqueda, orden, productoD
     // Renglones del producto abierto en el modal (una sola petición chica)
     const ventasProductoQuery = useQuery({
         queryKey: ["stats-venta-producto", tenantId, rangoKey, productoDetalle],
-        queryFn: () => api.getVentasProductoStats(productoDetalle as string, rango),
+        queryFn: () => api.getVentasProductoStats(productoDetalle as string, { ...rango, todo }),
         enabled: Boolean(tenantId && productoDetalle),
     })
 

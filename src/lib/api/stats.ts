@@ -1,4 +1,4 @@
-import { conQuery, conRango, request } from "./client"
+import { conQuery, request } from "./client"
 import type {
     ResumenStats,
     FilaSerie,
@@ -12,10 +12,26 @@ export const statsApi = {
         request<ResumenStats>(
             conQuery("/stats/resumen", { desde: rango?.desde, hasta: rango?.hasta, todo: rango?.todo ? 1 : undefined })
         ),
-    getStatsSerie: (params?: RangoFechas & { granularidad?: string }) =>
-        request<FilaSerie[]>(conQuery("/stats/serie", { ...params })),
-    getStatsProductos: (rango?: RangoFechas) =>
-        request<StatsProducto[]>(conRango("/stats/productos", rango)),
-    getVentasProductoStats: (producto: string, rango?: RangoFechas) =>
-        request<Venta[]>(conQuery("/stats/ventas-producto", { producto, desde: rango?.desde, hasta: rango?.hasta })),
+    getStatsSerie: (params?: RangoFechas & { granularidad?: string; todo?: boolean }) =>
+        request<FilaSerie[]>(
+            conQuery("/stats/serie", {
+                desde: params?.desde,
+                hasta: params?.hasta,
+                granularidad: params?.granularidad ?? "auto",
+                todo: params?.todo ? 1 : undefined,
+            })
+        ),
+    getStatsProductos: (rango?: RangoFechas & { todo?: boolean }) =>
+        request<StatsProducto[]>(
+            conQuery("/stats/productos", { desde: rango?.desde, hasta: rango?.hasta, todo: rango?.todo ? 1 : undefined })
+        ),
+    getVentasProductoStats: (producto: string, rango?: RangoFechas & { todo?: boolean }) =>
+        request<Venta[]>(
+            conQuery("/stats/ventas-producto", {
+                producto,
+                desde: rango?.desde,
+                hasta: rango?.hasta,
+                todo: rango?.todo ? 1 : undefined,
+            })
+        ),
 }
