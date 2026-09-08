@@ -54,5 +54,23 @@ export function useTurnos() {
         }
     }
 
-    return { turnoAbierto, historial, cargando: turnosQuery.isPending, abrir, cerrar }
+    /** Edición amable de turnos: fondo (abierto) y corrección de arqueo (cerrado) */
+    async function editar(turnoId: string, data: { monto_apertura?: number; efectivo_contado?: number; notas?: string | null }): Promise<boolean> {
+        try {
+            const r = await api.editarTurno(turnoId, data)
+            if ("diferencia" in r && r.ok) {
+                const signo = r.diferencia === 0 ? "cuadrado ✓" : r.diferencia > 0 ? `sobrante +$${r.diferencia.toFixed(2)}` : `faltante -$${Math.abs(r.diferencia).toFixed(2)}`
+                mostrarMsg(true, `Arqueo corregido — esperado $${r.efectivo_esperado.toFixed(2)}, contado $${r.efectivo_contado.toFixed(2)} (${signo})`)
+            } else {
+                mostrarMsg(true, "✅ Turno actualizado")
+            }
+            invalidar()
+            return true
+        } catch (e: unknown) {
+            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            return false
+        }
+    }
+
+    return { turnoAbierto, historial, cargando: turnosQuery.isPending, abrir, cerrar, editar }
 }

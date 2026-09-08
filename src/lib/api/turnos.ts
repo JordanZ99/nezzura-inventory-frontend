@@ -13,4 +13,12 @@ export const turnosApi = {
             `/turnos/${turnoId}/cerrar`,
             { method: "POST", body: JSON.stringify({ efectivo_contado, notas }) }
         ),
+    editarTurno: (turnoId: string, data: { monto_apertura?: number; efectivo_contado?: number; notas?: string | null }) =>
+        request<
+            | { ok: boolean; mensaje: string } // turno abierto
+            | { ok: boolean; efectivo_esperado: number; efectivo_contado: number; diferencia: number } // corrección de arqueo
+        >(
+            `/turnos/${turnoId}`,
+            { method: "PATCH", body: JSON.stringify(data) }
+        ),
 }
