@@ -44,12 +44,6 @@ export function GridProductos({
         <>
             {/* ── Filtro de categorías como pills (inspirado en Editar Prod.) ── */}
             <div style={{ marginBottom: 12 }}>
-                <p style={{
-                    fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)",
-                    textTransform: "uppercase", letterSpacing: 0.8, margin: "0 0 8px"
-                }}>
-                    Filtrar por categoría
-                </p>
                 <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "4px 8px 8px", scrollbarWidth: "none" }}>
                     {categorias.map(cat => (
                         <button
