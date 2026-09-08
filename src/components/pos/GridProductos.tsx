@@ -6,7 +6,7 @@
 // ==============================================================================
 
 import Icon from "@/components/ui/Icon"
-import { TarjetaProducto } from "./TarjetaProducto"
+import { TarjetaProducto } from "@/components/productos/TarjetaProducto"
 import type { Dispatch, SetStateAction } from "react"
 import type { Producto } from "@/lib/api"
 import { invertirOrden, OPCIONES_ORDEN_PRODUCTO } from "@/lib/ordenamiento"
@@ -157,7 +157,10 @@ export function GridProductos({
                             key={prod.producto}
                             prod={prod}
                             relacionImagen={relacionImagen}
-                            onAgregar={agregarAlCarrito}
+                            modoPrecio="catalogo"
+                            mostrarTipo
+                            fallback={<span style={{ fontSize: "2rem" }}>🛍️</span>}
+                            onClick={() => agregarAlCarrito(prod)}
                             onCategoriaClick={cat => setCategoriaSeleccionada(cat)}
                         />
                     ))}
