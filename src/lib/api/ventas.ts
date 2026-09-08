@@ -12,8 +12,19 @@ export const ventasApi = {
     getOrdenes: (limit = 500, rango?: RangoFechas) =>
         request<Orden[]>(conRango(`/ventas/ordenes?limit=${limit}`, rango)),
     getOrdenesPaginadas: (
-        params: RangoFechas & { pagina?: number; por_pagina?: number; busqueda?: string; orden?: string }
-    ) => request<RespuestaOrdenesPaginadas>(conQuery("/ventas/ordenes/paginadas", { ...params })),
+        params: RangoFechas & { pagina?: number; por_pagina?: number; busqueda?: string; orden?: string; todo?: boolean }
+    ) =>
+        request<RespuestaOrdenesPaginadas>(
+            conQuery("/ventas/ordenes/paginadas", {
+                desde: params.desde,
+                hasta: params.hasta,
+                todo: params.todo ? 1 : undefined,
+                pagina: params.pagina,
+                por_pagina: params.por_pagina,
+                busqueda: params.busqueda,
+                orden: params.orden,
+            })
+        ),
 
     actualizarOrden: (ordenId: string, data: { fecha: string }) =>
         request<{ ok: boolean; n_ticket: number }>(`/ventas/ordenes/${ordenId}`, {

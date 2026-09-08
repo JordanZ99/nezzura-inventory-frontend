@@ -30,6 +30,7 @@ const ETIQUETAS_PRESET: Record<PresetPeriodo, string> = {
     "mes-anterior": "Mes anterior",
     "ultimos-30": "Últimos 30 días",
     ytd: "Año hasta la fecha",
+    todo: "Desde el principio",
     custom: "Rango personalizado",
 }
 
@@ -37,10 +38,13 @@ export default function Estadisticas() {
     const { productos, cargando: cargandoBase, recargar, relacionImagen, isMobile } = useEstadisticasDatos()
     const { dates, setDates, preset, setPreset, paginaActual, setPaginaActual, busquedaVentas, setBusquedaVentas, busquedaVentasDebounced, ordenVentas, setOrdenVentas, busquedaProd, setBusquedaProd, busquedaProdDebounced, catSelecProd, setCatSelecProd, ordenProd, setOrdenProd, prodSeleccionado, setProdSeleccionado, fotosModal, indiceFoto, setIndiceFoto, editando, setEditando, editVal, setEditVal, guardando, confirmAnularVentaId, setConfirmAnularVentaId, confirmAnularOrdenId, setConfirmAnularOrdenId, ordenEditando, setOrdenEditando, ordenFecha, setOrdenFecha, guardarEdicion, anularVenta, iniciarEdicionOrden, guardarEdicionOrden, anularOrden, descargarImagen } = useEstadisticasUI(recargar)
 
-    // Rango contable elegido en el picker → métricas "respuestas de la BDD"
+    // Rango contable elegido en el picker → métricas "respuestas de la BDD".
+    // El preset "todo" pide el histórico completo vía ?todo=true.
     const rango = rangoDeDates(dates)
+    const todo = preset === "todo"
     const { resumen, serie, statsProductos, historial, ventasProducto, cargando: cargandoStats } = useEstadisticasRango({
         rango,
+        todo,
         pagina: paginaActual,
         busqueda: busquedaVentasDebounced,
         orden: ordenVentas,
@@ -100,6 +104,7 @@ export default function Estadisticas() {
                                     <option value="mes-anterior">Mes anterior</option>
                                     <option value="ultimos-30">Últimos 30 días</option>
                                     <option value="ytd">Año hasta la fecha</option>
+                                    <option value="todo">Desde el principio</option>
                                     <option value="custom">Rango personalizado…</option>
                                 </select>
                             </div>

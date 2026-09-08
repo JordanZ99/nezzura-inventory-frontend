@@ -22,8 +22,9 @@ export interface EditVenta {
     costo_unitario: number
 }
 
-// Presets del selector de período (en español; el "custom" muestra el picker)
-export type PresetPeriodo = "mtd" | "mes-anterior" | "ultimos-30" | "ytd" | "custom"
+// Presets del selector de período (en español; el "custom" muestra el picker).
+// "todo" abre el histórico completo: el backend lo resuelve con ?todo=true.
+export type PresetPeriodo = "mtd" | "mes-anterior" | "ultimos-30" | "ytd" | "todo" | "custom"
 
 export function useEstadisticasUI(recargar: () => Promise<void>) {
     const { mostrarMsg } = useToast()
@@ -36,7 +37,9 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
 
     function setPreset(valor: PresetPeriodo) {
         setPresetEstado(valor)
-        if (valor === "mtd") {
+        if (valor === "mtd" || valor === "todo") {
+            // "mtd" delega el mes contable al backend; "todo" pide ?todo=true.
+            // En ambos casos no viajan fechas del picker.
             setDates({ from: undefined, to: undefined })
             return
         }
