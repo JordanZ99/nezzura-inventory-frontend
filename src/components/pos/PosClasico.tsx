@@ -23,6 +23,8 @@ import { DrawerCarritoMovil } from "@/components/pos/DrawerCarritoMovil"
 import { ModalVariacion } from "@/components/pos/ModalVariacion"
 import { ModalVentaLibre } from "@/components/pos/ModalVentaLibre"
 import { ModalAdvertenciaStock } from "@/components/pos/ModalAdvertenciaStock"
+import { ModalClientePos } from "@/components/pos/ModalClientePos"
+import { CAMPOS_CLIENTE_DEFAULT } from "@/contexts/TenantContext"
 
 
 export default function PosClasico() {
@@ -49,7 +51,7 @@ export default function PosClasico() {
     // Destructure con los nombres originales para que el JSX no cambie
     const { productos, terminales, cargando, relacionImagen } = datos
     const { busqueda, setBusqueda, categoriaSeleccionada, setCategoriaSeleccionada, ordenamiento, setOrdenamiento, carritoAbierto, setCarritoAbierto, categorias, productosFiltrados } = ui
-    const { carrito, precios, cobrando, modoDescuento, modalAdvertencia, modalVariacion, setModalVariacion, manejarToggleDescuento, agregarAlCarrito, agregarConVariacion, agregarVentaLibre, cambiarVariacionCarrito, cambiarLoteCarrito, cambiarCantidad, pasoCantidad, cambiarPrecio, cambiarTotal, quitarDelCarrito, vaciarCarrito, cobrarConAdvertencia, confirmarCobroConAdvertencia, cancelarAdvertencia, keyCarrito, lotesParaProducto, nombreLote, totalCarrito, totalItems, panelCobro, togglePanelCobro, metodoPago, setMetodoPago, propina, setPropina, montoRecibido, setMontoRecibido, pagosMixtos, setLineaMixta, agregarLineaMixta, quitarLineaMixta, terminalId, setTerminalId, comisionEstimada, subtotalAlAbrir, aplicarSubtotal, totalAPagar, cambio, sumaMixta, faltanteMixto } = posCarrito
+    const { carrito, precios, cobrando, modoDescuento, modalAdvertencia, modalVariacion, setModalVariacion, manejarToggleDescuento, agregarAlCarrito, agregarConVariacion, agregarVentaLibre, cambiarVariacionCarrito, cambiarLoteCarrito, cambiarCantidad, pasoCantidad, cambiarPrecio, cambiarTotal, quitarDelCarrito, vaciarCarrito, cobrarConAdvertencia, confirmarCobroConAdvertencia, cancelarAdvertencia, keyCarrito, lotesParaProducto, nombreLote, totalCarrito, totalItems, panelCobro, togglePanelCobro, metodoPago, setMetodoPago, propina, setPropina, montoRecibido, setMontoRecibido, pagosMixtos, setLineaMixta, agregarLineaMixta, quitarLineaMixta, terminalId, setTerminalId, comisionEstimada, subtotalAlAbrir, aplicarSubtotal, totalAPagar, cambio, sumaMixta, faltanteMixto, clientesActivos, puntosActivos, valorPunto, clientePos, modalCliente, abrirModalCliente, seleccionarClientePos, setOpenModalCliente: setModalClientePos, quitarClientePos, cambiarPuntosCanje, puntosCanjeNum, valorCanje, topeCanje, puntosGanadosEstimados, saldoTrasCobro, ajusteNum, cambiarAjustePuntos, conceptoAjuste, setConceptoAjuste, totalAPagarDinero } = posCarrito
 
     // Handlers del carrito que comparten los componentes (flujo unidireccional)
     const accionesCarrito = {
@@ -160,6 +162,23 @@ export default function PosClasico() {
                         cobrarConAdvertencia={cobrarConAdvertencia}
                         vaciarCarrito={vaciarCarrito}
                         acciones={accionesCarrito}
+                        mostrarCliente={clientesActivos}
+                        cliente={clientePos}
+                        abrirModalCliente={abrirModalCliente}
+                        quitarCliente={quitarClientePos}
+                        puntosActivos={puntosActivos}
+                        valorPunto={valorPunto}
+                        puntosCanjeNum={puntosCanjeNum}
+                        valorCanje={valorCanje}
+                        cambiarPuntosCanje={cambiarPuntosCanje}
+                        topeCanje={topeCanje}
+                        puntosGanadosEstimados={puntosGanadosEstimados}
+                        saldoTrasCobro={saldoTrasCobro}
+                        ajusteNum={ajusteNum}
+                        cambiarAjustePuntos={cambiarAjustePuntos}
+                        conceptoAjuste={conceptoAjuste}
+                        setConceptoAjuste={setConceptoAjuste}
+                        totalAPagarDinero={totalAPagarDinero}
                     />
                 </div>
             </div>
@@ -210,6 +229,23 @@ export default function PosClasico() {
                     vaciarCarrito={vaciarCarrito}
                     setCarritoAbierto={setCarritoAbierto}
                     acciones={accionesCarrito}
+                    mostrarCliente={clientesActivos}
+                    cliente={clientePos}
+                    abrirModalCliente={abrirModalCliente}
+                    quitarCliente={quitarClientePos}
+                    puntosActivos={puntosActivos}
+                    valorPunto={valorPunto}
+                    puntosCanjeNum={puntosCanjeNum}
+                    valorCanje={valorCanje}
+                    cambiarPuntosCanje={cambiarPuntosCanje}
+                    topeCanje={topeCanje}
+                    puntosGanadosEstimados={puntosGanadosEstimados}
+                    saldoTrasCobro={saldoTrasCobro}
+                    ajusteNum={ajusteNum}
+                    cambiarAjustePuntos={cambiarAjustePuntos}
+                    conceptoAjuste={conceptoAjuste}
+                    setConceptoAjuste={setConceptoAjuste}
+                    totalAPagarDinero={totalAPagarDinero}
                 />
             )}
 
@@ -239,6 +275,16 @@ export default function PosClasico() {
                     nombres={modalAdvertencia.nombres}
                     onConfirmar={confirmarCobroConAdvertencia}
                     onCancelar={cancelarAdvertencia}
+                />
+            )}
+
+            {/* ── Modal de cliente (identificar / registrar al vuelo, Fase B) ── */}
+            {modalCliente && (
+                <ModalClientePos
+                    campos={tenant?.cliente_campos ?? CAMPOS_CLIENTE_DEFAULT}
+                    valorPunto={valorPunto}
+                    onSeleccionar={seleccionarClientePos}
+                    onCancelar={() => setModalClientePos(false)}
                 />
             )}
         </div>

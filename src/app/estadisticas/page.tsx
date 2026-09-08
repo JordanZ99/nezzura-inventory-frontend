@@ -5,10 +5,12 @@
 // ==============================================================================
 
 import { DateRangePicker } from "@tremor/react"
+import { useState } from "react"
 import PageHeader from "@/components/ui/PageHeader"
 import Icon from "@/components/ui/Icon"
 import { ToastBanner } from "@/components/ui/Toast"
 import CardTurnos from "@/components/estadisticas/CardTurnos"
+import TabClientes from "@/components/estadisticas/TabClientes"
 import { useChartColors } from "@/hooks/useChartColors"
 import { useTenant } from "@/contexts/TenantContext"
 import { useEstadisticasDatos } from "@/hooks/useEstadisticasDatos"
@@ -34,7 +36,15 @@ const ETIQUETAS_PRESET: Record<PresetPeriodo, string> = {
     custom: "Rango personalizado",
 }
 
+// Tabs del panel: "Ventas" = el dashboard histórico; "Clientes" = cartera + fidelización.
+type TabPanel = "ventas" | "clientes"
+const TABS_PANEL: { id: TabPanel; label: string; icon: string }[] = [
+    { id: "ventas", label: "Ventas", icon: "ShoppingCart" },
+    { id: "clientes", label: "Clientes", icon: "Users" },
+]
+
 export default function Estadisticas() {
+    const [tabPanel, setTabPanel] = useState<TabPanel>("ventas")
     const { productos, cargando: cargandoBase, recargar, relacionImagen, isMobile } = useEstadisticasDatos()
     const { dates, setDates, preset, setPreset, paginaActual, setPaginaActual, busquedaVentas, setBusquedaVentas, busquedaVentasDebounced, ordenVentas, setOrdenVentas, busquedaProd, setBusquedaProd, busquedaProdDebounced, catSelecProd, setCatSelecProd, ordenProd, setOrdenProd, prodSeleccionado, setProdSeleccionado, fotosModal, indiceFoto, setIndiceFoto, editando, setEditando, editVal, setEditVal, guardando, confirmAnularVentaId, setConfirmAnularVentaId, confirmAnularOrdenId, setConfirmAnularOrdenId, ordenEditando, setOrdenEditando, ordenFecha, setOrdenFecha, ordenMetodo, setOrdenMetodo, guardarEdicion, anularVenta, iniciarEdicionOrden, guardarEdicionOrden, anularOrden, descargarImagen } = useEstadisticasUI(recargar)
 
@@ -119,6 +129,36 @@ export default function Estadisticas() {
 
                 <ToastBanner />
 
+                {/* ── Tabs: Ventas | Clientes (mismo período contable) ── */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                    {TABS_PANEL.map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => setTabPanel(t.id)}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "10px 20px",
+                                borderRadius: 12,
+                                border: "none",
+                                fontWeight: 700,
+                                fontSize: "0.85rem",
+                                cursor: "pointer",
+                                background: tabPanel === t.id ? "var(--primary-mid)" : "var(--bg-card)",
+                                color: tabPanel === t.id ? "#fff" : "var(--text-muted)",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                                transition: "all 0.2s",
+                            }}
+                        >
+                            <Icon name={t.icon as any} size={16} />
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+
+                {tabPanel === "ventas" && (
+                <>
                 {/* ── Corte de caja por turnos (Fase C) ── */}
                 <CardTurnos />
 
@@ -206,6 +246,13 @@ export default function Estadisticas() {
                     onConfirm={anularOrden}
                 />
 
+                <div />
+                </>
+                )}
+
+                {tabPanel === "clientes" && <TabClientes rango={rango} todo={todo} />}
+
+                {/* El padding inferior se comparte entre tabs */}
                 <div style={{ height: 32 }} />
             </div>
         </div>

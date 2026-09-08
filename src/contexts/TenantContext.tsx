@@ -2,11 +2,15 @@
 // ==============================================================================
 // src/contexts/TenantContext.tsx
 // Contexto global con logo y nombre del negocio leídos desde Supabase tenants.
+// También carga (y enruta) la config del negocio vía el backend FastAPI:
+// zona horaria, método de pago por defecto, comisiones y la cartera de
+// clientes + sistema de puntos (migraciones 038/039, doc sistemaPuntos.md).
 // ==============================================================================
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { api } from "@/lib/api"
+import type { ClienteCampos, ModoPuntos } from "@/types"
 
 interface TenantInfo {
     tenant_id: string
@@ -18,15 +22,58 @@ interface TenantInfo {
     gasto_comision_automatico: boolean  // registra comisiones de terminal como gasto al cobrar
     giro: string  // 'tienda' | 'restaurante' — preset de módulos del negocio (migración 035)
     modulos: Record<string, boolean> | null  // override de módulos; null = preset del giro
+    // ── Cartera de clientes (migración 038) ──
+    clientes_activos: boolean
+    cliente_campos: ClienteCampos
+    // ── Sistema de puntos (migración 039) ──
+    puntos_activos: boolean
+    puntos_valor_punto: number  // $ que vale 1 punto al canjear (1 = "1 pt = $1")
+    puntos_modo: ModoPuntos  // 'por_gasto' | 'fijo'
+    puntos_gasto_monto: number  // Y en "X puntos por cada $Y"
+    puntos_gasto_pts: number    // X en "X puntos por cada $Y"
+    puntos_fijos: number | null // puntos fijos por venta (modo 'fijo')
 }
 
 interface TenantContextValue {
     tenant: TenantInfo | null
     cargando: boolean
-    actualizar: (data: Partial<Pick<TenantInfo, "empresa" | "logo" | "zona_horaria" | "metodo_pago_default" | "gasto_comision_automatico">>) => Promise<void>
+    actualizar: (data: Partial<ActualizarTenant>) => Promise<void>
 }
 
+/** Campos que se pueden actualizar; los de backend viajan por PATCH /inventario/me. */
+export interface ActualizarTenant {
+    empresa?: string
+    logo?: string
+    zona_horaria?: string
+    metodo_pago_default?: string
+    gasto_comision_automatico?: boolean
+    clientes_activos?: boolean
+    cliente_campos?: ClienteCampos
+    puntos_activos?: boolean
+    puntos_valor_punto?: number
+    puntos_modo?: ModoPuntos
+    puntos_gasto_monto?: number
+    puntos_gasto_pts?: number
+    puntos_fijos?: number | null
+}
+
+// Claves de TenantInfo que viven en el backend (NO se mandan directo a Supabase).
+const CLAVES_API: (keyof ActualizarTenant)[] = [
+    "zona_horaria", "gasto_comision_automatico",
+    "clientes_activos", "cliente_campos",
+    "puntos_activos", "puntos_valor_punto", "puntos_modo",
+    "puntos_gasto_monto", "puntos_gasto_pts", "puntos_fijos",
+]
+
 const ZONA_DEFAULT = "America/Cancun"
+
+const CAMPOS_DEFAULT: ClienteCampos = {
+    email: { activo: true, requerido: true },
+    telefono: { activo: true, requerido: true },
+    pin: { activo: false, requerido: false },
+}
+/** Defaults del formulario de cliente (se exportan para el POS y otras UI). */
+export const CAMPOS_CLIENTE_DEFAULT = CAMPOS_DEFAULT
 
 const TenantContext = createContext<TenantContextValue>({
     tenant: null,
@@ -66,6 +113,15 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                 // columna poblada, 'tienda' = comportamiento actual.
                 giro: data?.giro || "tienda",
                 modulos: (data?.modulos as Record<string, boolean> | null) ?? null,
+                // Cartera de clientes + puntos (migraciones 038/039) — config del backend
+                clientes_activos: perfil.clientes_activos ?? false,
+                cliente_campos: perfil.cliente_campos ?? CAMPOS_DEFAULT,
+                puntos_activos: perfil.puntos_activos ?? false,
+                puntos_valor_punto: perfil.puntos_valor_punto ?? 1,
+                puntos_modo: (perfil.puntos_modo as ModoPuntos) || "por_gasto",
+                puntos_gasto_monto: perfil.puntos_gasto_monto ?? 10,
+                puntos_gasto_pts: perfil.puntos_gasto_pts ?? 1,
+                puntos_fijos: perfil.puntos_fijos ?? null,
             })
             if (!error && data) {
                 setTenant(mapaTenant(data.id))
@@ -91,20 +147,30 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         return () => listener.subscription.unsubscribe()
     }, [])
 
-    const actualizar = useCallback(async (data: Partial<Pick<TenantInfo, "empresa" | "logo" | "zona_horaria" | "metodo_pago_default" | "gasto_comision_automatico">>) => {
+    const actualizar = useCallback(async (data: Partial<ActualizarTenant>) => {
         if (!tenant?.tenant_id) throw new Error("No hay tenant activo")
+        data = { ...data }
 
-        // La zona horaria y el gasto de comisiones viven en el backend (afectan
-        // cómo se registran ventas/gastos); el resto va directo a Supabase.
-        if (data.zona_horaria !== undefined) {
-            const r = await api.actualizarZonaHoraria(data.zona_horaria)
-            data = { ...data, zona_horaria: r.zona_horaria || data.zona_horaria }
+        // La config del negocio viaja por el backend (afecta cómo se registran
+        // ventas/gastos/cobros con puntos); solo empresa/logo van directo a Supabase.
+        const datosApi: Record<string, unknown> = {}
+        for (const clave of CLAVES_API) {
+            if ((data as Record<string, unknown>)[clave] !== undefined) {
+                datosApi[clave] = (data as Record<string, unknown>)[clave]
+            }
         }
-        if (data.gasto_comision_automatico !== undefined) {
-            const r = await api.actualizarGastoComision(data.gasto_comision_automatico)
-            data = { ...data, gasto_comision_automatico: r.gasto_comision_automatico }
+        if (Object.keys(datosApi).length > 0) {
+            const r = await api.actualizarPerfilNegocio(datosApi)
+            // Adoptar los valores canonizados por el backend (validaciones/normalización)
+            for (const clave of CLAVES_API) {
+                if (r[clave] !== undefined) (data as Record<string, unknown>)[clave] = r[clave]
+            }
         }
-        const { zona_horaria: _zona, gasto_comision_automatico: _gasto, ...datosSupabase } = data
+
+        const datosSupabase: Record<string, unknown> = {}
+        for (const [clave, valor] of Object.entries(data)) {
+            if (!CLAVES_API.includes(clave as keyof ActualizarTenant)) datosSupabase[clave] = valor
+        }
         if (Object.keys(datosSupabase).length > 0) {
             const { error } = await supabase
                 .from("tenants")
@@ -114,7 +180,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Actualizar el estado local inmediatamente (optimistic update)
-        setTenant(prev => prev ? { ...prev, ...data } : null)
+        setTenant(prev => prev ? { ...prev, ...data } as TenantInfo : null)
     }, [tenant?.tenant_id])
 
     return (

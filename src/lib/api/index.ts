@@ -6,6 +6,7 @@ import { turnosApi } from "./turnos"
 import { terminalesApi } from "./terminales"
 import { statsApi } from "./stats"
 import { mesasApi } from "./mesas"
+import { clientesApi } from "./clientes"
 
 export * from "./client"
 export * from "./productos"
@@ -16,6 +17,7 @@ export * from "./turnos"
 export * from "./terminales"
 export * from "./stats"
 export * from "./mesas"
+export * from "./clientes"
 
 export const api = {
     ...productosApi,
@@ -26,4 +28,5 @@ export const api = {
     ...terminalesApi,
     ...statsApi,
     ...mesasApi,
+    ...clientesApi,
 }
