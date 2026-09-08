@@ -1,13 +1,13 @@
 // ==============================================================================
 // src/components/estadisticas/CatalogoProductosEstadisticas.tsx
 // Sección "Estadísticas por Producto": heading + pills de categorías +
-// buscador/orden + grid de TarjetaProductoEstadistica + estado vacío.
+// buscador/orden + grid de TarjetaProducto (compartida) + estado vacío.
 // ==============================================================================
 
 import type { Dispatch, SetStateAction } from "react"
 import type { Producto } from "@/lib/api"
 import Icon from "@/components/ui/Icon"
-import TarjetaProductoEstadistica from "./TarjetaProductoEstadistica"
+import { TarjetaProducto } from "@/components/productos/TarjetaProducto"
 import { invertirOrden, OPCIONES_ORDEN_ESTADISTICAS } from "@/lib/ordenamiento"
 
 interface Props {
@@ -123,7 +123,7 @@ export default function CatalogoProductosEstadisticas({
                     gap: 12,
                 }}>
                     {productosFiltrados.map(prod => (
-                        <TarjetaProductoEstadistica
+                        <TarjetaProducto
                             key={prod.producto}
                             prod={prod}
                             relacionImagen={relacionImagen}
