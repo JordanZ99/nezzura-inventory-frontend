@@ -50,7 +50,7 @@ export default function Estadisticas() {
         orden: ordenVentas,
         productoDetalle: prodSeleccionado?.producto ?? null,
     })
-    const { ITEMS_POR_PAGINA, ordenesPaginadas, totalTickets, totalPaginas, categoriasCatalogo, productosFiltrados, getVentasProducto, totalVendido, gananciaBruta, totalGastos, gananciaNeta, ticketPromedio, cobrosPorMetodo, propinasPeriodo, conMetodo, porTerminal, globalCostProfit, top5, chartDataLine, chartDataBar, valFormatter, getPaginationRange } = useEstadisticasCalculos({ resumen, serie, statsProductos, historial, productos, busquedaProdDebounced, catSelecProd, ordenProd })
+    const { ITEMS_POR_PAGINA, ordenesPaginadas, totalTickets, totalPaginas, categoriasCatalogo, productosFiltrados, getVentasProducto, totalVendido, totalGastos, gananciaNeta, ticketPromedio, cobrosPorMetodo, propinasPeriodo, conMetodo, porTerminal, globalCostProfit, top5, chartDataLine, chartDataBar, valFormatter, getPaginationRange } = useEstadisticasCalculos({ resumen, serie, statsProductos, historial, productos, busquedaProdDebounced, catSelecProd, ordenProd })
     const cargando = cargandoBase || cargandoStats
     const chartColors = useChartColors();
     const { tenant } = useTenant()
@@ -125,7 +125,7 @@ export default function Estadisticas() {
                 {/* ── CONTENEDOR PARA EL PDF ── */}
                 <div id="report-container" style={{ padding: 16, background: "var(--bg-card)", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
                     <ReporteHeader logoSrc={logoSrc} empresa={empresa} dates={dates} periodoLabel={periodoLabel} />
-                    <KpisReporte totalVendido={totalVendido} gananciaBruta={gananciaBruta} totalGastos={totalGastos} gananciaNeta={gananciaNeta} ticketPromedio={ticketPromedio} />
+                    <KpisReporte totalVendido={totalVendido} totalGastos={totalGastos} gananciaNeta={gananciaNeta} ticketPromedio={ticketPromedio} />
                     <ResumenCobros cobrosPorMetodo={cobrosPorMetodo} propinasPeriodo={propinasPeriodo} conMetodo={conMetodo} porTerminal={porTerminal} />
                     <GraficasReporte cargando={cargando} totalVendido={totalVendido} top5={top5} globalCostProfit={globalCostProfit} chartDataLine={chartDataLine} chartDataBar={chartDataBar} chartColors={chartColors} valFormatter={valFormatter} />
                 </div>
