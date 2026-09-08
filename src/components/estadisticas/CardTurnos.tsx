@@ -10,11 +10,18 @@ import Icon from "@/components/ui/Icon"
 import { useTurnos } from "@/hooks/useTurnos"
 
 export default function CardTurnos() {
-    const { turnoAbierto, historial, cargando, abrir, cerrar } = useTurnos()
+    const { turnoAbierto, historial, cargando, abrir, cerrar, editar } = useTurnos()
     const [apertura, setApertura] = useState("")
     const [contado, setContado] = useState("")
     const [notas, setNotas] = useState("")
     const [ocupado, setOcupado] = useState(false)
+    // Edición del fondo del turno abierto
+    const [editandoFondo, setEditandoFondo] = useState(false)
+    const [fondoEdit, setFondoEdit] = useState("")
+    // Corrección de arqueo (turno cerrado): contado + notas re-editables
+    const [editandoTurnoId, setEditandoTurnoId] = useState<string | null>(null)
+    const [contadoEdit, setContadoEdit] = useState("")
+    const [notasEdit, setNotasEdit] = useState("")
 
     async function manejarAbrir() {
         setOcupado(true)
@@ -33,6 +40,22 @@ export default function CardTurnos() {
         setOcupado(false)
     }
 
+    async function guardarFondo() {
+        const num = parseFloat(fondoEdit.replace(",", "."))
+        if (isNaN(num) || num < 0 || !turnoAbierto) { setEditandoFondo(false); return }
+        setOcupado(true)
+        await editar(turnoAbierto.id, { monto_apertura: num })
+        setOcupado(false); setEditandoFondo(false)
+    }
+
+    async function guardarArqueo(turnoId: string) {
+        const num = parseFloat(contadoEdit.replace(",", "."))
+        if (isNaN(num) || num < 0) return
+        setOcupado(true)
+        await editar(turnoId, { efectivo_contado: num, notas: notasEdit.trim() || null })
+        setOcupado(false); setEditandoTurnoId(null); setContadoEdit(""); setNotasEdit("")
+    }
+
     return (
         <div className="card fade-up" style={{ padding: "16px 20px", marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
@@ -49,8 +72,28 @@ export default function CardTurnos() {
                         <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
                             Turno abierto · {new Date(turnoAbierto.abierta_en).toLocaleString()}
                         </p>
-                        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: "0.78rem", fontWeight: 600 }}>
-                            <span>Fondo: <b>${Number(turnoAbierto.monto_apertura).toFixed(2)}</b></span>
+                        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", fontSize: "0.78rem", fontWeight: 600 }}>
+                            {editandoFondo ? (
+                                <>
+                                    <input type="number" min="0" step="0.01" value={fondoEdit} autoFocus
+                                        onChange={e => setFondoEdit(e.target.value)}
+                                        onKeyDown={e => e.key === "Enter" && guardarFondo()}
+                                        style={{ width: 90, padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border-primary)", background: "var(--bg-card)", color: "var(--text-main)", outline: "none", fontWeight: 600, fontSize: "0.78rem" }} />
+                                    <button onClick={guardarFondo} disabled={ocupado} title="Guardar fondo" style={{ background: "none", border: "none", cursor: "pointer" }}>
+                                        <Icon name="Save" size={13} color="var(--primary-dark)" />
+                                    </button>
+                                    <button onClick={() => setEditandoFondo(false)} disabled={ocupado} title="Cancelar" style={{ background: "none", border: "none", cursor: "pointer" }}>
+                                        <Icon name="X" size={13} color="#b71c1c" />
+                                    </button>
+                                </>
+                            ) : (
+                                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                    Fondo: <b>${Number(turnoAbierto.monto_apertura).toFixed(2)}</b>
+                                    <button onClick={() => { setFondoEdit(String(turnoAbierto.monto_apertura)); setEditandoFondo(true) }} title="Editar fondo de caja" style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                                        <Icon name="Pencil" size={12} color="var(--text-muted)" />
+                                    </button>
+                                </span>
+                            )}
                             <span>Órdenes: <b>{turnoAbierto.num_ordenes}</b></span>
                             <span>Vendido: <b>${Number(turnoAbierto.total_turno).toFixed(2)}</b></span>
                             <span>Efectivo esperado: <b style={{ color: "var(--primary-dark)" }}>${Number(turnoAbierto.efectivo_esperado).toFixed(2)}</b></span>
@@ -83,8 +126,8 @@ export default function CardTurnos() {
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
                         <thead>
                             <tr style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-primary)" }}>
-                                {["Abierto", "Cerrado", "Fondo", "Efectivo esperado", "Contado", "Diferencia", "Notas"].map(h => (
-                                    <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 700, fontSize: "0.62rem", textTransform: "uppercase" }}>{h}</th>
+                                {["Abierto", "Cerrado", "Fondo", "Efectivo esperado", "Contado", "Diferencia", "Notas", ""].map((h, i) => (
+                                    <th key={h || i} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 700, fontSize: "0.62rem", textTransform: "uppercase" }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -95,11 +138,48 @@ export default function CardTurnos() {
                                     <td style={{ padding: "6px 10px" }}>{t.cerrada_en ? new Date(t.cerrada_en).toLocaleString() : "—"}</td>
                                     <td style={{ padding: "6px 10px" }}>${Number(t.monto_apertura).toFixed(2)}</td>
                                     <td style={{ padding: "6px 10px" }}>${Number(t.efectivo_esperado ?? 0).toFixed(2)}</td>
-                                    <td style={{ padding: "6px 10px" }}>${Number(t.efectivo_contado ?? 0).toFixed(2)}</td>
+                                    {editandoTurnoId === t.id ? (
+                                        <td style={{ padding: "6px 10px" }}>
+                                            <input type="number" min="0" step="0.01" value={contadoEdit} autoFocus
+                                                onChange={e => setContadoEdit(e.target.value)}
+                                                onKeyDown={e => e.key === "Enter" && guardarArqueo(t.id)}
+                                                style={{ width: 90, padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border-primary)", background: "var(--bg-card)", color: "var(--text-main)", outline: "none", fontWeight: 600, fontSize: "0.75rem" }} />
+                                        </td>
+                                    ) : (
+                                        <td style={{ padding: "6px 10px" }}>${Number(t.efectivo_contado ?? 0).toFixed(2)}</td>
+                                    )}
                                     <td style={{ padding: "6px 10px", fontWeight: 800, color: (t.diferencia ?? 0) === 0 ? "var(--text-muted)" : (t.diferencia ?? 0) > 0 ? "#2e7d32" : "#b71c1c" }}>
                                         {(t.diferencia ?? 0) >= 0 ? "+" : ""}${Number(t.diferencia ?? 0).toFixed(2)}
                                     </td>
-                                    <td style={{ padding: "6px 10px", color: "var(--text-muted)" }}>{t.notas || "—"}</td>
+                                    {editandoTurnoId === t.id ? (
+                                        <td style={{ padding: "6px 10px" }}>
+                                            <input value={notasEdit}
+                                                onChange={e => setNotasEdit(e.target.value)}
+                                                onKeyDown={e => e.key === "Enter" && guardarArqueo(t.id)}
+                                                placeholder={t.notas || "Notas"}
+                                                style={{ width: 150, padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border-primary)", background: "var(--bg-card)", color: "var(--text-main)", outline: "none", fontSize: "0.75rem" }} />
+                                        </td>
+                                    ) : (
+                                        <td style={{ padding: "6px 10px", color: "var(--text-muted)" }}>{t.notas || "—"}</td>
+                                    )}
+                                    <td style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                                        {editandoTurnoId === t.id ? (
+                                            <>
+                                                <button onClick={() => guardarArqueo(t.id)} disabled={ocupado} title="Guardar corrección" style={{ background: "none", border: "none", cursor: "pointer" }}>
+                                                    <Icon name="Save" size={14} color="var(--primary-dark)" />
+                                                </button>
+                                                <button onClick={() => setEditandoTurnoId(null)} disabled={ocupado} title="Cancelar" style={{ background: "none", border: "none", cursor: "pointer" }}>
+                                                    <Icon name="X" size={14} color="#b71c1c" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button onClick={() => { setContadoEdit(String(t.efectivo_contado ?? 0)); setNotasEdit(t.notas || ""); setEditandoTurnoId(t.id) }}
+                                                title={t.notas?.includes("Arqueo corregido") ? "Arqueo ya corregido — editar de nuevo" : "Corregir arqueo (contado/notas)"}
+                                                style={{ background: "none", border: "none", cursor: "pointer" }}>
+                                                <Icon name="Pencil" size={13} color={t.notas?.includes("Arqueo corregido") ? "var(--success-main)" : "var(--text-muted)"} />
+                                            </button>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
