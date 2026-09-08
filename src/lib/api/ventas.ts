@@ -26,7 +26,7 @@ export const ventasApi = {
             })
         ),
 
-    actualizarOrden: (ordenId: string, data: { fecha: string }) =>
+    actualizarOrden: (ordenId: string, data: { fecha?: string; metodo_pago?: string; propina?: number }) =>
         request<{ ok: boolean; n_ticket: number }>(`/ventas/ordenes/${ordenId}`, {
             method: "PATCH",
             body: JSON.stringify(data),

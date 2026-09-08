@@ -36,7 +36,7 @@ const ETIQUETAS_PRESET: Record<PresetPeriodo, string> = {
 
 export default function Estadisticas() {
     const { productos, cargando: cargandoBase, recargar, relacionImagen, isMobile } = useEstadisticasDatos()
-    const { dates, setDates, preset, setPreset, paginaActual, setPaginaActual, busquedaVentas, setBusquedaVentas, busquedaVentasDebounced, ordenVentas, setOrdenVentas, busquedaProd, setBusquedaProd, busquedaProdDebounced, catSelecProd, setCatSelecProd, ordenProd, setOrdenProd, prodSeleccionado, setProdSeleccionado, fotosModal, indiceFoto, setIndiceFoto, editando, setEditando, editVal, setEditVal, guardando, confirmAnularVentaId, setConfirmAnularVentaId, confirmAnularOrdenId, setConfirmAnularOrdenId, ordenEditando, setOrdenEditando, ordenFecha, setOrdenFecha, guardarEdicion, anularVenta, iniciarEdicionOrden, guardarEdicionOrden, anularOrden, descargarImagen } = useEstadisticasUI(recargar)
+    const { dates, setDates, preset, setPreset, paginaActual, setPaginaActual, busquedaVentas, setBusquedaVentas, busquedaVentasDebounced, ordenVentas, setOrdenVentas, busquedaProd, setBusquedaProd, busquedaProdDebounced, catSelecProd, setCatSelecProd, ordenProd, setOrdenProd, prodSeleccionado, setProdSeleccionado, fotosModal, indiceFoto, setIndiceFoto, editando, setEditando, editVal, setEditVal, guardando, confirmAnularVentaId, setConfirmAnularVentaId, confirmAnularOrdenId, setConfirmAnularOrdenId, ordenEditando, setOrdenEditando, ordenFecha, setOrdenFecha, ordenMetodo, setOrdenMetodo, guardarEdicion, anularVenta, iniciarEdicionOrden, guardarEdicionOrden, anularOrden, descargarImagen } = useEstadisticasUI(recargar)
 
     // Rango contable elegido en el picker → métricas "respuestas de la BDD".
     // El preset "todo" pide el histórico completo vía ?todo=true.
@@ -156,6 +156,8 @@ export default function Estadisticas() {
                         setOrdenEditando={setOrdenEditando}
                         ordenFecha={ordenFecha}
                         setOrdenFecha={setOrdenFecha}
+                        ordenMetodo={ordenMetodo}
+                        setOrdenMetodo={setOrdenMetodo}
                         iniciarEdicionOrden={iniciarEdicionOrden}
                         guardarEdicionOrden={guardarEdicionOrden}
                         setConfirmAnularOrdenId={setConfirmAnularOrdenId}
