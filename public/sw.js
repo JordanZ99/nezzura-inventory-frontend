@@ -1,5 +1,5 @@
-// Nezzura Digital — Service Worker v1
-const CACHE = "nezzura-v1";
+// Nezzura Digital — Service Worker v2
+const CACHE = "nezzura-v2";
 const STATIC_ASSETS = [
   "/",
   "/logo.png",
