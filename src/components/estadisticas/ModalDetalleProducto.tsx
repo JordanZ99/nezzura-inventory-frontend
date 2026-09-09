@@ -184,7 +184,7 @@ export default function ModalDetalleProducto({ prod, fotosModal, indiceFoto, set
                     </div>
 
                     {prod.descripcion && (
-                        <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                        <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--primary-dark)", lineHeight: 1.5 }}>
                             {prod.descripcion}
                         </p>
                     )}

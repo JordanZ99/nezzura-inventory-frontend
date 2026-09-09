@@ -18,6 +18,7 @@
 import { useState, useEffect, useCallback, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
+import { normalizarTema } from "@/lib/temas"
 import Icon from "@/components/ui/Icon"
 import CatalogoGridClasico from "@/components/CatalogoGridClasico"
 import CatalogoMenuCarta from "@/components/CatalogoMenuCarta"
@@ -98,7 +99,7 @@ const TEMAS: Record<string, PaletaTema> = {
         border: "#e2e8f0",
         gradient: "linear-gradient(135deg, #3a7dbf 0%, #5e87a4 100%)",
     },
-    midnightBlack: {
+    midnightSlate: {
         bg: "#0f1419",
         bgCard: "#1a1f24",
         text: "#e2e8f0",
@@ -255,7 +256,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
     }
 
     // ── Aplicar tema ──
-    const tema = TEMAS[datos.config.tema] || TEMAS.default
+    // normalizarTema mapea el valor legado 'midnightBlack' (filas antiguas de la BD)
+    const tema = TEMAS[normalizarTema(datos.config.tema)] || TEMAS.default
     const { config } = datos
 
     // ── Banner según viewport: en móvil se prefiere banner_url_movil si existe ──

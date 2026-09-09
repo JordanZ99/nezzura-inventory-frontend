@@ -8,6 +8,7 @@ import PageHeader from "@/components/ui/PageHeader"
 import { usePersonalizacionCuenta } from "@/hooks/usePersonalizacionCuenta"
 import { useConfigCatalogo } from "@/hooks/useConfigCatalogo"
 import { useBanners } from "@/hooks/useBanners"
+import { obtenerTemaGestor } from "@/lib/temas"
 import { CardInfoCuenta } from "@/components/personalizacion/CardInfoCuenta"
 import { CardIdentidadNegocio } from "@/components/personalizacion/CardIdentidadNegocio"
 import { CardMiNegocio } from "@/components/personalizacion/CardMiNegocio"
@@ -22,14 +23,14 @@ type Tab = "cuenta" | "negocio" | "catalogo"
 /**
  * Mapa que traduce las claves de tema guardadas en localStorage
  * a nombres mostrables en la interfaz.
- * - default      → "Steel Slate" (tema por defecto, gris-azulado)
- * - midnightBlack → "Midnight Black"
- * - strawberry   → "Strawberry Pink"
- * - cozyYellow   → "Cozy Yellow"
+ * - default        → "Steel Slate" (tema por defecto, gris-azulado)
+ * - midnightSlate  → "Midnight Slate" (oscuro, teal + índigo)
+ * - strawberry     → "Strawberry Pink"
+ * - cozyYellow     → "Cozy Yellow"
  */
 const NOMBRES_TEMA: Record<string, string> = {
     default: "Steel Slate",
-    midnightBlack: "Midnight Black",
+    midnightSlate: "Midnight Slate",
     strawberry: "Strawberry Pink",
     cozyYellow: "Cozy Yellow",
 }
@@ -62,7 +63,7 @@ export default function Personalizacion() {
      * data-theme en el elemento <html>, persiste la elección en
      * localStorage y actualiza el nombre visible en el Hero.
      *
-     * @param claveTema - Clave del tema ('default', 'midnightBlack', etc.)
+     * @param claveTema - Clave del tema ('default', 'midnightSlate', etc.)
      */
     function cambiarTema(claveTema: string) {
         // Aplicamos el tema al documento
@@ -75,7 +76,7 @@ export default function Personalizacion() {
 
     // Al montar el componente, leemos el tema guardado para mostrarlo
     useEffect(() => {
-        const temaGuardado = localStorage.getItem('tema') || 'default'
+        const temaGuardado = obtenerTemaGestor()
         setTemaActual(NOMBRES_TEMA[temaGuardado] || 'Steel Slate')
     }, [])
 
@@ -91,9 +92,9 @@ export default function Personalizacion() {
                 titulo="Personalización"
                 icono="UserRoundPen"
                 iconoEncerrado
-                iconoColor="var(--white)"
+                iconoColor="var(--on-primary)"
                 tituloClase="hidden md:flex"
-                tituloStyle={{ color: "var(--white)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}
+                tituloStyle={{ color: "var(--on-primary)", fontSize: "1.7rem", fontWeight: 800, margin: "0 0 6px", alignItems: "center", gap: 10 }}
             />
 
             <div style={{ width: "100%", padding: "0 24px", marginTop: -47 }}>
@@ -110,9 +111,9 @@ export default function Personalizacion() {
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #6f7375ff 0%, #5e87a4ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Steel Slate"
                             />
-                            <button onClick={() => cambiarTema('midnightBlack')}
+                            <button onClick={() => cambiarTema('midnightSlate')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #1f2321ff 0%, #1e6456ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
-                                title="Midnight Black"
+                                title="Midnight Slate"
                             />
                             <button onClick={() => cambiarTema('strawberry')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #f33376 0%, #fa30dfff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}

@@ -62,7 +62,7 @@ export function ModalAdvertenciaStock({ nombres, onConfirmar, onCancelar }: Prop
                 <p style={{
                     margin: "0 0 6px",
                     fontSize: "0.85rem",
-                    color: "var(--text-secondary)",
+                    color: "var(--primary-dark)",
                     lineHeight: 1.5,
                 }}>
                     No hay stock suficiente de:

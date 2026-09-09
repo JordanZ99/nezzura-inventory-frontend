@@ -11,6 +11,7 @@ import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import Icon from "@/components/ui/Icon"
 import { supabase } from "@/lib/supabase"
+import { obtenerTemaGestor } from "@/lib/temas"
 import { useTenant } from "@/contexts/TenantContext"
 
 const NAV = [
@@ -28,8 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     // Re-aplica el tema guardado tras la hidratación de React.
     useEffect(() => {
         try {
-            const tema = localStorage.getItem('tema') || 'default'
-            document.documentElement.setAttribute('data-theme', tema)
+            document.documentElement.setAttribute('data-theme', obtenerTemaGestor())
         } catch (e) { }
     }, [])
     const isLoginPage = pathname === "/login"
@@ -107,7 +107,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                         {empresa}
                     </span>
                     <span style={{
-                        color: "var(--primary-darkGray)",
+                        color: "var(--text-label)",
                         fontSize: "0.7rem",
                         fontWeight: 500,
                         marginTop: 3,

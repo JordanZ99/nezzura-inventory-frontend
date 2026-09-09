@@ -183,7 +183,7 @@ export default function Inventario() {
                 gradiente="var(--gradient-2)"
                 agColor="var(--ag-color-2)"
                 subtitulo="GESTIÓN"
-                subtituloStyle={{ color: "var(--primary-darkGray)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}
+                subtituloStyle={{ color: "var(--text-label)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}
                 titulo="Inventario"
                 icono="Package"
                 iconoColor="var(--primary-dark)"

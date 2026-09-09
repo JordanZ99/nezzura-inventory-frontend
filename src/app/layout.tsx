@@ -42,6 +42,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     (function() {
                         try {
                             var tema = localStorage.getItem('tema') || 'default';
+                            /* Migración: 'midnightBlack' fue renombrado a 'midnightSlate' */
+                            if (tema === 'midnightBlack') {
+                                tema = 'midnightSlate';
+                                localStorage.setItem('tema', tema);
+                            }
                             document.documentElement.setAttribute('data-theme', tema);
                         } catch(e) {}
                     })();
