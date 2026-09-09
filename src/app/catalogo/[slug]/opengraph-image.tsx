@@ -23,6 +23,7 @@ const TEMAS: Record<string, { from: string; to: string }> = {
     midnightSlate: { from: "#1f2321", to: "#1e6456" },
     strawberry: { from: "#f33376", to: "#fa30df" },
     cozyYellow: { from: "#ffd05b", to: "#eb7456" },
+    botanical: { from: "#24a85b", to: "#5ec967" },
 }
 
 interface ConfigCatalogo {
