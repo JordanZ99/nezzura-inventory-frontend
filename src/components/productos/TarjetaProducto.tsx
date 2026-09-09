@@ -100,7 +100,7 @@ export function TarjetaProducto({
                         e.stopPropagation();
                         onCategoriaClick(prod.categoria?.[0] || "General");
                     } : undefined}
-                    style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-secondary)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px", cursor: onCategoriaClick ? "pointer" : "default" }}
+                    style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px", cursor: onCategoriaClick ? "pointer" : "default" }}
                 >
                     {(prod.categoria || ["General"]).join(", ")}
                 </span>

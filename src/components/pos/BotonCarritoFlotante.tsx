@@ -19,7 +19,7 @@ export function BotonCarritoFlotante({ totalItems, totalCarrito, onClick }: Prop
             padding: "12px 20px", fontSize: "0.9rem",
             boxShadow: "0 6px 25px var(--primary-glow)",
         }} onClick={onClick}>
-            <Icon name="ShoppingCart" size={20} color="var(--white)" /> {totalItems} · ${totalCarrito.toFixed(2)}
+            <Icon name="ShoppingCart" size={20} color="var(--on-primary)" /> {totalItems} · ${totalCarrito.toFixed(2)}
         </button>
     )
 }

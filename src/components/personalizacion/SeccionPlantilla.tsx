@@ -6,6 +6,7 @@
 
 import Icon from "@/components/ui/Icon"
 import SeccionHeader from "@/components/ui/SeccionHeader"
+import { normalizarTema } from "@/lib/temas"
 import type { PropsSeccionConfig } from "./tipos"
 
 const TEMPLATES_OPTS = [
@@ -15,7 +16,7 @@ const TEMPLATES_OPTS = [
 
 const TEMAS_OPTS = [
     { key: "default", label: "Steel Slate", colors: ["#3a7dbf", "#5e87a4"] },
-    { key: "midnightBlack", label: "Midnight Black", colors: ["#1f2321", "#1e6456"] },
+    { key: "midnightSlate", label: "Midnight Slate", colors: ["#1f2321", "#1e6456"] },
     { key: "strawberry", label: "Strawberry Pink", colors: ["#f33376", "#fa30df"] },
     { key: "cozyYellow", label: "Cozy Yellow", colors: ["#ffd05b", "#eb7456"] },
 ]
@@ -82,7 +83,7 @@ export function SeccionPlantilla({ catalogoConfig, setCatalogoConfig, autoguarda
                                 gap: 8,
                                 padding: "8px 14px",
                                 borderRadius: 10,
-                                border: `2px solid ${catalogoConfig?.tema === t.key ? "var(--primary-mid)" : "transparent"}`,
+                                border: `2px solid ${normalizarTema(catalogoConfig?.tema) === t.key ? "var(--primary-mid)" : "transparent"}`,
                                 background: "var(--bg-card2)",
                                 cursor: "pointer",
                                 transition: "all 0.15s",

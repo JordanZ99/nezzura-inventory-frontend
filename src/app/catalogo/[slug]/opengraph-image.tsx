@@ -7,6 +7,7 @@
 // ==============================================================================
 
 import { ImageResponse } from "next/og"
+import { normalizarTema } from "@/lib/temas"
 
 export const alt = "Catálogo"
 export const size = { width: 1200, height: 630 }
@@ -19,7 +20,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 // Mismas paletas que los temas del catálogo (CatalogoView.tsx)
 const TEMAS: Record<string, { from: string; to: string }> = {
     default: { from: "#3a7dbf", to: "#5e87a4" },
-    midnightBlack: { from: "#1f2321", to: "#1e6456" },
+    midnightSlate: { from: "#1f2321", to: "#1e6456" },
     strawberry: { from: "#f33376", to: "#fa30df" },
     cozyYellow: { from: "#ffd05b", to: "#eb7456" },
 }
@@ -73,7 +74,7 @@ export default async function ImagenPreview({ params }: { params: { slug: string
 
     const titulo = config?.titulo?.trim() || "Catálogo"
     const subtitulo = config?.subtitulo?.trim() || ""
-    const gradiente = TEMAS[config?.tema ?? "default"] ?? TEMAS.default
+    const gradiente = TEMAS[normalizarTema(config?.tema)] ?? TEMAS.default
     const logo = config?.logo || null
 
     return new ImageResponse(

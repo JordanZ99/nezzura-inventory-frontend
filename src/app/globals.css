@@ -8,21 +8,23 @@
    Grises elegantes · Acento azul acero · Teal sutil
    ============================================ */
 
-  /* --- BRAND COLORS --- */
+  /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
   --primary-dark: hsl(213, 35%, 28%);
   /* Azul acero oscuro */
-  --primary-darkGray: hsl(215, 18%, 42%);
-  /* Gris azulado medio */
   --primary-mid: hsl(212, 40%, 48%);
   /* Azul acero principal */
   --primary-light: hsl(210, 35%, 68%);
   /* Azul acero claro */
-  --primary-pale: hsl(209, 39%, 62%);
-  /* Azul muy pálido */
+  --primary-pale: hsl(209, 45%, 78%);
+  /* Azul muy pálido (hover / acento suave) */
   --primary-soft: hsl(210, 20%, 97%);
   /* Fondo gris muy sutil */
   --primary-alter: hsl(184, 30%, 42%);
   /* Teal apagado como acento */
+
+  /* --- TEXTOS DE MARCA --- */
+  --text-label: hsl(215, 18%, 42%);
+  /* Etiquetas y subtítulos sobre superficies claras */
 
   /* --- SEMANTIC STATES --- */
   --success-main: hsl(152, 32%, 44%);
@@ -34,20 +36,20 @@
   --error-bg: hsl(0, 40%, 96%);
 
   /* --- UI / NEUTRALS --- */
-  --white: hsl(0, 0%, 100%);
+  --on-primary: hsl(0, 0%, 100%);
+  /* Texto/iconos sobre superficies de marca (botones, gradientes) */
   --bg-app: hsl(215, 20%, 97%);
   /* Fondo app gris frío muy suave */
-  --bg-card: hsl(207, 22%, 90%);
-  --bg-card2: hsl(210, 25%, 95%);
+  --bg-card: hsl(210, 25%, 95%);
   /* Tarjetas gris azulado pálido */
+  --bg-card2: hsl(207, 22%, 90%);
+  /* Superficies secundarias (filas, interiores, hovers) */
 
   --border-light: hsl(210, 22%, 88%);
   --border-primary: hsl(212, 20%, 87%);
 
   /* Tipografía */
   --text-main: hsl(215, 25%, 22%);
-  --text-secondary: hsl(213, 35%, 28%);
-  /* Casi negro azulado */
   --text-muted: hsl(213, 15%, 55%);
   --text-white: hsl(0, 0%, 100%);
 
@@ -87,8 +89,14 @@
   /* Teal */
   --chart-3: 100 140 175;
   /* Azul grisáceo */
+  --chart-4: 14 165 233;
+  /* Sky */
+  --chart-5: 6 182 212;
+  /* Cyan */
+  --chart-6: 113 113 122;
+  /* Zinc */
 
-  /* --- COLORES PARA GRÁFICAS (nombres Tailwind) --- */
+  /* --- COLORES PARA GRÁFICAS (nombres de familia Tailwind, sin shade) --- */
   --chart-color-1: blue;
   --chart-color-2: sky;
   --chart-color-3: teal;
@@ -98,28 +106,30 @@
 
 }
 
-[data-theme="midnightBlack"] {
+[data-theme="midnightSlate"] {
   /* ============================================
    MIDNIGHT SLATE THEME
    Oscuro cálido · Sin negro puro · Teal + Índigo
    ============================================ */
 
 
-  /* --- BRAND COLORS --- */
+  /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
   --primary-dark: hsl(195, 40%, 38%);
   /* Teal profundo */
-  --primary-darkGray: hsl(210, 20%, 40%);
-  /* Gris azulado medio */
   --primary-mid: hsl(170, 38%, 47%);
   /* Teal principal */
   --primary-light: hsl(170, 30%, 62%);
   /* Teal suave */
-  --primary-pale: hsl(170, 20%, 28%);
-  /* Teal muy oscuro (hover) */
+  --primary-pale: hsl(170, 35%, 72%);
+  /* Teal pálido claro (hover / acento suave) */
   --primary-soft: hsl(212, 25%, 64%);
-  /* Fondo tarjeta suave */
+  /* Acento sobre superficies de marca / selección */
   --primary-alter: hsl(225, 35%, 55%);
   /* Índigo como acento secundario */
+
+  /* --- TEXTOS DE MARCA --- */
+  --text-label: hsl(210, 20%, 40%);
+  /* Etiquetas y subtítulos sobre superficies claras */
 
   /* --- SEMANTIC STATES --- */
   --success-main: hsl(152, 38%, 44%);
@@ -132,21 +142,20 @@
   --error-bg: hsl(0, 35%, 18%);
 
   /* --- UI / NEUTRALS --- */
-  --white: hsl(212, 14%, 18%);
+  --on-primary: hsl(212, 14%, 18%);
+  /* Texto/iconos sobre superficies de marca (botones, gradientes) */
   --bg-app: hsl(214, 16%, 11%);
   /* Fondo principal — no negro puro, tiene calor */
   --bg-card: hsl(213, 17%, 15%);
+  /* Tarjeta principal */
   --bg-card2: hsl(212, 14%, 18%);
-  /* Tarjetas levemente más claras */
+  /* Superficies secundarias levemente más claras */
 
   --border-light: hsl(213, 16%, 22%);
   --border-primary: hsl(212, 18%, 26%);
 
   /* Tipografía — nunca blanco puro, reduce fatiga visual */
   --text-main: hsl(210, 22%, 88%);
-  ;
-  --text-secondary: hsl(195, 40%, 38%);
-  /* Blanco cálido suavizado */
   --text-muted: hsl(213, 16%, 55%);
   --text-white: hsl(210, 20%, 92%);
 
@@ -173,7 +182,6 @@
   --ag-color-5: #1f2429;
 
   /* --- LAYOUT --- */
-  --sidebar-w: 240px;
   --overlay-bg: hsl(0 0% 0% / 60%);
   --gradient-layout: linear-gradient(180deg, hsl(213, 18%, 14%) 0%, hsl(214, 16%, 11%) 60%, hsl(214, 16%, 11%) 100%);
   --primary-layout: linear-gradient(135deg, hsl(213, 18%, 16%), hsl(213, 16%, 13%));
@@ -187,8 +195,14 @@
   /* Índigo */
   --chart-3: 138 151 166;
   /* Slate */
+  --chart-4: 16 185 129;
+  /* Green */
+  --chart-5: 139 92 246;
+  /* Violet */
+  --chart-6: 245 158 11;
+  /* Amber */
 
-  /* --- COLORES PARA GRÁFICAS (nombres Tailwind) --- */
+  /* --- COLORES PARA GRÁFICAS (nombres de familia Tailwind, sin shade) --- */
   --chart-color-1: teal;
   --chart-color-2: indigo;
   --chart-color-3: slate;
@@ -198,15 +212,18 @@
 }
 
 [data-theme="strawberry"] {
-  /* --- BRAND COLORS (Tu paleta rosa actual) --- */
+  /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
   --primary-dark: hsl(336, 78%, 43%);
-  --primary-darkGray: hsl(338, 30%, 50%);
   --primary-mid: hsl(329, 83%, 52%);
   --primary-light: hsl(344, 100%, 72%);
   --primary-pale: hsl(344, 100%, 84%);
   --primary-soft: hsl(336, 50%, 98%);
   --primary-alter: hsl(256, 62%, 54%);
-  /* El fondo rosado muy sutil de las tarjetas */
+  /* Violeta como acento secundario */
+
+  /* --- TEXTOS DE MARCA --- */
+  --text-label: hsl(338, 30%, 50%);
+  /* Etiquetas y subtítulos sobre superficies claras */
 
   /* --- SEMANTIC STATES (Éxito, Error, Alertas) --- */
   --success-main: hsl(122, 39%, 49%);
@@ -219,10 +236,13 @@
   --error-bg: hsl(353, 100%, 96%);
 
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
-  --white: hsl(0, 0%, 100%);
+  --on-primary: hsl(0, 0%, 100%);
+  /* Texto/iconos sobre superficies de marca (botones, gradientes) */
   --bg-app: hsl(230, 60%, 98%);
   --bg-card: hsl(326, 100%, 99%);
+  /* Tarjeta principal */
   --bg-card2: hsl(322, 100%, 96%);
+  /* Superficies secundarias (filas, interiores, hovers) */
 
   /* Bordes y Divisores */
   --border-light: hsl(210, 17%, 93%);
@@ -232,7 +252,6 @@
 
   /* Tipografía */
   --text-main: hsl(309, 36%, 46%);
-  --text-secondary: hsl(336, 78%, 43%);
   --text-muted: hsl(211, 18%, 60%);
   --text-white: hsl(0, 0%, 100%);
 
@@ -258,36 +277,52 @@
   --ag-color-5: #ffffff;
 
   /* --- LAYOUT --- */
-  --sidebar-w: 240px;
   --overlay-bg: hsl(0 0% 0% / 40%);
   --gradient-layout: linear-gradient(180deg, hsl(339, 100%, 89%) 0%, hsl(336, 50%, 98%) 60%, hsl(0, 0%, 100%) 100%);
   --primary-layout: linear-gradient(135deg, hsl(343, 77%, 95%), hsl(344, 76%, 85%));
   --primary-icons: hsl(334, 79%, 37%);
 
-  /* --- COLORES PARA KPI's --- */
+  /* --- COLORES PARA KPI's (RGB) --- */
   --chart-1: 237 116 133;
+  /* Rose */
   --chart-2: 255 75 155;
+  /* Pink */
   --chart-3: 237 138 216;
+  /* Fuchsia */
+  --chart-4: 139 92 246;
+  /* Violet */
+  --chart-5: 168 85 247;
+  /* Purple */
+  --chart-6: 100 116 139;
+  /* Slate */
 
-  /* --- COLORES PARA GRÁFICAS --- */
+  /* --- COLORES PARA GRÁFICAS (nombres de familia Tailwind, sin shade) --- */
   --chart-color-1: rose;
   --chart-color-2: pink;
-  --chart-color-3: fuchsia-700;
+  --chart-color-3: fuchsia;
   --chart-color-4: violet;
   --chart-color-5: purple;
   --chart-color-6: slate;
 }
 
 [data-theme="cozyYellow"] {
-  /* --- BRAND COLORS (Paleta cálida/amarilla) --- */
-  --primary-dark: hsl(2, 68%, 54%);
-  --primary-darkGray: hsl(22, 52%, 58%);
+  /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
+  --primary-dark: hsl(2, 68%, 46%);
+  /* Rojo tomate oscuro */
   --primary-mid: hsl(45, 90%, 52%);
-  --primary-light: hsl(36, 100%, 99%);
-  --primary-pale: hsl(35, 79%, 58%);
+  /* Amarillo dorado principal */
+  --primary-light: hsl(46, 92%, 68%);
+  /* Amarillo claro */
+  --primary-pale: hsl(42, 90%, 74%);
+  /* Durazno pálido (hover / acento suave) */
   --primary-soft: hsl(48, 60%, 97%);
+  /* Fondo crema muy sutil */
   --primary-alter: hsl(21, 75%, 54%);
-  /* El fondo rosado muy sutil de las tarjetas */
+  /* Naranja quemado como acento secundario */
+
+  /* --- TEXTOS DE MARCA --- */
+  --text-label: hsl(22, 52%, 58%);
+  /* Etiquetas y subtítulos sobre superficies claras */
 
   /* --- SEMANTIC STATES (Éxito, Error, Alertas) --- */
   --success-main: hsl(122, 39%, 49%);
@@ -300,10 +335,13 @@
   --error-bg: hsl(353, 100%, 96%);
 
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
-  --white: hsl(0, 0%, 100%);
+  --on-primary: hsl(0, 0%, 100%);
+  /* Texto/iconos sobre superficies de marca (botones, gradientes) */
   --bg-app: hsl(28, 67%, 92%);
   --bg-card: hsl(46, 100%, 95%);
+  /* Tarjeta principal */
   --bg-card2: hsl(45, 76%, 92%);
+  /* Superficies secundarias (filas, interiores, hovers) */
 
   /* Bordes y Divisores */
   --border-light: hsl(37, 45%, 83%);
@@ -313,7 +351,6 @@
 
   /* Tipografía */
   --text-main: hsl(49, 11%, 30%);
-  --text-secondary: hsl(2, 68%, 54%);
   --text-muted: hsl(45, 12%, 52%);
   --text-white: hsl(0, 0%, 100%);
 
@@ -328,35 +365,42 @@
   --gradient-3: linear-gradient(135deg, hsl(89, 68%, 71%) 0%, hsl(75, 82%, 75%) 100%);
   --gradient-4: linear-gradient(135deg, hsl(21, 75%, 54%) 0%, hsl(45, 90%, 52%) 100%);
   --gradient-5: linear-gradient(135deg, hsl(205, 97%, 77%) 0%, hsl(185, 70%, 82%) 100%);
-  /*--gradient-login: linear-gradient(135deg, hsl(21, 100%, 60%), hsl(43, 100%, 53%));*/
   --gradient-login: linear-gradient(135deg, hsl(0, 61%, 50%), hsl(9, 57%, 58%));
   --gradient-bg-login: linear-gradient(180deg, hsl(41, 100%, 88%) 0%, hsl(31, 71%, 69%) 100%);
 
-  /* --- Antigravity --- */
+  /* --- Antigravity (partículas cálidas, dentro de la paleta) --- */
   --ag-color-1: #fffcc6;
-  --ag-color-2: rgb(255, 111, 0);
-  --ag-color-3: #00a364;
-  --ag-color-4: #ff0000;
-  --ag-color-5: #1e00ff;
+  --ag-color-2: #ff6f00;
+  --ag-color-3: #ffb703;
+  --ag-color-4: #ef6351;
+  --ag-color-5: #c1967a;
 
   /* --- LAYOUT --- */
-  --sidebar-w: 240px;
   --overlay-bg: hsl(0 0% 0% / 40%);
   --gradient-layout: linear-gradient(180deg, hsl(47, 99%, 71%) 0%, hsl(50, 100%, 80%) 60%, hsl(53, 100%, 97%) 100%);
   --primary-layout: linear-gradient(135deg, hsl(53, 100%, 98%), hsl(40, 100%, 89%));
   --primary-icons: hsl(14, 58%, 52%);
 
-  /* --- COLORES PARA KPI's --- */
+  /* --- COLORES PARA KPI's (RGB) --- */
   --chart-1: 217 63 58;
+  /* Red */
   --chart-2: 204 133 92;
+  /* Naranja tierra */
   --chart-3: 243 188 22;
+  /* Yellow */
+  --chart-4: 245 158 11;
+  /* Amber */
+  --chart-5: 132 204 22;
+  /* Lime */
+  --chart-6: 100 116 139;
+  /* Slate */
 
-  /* --- COLORES PARA GRÁFICAS --- */
-  --chart-color-1: red-400;
-  --chart-color-2: orange-400;
-  --chart-color-3: yellow-300;
-  --chart-color-4: red-600;
-  --chart-color-5: orange-700;
+  /* --- COLORES PARA GRÁFICAS (nombres de familia Tailwind, sin shade) --- */
+  --chart-color-1: red;
+  --chart-color-2: orange;
+  --chart-color-3: yellow;
+  --chart-color-4: amber;
+  --chart-color-5: lime;
   --chart-color-6: slate;
 }
 
@@ -408,7 +452,7 @@ body {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--primary-mid), var(--primary-dark));
-  color: var(--white);
+  color: var(--on-primary);
   border: none;
   border-radius: 12px;
   padding: 10px 20px;
@@ -461,7 +505,7 @@ body {
 
 .input-primary:focus {
   border-color: var(--primary-mid);
-  box-shadow: var(--primary-glow);
+  box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
 .stat-pill-green {

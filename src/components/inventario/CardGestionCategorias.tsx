@@ -170,7 +170,7 @@ export default function CardGestionCategorias({
                                         <span style={{
                                             fontSize: "0.62rem",
                                             fontWeight: 700,
-                                            color: "var(--text-secondary)",
+                                            color: "var(--primary-dark)",
                                             background: "var(--bg-app)",
                                             borderRadius: 8,
                                             padding: "2px 8px",

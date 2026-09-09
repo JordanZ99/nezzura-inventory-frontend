@@ -124,7 +124,7 @@ export default function PostsLote() {
                 gradiente="var(--gradient-2)"
                 agColor="var(--ag-color-2)"
                 subtitulo="POSTS AUTOMÁTICOS"
-                subtituloStyle={{ color: "var(--primary-darkGray)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}
+                subtituloStyle={{ color: "var(--text-label)", fontSize: "0.8rem", fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}
                 titulo="Todas las tarjetas"
                 icono="Images"
                 iconoColor="var(--primary-dark)"
