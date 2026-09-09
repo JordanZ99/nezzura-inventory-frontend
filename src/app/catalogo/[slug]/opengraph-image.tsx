@@ -24,6 +24,7 @@ const TEMAS: Record<string, { from: string; to: string }> = {
     strawberry: { from: "#f33376", to: "#fa30df" },
     cozyYellow: { from: "#ffd05b", to: "#eb7456" },
     botanical: { from: "#24a85b", to: "#5ec967" },
+    cottonCandy: { from: "#f472b6", to: "#7dd3fc" },
 }
 
 interface ConfigCatalogo {

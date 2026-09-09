@@ -20,6 +20,7 @@ const TEMAS_OPTS = [
     { key: "strawberry", label: "Strawberry Pink", colors: ["#f33376", "#fa30df"] },
     { key: "cozyYellow", label: "Cozy Yellow", colors: ["#ffd05b", "#eb7456"] },
     { key: "botanical", label: "Botanic Green", colors: ["#24a85b", "#5ec967"] },
+    { key: "cottonCandy", label: "Cotton Candy", colors: ["#f472b6", "#7dd3fc"] },
 ]
 
 export function SeccionPlantilla({ catalogoConfig, setCatalogoConfig, autoguardar, renderGuardado }: PropsSeccionConfig) {

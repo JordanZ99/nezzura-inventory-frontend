@@ -139,6 +139,16 @@ const TEMAS: Record<string, PaletaTema> = {
         border: "#e3edd9",
         gradient: "linear-gradient(135deg, #24a85b 0%, #5ec967 100%)",
     },
+    cottonCandy: {
+        bg: "#fbd9ea",
+        bgCard: "#fde7f1",
+        text: "#ffffff",
+        textMuted: "#ffffffb3",
+        primary: "#e0559c",
+        primaryDark: "#b23475",
+        border: "#f5c2dd",
+        gradient: "linear-gradient(135deg, #f472b6 0%, #7dd3fc 100%)",
+    },
 }
 
 // ── Mapa de templates ──

@@ -516,6 +516,117 @@
   --chart-color-6: slate;
 }
 
+[data-theme="cottonCandy"] {
+  /* ============================================
+   COTTON CANDY THEME
+   Rosa pastel dominante · Layout celeste · Texto blanco
+   ============================================ */
+
+  /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
+  --primary-dark: hsl(330, 65%, 40%);
+  /* Frambuesa profunda */
+  --primary-mid: hsl(332, 70%, 48%);
+  /* Rosa caramelo principal */
+  --primary-light: hsl(340, 85%, 68%);
+  /* Rosa chicle claro */
+  --primary-pale: hsl(342, 90%, 80%);
+  /* Rosa pastel suave (hover / acento) */
+  --primary-soft: hsl(340, 100%, 96%);
+  /* Blanco rosado (hover / acento sobre gradientes) */
+  --primary-alter: hsl(326, 72%, 54%);
+  /* Rosa frambuesa acento secundario */
+
+  /* --- TEXTOS DE MARCA --- */
+  --text-label: hsl(0 0% 100% / 0.9);
+  /* Etiquetas y subtítulos, blanco translúcido */
+
+  /* --- SEMANTIC STATES (dulces menta/fresa, texto blanco) --- */
+  --success-main: hsl(145, 50%, 42%);
+  --success-text: hsl(0, 0%, 100%);
+  --success-bg: hsl(148, 50%, 44%);
+  /* Menta media para pills con texto blanco */
+
+  --error-main: hsl(4, 80%, 55%);
+  --error-text: hsl(0, 0%, 100%);
+  --error-bg: hsl(0, 70%, 58%);
+  /* Fresa media para pills con texto blanco */
+
+  /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
+  --on-primary: hsl(0, 0%, 100%);
+  /* Texto/iconos sobre superficies de marca (botones, gradientes) */
+  --bg-app: hsl(338, 70%, 86%);
+  /* Fondo rosita candy */
+  --bg-card: hsl(335, 75%, 88%);
+  /* Tarjeta principal */
+  --bg-card2: hsl(332, 70%, 91%);
+  /* Superficies secundarias (filas, interiores, hovers) */
+
+  /* Bordes y Divisores */
+  --border-light: hsl(330, 45%, 80%);
+  /* Para inputs y botones ghost */
+  --border-primary: hsl(200, 60%, 84%);
+  /* Celestita para separadores temáticos */
+
+  /* Tipografía — cotton candy: todo blanco, jerarquía por transparencia */
+  --text-main: hsl(0, 0%, 100%);
+  --text-muted: hsl(0 0% 100% / 0.72);
+  --text-white: hsl(0, 0%, 100%);
+
+  /* --- EFECTOS & SOMBRAS --- */
+  --card-shadow: 0 4px 24px 0 hsl(330 60% 60% / 18%);
+  --btn-shadow: 0 4px 15px hsl(332 70% 48% / 35%);
+  --primary-glow: #bfe3f7;
+  /* Celeste para el glow de foco */
+
+  /* --- Degradados --- */
+  --gradient-1: linear-gradient(135deg, hsl(330, 70%, 52%) 0%, hsl(210, 80%, 60%) 100%);
+  --gradient-2: linear-gradient(135deg, hsl(340, 90%, 78%) 0%, hsl(197, 85%, 84%) 100%);
+  --gradient-3: linear-gradient(135deg, hsl(197, 85%, 70%) 0%, hsl(335, 90%, 76%) 100%);
+  --gradient-4: linear-gradient(135deg, hsl(328, 75%, 58%) 0%, hsl(205, 85%, 66%) 100%);
+  --gradient-5: linear-gradient(135deg, hsl(330, 70%, 46%) 0%, hsl(210, 75%, 56%) 100%);
+  --gradient-login: linear-gradient(135deg, hsl(330, 70%, 55%), hsl(199, 85%, 62%));
+  /* Rosa → celeste, el dúo cotton candy */
+  --gradient-bg-login: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(197, 85%, 88%) 100%);
+
+  /* --- Antigravity (partículas dulces) --- */
+  --ag-color-1: #ffffff;
+  --ag-color-2: #f78ac8;
+  /* Rosa */
+  --ag-color-3: #a5dcf5;
+  /* Celeste */
+  --ag-color-4: #fbcfe4;
+  /* Rosa pálido */
+  --ag-color-5: #ffffff;
+
+  /* --- LAYOUT (tintes azul celeste) --- */
+  --overlay-bg: hsl(0 0% 0% / 40%);
+  --gradient-layout: linear-gradient(180deg, hsl(197, 80%, 80%) 0%, hsl(200, 75%, 88%) 60%, hsla(338, 90%, 93%, 0.97) 100%);
+  --primary-layout: linear-gradient(135deg, hsl(198, 75%, 86%), hsl(200, 80%, 80%));
+  --primary-icons: hsl(328, 70%, 48%);
+
+  /* --- COLORES PARA KPI's (RGB) --- */
+  --chart-1: 244 114 182;
+  /* Pink */
+  --chart-2: 56 189 248;
+  /* Sky */
+  --chart-3: 167 139 250;
+  /* Violet */
+  --chart-4: 129 140 248;
+  /* Indigo */
+  --chart-5: 251 146 60;
+  /* Orange */
+  --chart-6: 100 116 139;
+  /* Slate */
+
+  /* --- COLORES PARA GRÁFICAS (nombres de familia Tailwind, sin shade) --- */
+  --chart-color-1: pink;
+  --chart-color-2: sky;
+  --chart-color-3: violet;
+  --chart-color-4: indigo;
+  --chart-color-5: orange;
+  --chart-color-6: slate;
+}
+
 * {
   box-sizing: border-box;
 }

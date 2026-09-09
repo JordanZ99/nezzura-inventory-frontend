@@ -28,6 +28,7 @@ type Tab = "cuenta" | "negocio" | "catalogo"
  * - strawberry     → "Strawberry Pink"
  * - cozyYellow     → "Cozy Yellow"
  * - botanical      → "Botanic Green"
+ * - cottonCandy    → "Cotton Candy"
  */
 const NOMBRES_TEMA: Record<string, string> = {
     default: "Steel Slate",
@@ -35,6 +36,7 @@ const NOMBRES_TEMA: Record<string, string> = {
     strawberry: "Strawberry Pink",
     cozyYellow: "Cozy Yellow",
     botanical: "Botanic Green",
+    cottonCandy: "Cotton Candy",
 }
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -130,6 +132,10 @@ export default function Personalizacion() {
                             <button onClick={() => cambiarTema('botanical')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #24a85bff 0%, #5ec967ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Botanic Green"
+                            />
+                            <button onClick={() => cambiarTema('cottonCandy')}
+                                style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #f472b6ff 0%, #7dd3fcff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
+                                title="Cotton Candy"
                             />
                         </div>
                     </div>
