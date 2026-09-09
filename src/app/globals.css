@@ -404,6 +404,118 @@
   --chart-color-6: slate;
 }
 
+[data-theme="botanical"] {
+  /* ============================================
+   BOTANIC GREEN THEME
+   Verde hoja · Fondos crema · Acento flor
+   ============================================ */
+
+  /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
+  --primary-dark: hsl(152, 60%, 26%);
+  /* Verde bosque profundo */
+  --primary-mid: hsl(145, 65%, 40%);
+  /* Verde hoja principal */
+  --primary-light: hsl(125, 50%, 58%);
+  /* Verde manzana claro */
+  --primary-pale: hsl(105, 55%, 78%);
+  /* Lima pálida (hover / acento suave) */
+  --primary-soft: hsl(120, 45%, 97%);
+  /* Fondo verdoso muy sutil */
+  --primary-alter: hsl(340, 60%, 60%);
+  /* Flor rosa como acento secundario */
+
+  /* --- TEXTOS DE MARCA --- */
+  --text-label: hsl(145, 25%, 42%);
+  /* Etiquetas y subtítulos sobre superficies claras */
+
+  /* --- SEMANTIC STATES (Éxito, Error, Alertas) --- */
+  --success-main: hsl(122, 39%, 49%);
+  --success-text: hsl(123, 46%, 34%);
+  --success-bg: hsl(128, 29%, 94%);
+
+  --error-main: hsl(4, 90%, 58%);
+  --error-text: hsl(0, 74%, 41%);
+  --error-bg: hsl(353, 100%, 96%);
+
+  /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
+  --on-primary: hsl(0, 0%, 100%);
+  /* Texto/iconos sobre superficies de marca (botones, gradientes) */
+  --bg-app: hsl(75, 45%, 97%);
+  /* Fondo crema verdoso */
+  --bg-card: hsl(90, 50%, 98%);
+  /* Tarjeta principal */
+  --bg-card2: hsl(80, 35%, 94%);
+  /* Superficies secundarias (filas, interiores, hovers) */
+
+  /* Bordes y Divisores */
+  --border-light: hsl(85, 25%, 87%);
+  /* Para inputs y botones ghost */
+  --border-primary: hsl(105, 40%, 88%);
+  /* Para separadores temáticos */
+
+  /* Tipografía */
+  --text-main: hsl(140, 30%, 22%);
+  /* Verde bosque casi negro */
+  --text-muted: hsl(120, 8%, 52%);
+  --text-white: hsl(0, 0%, 100%);
+
+  /* --- EFECTOS & SOMBRAS --- */
+  --card-shadow: 0 4px 24px 0 hsl(140 45% 25% / 10%);
+  --btn-shadow: 0 4px 15px hsl(145 65% 40% / 30%);
+  --primary-glow: #9fd8b4;
+  /* Menta para el glow de foco */
+
+  /* --- Degradados --- */
+  --gradient-1: linear-gradient(135deg, hsl(152, 60%, 30%) 0%, hsl(130, 55%, 46%) 100%);
+  --gradient-2: linear-gradient(135deg, hsl(105, 55%, 78%) 0%, hsl(90, 45%, 86%) 100%);
+  --gradient-3: linear-gradient(135deg, hsl(120, 45%, 64%) 0%, hsl(340, 55%, 70%) 100%);
+  --gradient-4: linear-gradient(135deg, hsl(150, 60%, 35%) 0%, hsl(105, 55%, 58%) 100%);
+  --gradient-5: linear-gradient(135deg, hsl(145, 60%, 40%) 0%, hsl(340, 55%, 65%) 100%);
+  --gradient-login: linear-gradient(135deg, hsl(152, 60%, 30%), hsl(16, 65%, 52%));
+  /* Hoja → terracota */
+  --gradient-bg-login: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(95, 35%, 90%) 100%);
+
+  /* --- Antigravity (partículas botánicas) --- */
+  --ag-color-1: #fafdeb;
+  /* Crema */
+  --ag-color-2: #24a85b;
+  /* Hoja */
+  --ag-color-3: #b7e6a8;
+  /* Lima pálida */
+  --ag-color-4: #d68599;
+  /* Flor */
+  --ag-color-5: #9cc069;
+  /* Oliva */
+
+  /* --- LAYOUT --- */
+  --overlay-bg: hsl(0 0% 0% / 40%);
+  --gradient-layout: linear-gradient(180deg, hsl(105, 50%, 86%) 0%, hsl(85, 45%, 96%) 60%, hsl(0, 0%, 100%) 100%);
+  --primary-layout: linear-gradient(135deg, hsl(95, 45%, 96%), hsl(90, 40%, 89%));
+  --primary-icons: hsl(150, 60%, 30%);
+
+  /* --- COLORES PARA KPI's (RGB) --- */
+  --chart-1: 36 168 91;
+  /* Green (hoja) */
+  --chart-2: 16 185 129;
+  /* Emerald */
+  --chart-3: 132 204 22;
+  /* Lime */
+  --chart-4: 20 184 166;
+  /* Teal */
+  --chart-5: 245 158 11;
+  /* Amber */
+  --chart-6: 100 116 139;
+  /* Slate */
+
+  /* --- COLORES PARA GRÁFICAS (nombres de familia Tailwind, sin shade) --- */
+  --chart-color-1: green;
+  --chart-color-2: emerald;
+  --chart-color-3: lime;
+  --chart-color-4: teal;
+  --chart-color-5: amber;
+  --chart-color-6: slate;
+}
+
 * {
   box-sizing: border-box;
 }

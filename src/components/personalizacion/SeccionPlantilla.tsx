@@ -19,6 +19,7 @@ const TEMAS_OPTS = [
     { key: "midnightSlate", label: "Midnight Slate", colors: ["#1f2321", "#1e6456"] },
     { key: "strawberry", label: "Strawberry Pink", colors: ["#f33376", "#fa30df"] },
     { key: "cozyYellow", label: "Cozy Yellow", colors: ["#ffd05b", "#eb7456"] },
+    { key: "botanical", label: "Botanic Green", colors: ["#24a85b", "#5ec967"] },
 ]
 
 export function SeccionPlantilla({ catalogoConfig, setCatalogoConfig, autoguardar, renderGuardado }: PropsSeccionConfig) {

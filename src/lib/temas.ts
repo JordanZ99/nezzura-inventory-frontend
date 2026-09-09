@@ -8,7 +8,7 @@ const TEMAS_LEGADO: Record<string, string> = {
     midnightBlack: "midnightSlate",
 };
 
-export const TEMAS_GESTOR = ["default", "midnightSlate", "strawberry", "cozyYellow"];
+export const TEMAS_GESTOR = ["default", "midnightSlate", "strawberry", "cozyYellow", "botanical"];
 
 export function normalizarTema(tema: string | null | undefined): string {
     if (!tema) return "default";

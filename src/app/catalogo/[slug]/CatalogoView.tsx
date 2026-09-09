@@ -129,6 +129,16 @@ const TEMAS: Record<string, PaletaTema> = {
         border: "#fef3c7",
         gradient: "linear-gradient(135deg, #ffd05b 0%, #eb7456 100%)",
     },
+    botanical: {
+        bg: "#f7faef",
+        bgCard: "#f8fcf4",
+        text: "#274932",
+        textMuted: "#7d907f",
+        primary: "#24a85b",
+        primaryDark: "#1b6a40",
+        border: "#e3edd9",
+        gradient: "linear-gradient(135deg, #24a85b 0%, #5ec967 100%)",
+    },
 }
 
 // ── Mapa de templates ──
