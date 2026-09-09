@@ -70,6 +70,8 @@ export default function Personalizacion() {
         document.documentElement.setAttribute('data-theme', claveTema)
         // Lo persistimos para que sobreviva a recargas de página
         localStorage.setItem('tema', claveTema)
+        // Cookie para que el servidor renderice data-theme sin flash
+        document.cookie = `tema=${claveTema};path=/;max-age=31536000;samesite=lax`
         // Actualizamos el nombre mostrado en el Hero
         setTemaActual(NOMBRES_TEMA[claveTema] || claveTema)
     }
