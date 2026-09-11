@@ -315,7 +315,7 @@
   /* Amarillo claro */
   --primary-pale: hsl(42, 90%, 74%);
   /* Durazno pálido (hover / acento suave) */
-  --primary-soft: hsl(13, 60%, 97%);
+  --primary-soft: hsl(47, 100%, 95%);
   /* Fondo crema muy sutil */
   --primary-alter: hsl(21, 75%, 54%);
   /* Naranja quemado como acento secundario */
@@ -543,8 +543,8 @@
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
   --on-primary: hsl(0, 0%, 100%);
   /* Texto/iconos sobre superficies de marca (botones, gradientes) */
-  --bg-app: hsl(296, 100%, 97%);
-  --bg-card: hsl(0, 0%, 100%);
+  --bg-app: hsl(326, 100%, 91%);
+  --bg-card: hsl(304, 100%, 95%);
   /* Tarjeta principal */
   --bg-card2: hsl(322, 100%, 96%);
   /* Superficies secundarias (filas, interiores, hovers) */
