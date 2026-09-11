@@ -508,7 +508,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                             padding: "7px 14px",
                                             borderRadius: 20,
                                             border: `1.5px solid ${activa ? tema.primary : tema.border}`,
-                                            background: activa ? `${tema.primary}18` : tema.bg,
+                                            background: activa ? `color-mix(in srgb, ${tema.primary} 10%, transparent)` : tema.bg,
                                             color: agotada ? tema.textMuted : tema.text,
                                             fontWeight: 700,
                                             fontSize: "0.78rem",
@@ -537,7 +537,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                 <span key={c} style={{
                                     fontSize: "0.68rem", fontWeight: 700,
                                     color: tema.primary,
-                                    background: `${tema.primary}14`,
+                                    background: `color-mix(in srgb, ${tema.primary} 8%, transparent)`,
                                     borderRadius: 8, padding: "3px 10px",
                                 }}>
                                     {c}
