@@ -45,6 +45,18 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
     { id: "catalogo", label: "Catálogo", icon: "ClipboardList" },
 ]
 
+// Círculos del selector de temas (deben coincidir con las paletas de globals.css)
+const TEMAS_CIRCULOS = [
+    { clave: 'default', title: "Steel Slate", background: "linear-gradient(135deg, #6f7375ff 0%, #5e87a4ff 100%)" },
+    { clave: 'midnightSlate', title: "Midnight Slate", background: "linear-gradient(135deg, #1f2321ff 0%, #1e6456ff 100%)" },
+    { clave: 'strawberry', title: "Strawberry Pink", background: "linear-gradient(135deg, #f33376 0%, #fa30dfff 100%)" },
+    { clave: 'cozyYellow', title: "Cozy Yellow", background: "linear-gradient(135deg, #ffd05bff 0%, #eb7456ff 100%)" },
+    { clave: 'botanical', title: "Botanic Green", background: "linear-gradient(135deg, #24a85bff 0%, #5ec967ff 100%)" },
+    { clave: 'cottonCandy', title: "Cotton Candy", background: "linear-gradient(135deg, #f472b6ff 0%, #7dd3fcff 100%)" },
+]
+
+const ESTILO_CIRCULO: React.CSSProperties = { width: 34, height: 34, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid white", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }
+
 export default function Personalizacion() {
     const { tenant, cargando: cargandoTenant, actualizar } = useTenant()
 
@@ -114,28 +126,31 @@ export default function Personalizacion() {
                         <div>
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Temas</p>
                         </div>
-                        <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center" }}>
-                            {[
-                                { clave: 'default', title: "Steel Slate", background: "linear-gradient(135deg, #6f7375ff 0%, #5e87a4ff 100%)" },
-                                { clave: 'midnightSlate', title: "Midnight Slate", background: "linear-gradient(135deg, #1f2321ff 0%, #1e6456ff 100%)" },
-                                { clave: 'strawberry', title: "Strawberry Pink", background: "linear-gradient(135deg, #f33376 0%, #fa30dfff 100%)" },
-                                { clave: 'cozyYellow', title: "Cozy Yellow", background: "linear-gradient(135deg, #ffd05bff 0%, #eb7456ff 100%)" },
-                                { clave: 'botanical', title: "Botanic Green", background: "linear-gradient(135deg, #24a85bff 0%, #5ec967ff 100%)" },
-                                { clave: 'cottonCandy', title: "Cotton Candy", background: "linear-gradient(135deg, #f472b6ff 0%, #7dd3fcff 100%)" },
-                            ]
-                                .slice(0, mostrarTodosTemas ? 6 : 3)
-                                .map(t => (
-                                    <button key={t.clave} onClick={() => cambiarTema(t.clave)}
-                                        style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid white", background: t.background, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
-                                        title={t.title}
-                                    />
-                                ))}
-                            <button onClick={() => setMostrarTodosTemas(v => !v)}
-                                style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid white", background: "var(--bg-card)", color: "var(--text-muted)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
-                                title={mostrarTodosTemas ? "Mostrar menos" : "Más temas"}
-                            >
-                                <Icon name={mostrarTodosTemas ? "ChevronUp" : "ChevronDown"} size={16} />
-                            </button>
+                        {/* Desktop: todos los temas siempre en una fila */}
+                        <div className="hidden md:flex" style={{ flex: 1, gap: 20, justifyContent: "center" }}>
+                            {TEMAS_CIRCULOS.map(t => (
+                                <button key={t.clave} onClick={() => cambiarTema(t.clave)}
+                                    style={{ ...ESTILO_CIRCULO, background: t.background }}
+                                    title={t.title}
+                                />
+                            ))}
+                        </div>
+                        {/* Móvil: 3 temas + flecha; al expandir se envuelven en filas de 4 */}
+                        <div className="flex md:hidden" style={{ flex: 1, gap: 20, rowGap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                            {(mostrarTodosTemas ? TEMAS_CIRCULOS : TEMAS_CIRCULOS.slice(0, 3)).map(t => (
+                                <button key={t.clave} onClick={() => cambiarTema(t.clave)}
+                                    style={{ ...ESTILO_CIRCULO, background: t.background }}
+                                    title={t.title}
+                                />
+                            ))}
+                            {!mostrarTodosTemas && (
+                                <button onClick={() => setMostrarTodosTemas(true)}
+                                    style={{ ...ESTILO_CIRCULO, background: "var(--bg-card)", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                                    title="Más temas"
+                                >
+                                    <Icon name="ChevronDown" size={16} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
