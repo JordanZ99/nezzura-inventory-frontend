@@ -518,8 +518,8 @@
 
 [data-theme="cottonCandy"] {
   /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
-  --primary-dark: hsl(336, 78%, 43%);
-  --primary-mid: hsl(329, 83%, 52%);
+  --primary-dark: hsl(235, 88%, 63%);
+  --primary-mid: hsl(188, 83%, 52%);
   --primary-light: hsl(344, 100%, 72%);
   --primary-pale: hsl(344, 100%, 84%);
   --primary-soft: hsl(336, 50%, 98%);
@@ -552,11 +552,11 @@
   /* Bordes y Divisores */
   --border-light: hsl(210, 17%, 93%);
   /* Para inputs y botones ghost */
-  --border-primary: hsl(343, 77%, 95%);
+  --border-primary: hsl(194, 100%, 91%);
   /* Para separadores temáticos */
 
   /* Tipografía */
-  --text-main: hsl(309, 36%, 46%);
+  --text-main: hsl(210, 78%, 57%);
   --text-muted: hsl(211, 18%, 60%);
   --text-white: hsl(0, 0%, 100%);
 
@@ -584,8 +584,8 @@
   /* --- LAYOUT --- */
   --overlay-bg: hsl(0 0% 0% / 40%);
   --gradient-layout: linear-gradient(180deg, hsl(202, 100%, 88%) 0%, hsl(269, 100%, 92%) 60%, hsl(314, 100%, 94%) 100%);
-  --primary-layout: linear-gradient(135deg, hsl(343, 77%, 95%), hsl(344, 76%, 85%));
-  --primary-icons: hsl(334, 79%, 37%);
+  --primary-layout: linear-gradient(135deg, hsl(303, 100%, 93%), hsl(307, 100%, 86%));
+  --primary-icons: hsl(304, 79%, 37%);
 
   /* --- COLORES PARA KPI's (RGB) --- */
   --chart-1: 237 116 133;
