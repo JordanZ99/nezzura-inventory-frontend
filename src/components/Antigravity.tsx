@@ -25,8 +25,60 @@
 // ==============================================================================
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { Component, type ReactNode, useMemo, useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
+
+// ==============================================================================
+// Degradación elegante: si no hay WebGL disponible (aceleración desactivada,
+// GPU bloqueada, context lost por falta de memoria en móvil), el hero queda
+// solo con su gradiente en vez de tumbar la app completa.
+// ==============================================================================
+
+let _soporteWebGL: boolean | null = null;
+function webglSoportado(): boolean {
+  if (_soporteWebGL !== null) return _soporteWebGL;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    _soporteWebGL = !!(canvas.getContext('webgl2') || canvas.getContext('webgl'));
+  } catch {
+    _soporteWebGL = false;
+  }
+  return _soporteWebGL;
+}
+
+class LimiteErrorWebGL extends Component<{ children: ReactNode }, { error: boolean }> {
+  state = { error: false };
+
+  static getDerivedStateFromError() {
+    return { error: true };
+  }
+
+  componentDidCatch() {
+    // Silencioso: es un efecto decorativo
+  }
+
+  render() {
+    if (this.state.error) return null;
+    return this.props.children;
+  }
+}
+
+const OyentePerdidaContexto = ({ onPerdido }: { onPerdido: () => void }) => {
+  const domElement = useThree(state => state.gl.domElement);
+
+  useEffect(() => {
+    const manejarPerdida = (e: Event) => {
+      // Sin preventDefault: no intentamos restaurar, desmontamos y el gradiente queda
+      onPerdido();
+    };
+    domElement.addEventListener('webglcontextlost', manejarPerdida);
+    return () => domElement.removeEventListener('webglcontextlost', manejarPerdida);
+  }, [domElement, onPerdido]);
+
+  return null;
+};
 
 interface AntigravityProps {
   count?: number;
@@ -265,10 +317,21 @@ const AntigravityInner = ({
 };
 
 const Antigravity = (props: AntigravityProps) => {
+  const [soporte, setSoporte] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setSoporte(webglSoportado());
+  }, []);
+
+  if (soporte === false) return null;
+
   return (
-    <Canvas camera={{ position: [0, 0, 50], fov: 35 }}>
-      <AntigravityInner {...props} />
-    </Canvas>
+    <LimiteErrorWebGL>
+      <Canvas camera={{ position: [0, 0, 50], fov: 35 }}>
+        <OyentePerdidaContexto onPerdido={() => setSoporte(false)} />
+        <AntigravityInner {...props} />
+      </Canvas>
+    </LimiteErrorWebGL>
   );
 };
 
