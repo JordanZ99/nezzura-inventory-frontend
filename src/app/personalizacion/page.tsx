@@ -112,7 +112,7 @@ export default function Personalizacion() {
                         <div>
                             <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 700, textTransform: "uppercase" }}>Temas</p>
                         </div>
-                        <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center" }}>
+                        <div style={{ display: "flex", flex: 1, gap: 20, justifyContent: "center", overflowX: "auto", scrollbarWidth: "none" }}>
                             <button onClick={() => cambiarTema('default')}
                                 style={{ width: 34, height: 34, borderRadius: "50%", cursor: "pointer", border: "2px solid white", background: "linear-gradient(135deg, #6f7375ff 0%, #5e87a4ff 100%)", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
                                 title="Steel Slate"
