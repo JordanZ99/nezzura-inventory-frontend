@@ -8,14 +8,16 @@
 // No requiere autenticación. No carga el contexto de auth, ni Antigravity,
 // ni el sidebar, ni los temas del gestor.
 //
-// El diseño usa los mismos 4 temas predefinidos del gestor pero aplicados
-// de forma independiente con CSS inline para no heredar globals.css.
+// El diseño usa los mismos temas del gestor A TRAVÉS de sus variables CSS:
+// el tema del tenant se aplica como atributo data-theme en <html> y todos los
+// colores se leen de var(--...) definidas en globals.css. Editar un tema del
+// gestor (globals.css) actualiza el catálogo público automáticamente.
 //
 // Sistema de templates: el backend devuelve config.template y la página
 // renderiza el componente correspondiente (grid-clasico, menu-carta, etc.)
 // ==============================================================================
 
-import { useState, useEffect, useCallback, Fragment } from "react"
+import { useState, useEffect, useCallback, useRef, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
 import { normalizarTema } from "@/lib/temas"
@@ -72,10 +74,10 @@ interface RespuestaCatalogo {
     productos: ProductoPublico[]
 }
 
-// ── Mapa de temas predefinidos ──
-// Cada tema define una paleta de colores completa para el catálogo.
-// Los valores coinciden con los temas del gestor (globals.css) pero
-// se aplican inline para mantener el catálogo visualmente independiente.
+// ── Paleta ligada a las variables CSS de globals.css ──
+// Cada propiedad es una referencia var(--...): el valor real lo decide el
+// tema activo ([data-theme] en <html>, aplicado según config.tema más abajo).
+// Así el catálogo y el gestor comparten la MISMA fuente de verdad (globals.css).
 
 interface PaletaTema {
     bg: string
@@ -88,67 +90,15 @@ interface PaletaTema {
     gradient: string
 }
 
-const TEMAS: Record<string, PaletaTema> = {
-    default: {
-        bg: "#f0f3f8",
-        bgCard: "#ffffff",
-        text: "#1e293b",
-        textMuted: "#64748b",
-        primary: "#3a7dbf",
-        primaryDark: "#2c5f8f",
-        border: "#e2e8f0",
-        gradient: "linear-gradient(135deg, #3a7dbf 0%, #5e87a4 100%)",
-    },
-    midnightSlate: {
-        bg: "#0f1419",
-        bgCard: "#1a1f24",
-        text: "#e2e8f0",
-        textMuted: "#94a3b8",
-        primary: "#2dd4bf",
-        primaryDark: "#14b8a6",
-        border: "#2a3038",
-        gradient: "linear-gradient(135deg, #1f2321 0%, #1e6456 100%)",
-    },
-    strawberry: {
-        bg: "#fff5f7",
-        bgCard: "#ffffff",
-        text: "#4a1d2e",
-        textMuted: "#9b6b7a",
-        primary: "#f33376",
-        primaryDark: "#d12e6a",
-        border: "#fce4ea",
-        gradient: "linear-gradient(135deg, #f33376 0%, #fa30df 100%)",
-    },
-    cozyYellow: {
-        bg: "#fffef5",
-        bgCard: "#ffffff",
-        text: "#4a3d1a",
-        textMuted: "#9b8b5a",
-        primary: "#f59e0b",
-        primaryDark: "#d97706",
-        border: "#fef3c7",
-        gradient: "linear-gradient(135deg, #ffd05b 0%, #eb7456 100%)",
-    },
-    botanical: {
-        bg: "#f7faef",
-        bgCard: "#f8fcf4",
-        text: "#274932",
-        textMuted: "#7d907f",
-        primary: "#24a85b",
-        primaryDark: "#1b6a40",
-        border: "#e3edd9",
-        gradient: "linear-gradient(135deg, #24a85b 0%, #5ec967 100%)",
-    },
-    cottonCandy: {
-        bg: "#fbd9ea",
-        bgCard: "#fde7f1",
-        text: "#ffffff",
-        textMuted: "#ffffffb3",
-        primary: "#e0559c",
-        primaryDark: "#b23475",
-        border: "#f5c2dd",
-        gradient: "linear-gradient(135deg, #f472b6 0%, #7dd3fc 100%)",
-    },
+const TEMA_VARIABLES: PaletaTema = {
+    bg: "var(--bg-app)",
+    bgCard: "var(--bg-card)",
+    text: "var(--text-main)",
+    textMuted: "var(--text-muted)",
+    primary: "var(--primary-mid)",
+    primaryDark: "var(--primary-dark)",
+    border: "var(--border-primary)",
+    gradient: "var(--gradient-1)",
 }
 
 // ── Mapa de templates ──
@@ -221,6 +171,25 @@ export default function CatalogoView({ slug }: { slug: string }) {
             .finally(() => setCargando(false))
     }, [slug])
 
+    // ── Aplicar el tema del tenant al <html> ──
+    // globals.css define los colores de cada tema bajo [data-theme="..."];
+    // al poner el atributo con el tema del catálogo, todas las var(--...) de
+    // TEMA_VARIABLES resuelven a ese tema. Al desmontar se restaura el tema
+    // previo del visitante (el que dejó el script inline del layout).
+    const temaPrevio = useRef<string | null>(null)
+    useEffect(() => {
+        if (!datos) return
+        if (temaPrevio.current === null) {
+            temaPrevio.current = document.documentElement.getAttribute("data-theme")
+        }
+        document.documentElement.setAttribute("data-theme", normalizarTema(datos.config.tema))
+        return () => {
+            if (temaPrevio.current !== null) {
+                document.documentElement.setAttribute("data-theme", temaPrevio.current)
+            }
+        }
+    }, [datos])
+
     // ── Favicon dinámico: usa el logo del tenant ──
     useEffect(() => {
         const logoUrl = datos?.config?.logo
@@ -252,10 +221,10 @@ export default function CatalogoView({ slug }: { slug: string }) {
     // ── Loading ──
     if (cargando) {
         return (
-            <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f3f8" }}>
+            <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-app)" }}>
                 <div style={{ textAlign: "center" }}>
-                    <div style={{ width: 48, height: 48, border: "4px solid #e2e8f0", borderTopColor: "#3a7dbf", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
-                    <p style={{ color: "#64748b", fontWeight: 600, fontSize: "0.9rem" }}>Cargando catálogo...</p>
+                    <div style={{ width: 48, height: 48, border: "4px solid var(--border-primary)", borderTopColor: "var(--primary-mid)", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px" }} />
+                    <p style={{ color: "var(--text-muted)", fontWeight: 600, fontSize: "0.9rem" }}>Cargando catálogo...</p>
                 </div>
                 <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
             </div>
@@ -265,19 +234,20 @@ export default function CatalogoView({ slug }: { slug: string }) {
     // ── Error ──
     if (error || !datos) {
         return (
-            <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f3f8" }}>
+            <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-app)" }}>
                 <div style={{ textAlign: "center", maxWidth: 400, padding: 40 }}>
                     <Icon name="Store" size={48} color="var(--primary-dark)" />
-                    <h1 style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b", margin: "0 0 8px" }}>Catálogo no disponible</h1>
-                    <p style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>{error || "No se pudo cargar el catálogo."}</p>
+                    <h1 style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--text-main)", margin: "0 0 8px" }}>Catálogo no disponible</h1>
+                    <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.6 }}>{error || "No se pudo cargar el catálogo."}</p>
                 </div>
             </div>
         )
     }
 
     // ── Aplicar tema ──
-    // normalizarTema mapea el valor legado 'midnightBlack' (filas antiguas de la BD)
-    const tema = TEMAS[normalizarTema(datos.config.tema)] || TEMAS.default
+    // La paleta es única (referencias var(--...)); el tema del tenant ya fue
+    // aplicado como data-theme en <html> por el efecto de arriba.
+    const tema = TEMA_VARIABLES
     const { config } = datos
 
     // ── Banner según viewport: en móvil se prefiere banner_url_movil si existe ──
@@ -377,7 +347,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 style={{
                     padding: "6px 12px", borderRadius: 6,
                     border: p === paginaSegura ? `2px solid ${tema.primary}` : `1px solid ${tema.border}`,
-                    background: p === paginaSegura ? `${tema.primary}1A` : tema.bgCard,
+                    background: p === paginaSegura ? `color-mix(in srgb, ${tema.primary} 10%, transparent)` : tema.bgCard,
                     color: p === paginaSegura ? tema.primary : tema.text,
                     cursor: "pointer",
                     fontWeight: p === paginaSegura ? 800 : 600,
@@ -452,7 +422,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 </header>
             ) : (
                 /* Modo gradiente: solo header con degradado (el banner es exclusivo del modo imagen) */
-                <header style={{ background: tema.gradient, padding: "48px 24px 40px", textAlign: "center", color: "#fff" }}>
+                <header style={{ background: tema.gradient, padding: "48px 24px 40px", textAlign: "center", color: "var(--on-primary)" }}>
                         {config.logo && (
                             /* Logo circular con borde blanco, igual que en el preview del link (WhatsApp) */
                             <img
@@ -495,7 +465,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     top: 0,
                     zIndex: 50,
                     background: tema.primary,
-                    color: "#fff",
+                    color: "var(--on-primary)",
                     textAlign: "center",
                     padding: "10px 20px",
                     fontSize: "0.82rem",
@@ -551,9 +521,9 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                         fontSize: "0.8rem", fontWeight: 700,
                                         whiteSpace: "nowrap",
                                         background: catFiltro === cat ? tema.primary : tema.bgCard,
-                                        color: catFiltro === cat ? "#fff" : tema.textMuted,
+                                        color: catFiltro === cat ? "var(--on-primary)" : tema.textMuted,
                                         transition: "all 0.15s",
-                                        boxShadow: catFiltro === cat ? `0 2px 8px ${tema.primary}55` : "0 1px 3px rgba(0,0,0,0.06)",
+                                        boxShadow: catFiltro === cat ? `0 2px 8px color-mix(in srgb, ${tema.primary} 33%, transparent)` : "0 1px 3px rgba(0,0,0,0.06)",
                                     }}
                                 >
                                     {cat}
@@ -604,7 +574,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                         style={{
                                             padding: "6px 12px", borderRadius: 6,
                                             border: item === paginaSegura ? `2px solid ${tema.primary}` : `1px solid ${tema.border}`,
-                                            background: item === paginaSegura ? `${tema.primary}1A` : tema.bgCard,
+                                            background: item === paginaSegura ? `color-mix(in srgb, ${tema.primary} 10%, transparent)` : tema.bgCard,
                                             color: item === paginaSegura ? tema.primary : tema.text,
                                             cursor: "pointer", fontWeight: item === paginaSegura ? 800 : 600,
                                             fontSize: "0.8rem", transition: "all 0.15s",
