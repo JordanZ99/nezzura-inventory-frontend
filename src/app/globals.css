@@ -311,11 +311,11 @@
   /* Rojo tomate oscuro */
   --primary-mid: hsl(45, 90%, 52%);
   /* Amarillo dorado principal */
-  --primary-light: hsl(46, 92%, 68%);
+  --primary-light: hsl(27, 91%, 68%);
   /* Amarillo claro */
   --primary-pale: hsl(42, 90%, 74%);
   /* Durazno pálido (hover / acento suave) */
-  --primary-soft: hsl(48, 60%, 97%);
+  --primary-soft: hsl(227, 60%, 97%);
   /* Fondo crema muy sutil */
   --primary-alter: hsl(21, 75%, 54%);
   /* Naranja quemado como acento secundario */
@@ -411,7 +411,7 @@
    ============================================ */
 
   /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
-  --primary-dark: hsl(152, 60%, 26%);
+  --primary-dark: hsl(108, 20%, 29%);
   /* Verde bosque profundo */
   --primary-mid: hsl(145, 65%, 40%);
   /* Verde hoja principal */
@@ -419,7 +419,7 @@
   /* Verde manzana claro */
   --primary-pale: hsl(105, 55%, 78%);
   /* Lima pálida (hover / acento suave) */
-  --primary-soft: hsl(87, 39%, 83%);
+  --primary-soft: hsl(24, 43%, 75%);
   /* Fondo verdoso muy sutil */
   --primary-alter: hsl(27, 61%, 67%);
   /* Flor rosa como acento secundario */
@@ -448,9 +448,9 @@
   /* Superficies secundarias (filas, interiores, hovers) */
 
   /* Bordes y Divisores */
-  --border-light: hsl(85, 25%, 87%);
+  --border-light: hsl(30, 33%, 59%);
   /* Para inputs y botones ghost */
-  --border-primary: hsl(105, 40%, 88%);
+  --border-primary: hsla(27, 73%, 65%, 0.803);
   /* Para separadores temáticos */
 
   /* Tipografía */
@@ -466,7 +466,7 @@
   /* Menta para el glow de foco */
 
   /* --- Degradados --- */
-  --gradient-1: linear-gradient(135deg, hsl(152, 60%, 30%) 0%, hsl(95, 55%, 46%) 100%);
+  --gradient-1: linear-gradient(135deg, hsl(139, 23%, 36%) 0%, hsl(99, 42%, 44%) 100%);
   --gradient-2: linear-gradient(135deg, hsl(105, 55%, 78%) 0%, hsl(90, 45%, 86%) 100%);
   --gradient-3: linear-gradient(135deg, hsl(120, 45%, 64%) 0%, hsl(69, 56%, 70%) 100%);
   --gradient-4: linear-gradient(135deg, hsl(150, 60%, 35%) 0%, hsl(105, 55%, 58%) 100%);
@@ -489,9 +489,9 @@
 
   /* --- LAYOUT --- */
   --overlay-bg: hsl(0 0% 0% / 40%);
-  --gradient-layout: linear-gradient(180deg, hsl(32, 53%, 78%) 0%, hsl(50, 49%, 85%) 60%, hsla(73, 60%, 88%, 0.971) 100%);
-  --primary-layout: linear-gradient(135deg, hsl(95, 45%, 96%), hsl(90, 40%, 89%));
-  --primary-icons: hsl(94, 55%, 32%);
+  --gradient-layout: linear-gradient(180deg, hsl(16, 16%, 33%) 0%, hsl(24, 27%, 38%) 60%, hsla(23, 19%, 41%, 0.971) 100%);
+  --primary-layout: linear-gradient(135deg, hsl(27, 54%, 54%), hsl(37, 58%, 61%));
+  --primary-icons: hsl(28, 62%, 68%);
 
   /* --- COLORES PARA KPI's (RGB) --- */
   --chart-1: 36 168 91;
