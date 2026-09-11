@@ -543,7 +543,7 @@
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
   --on-primary: hsl(0, 0%, 100%);
   /* Texto/iconos sobre superficies de marca (botones, gradientes) */
-  --bg-app: hsl(323, 100%, 96%);
+  --bg-app: hsl(0, 0%, 100%);
   --bg-card: hsl(300, 100%, 97%);
   /* Tarjeta principal */
   --bg-card2: hsl(322, 100%, 96%);
