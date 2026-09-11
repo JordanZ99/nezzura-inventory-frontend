@@ -543,8 +543,8 @@
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
   --on-primary: hsl(0, 0%, 100%);
   /* Texto/iconos sobre superficies de marca (botones, gradientes) */
-  --bg-app: hsl(325, 100%, 95%);
-  --bg-card: hsl(304, 100%, 97%);
+  --bg-app: hsl(323, 100%, 96%);
+  --bg-card: hsl(300, 100%, 97%);
   /* Tarjeta principal */
   --bg-card2: hsl(322, 100%, 96%);
   /* Superficies secundarias (filas, interiores, hovers) */
@@ -552,7 +552,7 @@
   /* Bordes y Divisores */
   --border-light: hsl(210, 17%, 93%);
   /* Para inputs y botones ghost */
-  --border-primary: hsl(319, 100%, 84%);
+  --border-primary: hsl(335, 100%, 91%);
   /* Para separadores temáticos */
 
   /* Tipografía */
