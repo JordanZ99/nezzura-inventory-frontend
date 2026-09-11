@@ -544,7 +544,7 @@
   --on-primary: hsl(0, 0%, 100%);
   /* Texto/iconos sobre superficies de marca (botones, gradientes) */
   --bg-app: hsl(0, 0%, 100%);
-  --bg-card: hsl(300, 100%, 97%);
+  --bg-card: hsl(315, 100%, 98%);
   /* Tarjeta principal */
   --bg-card2: hsl(322, 100%, 96%);
   /* Superficies secundarias (filas, interiores, hovers) */
