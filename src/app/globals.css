@@ -543,8 +543,8 @@
   /* --- UI / NEUTRALS (Bordes, Fondos, Sombras) --- */
   --on-primary: hsl(0, 0%, 100%);
   /* Texto/iconos sobre superficies de marca (botones, gradientes) */
-  --bg-app: hsl(214, 100%, 97%);
-  --bg-card: hsl(326, 100%, 99%);
+  --bg-app: hsl(296, 100%, 97%);
+  --bg-card: hsl(0, 0%, 100%);
   /* Tarjeta principal */
   --bg-card2: hsl(322, 100%, 96%);
   /* Superficies secundarias (filas, interiores, hovers) */
@@ -566,7 +566,7 @@
   --primary-glow: #6b475e;
 
   /* --- Degradados --- */
-  --gradient-1: linear-gradient(135deg, hsl(288, 100%, 76%) 0%, hsl(304, 100%, 80%) 100%);
+  --gradient-1: linear-gradient(135deg, hsl(191, 91%, 73%) 0%, hsl(304, 100%, 85%) 100%);
   --gradient-2: linear-gradient(135deg, hsl(344, 100%, 81%) 0%, hsl(323, 76%, 85%) 100%);
   --gradient-3: linear-gradient(135deg, hsl(324, 100%, 76%) 0%, hsl(281, 100%, 78%) 100%);
   --gradient-4: linear-gradient(135deg, hsl(256, 62%, 54%) 0%, hsl(339, 70%, 65%) 100%);
