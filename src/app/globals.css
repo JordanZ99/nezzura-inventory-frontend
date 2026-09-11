@@ -518,7 +518,7 @@
 
 [data-theme="cottonCandy"] {
   /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
-  --primary-dark: hsl(235, 88%, 63%);
+  --primary-dark: hsl(266, 64%, 52%);
   --primary-mid: hsl(188, 83%, 52%);
   --primary-light: hsl(344, 100%, 72%);
   --primary-pale: hsl(344, 100%, 84%);
