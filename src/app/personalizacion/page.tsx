@@ -135,22 +135,26 @@ export default function Personalizacion() {
                                 />
                             ))}
                         </div>
-                        {/* Móvil: 3 temas + flecha; al expandir se envuelven en filas de 4 */}
+                        {/* Móvil: 3 temas + flecha siempre como 4º círculo; al expandir los demás bajan a filas siguientes */}
                         <div className="flex md:hidden" style={{ flex: 1, gap: 20, rowGap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                            {(mostrarTodosTemas ? TEMAS_CIRCULOS : TEMAS_CIRCULOS.slice(0, 3)).map(t => (
+                            {TEMAS_CIRCULOS.slice(0, 3).map(t => (
                                 <button key={t.clave} onClick={() => cambiarTema(t.clave)}
                                     style={{ ...ESTILO_CIRCULO, background: t.background }}
                                     title={t.title}
                                 />
                             ))}
-                            {!mostrarTodosTemas && (
-                                <button onClick={() => setMostrarTodosTemas(true)}
-                                    style={{ ...ESTILO_CIRCULO, background: "var(--bg-card)", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
-                                    title="Más temas"
-                                >
-                                    <Icon name="ChevronDown" size={16} />
-                                </button>
-                            )}
+                            <button onClick={() => setMostrarTodosTemas(v => !v)}
+                                style={{ ...ESTILO_CIRCULO, background: "var(--bg-card)", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                                title={mostrarTodosTemas ? "Mostrar menos" : "Más temas"}
+                            >
+                                <Icon name={mostrarTodosTemas ? "ChevronUp" : "ChevronDown"} size={16} />
+                            </button>
+                            {mostrarTodosTemas && TEMAS_CIRCULOS.slice(3).map(t => (
+                                <button key={t.clave} onClick={() => cambiarTema(t.clave)}
+                                    style={{ ...ESTILO_CIRCULO, background: t.background }}
+                                    title={t.title}
+                                />
+                            ))}
                         </div>
                     </div>
                 </div>
