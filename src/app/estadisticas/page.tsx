@@ -11,6 +11,7 @@ import Icon from "@/components/ui/Icon"
 import { ToastBanner } from "@/components/ui/Toast"
 import CardTurnos from "@/components/estadisticas/CardTurnos"
 import TabClientes from "@/components/estadisticas/TabClientes"
+import TabHistorialCambios from "@/components/estadisticas/TabHistorialCambios"
 import { useChartColors } from "@/hooks/useChartColors"
 import { useTenant } from "@/contexts/TenantContext"
 import { useEstadisticasDatos } from "@/hooks/useEstadisticasDatos"
@@ -36,11 +37,13 @@ const ETIQUETAS_PRESET: Record<PresetPeriodo, string> = {
     custom: "Rango personalizado",
 }
 
-// Tabs del panel: "Ventas" = el dashboard histórico; "Clientes" = cartera + fidelización.
-type TabPanel = "ventas" | "clientes"
+// Tabs del panel: "Ventas" = el dashboard histórico; "Clientes" = cartera + fidelización;
+// "Historial de cambios" = ledger append-only del inventario (migración 040).
+type TabPanel = "ventas" | "clientes" | "historial"
 const TABS_PANEL: { id: TabPanel; label: string; icon: string }[] = [
     { id: "ventas", label: "Ventas", icon: "ShoppingCart" },
     { id: "clientes", label: "Clientes", icon: "Users" },
+    { id: "historial", label: "Historial de cambios", icon: "History" },
 ]
 
 export default function Estadisticas() {
@@ -251,6 +254,8 @@ export default function Estadisticas() {
                 )}
 
                 {tabPanel === "clientes" && <TabClientes rango={rango} todo={todo} />}
+
+                {tabPanel === "historial" && <TabHistorialCambios />}
 
                 {/* El padding inferior se comparte entre tabs */}
                 <div style={{ height: 32 }} />
