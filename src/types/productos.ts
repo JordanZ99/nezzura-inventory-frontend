@@ -120,3 +120,38 @@ export interface ImagenProducto {
     url: string;
     orden: number;
 }
+
+// ── Ledger de inventario (migración 040): historial append-only de cambios ──
+export type TipoMovimiento = "entrada" | "salida" | "ajuste";
+export type OrigenMovimiento =
+    | "venta"          // salida por cobro en el POS (incluye consumo de compuestos)
+    | "restock"        // entrada por alta de producto/variación o restock
+    | "ajuste_manual"  // corrección del stock de un lote (edición absoluta)
+    | "edicion_venta"  // delta por editar la cantidad de una venta cobrada
+    | "anulacion"      // devolución de stock por anular venta o ticket
+    | "baja_lote";     // stock que sale al dar de baja un lote
+
+export interface MovimientoInventario {
+    id: string;
+    producto_id: number | null;
+    producto: string;
+    variacion: string | null;
+    id_lote: string | null;
+    tipo: TipoMovimiento;
+    origen: OrigenMovimiento;
+    /** Unidades con signo: + entra, − sale */
+    cantidad: number;
+    /** Snapshot del stock del lote justo después del movimiento */
+    stock_resultante: number | null;
+    /** orden_id (ticket) cuando el movimiento nace de una venta */
+    referencia_id: string | null;
+    concepto: string | null;
+    fecha: string;
+}
+
+export interface RespuestaMovimientos {
+    movimientos: MovimientoInventario[];
+    total: number;
+    limit: number;
+    offset: number;
+}

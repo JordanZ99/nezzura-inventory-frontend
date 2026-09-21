@@ -1,4 +1,4 @@
-import { BASE_URL, getAuthHeaders, request } from "./client"
+import { BASE_URL, getAuthHeaders, request, conQuery } from "./client"
 import type {
     Producto,
     Lote,
@@ -8,7 +8,8 @@ import type {
     Variacion,
     MaterialReceta,
     ImagenProducto,
-    PostOverride
+    PostOverride,
+    RespuestaMovimientos
 } from "@/types"
 
 export const productosApi = {
@@ -18,6 +19,23 @@ export const productosApi = {
     // Inventario y Lotes
     getInventario: () => request<Producto[]>("/inventario/"),
     getLotes: () => request<Lote[]>("/inventario/lotes"),
+    // Historial de cambios del inventario (ledger append-only, migración 040)
+    getMovimientos: (params?: {
+        limit?: number
+        offset?: number
+        tipo?: string
+        producto?: string
+        desde?: string
+        hasta?: string
+    }) =>
+        request<RespuestaMovimientos>(conQuery("/inventario/movimientos", {
+            limit: params?.limit,
+            offset: params?.offset,
+            tipo: params?.tipo,
+            producto: params?.producto,
+            desde: params?.desde,
+            hasta: params?.hasta,
+        })),
     crearProducto: (data: NuevoProducto & { imagen?: string }) =>
         request("/inventario/", { method: "POST", body: JSON.stringify(data) }),
     restockear: (data: Restock) =>
