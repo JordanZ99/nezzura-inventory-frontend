@@ -122,7 +122,7 @@
   /* Teal suave */
   --primary-pale: hsl(170, 35%, 72%);
   /* Teal pálido claro (hover / acento suave) */
-  --primary-soft: hsl(210, 6%, 19%);
+  --primary-soft: hsl(215, 14%, 17%);
   /* Acento sobre superficies de marca / selección */
   --primary-alter: hsl(225, 35%, 55%);
   /* Índigo como acento secundario */
