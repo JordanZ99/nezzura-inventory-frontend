@@ -40,8 +40,8 @@ const NOMBRES_TEMA: Record<string, string> = {
 }
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-    { id: "cuenta", label: "Mi Cuenta", icon: "User" },
-    { id: "negocio", label: "Mi Negocio", icon: "Store" },
+    { id: "cuenta", label: "Cuenta", icon: "User" },
+    { id: "negocio", label: "Negocio", icon: "Store" },
     { id: "catalogo", label: "Catálogo", icon: "ClipboardList" },
 ]
 
