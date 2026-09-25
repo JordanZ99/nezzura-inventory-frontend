@@ -610,6 +610,111 @@
   --chart-color-6: slate;
 }
 
+[data-theme="blackGrill"] {
+  /* ============================================
+   MIDNIGHT SLATE THEME
+   Oscuro cálido · Sin negro puro · Teal + Índigo
+   ============================================ */
+
+
+  /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
+  --primary-dark: hsl(23, 100%, 82%);
+  /* Teal profundo */
+  --primary-mid: hsl(17, 5%, 26%);
+  /* Teal principal */
+  --primary-light: hsl(40, 47%, 59%);
+  /* Teal suave */
+  --primary-pale: hsl(48, 75%, 81%);
+  /* Teal pálido claro (hover / acento suave) */
+  --primary-soft: hsl(10, 6%, 20%);
+  /* Acento sobre superficies de marca / selección */
+  --primary-alter: hsl(20, 4%, 31%);
+  /* Índigo como acento secundario */
+
+  /* --- TEXTOS DE MARCA --- */
+  --text-label: hsl(15, 37%, 45%);
+  /* Etiquetas y subtítulos sobre superficies claras */
+
+  /* --- SEMANTIC STATES --- */
+  --success-main: hsl(152, 38%, 44%);
+  --success-text: hsl(152, 45%, 65%);
+  /* Más claro para modo oscuro */
+  --success-bg: hsl(152, 25%, 18%);
+
+  --error-main: hsl(0, 62%, 60%);
+  --error-text: hsl(0, 70%, 72%);
+  --error-bg: hsl(0, 35%, 18%);
+
+  /* --- UI / NEUTRALS --- */
+  --on-primary: hsl(32, 81%, 94%);
+  /* Texto/iconos sobre superficies de marca (botones, gradientes) */
+  --bg-app: hsl(0, 0%, 15%);
+  /* Fondo principal — no negro puro, tiene calor */
+  --bg-card: hsl(0, 0%, 16%);
+  /* Tarjeta principal */
+  --bg-card2: hsl(0, 0%, 19%);
+  /* Superficies secundarias levemente más claras */
+
+  --border-light: hsl(0, 0%, 27%);
+  --border-primary: hsl(25, 18%, 26%);
+
+  /* Tipografía — nunca blanco puro, reduce fatiga visual */
+  --text-main: hsl(14, 21%, 88%);
+  --text-muted: hsl(32, 16%, 55%);
+  --text-white: hsl(210, 20%, 92%);
+
+  /* --- EFECTOS & SOMBRAS --- */
+  --card-shadow: 0 4px 24px 0 hsl(0 0% 0% / 30%);
+  --btn-shadow: 0 4px 15px hsl(170 38% 47% / 20%);
+  --primary-glow: #462b27;
+
+  /* --- Degradados --- */
+  --gradient-1: linear-gradient(135deg, hsl(39, 38%, 43%) 0%, hsl(11, 40%, 29%) 100%);
+  --gradient-2: linear-gradient(135deg, hsl(30, 18%, 20%) 0%, hsl(0, 16%, 28%) 100%);
+  --gradient-3: linear-gradient(135deg, hsl(0, 19%, 50%) 0%, hsl(0, 0%, 32%) 100%);
+  --gradient-4: linear-gradient(135deg, hsl(34, 12%, 47%) 0%, hsl(18, 33%, 39%) 100%);
+  --gradient-5: linear-gradient(135deg, hsl(7, 42%, 52%) 0%, hsl(13, 8%, 34%) 100%);
+  --gradient-login: linear-gradient(135deg, hsl(0, 0%, 25%), hsl(12, 38%, 32%));
+  --gradient-bg-login: linear-gradient(180deg, hsl(214, 16%, 11%) 0%, hsl(214, 14%, 8%) 100%);
+
+  /* --- Antigravity --- */
+  --ag-color-1: #a47e7e;
+  --ag-color-2: #b8984d;
+  /* Teal como partícula principal */
+  --ag-color-3: #1f2429;
+  --ag-color-4: #1f2429;
+  --ag-color-5: #5a503f;
+
+  /* --- LAYOUT --- */
+  --overlay-bg: hsla(15, 6%, 13%, 0.6);
+  --gradient-layout: linear-gradient(180deg, hsl(0, 0%, 14%) 0%, hsl(0, 0%, 16%) 60%, hsl(11, 21%, 30%) 100%);
+  --primary-layout: linear-gradient(135deg, hsl(30, 3%, 25%), hsl(21, 13%, 21%));
+  --primary-icons: hsl(45, 45%, 62%);
+  /* Teal más claro para iconos sobre fondo oscuro */
+
+  /* --- COLORES PARA KPI's (RGB) --- */
+  --chart-1: 77 184 164;
+  /* Teal */
+  --chart-2: 107 140 202;
+  /* Índigo */
+  --chart-3: 138 151 166;
+  /* Slate */
+  --chart-4: 16 185 129;
+  /* Green */
+  --chart-5: 139 92 246;
+  /* Violet */
+  --chart-6: 245 158 11;
+  /* Amber */
+
+  /* --- COLORES PARA GRÁFICAS (nombres de familia Tailwind, sin shade) --- */
+  --chart-color-1: teal;
+  --chart-color-2: indigo;
+  --chart-color-3: slate;
+  --chart-color-4: green;
+  --chart-color-5: violet;
+  --chart-color-6: amber;
+}
+
 
 * {
   box-sizing: border-box;
