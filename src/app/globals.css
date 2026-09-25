@@ -620,7 +620,7 @@
   /* --- BRAND COLORS (rampa: dark → mid → light → pale) --- */
   --primary-dark: hsl(23, 100%, 82%);
   /* Teal profundo */
-  --primary-mid: hsl(17, 5%, 26%);
+  --primary-mid: hsl(17, 12%, 34%);
   /* Teal principal */
   --primary-light: hsl(40, 47%, 59%);
   /* Teal suave */
@@ -650,13 +650,13 @@
   /* Texto/iconos sobre superficies de marca (botones, gradientes) */
   --bg-app: hsl(0, 0%, 15%);
   /* Fondo principal — no negro puro, tiene calor */
-  --bg-card: hsl(0, 0%, 16%);
+  --bg-card: hsl(0, 0%, 12%);
   /* Tarjeta principal */
   --bg-card2: hsl(0, 0%, 19%);
   /* Superficies secundarias levemente más claras */
 
-  --border-light: hsl(0, 0%, 27%);
-  --border-primary: hsl(25, 18%, 26%);
+  --border-light: hsl(20, 3%, 20%);
+  --border-primary: hsl(23, 15%, 17%);
 
   /* Tipografía — nunca blanco puro, reduce fatiga visual */
   --text-main: hsl(14, 21%, 88%);
@@ -687,7 +687,7 @@
 
   /* --- LAYOUT --- */
   --overlay-bg: hsla(15, 6%, 13%, 0.6);
-  --gradient-layout: linear-gradient(180deg, hsl(0, 0%, 14%) 0%, hsl(0, 0%, 16%) 60%, hsl(11, 21%, 30%) 100%);
+  --gradient-layout: linear-gradient(180deg, hsl(0, 0%, 8%) 0%, hsl(0, 0%, 16%) 60%, hsl(11, 21%, 30%) 100%);
   --primary-layout: linear-gradient(135deg, hsl(30, 3%, 25%), hsl(21, 13%, 21%));
   --primary-icons: hsl(45, 45%, 62%);
   /* Teal más claro para iconos sobre fondo oscuro */
