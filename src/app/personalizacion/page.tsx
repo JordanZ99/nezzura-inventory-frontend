@@ -37,6 +37,7 @@ const NOMBRES_TEMA: Record<string, string> = {
     cozyYellow: "Cozy Yellow",
     botanical: "Botanic Green",
     cottonCandy: "Cotton Candy",
+    blackGrill: "Black Grill",
 }
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -53,6 +54,7 @@ const TEMAS_CIRCULOS = [
     { clave: 'cozyYellow', title: "Cozy Yellow", background: "linear-gradient(135deg, #ffd05bff 0%, #eb7456ff 100%)" },
     { clave: 'botanical', title: "Botanic Green", background: "linear-gradient(135deg, #24a85bff 0%, #5ec967ff 100%)" },
     { clave: 'cottonCandy', title: "Cotton Candy", background: "linear-gradient(135deg, #f472b6ff 0%, #7dd3fcff 100%)" },
+    { clave: 'blackGrill', title: "Black Grill", background: "linear-gradient(135deg, #1b1b1bff 0%, #3b3b3bff 100%)" },
 ]
 
 const ESTILO_CIRCULO: React.CSSProperties = { width: 34, height: 34, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid white", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }
