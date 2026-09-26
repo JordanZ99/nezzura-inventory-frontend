@@ -23,6 +23,7 @@ const ETIQUETAS_ORIGEN: Record<OrigenMovimiento, string> = {
     edicion_venta: "Edición de venta",
     anulacion: "Anulación",
     baja_lote: "Baja de lote",
+    conteo: "Conteo de auditoría",
 }
 
 const COLOR_TIPO: Record<TipoMovimiento, string> = {
