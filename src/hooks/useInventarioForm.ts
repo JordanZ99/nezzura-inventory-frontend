@@ -22,7 +22,7 @@ export type { FormAltaProducto, FormRestock, FormEditProd, FormEditLote } from "
 export type { NuevaVariacionAlta } from "@/hooks/useFormVariaciones"
 export type { NuevoMaterialAlta } from "@/hooks/useFormRecetas"
 
-export type Tab = "nuevo" | "restock" | "editar"
+export type Tab = "nuevo" | "restock" | "editar" | "conteo"
 
 interface UseInventarioFormArgs {
     // Datos compartidos (provienen de useInventarioData)

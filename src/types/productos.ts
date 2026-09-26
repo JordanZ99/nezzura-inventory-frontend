@@ -129,7 +129,8 @@ export type OrigenMovimiento =
     | "ajuste_manual"  // corrección del stock de un lote (edición absoluta)
     | "edicion_venta"  // delta por editar la cantidad de una venta cobrada
     | "anulacion"      // devolución de stock por anular venta o ticket
-    | "baja_lote";     // stock que sale al dar de baja un lote
+    | "baja_lote"      // stock que sale al dar de baja un lote
+    | "conteo";        // resolución de un conteo de auditoría (merma/corrección/ingreso)
 
 export interface MovimientoInventario {
     id: string;

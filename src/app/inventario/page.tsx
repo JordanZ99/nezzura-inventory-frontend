@@ -19,12 +19,14 @@ import { useTenant } from "@/contexts/TenantContext"
 import { useInventarioData } from "@/hooks/useInventarioData"
 import { useInventarioForm } from "@/hooks/useInventarioForm"
 import { useInventarioUI } from "@/hooks/useInventarioUI"
+import { useConteoData } from "@/hooks/useConteoData"
 import CardAltaProducto from "@/components/inventario/CardAltaProducto"
 import CardGestionCategorias from "@/components/inventario/CardGestionCategorias"
 import GridRestock from "@/components/inventario/GridRestock"
 import FormRestock from "@/components/inventario/FormRestock"
 import GridEditar from "@/components/inventario/GridEditar"
 import FormEditar from "@/components/inventario/FormEditar"
+import TabConteo from "@/components/inventario/TabConteo"
 import ModalCrearPost from "@/components/inventario/ModalCrearPost"
 
 
@@ -44,6 +46,9 @@ export default function Inventario() {
     // ── Hooks: datos, UI y formularios ──
     const data = useInventarioData()
     const ui = useInventarioUI()
+    // Conteo de auditoría: el hook vive a nivel de página para que el badge
+    // del tab refleje la sesión abierta aunque esté en otra pestaña.
+    const conteo = useConteoData()
     const formHook = useInventarioForm({
         inv: data.inv,
         actualizarInv: data.actualizarInv,
@@ -139,10 +144,11 @@ export default function Inventario() {
         confirmarEliminarCategoria,
     } = formHook
 
-    const TABS: { id: "nuevo" | "restock" | "editar"; label: string; icon: string }[] = [
+    const TABS: { id: "nuevo" | "restock" | "editar" | "conteo"; label: string; icon: string }[] = [
         { id: "nuevo", label: "Nuevo", icon: "ClipboardPlus" },
         { id: "restock", label: "Restock", icon: "PackagePlus" },
         { id: "editar", label: "Editar Prod.", icon: "Pencil" },
+        { id: "conteo", label: "Auditoría", icon: "ClipboardList" },
     ]
 
     // ── Explicaciones de cada KPI en lenguaje entendible ──
@@ -162,8 +168,23 @@ export default function Inventario() {
         "Stock descuadrado": {
             descripcion: "Son los productos que tienen stock en 0 o incluso negativo. Stock negativo significa que se vendieron más unidades de las que había registradas. Revisa estos productos para corregir su inventario.",
             formula: "Productos con stock ≤ 0"
+        },
+        "Última auditoría": {
+            descripcion: "Días transcurridos desde tu último conteo de auditoría (pestaña Auditoría). Contar tu inventario periódicamente es lo que te permite descubrir a tiempo mermas, robos o ventas que no se registraron. Si nunca has hecho uno o ya pasaron más de 15 días, el número se muestra en ámbar: es buen momento para contar.",
+            formula: "Días desde el conteo cerrado más reciente (— si nunca)"
         }
     }
+
+    // ── Nudge de auditoría: días desde el último conteo cerrado ──
+    // Ámbar si nunca se ha auditado o si pasaron más de 15 días.
+    const auditoria: { valor: string; alerta: boolean } = (() => {
+        if (conteo.sesionAbierta) return { valor: "En curso", alerta: false }
+        const ultima = conteo.historial[0]?.cerrado_at
+        if (!ultima) return { valor: "Nunca", alerta: true }
+        const dias = Math.floor((Date.now() - new Date(ultima).getTime()) / 86_400_000)
+        const texto = dias <= 0 ? "Hoy" : dias === 1 ? "Ayer" : `Hace ${dias} días`
+        return { valor: texto, alerta: dias >= 15 }
+    })()
 
     // Productos filtrados y ordenados para "Editar Prod."
     // (filtrado y ordenamiento compartidos con POS y Restock — src/lib/ordenamiento.ts)
@@ -193,13 +214,14 @@ export default function Inventario() {
 
             <div style={{ padding: "0 24px", marginTop: -60, overflowX: "hidden" }}>
                 {/* Stat cards — clickeables para ver explicación */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-4">
-                    {[
-                        { label: "Productos activos", valor: totalActivos, icon: "PackagePlus" },
-                        { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "PiggyBank" },
-                        { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "Banknote" },
-                        { label: "Stock descuadrado", valor: stockDesc, icon: "TriangleAlert" },
-                    ].map(m => (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-5">
+                    {([
+                        { label: "Productos activos", valor: totalActivos, icon: "PackagePlus", alerta: false },
+                        { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "PiggyBank", alerta: false },
+                        { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "Banknote", alerta: false },
+                        { label: "Stock descuadrado", valor: stockDesc, icon: "TriangleAlert", alerta: false },
+                        { label: "Última auditoría", valor: auditoria.valor, icon: "ClipboardList", alerta: auditoria.alerta },
+                    ] as { label: string; valor: string | number; icon: string; alerta: boolean }[]).map(m => (
                         <div
                             key={m.label}
                             className="card fade-up"
@@ -221,7 +243,7 @@ export default function Inventario() {
                             </div>
                             <div style={{ flex: 1 }}>
                                 <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8 }}>{m.label}</p>
-                                <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: "var(--text-main)" }}>{m.valor}</p>
+                                <p style={{ margin: 0, fontWeight: 800, fontSize: "1.1rem", color: m.alerta ? "#b45309" : "var(--text-main)" }}>{m.valor}</p>
                             </div>                        </div>
                     ))}
                 </div>
@@ -246,6 +268,7 @@ export default function Inventario() {
                             }
                             setTab(t.id)
                         }} style={{
+                            position: "relative",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             flex: 1, minWidth: 80, padding: "8px 12px", gap: 8, borderRadius: 10, border: "none",
                             background: tab === t.id ? "var(--gradient-1)" : "transparent",
@@ -253,6 +276,14 @@ export default function Inventario() {
                             fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", transition: "all 0.2s",
                         }}>
                             <Icon name={t.icon as any} size={22} color={tab === t.id ? "#fff" : "var(--text-muted)"} /> {t.label}
+                            {/* Badge: hay una sesión de conteo abierta (como la pastilla del turno abierto) */}
+                            {t.id === "conteo" && conteo && conteo.sesionAbierta && (
+                                <span title="Hay un conteo abierto" style={{
+                                    position: "absolute", top: 6, right: 10,
+                                    width: 9, height: 9, borderRadius: "50%", background: "#4caf50",
+                                    boxShadow: "0 0 0 2px var(--bg-card), 0 0 8px #4caf50"
+                                }} />
+                            )}
                         </button>
                     ))}
                 </div>
@@ -423,6 +454,15 @@ export default function Inventario() {
                     />
                 )}
 
+                {/* ── Conteo de auditoría: snapshot → captura física → cierre ── */}
+                {tab === "conteo" && (
+                    <TabConteo
+                        conteo={conteo}
+                        inv={inv}
+                        relacionImagen={relacionImagen}
+                    />
+                )}
+
                 {/* ── Modal: Confirmar eliminar categoría ── */}
                 {confirmEliminarCat !== null && (
                     <div style={{
@@ -493,6 +533,7 @@ export default function Inventario() {
                         "Valor del inventario": "PiggyBank",
                         "Ganancia potencial": "Banknote",
                         "Stock descuadrado": "TriangleAlert",
+                        "Última auditoría": "ClipboardList",
                     }
                     const iconoKPI = iconosKPI[kpiExplicacion] || "Info"
                     return (
