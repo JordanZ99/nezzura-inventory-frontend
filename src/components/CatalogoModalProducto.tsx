@@ -253,10 +253,10 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                         animation: "cataPop 0.22s ease-out",
                     }}
                 >
-                    <div className="sfmc-form-split" style={{ display: "flex", flexDirection: "column" }}>
-                    <style>{`@media (min-width: 640px) { .sfmc-form-split { flex-direction: row; max-height: 85vh; } .sfmc-form-info { width: 45%; } }`}</style>
+                    <div className="sfmc-form-split">
+                    <style>{`.sfmc-form-split { display: flex; flex-direction: column; } @media (min-width: 640px) { .sfmc-form-split { flex-direction: row; max-height: 85vh; } .sfmc-form-info { width: 45%; } }`}</style>
 
-                    {/* IZQUIERDA: foto protagonista */}
+                    {/* IZQUIERDA: foto protagonista (con swipe para cambiar de foto) */}
                     <div
                         className="sfmc-modal-foto"
                         style={{
@@ -264,6 +264,14 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                             overflow: "hidden",
                             background: tema.bgCard,
                             flexShrink: 0,
+                            touchAction: "pan-y",
+                        }}
+                        onTouchStart={e => { touchX.current = e.touches[0].clientX }}
+                        onTouchEnd={e => {
+                            if (touchX.current === null) return
+                            const dx = e.changedTouches[0].clientX - touchX.current
+                            touchX.current = null
+                            if (Math.abs(dx) > 40) (dx < 0 ? siguiente() : anterior())
                         }}
                     >
                         {fotoActual ? (
