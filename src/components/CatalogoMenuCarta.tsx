@@ -86,7 +86,9 @@ function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number
 export default function CatalogoMenuCarta({ productos, config, tema, agrupado = true, onAbrirProducto, ordenCategorias }: Props) {
     // ── Nav de categorías por anclas (sticky) ──
     const seccionesRef = useRef<Record<string, HTMLElement | null>>({})
+    const sentinelRef = useRef<HTMLDivElement | null>(null)
     const [catActiva, setCatActiva] = useState<string | null>(null)
+    const [pegada, setPegada] = useState(false)
 
     const agrupados = agruparPorCategoria(productos)
     const categoriasOrdenadas = ordenarCategorias(Object.keys(agrupados), ordenCategorias)
@@ -96,10 +98,16 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
     const topSticky = conChips && config.anuncio_texto ? 40 : 0
     const offsetAnclas = topSticky + 56
 
-    // Sección activa: la última cuyo header quedó por encima del área de los chips
+    // Sección activa y estado sticky: detecta cuándo la barra empieza a seguir al viewport
     useEffect(() => {
         if (!conChips) return
         const onScroll = () => {
+            // Cuando el centinela supera el topSticky, la barra ha empezado a seguir al viewport
+            if (sentinelRef.current) {
+                const estaPegada = sentinelRef.current.getBoundingClientRect().top <= topSticky
+                setPegada(prev => prev !== estaPegada ? estaPegada : prev)
+            }
+
             let activa: string | null = null
             for (const cat of categoriasOrdenadas) {
                 const el = seccionesRef.current[cat]
@@ -110,7 +118,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
         window.addEventListener("scroll", onScroll, { passive: true })
         onScroll()
         return () => window.removeEventListener("scroll", onScroll)
-    }, [conChips, categoriasOrdenadas, offsetAnclas])
+    }, [conChips, categoriasOrdenadas, offsetAnclas, topSticky])
 
     const saltarA = (cat: string) => {
         const el = seccionesRef.current[cat]
@@ -279,6 +287,11 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
 .catalogo-chips::-webkit-scrollbar { display: none; }
 `}</style>
 
+            {/* Centinela para detectar cuándo la barra empieza a seguir al viewport */}
+            {productos.length > 0 && conChips && (
+                <div ref={sentinelRef} style={{ height: 1, marginTop: -1, pointerEvents: "none", visibility: "hidden" }} />
+            )}
+
             {/* Nav sticky de categorías a ancho completo del viewport */}
             {productos.length > 0 && conChips && (
                 <div style={{
@@ -286,6 +299,10 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                     top: topSticky,
                     zIndex: 40,
                     width: "100%",
+                    backgroundColor: pegada ? tema.bg : "transparent",
+                    borderBottom: `1px solid ${pegada ? tema.border : "transparent"}`,
+                    boxShadow: pegada ? "0 4px 16px rgba(0,0,0,0.08)" : "none",
+                    transition: "background-color 1s ease, border-color 1s ease, box-shadow 1s ease",
                 }}>
                     <div
                         className="catalogo-chips"
