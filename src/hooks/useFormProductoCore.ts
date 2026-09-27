@@ -31,6 +31,7 @@ export type FormAltaProducto = {
     etiqueta: string
     sufijo_precio: string
     fraccionable: boolean
+    tamano_cm: number | string
     tipo_producto: string
     costo_servicio: number | string
     precio_servicio: number | string
@@ -57,6 +58,7 @@ export type FormEditProd = {
     visible_en_catalogo: boolean
     sufijo_precio: string
     fraccionable: boolean
+    tamano_cm: number | string
     tipo_producto: string
     costo_servicio: number | string
     precio_servicio: number | string
@@ -73,7 +75,7 @@ export type FormEditLote = {
 const FORM_ALTA_INICIAL: FormAltaProducto = {
     producto: "", descripcion: "", categoria: ["General"], costo: "", precio_venta: "",
     stock: 1, codigo_interno: "", codigo_barras: "", ubicacion: "", etiqueta: "",
-    sufijo_precio: "", fraccionable: false, tipo_producto: "stock", costo_servicio: "",
+    sufijo_precio: "", fraccionable: false, tamano_cm: "", tipo_producto: "stock", costo_servicio: "",
     precio_servicio: "", visible_en_catalogo: true,
 }
 
@@ -84,7 +86,7 @@ const FORM_RESTOCK_INICIAL: FormRestock = {
 const FORM_EDIT_PROD_INICIAL: FormEditProd = {
     descripcion: "", estado: "Activo", imagen: "No hay foto", categoria: ["General"],
     codigo_interno: "", codigo_barras: "", ubicacion: "", visible_en_catalogo: true,
-    sufijo_precio: "", fraccionable: false, tipo_producto: "stock", costo_servicio: "",
+    sufijo_precio: "", fraccionable: false, tamano_cm: "", tipo_producto: "stock", costo_servicio: "",
     precio_servicio: "",
 }
 
@@ -290,6 +292,7 @@ export function useFormProductoCore({
                 ubicacion: form.ubicacion || undefined,
                 costo_servicio: esSinStock ? Number(form.costo_servicio === "" ? form.costo : form.costo_servicio) : undefined,
                 precio_servicio: esSinStock ? Number(form.precio_servicio === "" ? form.precio_venta : form.precio_servicio) : undefined,
+                tamano_cm: form.tamano_cm === "" || Number(form.tamano_cm) <= 0 ? undefined : Number(form.tamano_cm),
                 visible_en_catalogo: form.visible_en_catalogo,
                 // Se crean junto al producto en una sola transacción
                 variaciones: nuevasVariaciones.length > 0 ? nuevasVariaciones : undefined,
@@ -395,6 +398,8 @@ export function useFormProductoCore({
                 // Se envía SIEMPRE: el tenant puede desmarcar "fraccionable" y
                 // volver el producto a unidades enteras (COALESCE respeta false).
                 fraccionable: editProdVal.fraccionable,
+                // Tamaño en cm: se envía solo si hay un valor positivo (None = conservar)
+                tamano_cm: editProdVal.tamano_cm === "" ? undefined : (Number(editProdVal.tamano_cm) > 0 ? Number(editProdVal.tamano_cm) : undefined),
                 // Tipo + campos de servicio (si aplica) para guardar en productos
                 tipo_producto: editProdVal.tipo_producto,
                 costo_servicio: editProdVal.tipo_producto === "servicio" ? Number(editProdVal.costo_servicio === "" ? 0 : editProdVal.costo_servicio) : undefined,
@@ -529,6 +534,7 @@ export function useFormProductoCore({
             visible_en_catalogo: prod.visible_en_catalogo ?? true,
             sufijo_precio: prod.sufijo_precio ?? "",
             fraccionable: prod.fraccionable ?? false,
+            tamano_cm: prod.tamano_cm ?? "",
             tipo_producto: prod.tipo_producto ?? "stock",
             costo_servicio: prod.costo_servicio ?? "",
             precio_servicio: prod.precio_servicio ?? "",

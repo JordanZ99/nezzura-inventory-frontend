@@ -277,6 +277,29 @@ export default function FormEditarInfo({
                 />
             </div>
 
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label
+                    style={{
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        color: "var(--text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.8,
+                    }}
+                >
+                    Tamaño en cm (se muestra como pill en el catálogo)
+                </label>
+                <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="Ej: 45"
+                    className="input-primary"
+                    value={editProdVal.tamano_cm}
+                    onChange={(e) => setEditProdVal((p) => ({ ...p, tamano_cm: e.target.value === "" ? "" : Number(e.target.value) }))}
+                />
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <label

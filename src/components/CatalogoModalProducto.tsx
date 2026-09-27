@@ -27,6 +27,8 @@ interface ProductoPublico {
     imagenes?: string[]
     // Sufijo del precio en el catálogo ("c/u", "por kilo", "por litro", ...); vacío = sin sufijo
     sufijo_precio?: string
+    // Tamaño del producto en cm (opcional): se muestra como pill en el modal
+    tamano_cm?: number
     // 'stock' | 'servicio' — los servicios no tienen inventario (no se agotan)
     tipo_producto?: string
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
@@ -627,6 +629,19 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                         color: `color-mix(in srgb, ${tema.primary} 70%, transparent)`,
                                         padding: "4px 12px", fontSize: "0.68rem", fontWeight: 600,
                                     }}>{config.titulo || "Catálogo"}</span>
+                                    {producto.tamano_cm != null && (
+                                        <span style={{
+                                            borderRadius: 999,
+                                            border: `1px solid color-mix(in srgb, ${tema.primary} 20%, transparent)`,
+                                            background: `color-mix(in srgb, ${tema.primary} 4%, transparent)`,
+                                            color: `color-mix(in srgb, ${tema.primary} 70%, transparent)`,
+                                            padding: "4px 12px", fontSize: "0.68rem", fontWeight: 600,
+                                            display: "inline-flex", alignItems: "center", gap: 4,
+                                        }}>
+                                            <Icon name="Ruler" size={12} />
+                                            {Number(producto.tamano_cm)} cm
+                                        </span>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1006,6 +1021,18 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                     {c}
                                 </span>
                             ))}
+                            {producto.tamano_cm != null && (
+                                <span style={{
+                                    fontSize: "0.68rem", fontWeight: 700,
+                                    color: tema.primary,
+                                    background: `color-mix(in srgb, ${tema.primary} 8%, transparent)`,
+                                    borderRadius: 8, padding: "3px 10px",
+                                    display: "inline-flex", alignItems: "center", gap: 4,
+                                }}>
+                                    <Icon name="Ruler" size={12} />
+                                    {Number(producto.tamano_cm)} cm
+                                </span>
+                            )}
                         </div>
                     )}
 

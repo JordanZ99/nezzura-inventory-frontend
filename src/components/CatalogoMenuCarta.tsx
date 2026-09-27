@@ -263,7 +263,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
     }
 
     return (
-        <main style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 20px 60px" }}>
+        <>
             {/* Layout de cards portado de SF: 1 col móvil, 2 sm, 3 lg */}
             <style>{`
 .sfmc-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
@@ -279,106 +279,109 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
 .catalogo-chips::-webkit-scrollbar { display: none; }
 `}</style>
 
-            {productos.length === 0 ? (
-                <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
-                    <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
-                </div>
-            ) : !agrupado ? (
-                /* Modo plano: grid sin encabezados */
-                <div className="sfmc-grid">{productos.map(renderCard)}</div>
-            ) : (
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                    {/* Nav sticky de categorías: salta a la sección (no filtra la carta) */}
-                    {conChips && (
-                        <div style={{
-                            position: "sticky",
-                            top: topSticky,
-                            zIndex: 40,
-                            background: tema.bg,
-                            margin: "0 -20px",
+            {/* Nav sticky de categorías a ancho completo del viewport */}
+            {productos.length > 0 && conChips && (
+                <div style={{
+                    position: "sticky",
+                    top: topSticky,
+                    zIndex: 40,
+                    background: tema.bg,
+                    width: "100%",
+                    borderBottom: `1px solid ${tema.border}`,
+                }}>
+                    <div
+                        className="catalogo-chips"
+                        style={{
+                            display: "flex",
+                            gap: 8,
+                            overflowX: "auto",
                             padding: "10px 20px 8px",
-                            borderBottom: `1px solid ${tema.border}`,
-                        }}>
-                            <div
-                                className="catalogo-chips"
+                            scrollbarWidth: "none",
+                            boxSizing: "border-box",
+                        }}
+                    >
+                        {categoriasOrdenadas.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => saltarA(cat)}
                                 style={{
-                                    display: "flex",
-                                    gap: 8,
-                                    overflowX: "auto",
-                                    scrollbarWidth: "none",
+                                    padding: "8px 16px", borderRadius: 20,
+                                    border: "none", cursor: "pointer",
+                                    fontSize: "0.8rem", fontWeight: 700,
+                                    whiteSpace: "nowrap",
+                                    background: catActiva === cat ? tema.primary : tema.bgCard,
+                                    color: catActiva === cat ? "var(--on-primary)" : tema.textMuted,
+                                    transition: "all 0.15s",
+                                    flexShrink: 0,
                                 }}
                             >
-                                {categoriasOrdenadas.map(cat => (
-                                    <button
-                                        key={cat}
-                                        onClick={() => saltarA(cat)}
-                                        style={{
-                                            padding: "8px 16px", borderRadius: 20,
-                                            border: "none", cursor: "pointer",
-                                            fontSize: "0.8rem", fontWeight: 700,
-                                            whiteSpace: "nowrap",
-                                            background: catActiva === cat ? tema.primary : tema.bgCard,
-                                            color: catActiva === cat ? "var(--on-primary)" : tema.textMuted,
-                                            transition: "all 0.15s",
-                                            flexShrink: 0,
-                                        }}
-                                    >
-                                        {cat}
-                                        <span style={{ opacity: 0.65, marginLeft: 6, fontSize: "0.7rem", fontWeight: 600 }}>
-                                            {agrupados[cat].length}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {categoriasOrdenadas.map((categoria, idx) => {
-                        const items = agrupados[categoria]
-                        return (
-                            <div key={categoria} ref={el => { seccionesRef.current[categoria] = el }}>
-                                {/* Header de sección estilo SF: título serif + contador + línea */}
-                                <div style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    gap: 12,
-                                    borderBottom: `1px solid ${tema.border}`,
-                                    paddingBottom: 14,
-                                    margin: idx === 0 ? "16px 0 16px" : "36px 0 16px",
-                                }}>
-                                    <h2 style={{
-                                        margin: 0,
-                                        fontFamily: SERIF,
-                                        fontSize: "calc(1.55rem * var(--fd-scale, 1))",
-                                        fontWeight: 600,
-                                        letterSpacing: "-0.01em",
-                                        color: tema.text,
-                                        textTransform: "none",
-                                    }}>
-                                        {categoria}
-                                    </h2>
-                                    <span style={{
-                                        fontSize: "0.68rem",
-                                        fontWeight: 600,
-                                        textTransform: "uppercase",
-                                        letterSpacing: "0.2em",
-                                        color: `color-mix(in srgb, ${tema.text} 30%, transparent)`,
-                                        whiteSpace: "nowrap",
-                                    }}>
-                                        {items.length} {items.length === 1 ? "opción" : "opciones"}
-                                    </span>
-                                </div>
-
-                                {/* Cards de esta categoría */}
-                                <div className="sfmc-grid">
-                                    {items.map(renderCard)}
-                                </div>
-                            </div>
-                        )
-                    })}
+                                {cat}
+                                <span style={{ opacity: 0.65, marginLeft: 6, fontSize: "0.7rem", fontWeight: 600 }}>
+                                    {agrupados[cat].length}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
-        </main>
+
+            <main style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 20px 60px" }}>
+                {productos.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
+                        <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
+                    </div>
+                ) : !agrupado ? (
+                    /* Modo plano: grid sin encabezados */
+                    <div className="sfmc-grid">{productos.map(renderCard)}</div>
+                ) : (
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                        {categoriasOrdenadas.map((categoria, idx) => {
+                            const items = agrupados[categoria]
+                            return (
+                                <div key={categoria} ref={el => { seccionesRef.current[categoria] = el }}>
+                                    {/* Header de sección estilo SF: título serif + contador + línea */}
+                                    <div style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 12,
+                                        borderBottom: `1px solid ${tema.border}`,
+                                        paddingBottom: 14,
+                                        margin: idx === 0 ? "16px 0 16px" : "36px 0 16px",
+                                    }}>
+                                        <h2 style={{
+                                            margin: 0,
+                                            fontFamily: SERIF,
+                                            fontSize: "calc(1.55rem * var(--fd-scale, 1))",
+                                            fontWeight: 600,
+                                            letterSpacing: "-0.01em",
+                                            color: tema.text,
+                                            textTransform: "none",
+                                        }}>
+                                            {categoria}
+                                        </h2>
+                                        <span style={{
+                                            fontSize: "0.68rem",
+                                            fontWeight: 600,
+                                            textTransform: "uppercase",
+                                            letterSpacing: "0.2em",
+                                            color: `color-mix(in srgb, ${tema.text} 30%, transparent)`,
+                                            whiteSpace: "nowrap",
+                                        }}>
+                                            {items.length} {items.length === 1 ? "opción" : "opciones"}
+                                        </span>
+                                    </div>
+
+                                    {/* Cards de esta categoría */}
+                                    <div className="sfmc-grid">
+                                        {items.map(renderCard)}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
+            </main>
+        </>
     )
 }

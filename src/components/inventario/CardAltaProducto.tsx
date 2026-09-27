@@ -281,6 +281,18 @@ export default function CardAltaProducto({
                 <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Unidad de venta</label>
                 <SelectorSufijoPrecio value={form.sufijo_precio} onChange={v => setForm(p => ({ ...p, sufijo_precio: v }))} fraccionable={form.fraccionable} onFraccionableChange={v => setForm(p => ({ ...p, fraccionable: v }))} />
             </div>
+            <div>
+                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 8 }}>Tamaño en cm (opcional — se muestra como pill en el catálogo)</label>
+                <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="Ej: 45"
+                    className="input-primary"
+                    value={form.tamano_cm}
+                    onChange={e => setForm(p => ({ ...p, tamano_cm: e.target.value === "" ? "" : Number(e.target.value) }))}
+                />
+            </div>
             {form.tipo_producto === "stock" && (
                 <Input label="Etiqueta del lote (opcional)" placeholder="Ej: 20cm, Premium, Oferta" value={form.etiqueta} onChange={e => setForm(p => ({ ...p, etiqueta: e.target.value }))} />
             )}

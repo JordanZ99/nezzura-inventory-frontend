@@ -56,6 +56,7 @@ export const productosApi = {
             visible_en_catalogo?: boolean
             sufijo_precio?: string
             fraccionable?: boolean
+            tamano_cm?: number
             tipo_producto?: string
             costo_servicio?: number
             precio_servicio?: number

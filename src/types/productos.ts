@@ -23,6 +23,8 @@ export interface Producto {
     // Si true, se puede vender por fracciones (0.5 kg, 1.5 lt, ...). Si false
     // (default), solo unidades enteras — ni digitando decimales en el POS.
     fraccionable?: boolean;
+    // Tamaño del producto en cm (pill en el catálogo público)
+    tamano_cm?: number;
     // Tipo de producto: 'stock' (normal) | 'servicio' (sin inventario, ej. corte de cabello)
     tipo_producto?: string;
     // Costo/precio de venta de un servicio (viven en el producto, no en lotes)
@@ -95,6 +97,7 @@ export interface NuevoProducto {
     etiqueta?: string;
     sufijo_precio?: string;
     fraccionable?: boolean;        // Si true, se vende por fracciones (0.5 kg)
+    tamano_cm?: number;            // Tamaño en cm (pill en el catálogo público)
     tipo_producto?: string;        // 'stock' | 'servicio' | 'compuesto'
     costo_servicio?: number;
     precio_servicio?: number;
