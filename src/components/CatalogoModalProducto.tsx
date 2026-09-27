@@ -13,8 +13,8 @@ import { useEffect, useRef, useState } from "react"
 import Icon from "@/components/ui/Icon"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
 
-// Familias tipográficas del diseño SF (solo para el modo Menú Carta)
-const SERIF = "Georgia, 'Times New Roman', serif"
+// Familias tipográficas del catálogo (migración 044): display = var(--font-display)
+const SERIF = "var(--font-display, Georgia, serif)"
 const MONO = "ui-monospace, 'Cascadia Mono', 'Courier New', monospace"
 
 interface ProductoPublico {

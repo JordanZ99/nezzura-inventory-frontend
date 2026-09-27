@@ -18,6 +18,8 @@ export const catalogoApi = {
         permitir_descarga?: boolean
         ocultar_agotados?: boolean
         relacion_imagen?: string
+        /** Fuente display (migración 044) */
+        fuente?: string
         banner_url?: string
         banner_url_movil?: string
         hero_estilo?: string

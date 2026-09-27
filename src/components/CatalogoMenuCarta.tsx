@@ -64,8 +64,8 @@ interface Props {
     ordenCategorias?: Record<string, number>
 }
 
-/** Familias tipográficas del diseño SF: serif para nombres/precios, mono para labels */
-const SERIF = "Georgia, 'Times New Roman', serif"
+/** Familias tipográficas del catálogo: display = var(--font-display); mono para labels */
+const SERIF = "var(--font-display, Georgia, serif)"
 const MONO = "ui-monospace, 'Cascadia Mono', 'Courier New', monospace"
 
 /**

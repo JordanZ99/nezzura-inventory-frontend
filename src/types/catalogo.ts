@@ -17,6 +17,8 @@ export interface CatalogoConfig {
     permitir_descarga?: boolean;
     ocultar_agotados?: boolean;
     relacion_imagen?: string;  // '1:1' (default) | '4:5' — relación global de las fotos de producto
+    /** Fuente display del catálogo (migración 044): 'serif' default; claves en lib/catalogo-fuentes.ts */
+    fuente?: string;
     banner_url?: string;
     banner_url_movil?: string;
     hero_estilo?: string;      // 'gradiente' | 'imagen'

@@ -9,6 +9,7 @@ import Icon from "@/components/ui/Icon"
 import SeccionHeader from "@/components/ui/SeccionHeader"
 import Switch from "@/components/ui/Switch"
 import { BannerUploader } from "./BannerUploader"
+import { FUENTES_CATALOGO, FUENTES_ORDEN } from "@/lib/catalogo-fuentes"
 import type { PropsSeccionConfig } from "./tipos"
 
 interface Props extends PropsSeccionConfig {
@@ -37,6 +38,41 @@ export function SeccionApariencia({
     return (
         <>
             <SeccionHeader icono="Palette" titulo="Apariencia" />
+
+            {/* ── Tipografía display (migración 044) ── */}
+            <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Tipografía</span>
+                    {renderGuardado("fuente")}
+                </div>
+                <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0 0 10px", fontWeight: 500 }}>
+                    Se aplica a nombres, precios y títulos. Los textos informativos quedan en la fuente neutral.
+                </p>
+                <select
+                    value={catalogoConfig?.fuente || "serif"}
+                    onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, fuente: e.target.value } : null); autoguardar("fuente", { fuente: e.target.value }) }}
+                    style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: "1.5px solid var(--border-primary)",
+                        background: "var(--bg-card2)",
+                        color: "var(--text-main)",
+                        fontWeight: 600,
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                        outline: "none",
+                    }}
+                >
+                    {FUENTES_ORDEN.map(k => {
+                        const f = FUENTES_CATALOGO[k]
+                        return (
+                            <option key={k} value={k}>{f.label} — {f.desc}</option>
+                        )
+                    })}
+                </select>
+            </div>
+
             {/* ── Estilo del hero ── */}
             <div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>

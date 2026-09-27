@@ -207,6 +207,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                     )}
                     {/* Nombre */}
                     <h3 style={{
+                        fontFamily: "var(--font-display, inherit)",
                         fontSize: "0.95rem", fontWeight: 700, margin: 0,
                         color: tema.text, lineHeight: 1.3,
                         display: "-webkit-box", WebkitLineClamp: 2,
@@ -229,6 +230,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                     <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 8 }}>
                         {config.mostrar_precios ? (
                             <span style={{
+                                fontFamily: "var(--font-display, inherit)",
                                 fontSize: "1.15rem", fontWeight: 800,
                                 color: tema.primaryDark,
                                 whiteSpace: "nowrap",
@@ -336,6 +338,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                                 <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "60px 0 20px" }}>
                                     <h2 style={{
                                         margin: 0,
+                                        fontFamily: "var(--font-display, inherit)",
                                         fontSize: "1.05rem",
                                         fontWeight: 800,
                                         color: tema.primaryDark,

@@ -20,6 +20,7 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
+import { normalizarFuente } from "@/lib/catalogo-fuentes"
 import { normalizarTema } from "@/lib/temas"
 import Icon from "@/components/ui/Icon"
 import CatalogoGridClasico from "@/components/CatalogoGridClasico"
@@ -54,6 +55,8 @@ interface ConfigCatalogo {
     mostrar_precios: boolean
     mostrar_stock: boolean
     mostrar_categorias: boolean
+    // Fuente display (migración 044): 'serif' default; claves en lib/catalogo-fuentes.ts
+    fuente?: string
     agrupar_por_categoria?: boolean | null
     columnas_movil?: number
     permitir_descarga?: boolean
@@ -74,6 +77,18 @@ interface RespuestaCatalogo {
     productos: ProductoPublico[]
     // Orden manual de las categorías (drag & drop en Personalización): {nombre: posición}
     orden_categorias?: Record<string, number>
+    // Datos de contacto del negocio (migración 043) — solo lo que el tenant llenó
+    contacto?: ContactoNegocio
+}
+
+interface ContactoNegocio {
+    telefono: string
+    correo: string
+    instagram: string
+    facebook: string
+    tiktok: string
+    sitio_web: string
+    maps: string
 }
 
 // ── Paleta ligada a las variables CSS de globals.css ──
@@ -151,6 +166,64 @@ function rangoPaginas(actual: number, total: number): (number | "…")[] {
     return rango
 }
 
+/**
+ * Íconos de marcas (lucide-react ya no incluye Instagram/Facebook): SVG inline
+ * estándar, aceptan color para heredar el tema del footer.
+ */
+function IconoRedSocial({ red, size = 19, color }: { red: "instagram" | "facebook"; size?: number; color: string }) {
+    if (red === "instagram") {
+        return (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2.5" y="2.5" width="19" height="19" rx="5" />
+                <circle cx="12" cy="12" r="4.2" />
+                <circle cx="17.4" cy="6.6" r="1.1" fill={color} stroke="none" />
+            </svg>
+        )
+    }
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+    )
+}
+
+/**
+ * Links del footer de contacto (migración 043).
+ * Acepta que el dueño escriba @usuario, nombre, plus code o link completo:
+ * - Redes: si trae http lo usamos tal cual; si no, construimos el perfil.
+ * - Teléfono: se normaliza a dígitos para wa.me (WhatsApp).
+ * - Maps: si trae http va directo; si no, búsqueda de Google Maps con el
+ *   plus code + nombre del negocio.
+ */
+function construirLinksContacto(c: ContactoNegocio) {
+    const esHttp = (v: string) => /^https?:\/\//i.test(v)
+    const limpiarArroba = (v: string) => v.replace(/^@/, "").trim()
+
+    const whatsapp = (() => {
+        const digits = (c.telefono || "").replace(/[^\d]/g, "")
+        return digits.length >= 8 ? `https://wa.me/${digits}` : ""
+    })()
+
+    const instagram = c.instagram
+        ? (esHttp(c.instagram) ? c.instagram : `https://instagram.com/${limpiarArroba(c.instagram)}`)
+        : ""
+    const facebook = c.facebook
+        ? (esHttp(c.facebook) ? c.facebook : `https://facebook.com/${c.facebook.replace(/^\/+/, "").trim()}`)
+        : ""
+    const tiktok = c.tiktok
+        ? (esHttp(c.tiktok) ? c.tiktok : `https://tiktok.com/@${c.tiktok.replace(/^@/, "").trim()}`)
+        : ""
+    const web = c.sitio_web
+        ? (esHttp(c.sitio_web) ? c.sitio_web : `https://${c.sitio_web.trim()}`)
+        : ""
+    const maps = c.maps
+        ? (esHttp(c.maps) ? c.maps : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.maps)}`)
+        : ""
+    const correo = c.correo ? `mailto:${c.correo.trim()}` : ""
+
+    return { whatsapp, instagram, facebook, tiktok, web, maps, correo }
+}
+
 export default function CatalogoView({ slug }: { slug: string }) {
     const [datos, setDatos] = useState<RespuestaCatalogo | null>(null)
     const [cargando, setCargando] = useState(true)
@@ -192,6 +265,27 @@ export default function CatalogoView({ slug }: { slug: string }) {
             }
         }
     }, [datos])
+
+    // ── Fuente display (migración 044) ──
+    // Publica la familia elegida en la variable --font-display (la consumen los
+    // templates y el hero); si la fuente es de Google Fonts, inyecta su CSS una
+    // sola vez. 'sistema' usa inherit (la sans neutra del catálogo).
+    useEffect(() => {
+        if (!datos) return
+        const f = normalizarFuente(datos.config.fuente)
+        document.documentElement.style.setProperty("--font-display", f.stack)
+        if (f.googleCss) {
+            const id = "catalogo-fuente-css"
+            let link = document.getElementById(id) as HTMLLinkElement | null
+            if (!link) {
+                link = document.createElement("link")
+                link.id = id
+                link.rel = "stylesheet"
+                document.head.appendChild(link)
+            }
+            link.href = f.googleCss
+        }
+    }, [datos?.config.fuente])
 
     // ── Favicon dinámico: usa el logo del tenant ──
     useEffect(() => {
@@ -409,7 +503,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     )}
                     {config.banner_mostrar_texto !== false && (
                         <div>
-                            <h1 style={{ fontSize: esMovil ? "1.35rem" : "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, textShadow: sombraTexto(config.banner_texto_color) }}>
+                            <h1 style={{ fontSize: esMovil ? "1.35rem" : "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, fontFamily: "var(--font-display, inherit)", textShadow: sombraTexto(config.banner_texto_color) }}>
                                 {config.titulo || "Catálogo"}
                             </h1>
                             {config.subtitulo && (
@@ -443,7 +537,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                 }}
                             />
                         )}
-                        <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5 }}>
+                        <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, fontFamily: "var(--font-display, inherit)" }}>
                             {config.titulo || "Catálogo"}
                         </h1>
                         {config.subtitulo && (
@@ -612,7 +706,120 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 textAlign: "center", padding: "24px 20px 40px",
                 fontSize: "0.75rem", color: tema.textMuted, fontWeight: 500,
             }}>
-                <p style={{ margin: 0 }}>Catálogo digital · Nezzura Digital</p>
+                {/* Datos de contacto del negocio (migración 043): solo campos llenos.
+                    Sereno: logotipo + nombre en serif display, íconos redondos y
+                    dentro de un divisor superior. Sin nada lleno, se ve idéntico a antes. */}
+                {(() => {
+                    const contacto = datos.contacto || { telefono: "", correo: "", instagram: "", facebook: "", tiktok: "", sitio_web: "", maps: "" }
+                    const L = construirLinksContacto(contacto)
+                    const hayDatos = Boolean(L.whatsapp || L.correo || L.instagram || L.facebook || L.tiktok || L.web || L.maps)
+                    if (!hayDatos) return null
+                    const iconoLingote: React.CSSProperties = {
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        width: 42, height: 42, borderRadius: "50%",
+                        background: tema.bgCard,
+                        border: `1px solid ${tema.border}`,
+                        color: tema.text,
+                        cursor: "pointer", transition: "all 0.15s",
+                        textDecoration: "none",
+                    }
+                    return (
+                        <div style={{ borderTop: `1px solid ${tema.border}`, maxWidth: 780, margin: "0 auto", padding: "0 20px" }}>
+                            <div style={{ paddingTop: 26 }}>
+                                {config.logo && (
+                                    <img
+                                        src={optimizarImagenCloudinary(config.logo, 120)}
+                                        alt=""
+                                        style={{
+                                            width: 52, height: 52, borderRadius: "50%",
+                                            objectFit: "cover",
+                                            border: `2px solid ${tema.border}`,
+                                            background: "#fff",
+                                            margin: "0 auto 10px", display: "block",
+                                        }}
+                                    />
+                                )}
+                                {config.titulo && (
+                                    <p style={{
+                                        margin: "0 0 14px",
+                                        fontFamily: "var(--font-display, inherit)",
+                                        fontSize: "1.15rem", fontWeight: 600,
+                                        color: tema.text,
+                                    }}>
+                                        {config.titulo}
+                                    </p>
+                                )}
+
+                                {/* Íconos de redes/web/maps */}
+                                <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+                                    {L.whatsapp && (
+                                        <a href={L.whatsapp} target="_blank" rel="noopener noreferrer" style={iconoLingote} aria-label="WhatsApp"
+                                            onMouseEnter={e => { e.currentTarget.style.background = tema.bg; e.currentTarget.style.borderColor = tema.textMuted }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard; e.currentTarget.style.borderColor = tema.border }}>
+                                            <Icon name="MessageCircle" size={19} color={tema.text} />
+                                        </a>
+                                    )}
+                                    {L.instagram && (
+                                        <a href={L.instagram} target="_blank" rel="noopener noreferrer" style={iconoLingote} aria-label="Instagram"
+                                            onMouseEnter={e => { e.currentTarget.style.background = tema.bg; e.currentTarget.style.borderColor = tema.textMuted }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard; e.currentTarget.style.borderColor = tema.border }}>
+                                            <IconoRedSocial red="instagram" size={19} color={tema.text} />
+                                        </a>
+                                    )}
+                                    {L.facebook && (
+                                        <a href={L.facebook} target="_blank" rel="noopener noreferrer" style={iconoLingote} aria-label="Facebook"
+                                            onMouseEnter={e => { e.currentTarget.style.background = tema.bg; e.currentTarget.style.borderColor = tema.textMuted }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard; e.currentTarget.style.borderColor = tema.border }}>
+                                            <IconoRedSocial red="facebook" size={19} color={tema.text} />
+                                        </a>
+                                    )}
+                                    {L.tiktok && (
+                                        <a href={L.tiktok} target="_blank" rel="noopener noreferrer" style={iconoLingote} aria-label="TikTok"
+                                            onMouseEnter={e => { e.currentTarget.style.background = tema.bg; e.currentTarget.style.borderColor = tema.textMuted }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard; e.currentTarget.style.borderColor = tema.border }}>
+                                            <Icon name="Music2" size={19} color={tema.text} />
+                                        </a>
+                                    )}
+                                    {L.web && (
+                                        <a href={L.web} target="_blank" rel="noopener noreferrer" style={iconoLingote} aria-label="Sitio web"
+                                            onMouseEnter={e => { e.currentTarget.style.background = tema.bg; e.currentTarget.style.borderColor = tema.textMuted }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard; e.currentTarget.style.borderColor = tema.border }}>
+                                            <Icon name="Globe" size={19} color={tema.text} />
+                                        </a>
+                                    )}
+                                    {L.maps && (
+                                        <a href={L.maps} target="_blank" rel="noopener noreferrer" style={iconoLingote} aria-label="Ubicación"
+                                            onMouseEnter={e => { e.currentTarget.style.background = tema.bg; e.currentTarget.style.borderColor = tema.textMuted }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard; e.currentTarget.style.borderColor = tema.border }}>
+                                            <Icon name="MapPin" size={19} color={tema.text} />
+                                        </a>
+                                    )}
+                                </div>
+
+                                {/* Contacto directo en texto */}
+                                <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap", marginTop: 14 }}>
+                                    {L.whatsapp && (
+                                        <a href={L.whatsapp} target="_blank" rel="noopener noreferrer" style={{ color: tema.textMuted, fontWeight: 600, fontSize: "0.8rem", textDecoration: "none" }}>
+                                            {contacto.telefono}
+                                        </a>
+                                    )}
+                                    {L.correo && (
+                                        <a href={L.correo} style={{ color: tema.textMuted, fontWeight: 600, fontSize: "0.8rem", textDecoration: "none" }}>
+                                            {contacto.correo}
+                                        </a>
+                                    )}
+                                    {/* Dirección: texto del alias si existe Maps, no whatsapp */}
+                                    {L.maps && !contacto.maps.startsWith("http") && (
+                                        <span style={{ color: tema.textMuted, fontWeight: 500, fontSize: "0.78rem", opacity: 0.8 }}>
+                                            {contacto.maps}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })()}
+                <p style={{ margin: "18px 0 0" }}>Catálogo digital · Nezzura Digital</p>
             </footer>
         </div>
     )
