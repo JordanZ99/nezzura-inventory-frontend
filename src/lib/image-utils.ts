@@ -55,7 +55,16 @@ export function optimizarImagenCloudinary(url: string | undefined, ancho: number
  * pequeños da más nitidez que objectFit:cover en un <img> a resolución mayor.
  */
 export function optimizarImagenCuadrada(url: string | undefined, lado: number): string {
-    return construirUrlCloudinary(url, `c_fill,g_auto,w_${lado},h_${lado},f_auto,q_auto`) ?? url ?? ""
+    return optimizarImagenRecorte(url, lado, lado)
+}
+
+/**
+ * Recorte con proporción libre (ancho×alto) y detección de sujeto (g_auto):
+ * mismo mecanismo que optimizarImagenCuadrada pero para marcos no cuadrados
+ * (ej. cards 4:3 del menú tipo carta).
+ */
+export function optimizarImagenRecorte(url: string | undefined, ancho: number, alto: number): string {
+    return construirUrlCloudinary(url, `c_fill,g_auto,w_${ancho},h_${alto},f_auto,q_auto`) ?? url ?? ""
 }
 
 /**

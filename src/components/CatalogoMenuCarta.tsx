@@ -1,18 +1,18 @@
 "use client"
 // ==============================================================================
 // src/components/CatalogoMenuCarta.tsx
-// Template Menú tipo Carta — estilo menú de restaurante/cafetería.
-// - agrupado=true (default): separa los productos por categoría con encabezados.
-// - agrupado=false: lista plana sin separadores (toggle del tenant desactivado).
-// Layout de cada ítem: foto grande a la izquierda (protagonista) y la
-// información (nombre · precio con guía punteada, descripción) a la derecha.
-// Sin cajas: los ítems se separan con líneas hairline, como una carta física.
+// Template Menú tipo Carta — port del diseño Santa Fé (AsaderoLayout).
+// - Cards en grid 1/2/3 columnas con foto 4:3 (mismas proporciones/tamaños
+//   de SF), nombre serif, separador dashed y precio destacado.
+// - agrupado=true (default): secciones por categoría con encabezado bordeado.
+// - agrupado=false: lista plana (grid sin encabezados).
+// - Nav sticky de categorías por anclas (salta a la sección, marca la activa).
 // ==============================================================================
 
 import { useEffect, useRef, useState } from "react"
 import Icon from "@/components/ui/Icon"
 import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
-import { optimizarImagenCuadrada } from "@/lib/image-utils"
+import { optimizarImagenRecorte } from "@/lib/image-utils"
 
 interface ProductoPublico {
     producto: string
@@ -61,6 +61,10 @@ interface Props {
     agrupado?: boolean
     onAbrirProducto?: (p: ProductoPublico) => void
 }
+
+/** Familias tipográficas del diseño SF: serif para nombres/precios, mono para labels */
+const SERIF = "Georgia, 'Times New Roman', serif"
+const MONO = "ui-monospace, 'Cascadia Mono', 'Courier New', monospace"
 
 /**
  * Precio mínimo de las variaciones DISPONIBLES: si el producto tiene
@@ -112,159 +116,169 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
         }
     }
 
-    // ── Fila de producto (compartida entre vista agrupada y plana) ──
-    const renderItem = (p: ProductoPublico) => {
+    // ── Card de platillo (port SF DishCard) ──
+    const renderCard = (p: ProductoPublico) => {
         // Servicios y compuestos no tienen inventario propio: nunca se "agotan"
         const esSinStock = p.tipo_producto !== undefined && p.tipo_producto !== "stock"
         const agotado = !esSinStock && p.stock_total <= 0
+        const url = p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`
+        const min = minPrecioDisponible(p)
         return (
-            <div
+            <article
                 key={p.producto}
+                className="sfmc-card"
                 onClick={() => onAbrirProducto?.(p)}
                 style={{
+                    borderRadius: 16,
+                    border: `1px solid ${tema.border}`,
+                    background: tema.bgCard,
+                    overflow: "hidden",
                     display: "flex",
-                    gap: 18,
-                    padding: "18px 4px",
-                    borderBottom: `1px solid ${tema.border}`,
-                    transition: "opacity 0.15s",
-                    opacity: !esSinStock && agotado && config.mostrar_stock ? 0.55 : 1,
+                    flexDirection: "column",
                     cursor: "pointer",
                 }}
             >
-                {/* Foto protagonista a la izquierda */}
-                {p.imagen && p.imagen !== "No hay foto" ? (
-                    <div style={{
-                        width: 104, height: 104,
-                        borderRadius: 14,
+                {/* Foto 4:3 con zoom suave al hover y gradiente inferior (como SF) */}
+                <div
+                    className="sfmc-foto"
+                    style={{
+                        position: "relative",
+                        aspectRatio: "4 / 3",
                         overflow: "hidden",
-                        flexShrink: 0,
                         background: tema.bg,
-                    }}>
+                    }}
+                >
+                    {p.imagen && p.imagen !== "No hay foto" ? (
                         <img
-                            src={optimizarImagenCuadrada(p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`, 240)}
+                            src={optimizarImagenRecorte(url, 800, 600)}
                             alt={p.producto}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
                             loading="lazy"
                             onError={e => { e.currentTarget.style.display = "none" }}
                         />
-                    </div>
-                ) : (
-                    <div style={{
-                        width: 104, height: 104,
-                        borderRadius: 14,
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        opacity: 0.25,
-                    }}>
-                        <Icon name="Package" size={40} color={tema.textMuted} />
-                    </div>
-                )}
-
-                {/* Info a la derecha */}
-                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                    {/* Nombre · guía punteada · precio */}
-                    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                        <h3 style={{
-                            margin: 0,
-                            fontSize: "1.08rem",
-                            fontWeight: 800,
-                            color: tema.text,
-                            lineHeight: 1.3,
-                        }}>
-                            {p.producto}
-                        </h3>
-                        {/* Guía punteada (marca clásica de menú impreso) */}
+                    ) : (
                         <div style={{
-                            flex: 1,
-                            minWidth: 24,
-                            height: 1.5,
-                            background: `repeating-linear-gradient(to right, ${tema.border} 0 5px, transparent 5px 10px)`,
-                            transform: "translateY(-3px)",
-                        }} />
-                        {config.mostrar_precios && (
-                            <span style={{
-                                fontSize: "0.95rem",
-                                fontWeight: 700,
-                                color: tema.text,
-                                whiteSpace: "nowrap",
-                            }}>
-                                {(() => {
-                                    const min = minPrecioDisponible(p)
-                                    return (
-                                        <span>
-                                            {min.desde && <span style={{ fontSize: "0.66rem", fontWeight: 700, opacity: 0.7, marginRight: 2 }}>desde </span>}
-                                            ${min.precio.toFixed(2)}
-                                            {p.sufijo_precio && (
-                                                <span style={{ fontSize: "0.68rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
-                                                    Por {p.sufijo_precio}
-                                                </span>
-                                            )}
-                                        </span>
-                                    )
-                                })()}
-                            </span>
-                        )}
-                    </div>
-
-                    {/* Badges: agotado / pocas unidades */}
+                            width: "100%", height: "100%",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            opacity: 0.2,
+                        }}>
+                            <Icon name="Utensils" size={40} color={tema.textMuted} />
+                        </div>
+                    )}
+                    <div style={{
+                        position: "absolute", inset: 0, pointerEvents: "none",
+                        background: "linear-gradient(to top, rgba(0,0,0,0.32), transparent)",
+                    }} />
                     {config.mostrar_stock && !esSinStock && agotado && (
                         <span style={{
-                            alignSelf: "flex-start",
-                            marginTop: 6,
-                            fontSize: "0.62rem",
-                            fontWeight: 800,
-                            color: "#ef4444",
-                        }}>
-                            AGOTADO
-                        </span>
+                            position: "absolute", top: 10, right: 10,
+                            background: "rgba(239,68,68,0.95)", color: "#fff",
+                            fontSize: "0.7rem", fontWeight: 800,
+                            padding: "4px 10px", borderRadius: 12,
+                        }}>Agotado</span>
                     )}
+                </div>
 
-                    {/* Descripción */}
+                {/* Info */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 16 }}>
+                    <h4 style={{
+                        margin: 0,
+                        fontFamily: SERIF,
+                        fontSize: "1.125rem",
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                        color: tema.text,
+                    }}>
+                        {p.producto}
+                    </h4>
                     {p.descripcion && (
                         <p style={{
-                            margin: "5px 0 0",
-                            fontSize: "0.82rem",
-                            color: tema.textMuted,
-                            fontWeight: 500,
-                            lineHeight: 1.55,
-                            display: "-webkit-box", WebkitLineClamp: 3,
-                            WebkitBoxOrient: "vertical", overflow: "hidden",
+                            margin: "8px 0 0",
+                            fontSize: "0.875rem",
+                            lineHeight: 1.6,
+                            color: `color-mix(in srgb, ${tema.text} 55%, transparent)`,
+                            flex: 1,
                         }}>
                             {p.descripcion}
                         </p>
                     )}
+
+                    {/* Separación dashed + precio grande (port SF) */}
+                    <div style={{
+                        marginTop: 16,
+                        borderTop: `1px dashed color-mix(in srgb, ${tema.text} 22%, transparent)`,
+                        paddingTop: 14,
+                        display: "flex",
+                        alignItems: "flex-end",
+                        justifyContent: "space-between",
+                        gap: 8,
+                    }}>
+                        <div>
+                            <p style={{
+                                margin: 0,
+                                fontFamily: MONO,
+                                fontSize: "0.56rem",
+                                letterSpacing: "0.25em",
+                                textTransform: "uppercase",
+                                color: `color-mix(in srgb, ${tema.text} 35%, transparent)`,
+                            }}>
+                                {p.sufijo_precio ? `Por ${p.sufijo_precio}` : "Precio"}
+                            </p>
+                            {config.mostrar_precios && (
+                                <p style={{
+                                    margin: "2px 0 0",
+                                    fontFamily: SERIF,
+                                    fontSize: "1.5rem",
+                                    fontWeight: 600,
+                                    lineHeight: 1,
+                                    fontVariantNumeric: "tabular-nums",
+                                    color: tema.primaryDark,
+                                }}>
+                                    {min.desde && <span style={{ fontSize: "0.7rem", fontWeight: 600, opacity: 0.65, marginRight: 3 }}>desde </span>}
+                                    ${min.precio.toFixed(2)}
+                                </p>
+                            )}
+                        </div>
+                        {config.mostrar_stock && !esSinStock && !agotado && (
+                            <span style={{
+                                fontSize: "0.62rem", fontWeight: 600,
+                                flexShrink: 0,
+                                color: `color-mix(in srgb, ${tema.text} 40%, transparent)`,
+                                padding: "3px 8px", borderRadius: 10,
+                                border: `1px solid ${tema.border}`,
+                            }}>
+                                {p.stock_total} en stock
+                            </span>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </article>
         )
     }
-
-    // ── Modo plano: lista sin separadores ──
-    if (!agrupado) {
-        return (
-            <main style={{ maxWidth: 780, margin: "0 auto", padding: "16px 20px 60px" }}>
-                {productos.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
-                        <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
-                    </div>
-                ) : (
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                        {productos.map(renderItem)}
-                    </div>
-                )}
-            </main>
-        )
-    }
-
-    // ── Modo agrupado: secciones por categoría + nav de anclas ──
 
     return (
-        <main style={{ maxWidth: 780, margin: "0 auto", padding: "16px 20px 60px" }}>
+        <main style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 20px 60px" }}>
+            {/* Layout de cards portado de SF: 1 col móvil, 2 sm, 3 lg */}
+            <style>{`
+.sfmc-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 640px) { .sfmc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .sfmc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.sfmc-card { color: inherit; text-decoration: none; transition: transform 0.3s ease, box-shadow 0.3s ease; will-change: transform; }
+.sfmc-card:hover { transform: translateY(-4px); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35); }
+.sfmc-foto img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease-out; }
+.sfmc-card:hover .sfmc-foto img { transform: scale(1.04); }
+.sfmc-modal-foto { aspect-ratio: 1 / 1; }
+@media (min-width: 640px) { .sfmc-modal-foto { aspect-ratio: auto; width: 55%; min-height: 50vh; } }
+.catalogo-chips { -ms-overflow-style: none; scrollbar-width: none; }
+.catalogo-chips::-webkit-scrollbar { display: none; }
+`}</style>
+
             {productos.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
                     <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
                 </div>
+            ) : !agrupado ? (
+                /* Modo plano: grid sin encabezados */
+                <div className="sfmc-grid">{productos.map(renderCard)}</div>
             ) : (
                 <div style={{ display: "flex", flexDirection: "column" }}>
                     {/* Nav sticky de categorías: salta a la sección (no filtra la carta) */}
@@ -287,7 +301,6 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                     scrollbarWidth: "none",
                                 }}
                             >
-                                <style>{`.catalogo-chips { -ms-overflow-style: none; scrollbar-width: none; } .catalogo-chips::-webkit-scrollbar { display: none; }`}</style>
                                 {categoriasOrdenadas.map(cat => (
                                     <button
                                         key={cat}
@@ -317,35 +330,42 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                         const items = agrupados[categoria]
                         return (
                             <div key={categoria} ref={el => { seccionesRef.current[categoria] = el }}>
-                                {/* Separador de categoría (el primero queda pegado al nav) */}
+                                {/* Header de sección estilo SF: título serif + contador + línea */}
                                 <div style={{
                                     display: "flex",
                                     alignItems: "center",
+                                    justifyContent: "space-between",
                                     gap: 12,
-                                    margin: idx === 0 ? "16px 0 10px" : "36px 0 12px",
-                                    paddingLeft: 0,
+                                    borderBottom: `1px solid ${tema.border}`,
+                                    paddingBottom: 14,
+                                    margin: idx === 0 ? "16px 0 16px" : "36px 0 16px",
                                 }}>
                                     <h2 style={{
                                         margin: 0,
-                                        fontSize: "0.9rem",
-                                        fontWeight: 800,
-                                        color: tema.primaryDark,
-                                        textTransform: "uppercase",
-                                        letterSpacing: 1.2,
+                                        fontFamily: SERIF,
+                                        fontSize: "1.55rem",
+                                        fontWeight: 600,
+                                        letterSpacing: "-0.01em",
+                                        color: tema.text,
+                                        textTransform: "none",
                                     }}>
                                         {categoria}
                                     </h2>
-                                    <div style={{
-                                        flex: 1,
-                                        height: 1.5,
-                                        background: tema.border,
-                                        borderRadius: 1,
-                                    }} />
+                                    <span style={{
+                                        fontSize: "0.68rem",
+                                        fontWeight: 600,
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.2em",
+                                        color: `color-mix(in srgb, ${tema.text} 30%, transparent)`,
+                                        whiteSpace: "nowrap",
+                                    }}>
+                                        {items.length} {items.length === 1 ? "opción" : "opciones"}
+                                    </span>
                                 </div>
 
-                                {/* Productos de esta categoría */}
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    {items.map(renderItem)}
+                                {/* Cards de esta categoría */}
+                                <div className="sfmc-grid">
+                                    {items.map(renderCard)}
                                 </div>
                             </div>
                         )
