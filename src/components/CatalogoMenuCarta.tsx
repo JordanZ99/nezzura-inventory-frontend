@@ -285,9 +285,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                     position: "sticky",
                     top: topSticky,
                     zIndex: 40,
-                    background: tema.bg,
                     width: "100%",
-                    borderBottom: `1px solid ${tema.border}`,
                 }}>
                     <div
                         className="catalogo-chips"
