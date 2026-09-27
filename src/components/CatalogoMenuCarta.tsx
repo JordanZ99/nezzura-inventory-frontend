@@ -185,7 +185,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                     <h4 style={{
                         margin: 0,
                         fontFamily: SERIF,
-                        fontSize: "1.125rem",
+                        fontSize: "calc(1.125rem * var(--fd-scale, 1))",
                         fontWeight: 600,
                         lineHeight: 1.3,
                         color: tema.text,
@@ -229,7 +229,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                 <p style={{
                                     margin: "2px 0 0",
                                     fontFamily: SERIF,
-                                    fontSize: "1.5rem",
+                                    fontSize: "calc(1.5rem * var(--fd-scale, 1))",
                                     fontWeight: 600,
                                     lineHeight: 1,
                                     fontVariantNumeric: "tabular-nums",
@@ -345,7 +345,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                     <h2 style={{
                                         margin: 0,
                                         fontFamily: SERIF,
-                                        fontSize: "1.55rem",
+                                        fontSize: "calc(1.55rem * var(--fd-scale, 1))",
                                         fontWeight: 600,
                                         letterSpacing: "-0.01em",
                                         color: tema.text,

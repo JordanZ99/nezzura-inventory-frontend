@@ -594,7 +594,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                     <p style={{
                                         margin: "4px 0 0",
                                         fontFamily: SERIF,
-                                        fontSize: "1.9rem",
+                                        fontSize: "calc(1.9rem * var(--fd-scale, 1))",
                                         fontWeight: 600,
                                         lineHeight: 1,
                                         fontVariantNumeric: "tabular-nums",

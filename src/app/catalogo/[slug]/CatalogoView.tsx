@@ -274,6 +274,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
         if (!datos) return
         const f = normalizarFuente(datos.config.fuente)
         document.documentElement.style.setProperty("--font-display", f.stack)
+        // Compensación óptica: mismas tallas en px, percepción uniforme entre fuentes
+        document.documentElement.style.setProperty("--fd-scale", String(f.escala ?? 1))
         if (f.googleCss) {
             const id = "catalogo-fuente-css"
             let link = document.getElementById(id) as HTMLLinkElement | null
@@ -503,7 +505,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     )}
                     {config.banner_mostrar_texto !== false && (
                         <div>
-                            <h1 style={{ fontSize: esMovil ? "1.35rem" : "1.9rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, fontFamily: "var(--font-display, inherit)", textShadow: sombraTexto(config.banner_texto_color) }}>
+                            <h1 style={{ fontSize: esMovil ? "calc(1.35rem * var(--fd-scale, 1))" : "calc(1.9rem * var(--fd-scale, 1))", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, fontFamily: "var(--font-display, inherit)", textShadow: sombraTexto(config.banner_texto_color) }}>
                                 {config.titulo || "Catálogo"}
                             </h1>
                             {config.subtitulo && (
@@ -537,7 +539,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                 }}
                             />
                         )}
-                        <h1 style={{ fontSize: "1.8rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, fontFamily: "var(--font-display, inherit)" }}>
+                        <h1 style={{ fontSize: "calc(1.8rem * var(--fd-scale, 1))", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, fontFamily: "var(--font-display, inherit)" }}>
                             {config.titulo || "Catálogo"}
                         </h1>
                         {config.subtitulo && (

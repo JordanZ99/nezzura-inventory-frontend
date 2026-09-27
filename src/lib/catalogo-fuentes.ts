@@ -21,20 +21,29 @@ export interface FuenteCatalogo {
     googleCss?: string
     /** Descripción informativa del selector */
     desc: string
+    /**
+     * Compensación óptica (1 = neutral): aplica como multiplicador al tamaño
+     * de las fuentes display (--fd-scale). Existen fuentes con x-height chica
+     * (Cormorant Garamond se ve pequeña al mismo px que una sans) → +escala;
+     * las geométricas grandes (Poppins/Baloo) → −escala.
+     */
+    escala: number
 }
 
 export const FUENTES_CATALOGO: Record<string, FuenteCatalogo> = {
-    serif: {
-        key: "serif",
-        label: "Elegante (serif)",
-        stack: "Georgia, 'Times New Roman', serif",
-        desc: "Default de todos los catálogos: la serif clásica del Menú Carta.",
-    },
     sistema: {
         key: "sistema",
         label: "Actual (sin display)",
         stack: "inherit",
-        desc: "La sans neutral del catálogo, sin fuente display.",
+        desc: "La sans neutral del catálogo — default para todos los negocios.",
+        escala: 1,
+    },
+    serif: {
+        key: "serif",
+        label: "Elegante (serif)",
+        stack: "Georgia, 'Times New Roman', serif",
+        desc: "La serif clásica del Menú Carta, ahora opcional.",
+        escala: 1.02,
     },
     playfair: {
         key: "playfair",
@@ -42,6 +51,7 @@ export const FUENTES_CATALOGO: Record<string, FuenteCatalogo> = {
         stack: "'Playfair Display', Georgia, serif",
         googleCss: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&display=swap",
         desc: "Restaurante fino",
+        escala: 1.06,
     },
     cormorant: {
         key: "cormorant",
@@ -49,6 +59,7 @@ export const FUENTES_CATALOGO: Record<string, FuenteCatalogo> = {
         stack: "'Cormorant Garamond', Georgia, serif",
         googleCss: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap",
         desc: "Restaurante editorial (más aire)",
+        escala: 1.18,
     },
     poppins: {
         key: "poppins",
@@ -56,6 +67,7 @@ export const FUENTES_CATALOGO: Record<string, FuenteCatalogo> = {
         stack: "'Poppins', system-ui, sans-serif",
         googleCss: "https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap",
         desc: "Moderno amable (cafeterías, food trucks)",
+        escala: 0.96,
     },
     quicksand: {
         key: "quicksand",
@@ -63,6 +75,7 @@ export const FUENTES_CATALOGO: Record<string, FuenteCatalogo> = {
         stack: "'Quicksand', system-ui, sans-serif",
         googleCss: "https://fonts.googleapis.com/css2?family=Quicksand:wght@600;700&display=swap",
         desc: "Redondita amigable (cute con sobriedad)",
+        escala: 1.02,
     },
     oswald: {
         key: "oswald",
@@ -70,6 +83,7 @@ export const FUENTES_CATALOGO: Record<string, FuenteCatalogo> = {
         stack: "'Oswald', system-ui, sans-serif",
         googleCss: "https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap",
         desc: "Rústico condensado (parrilla, taquería)",
+        escala: 1.1,
     },
     baloo2: {
         key: "baloo2",
@@ -77,16 +91,17 @@ export const FUENTES_CATALOGO: Record<string, FuenteCatalogo> = {
         stack: "'Baloo 2', system-ui, sans-serif",
         googleCss: "https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap",
         desc: "Artesanal chunky (torterías, dulces)",
+        escala: 0.95,
     },
 }
 
 /** Orden de presentación en el selector del gestor */
 export const FUENTES_ORDEN = [
-    "serif", "sistema", "playfair", "cormorant", "poppins", "quicksand", "oswald", "baloo2",
+    "sistema", "serif", "playfair", "cormorant", "poppins", "quicksand", "oswald", "baloo2",
 ]
 
-/** Normaliza cualquier valor de config a una opción válida ('serif' fallback). */
+/** Normaliza cualquier valor de config a una opción válida ('sistema' fallback). */
 export function normalizarFuente(fuente: string | null | undefined): FuenteCatalogo {
     if (fuente && FUENTES_CATALOGO[fuente]) return FUENTES_CATALOGO[fuente]
-    return FUENTES_CATALOGO.serif
+    return FUENTES_CATALOGO.sistema
 }

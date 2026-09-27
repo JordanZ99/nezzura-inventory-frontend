@@ -49,7 +49,7 @@ export function SeccionApariencia({
                     Se aplica a nombres, precios y títulos. Los textos informativos quedan en la fuente neutral.
                 </p>
                 <select
-                    value={catalogoConfig?.fuente || "serif"}
+                    value={catalogoConfig?.fuente || "sistema"}
                     onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, fuente: e.target.value } : null); autoguardar("fuente", { fuente: e.target.value }) }}
                     style={{
                         width: "100%",
