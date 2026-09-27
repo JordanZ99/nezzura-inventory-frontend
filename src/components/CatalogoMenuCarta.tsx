@@ -19,6 +19,9 @@ interface ProductoPublico {
     descripcion: string
     imagen: string
     precio_venta: number
+    // Rango de precios de los lotes con stock (backend): undefined = un solo precio
+    precio_min?: number
+    precio_max?: number
     stock_total: number
     categoria: string[]
     imagenes?: string[]
@@ -236,7 +239,9 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                     color: tema.primaryDark,
                                 }}>
                                     {min.desde && <span style={{ fontSize: "0.7rem", fontWeight: 600, opacity: 0.65, marginRight: 3 }}>desde </span>}
-                                    ${min.precio.toFixed(2)}
+                                    {(!min.desde && p.precio_min !== undefined && p.precio_max !== undefined && p.precio_max > p.precio_min)
+                                        ? <>${p.precio_min.toFixed(2)} – ${p.precio_max.toFixed(2)}</>
+                                        : `$${min.precio.toFixed(2)}`}
                                 </p>
                             )}
                         </div>

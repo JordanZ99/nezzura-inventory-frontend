@@ -89,9 +89,7 @@ export function TarjetaProducto({
                 {modoPrecio === "catalogo"
                     ? (prod.variaciones || []).length > 0
                         ? `Desde $${Math.min(...(prod.variaciones || []).map(v => v.precio)).toFixed(2)}`
-                        : prod.precio_min !== undefined && prod.precio_max !== undefined && prod.precio_min < prod.precio_max
-                            ? `$${prod.precio_min.toFixed(2)} – $${prod.precio_max.toFixed(2)}`
-                            : `$${(prod.precio_sugerido ?? prod.precio_venta).toFixed(2)}`
+                        : `$${(prod.precio_venta ?? 0).toFixed(2)}`
                     : `$${(prod.precio_venta ?? 0).toFixed(2)}`}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6, alignItems: "center" }}>

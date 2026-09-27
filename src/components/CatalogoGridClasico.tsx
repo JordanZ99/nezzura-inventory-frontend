@@ -20,6 +20,9 @@ interface ProductoPublico {
     descripcion: string
     imagen: string
     precio_venta: number
+    // Rango de precios de los lotes con stock (backend): undefined = un solo precio
+    precio_min?: number
+    precio_max?: number
     stock_total: number
     categoria: string[]
     imagenes?: string[]
@@ -237,10 +240,16 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
                             }}>
                                 {(() => {
                                     const min = minPrecioDisponible(p)
+                                    // Sin variaciones pero con lotes de precios distintos con stock → rango "$X – $Y"
+                                    const rango = !min.desde &&
+                                        p.precio_min !== undefined && p.precio_max !== undefined &&
+                                        p.precio_max > p.precio_min
                                     return (
                                         <span>
                                             {min.desde && <span style={{ fontSize: "0.7rem", fontWeight: 700, opacity: 0.7, marginRight: 2 }}>desde </span>}
-                                            ${min.precio.toFixed(2)}
+                                            {rango
+                                                ? <>${p.precio_min!.toFixed(2)} – ${p.precio_max!.toFixed(2)}</>
+                                                : `$${min.precio.toFixed(2)}`}
                                             {p.sufijo_precio && (
                                                 <span style={{ fontSize: "0.72rem", fontWeight: 700, opacity: 0.75, marginLeft: 4 }}>
                                                     Por {p.sufijo_precio}

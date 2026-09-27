@@ -34,6 +34,9 @@ interface ProductoPublico {
     descripcion: string
     imagen: string
     precio_venta: number
+    // Rango de precios de los lotes con stock (backend): undefined = un solo precio
+    precio_min?: number
+    precio_max?: number
     stock_total: number
     categoria: string[]
     imagenes?: string[]
