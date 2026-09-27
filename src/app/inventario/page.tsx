@@ -147,8 +147,8 @@ export default function Inventario() {
     const TABS: { id: "nuevo" | "restock" | "editar" | "conteo"; label: string; icon: string }[] = [
         { id: "nuevo", label: "Nuevo", icon: "ClipboardPlus" },
         { id: "restock", label: "Restock", icon: "PackagePlus" },
-        { id: "editar", label: "Editar Prod.", icon: "Pencil" },
         { id: "conteo", label: "Auditoría", icon: "ClipboardList" },
+        { id: "editar", label: "Editar Producto", icon: "Pencil" },
     ]
 
     // ── Explicaciones de cada KPI en lenguaje entendible ──
@@ -168,25 +168,10 @@ export default function Inventario() {
         "Stock descuadrado": {
             descripcion: "Son los productos que tienen stock en 0 o incluso negativo. Stock negativo significa que se vendieron más unidades de las que había registradas. Revisa estos productos para corregir su inventario.",
             formula: "Productos con stock ≤ 0"
-        },
-        "Última auditoría": {
-            descripcion: "Días transcurridos desde tu último conteo de auditoría (pestaña Auditoría). Contar tu inventario periódicamente es lo que te permite descubrir a tiempo mermas, robos o ventas que no se registraron. Si nunca has hecho uno o ya pasaron más de 15 días, el número se muestra en ámbar: es buen momento para contar.",
-            formula: "Días desde el conteo cerrado más reciente (— si nunca)"
         }
     }
 
-    // ── Nudge de auditoría: días desde el último conteo cerrado ──
-    // Ámbar si nunca se ha auditado o si pasaron más de 15 días.
-    const auditoria: { valor: string; alerta: boolean } = (() => {
-        if (conteo.sesionAbierta) return { valor: "En curso", alerta: false }
-        const ultima = conteo.historial[0]?.cerrado_at
-        if (!ultima) return { valor: "Nunca", alerta: true }
-        const dias = Math.floor((Date.now() - new Date(ultima).getTime()) / 86_400_000)
-        const texto = dias <= 0 ? "Hoy" : dias === 1 ? "Ayer" : `Hace ${dias} días`
-        return { valor: texto, alerta: dias >= 15 }
-    })()
-
-    // Productos filtrados y ordenados para "Editar Prod."
+    // Productos filtrados y ordenados para "Editar Producto"
     // (filtrado y ordenamiento compartidos con POS y Restock — src/lib/ordenamiento.ts)
     const productosEditar = filtrarProductos(inv, buscadorEditar, catSelecEditar)
         .sort((a, b) => compararProductos(a, b, editarOrdenamiento))
@@ -214,13 +199,12 @@ export default function Inventario() {
 
             <div style={{ padding: "0 24px", marginTop: -60, overflowX: "hidden" }}>
                 {/* Stat cards — clickeables para ver explicación */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-5">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }} className="md:grid-cols-4">
                     {([
                         { label: "Productos activos", valor: totalActivos, icon: "PackagePlus", alerta: false },
                         { label: "Valor del inventario", valor: `$${valorInv.toFixed(0)}`, icon: "PiggyBank", alerta: false },
                         { label: "Ganancia potencial", valor: `$${ganPotencial.toFixed(0)}`, icon: "Banknote", alerta: false },
                         { label: "Stock descuadrado", valor: stockDesc, icon: "TriangleAlert", alerta: false },
-                        { label: "Última auditoría", valor: auditoria.valor, icon: "ClipboardList", alerta: auditoria.alerta },
                     ] as { label: string; valor: string | number; icon: string; alerta: boolean }[]).map(m => (
                         <div
                             key={m.label}
@@ -533,7 +517,6 @@ export default function Inventario() {
                         "Valor del inventario": "PiggyBank",
                         "Ganancia potencial": "Banknote",
                         "Stock descuadrado": "TriangleAlert",
-                        "Última auditoría": "ClipboardList",
                     }
                     const iconoKPI = iconosKPI[kpiExplicacion] || "Info"
                     return (
