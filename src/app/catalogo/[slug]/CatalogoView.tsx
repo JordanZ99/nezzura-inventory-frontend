@@ -164,7 +164,7 @@ function CapaFondoCatalogo({ url, textura, opacidad }: { url: string; textura: b
             backgroundSize: textura ? "auto" : "cover",
             backgroundPosition: "center",
             opacity: lista ? opacidad : 0,
-            transition: "opacity 0.45s ease",
+            transition: "opacity 1s ease",
         }} />
     )
 }
