@@ -598,6 +598,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     config={config}
                     tema={tema}
                     onClose={cerrarProducto}
+                    listaNavegable={productosVisibles}
+                    onNavegar={setProductoActivo}
                 />
             )}
 

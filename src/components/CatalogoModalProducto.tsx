@@ -63,6 +63,10 @@ interface Props {
     config: ConfigCatalogo
     tema: PaletaTema
     onClose: () => void
+    // Modo Menú Carta: lista visible para navegar platillos con las flechas
+    // laterales + callback para mostrar otro producto.
+    listaNavegable?: ProductoPublico[]
+    onNavegar?: (p: ProductoPublico) => void
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
@@ -107,7 +111,7 @@ async function descargarImagen(url: string, nombre: string) {
     }
 }
 
-export default function CatalogoModalProducto({ producto, config, tema, onClose }: Props) {
+export default function CatalogoModalProducto({ producto, config, tema, onClose, listaNavegable, onNavegar }: Props) {
     const variaciones = producto.variaciones || []
     // Si el producto tiene variaciones, las agotadas no se pueden elegir (se
     // muestran deshabilitadas con su badge "Agotado").
@@ -256,6 +260,57 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                 onClick={onClose}
             >
                 <style>{`@keyframes cataPop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } } .cata-modal-carrusel::-webkit-scrollbar { display: none; }`}</style>
+
+                {/* Contenedor relativo para las flechas laterales (port SF) */}
+                <div style={{ position: "relative", margin: "auto", width: "100%", maxWidth: 960 }}>
+                    {/* Flechas prev/next: navegan entre PLATILLOS de la lista visible */}
+                    {(() => {
+                        const lista = listaNavegable || []
+                        const idx = lista.findIndex(p => p.producto === producto.producto)
+                        const hayNav = lista.length > 1 && idx >= 0
+                        return hayNav ? (
+                            <>
+                                {idx > 0 && (
+                                    <button
+                                        onClick={e => { e.stopPropagation(); onNavegar?.(lista[idx - 1]) }}
+                                        aria-label="Platillo anterior"
+                                        style={{
+                                            position: "absolute", top: "50%", right: "calc(100% + 12px)",
+                                            transform: "translateY(-50%)", zIndex: 30,
+                                            width: 46, height: 46, borderRadius: 999,
+                                            border: "none", background: "rgba(0,0,0,0.6)",
+                                            color: "rgba(255,255,255,0.7)", cursor: "pointer",
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            transition: "background 0.15s, color 0.15s",
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.85)"; e.currentTarget.style.color = "#fff" }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.6)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)" }}
+                                    >
+                                        <Icon name="ChevronLeft" size={24} />
+                                    </button>
+                                )}
+                                {idx < lista.length - 1 && (
+                                    <button
+                                        onClick={e => { e.stopPropagation(); onNavegar?.(lista[idx + 1]) }}
+                                        aria-label="Platillo siguiente"
+                                        style={{
+                                            position: "absolute", top: "50%", left: "calc(100% + 12px)",
+                                            transform: "translateY(-50%)", zIndex: 30,
+                                            width: 46, height: 46, borderRadius: 999,
+                                            border: "none", background: "rgba(0,0,0,0.6)",
+                                            color: "rgba(255,255,255,0.7)", cursor: "pointer",
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            transition: "background 0.15s, color 0.15s",
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.85)"; e.currentTarget.style.color = "#fff" }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.6)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)" }}
+                                    >
+                                        <Icon name="ChevronRight" size={24} />
+                                    </button>
+                                )}
+                            </>
+                        ) : null
+                    })()}
 
                 <div
                     onClick={e => e.stopPropagation()}
@@ -615,6 +670,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                         </div>
                     </div>
                     </div>
+                </div>
                 </div>
             </div>
         )
