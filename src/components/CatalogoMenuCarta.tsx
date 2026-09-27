@@ -267,7 +267,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
 .sfmc-foto img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease-out; }
 .sfmc-card:hover .sfmc-foto img { transform: scale(1.04); }
 .sfmc-modal-foto { aspect-ratio: 1 / 1; }
-@media (min-width: 640px) { .sfmc-modal-foto { aspect-ratio: auto; width: 55%; min-height: 50vh; } }
+@media (min-width: 640px) { .sfmc-modal-foto { width: 55%; } }
 .catalogo-chips { -ms-overflow-style: none; scrollbar-width: none; }
 .catalogo-chips::-webkit-scrollbar { display: none; }
 `}</style>

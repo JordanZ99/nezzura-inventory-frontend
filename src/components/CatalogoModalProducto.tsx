@@ -185,10 +185,31 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
     // Primer stage: la misma w_600 del grid (ya en caché del navegador → instantáneo)
     const fotoRapida = optimizarImagenCloudinary(fotoActual, 600)
 
+    // ── Alta natural de la imagen (modo Menú Carta) ──
+    // Al cargar mide naturalWidth/naturalHeight y da al contenedor esa
+    // proporción exacta: el modal crece con la imagen y nunca la recorta.
+    const [dimFoto, setDimFoto] = useState<{ w: number; h: number } | null>(null)
+    // La w_600 solo mide (si disparara el swap, se vería vacío hasta la w_1200)
+    const medirRapida = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const img = e.currentTarget
+        if (!dimFoto && img.naturalWidth > 0 && img.naturalHeight > 0) {
+            setDimFoto({ w: img.naturalWidth, h: img.naturalHeight })
+        }
+    }
+    // La w_1200 mide y habilita el swap visual
+    const medirFoto = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        setImagenLista(true)
+        const img = e.currentTarget
+        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+            setDimFoto({ w: img.naturalWidth, h: img.naturalHeight })
+        }
+    }
+
     // Al cambiar de foto (producto o swipe), volver al estado "cargando"
     // para que el swap se repita con cada imagen nueva.
     useEffect(() => {
         setImagenLista(false)
+        setDimFoto(null)
     }, [fotoActualOptimizada])    // Servicios y compuestos no tienen inventario propio: nunca se "agotan"
     const esSinStock = producto.tipo_producto !== undefined && producto.tipo_producto !== "stock"
     const agotado = !esSinStock && producto.stock_total <= 0
@@ -254,9 +275,9 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                     }}
                 >
                     <div className="sfmc-form-split">
-                    <style>{`.sfmc-form-split { display: flex; flex-direction: column; } @media (min-width: 640px) { .sfmc-form-split { flex-direction: row; max-height: 85vh; } .sfmc-form-info { width: 45%; } }`}</style>
+                    <style>{`.sfmc-form-split { display: flex; flex-direction: column; } @media (min-width: 640px) { .sfmc-form-split { flex-direction: row; } .sfmc-form-info { width: 45%; } }`}</style>
 
-                    {/* IZQUIERDA: foto protagonista (con swipe para cambiar de foto) */}
+                    {/* IZQUIERDA: foto protagonista (su altura natural define la del modal) */}
                     <div
                         className="sfmc-modal-foto"
                         style={{
@@ -265,6 +286,8 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                             background: tema.bgCard,
                             flexShrink: 0,
                             touchAction: "pan-y",
+                            alignSelf: "flex-start",
+                            ...(dimFoto ? { aspectRatio: `${dimFoto.w} / ${dimFoto.h}` } : {}),
                         }}
                         onTouchStart={e => { touchX.current = e.touches[0].clientX }}
                         onTouchEnd={e => {
@@ -280,6 +303,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                     src={fotoRapida}
                                     alt=""
                                     aria-hidden
+                                    onLoad={medirRapida}
                                     style={{
                                         position: "absolute", inset: 0,
                                         width: "100%", height: "100%",
@@ -290,7 +314,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose 
                                 <img
                                     src={fotoActualOptimizada}
                                     alt={producto.producto}
-                                    onLoad={() => setImagenLista(true)}
+                                    onLoad={medirFoto}
                                     style={{
                                         position: "absolute", inset: 0,
                                         width: "100%", height: "100%",
