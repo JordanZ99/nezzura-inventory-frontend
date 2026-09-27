@@ -26,6 +26,7 @@ interface Props extends PropsSeccionConfig {
     categoriasCatalogo: Categoria[]
     categoriaToggling: string | null
     toggleCategoria: (categoria: string) => void
+    reordenarCategorias: (nuevaLista: Categoria[]) => void
 }
 
 export function ConfigCatalogo(props: Props) {
@@ -45,6 +46,7 @@ export function ConfigCatalogo(props: Props) {
         categoriasCatalogo,
         categoriaToggling,
         toggleCategoria,
+        reordenarCategorias,
     } = props
 
     return (
@@ -113,6 +115,7 @@ export function ConfigCatalogo(props: Props) {
                     categoriasCatalogo={categoriasCatalogo}
                     categoriaToggling={categoriaToggling}
                     toggleCategoria={toggleCategoria}
+                    reordenarCategorias={reordenarCategorias}
                 />
             </div>
         </div>

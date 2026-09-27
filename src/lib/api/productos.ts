@@ -81,6 +81,11 @@ export const productosApi = {
             `/inventario/categoria/${encodeURIComponent(categoria)}/visibilidad`,
             { method: "PATCH" }
         ),
+    reordenarCategorias: (ordenes: { id: string; orden: number }[]) =>
+        request<{ ok: boolean; mensaje?: string }>("/inventario/categorias/reordenar", {
+            method: "PATCH",
+            body: JSON.stringify({ ordenes }),
+        }),
 
     // Lote individual
     editarLote: (

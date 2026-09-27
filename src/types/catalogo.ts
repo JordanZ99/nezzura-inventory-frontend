@@ -62,4 +62,6 @@ export interface Categoria {
     slug: string;
     total_productos: number;
     visible_en_catalogo?: boolean;
+    /** Posición manual (drag & drop en Personalización > Catálogo). NULL = alfabético al final. */
+    orden?: number | null;
 }

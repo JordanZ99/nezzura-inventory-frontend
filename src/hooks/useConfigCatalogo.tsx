@@ -37,6 +37,7 @@ export function useConfigCatalogo(tab: string) {
     // ── Visibilidad de categorías en el catálogo ──
     const [categoriasCatalogo, setCategoriasCatalogo] = useState<Categoria[]>([])
     const [categoriaToggling, setCategoriaToggling] = useState<string | null>(null)
+    const [reordenandoCats, setReordenandoCats] = useState(false)
 
     // ── Auto-guardado: cada control se guarda solo al cambiar ──
     // "campoGuardando" indica qué control se está guardando ahora mismo (spinner).
@@ -158,6 +159,31 @@ export function useConfigCatalogo(tab: string) {
         }
     }
 
+    // ── Reordenar categorías (drag & drop en Personalización) ──
+    // Optimista: primero se acomoda la lista local (feedback inmediato) y
+    // luego se persiste el nuevo orden 1..N en el backend.
+    async function reordenarCategorias(nuevaLista: Categoria[]) {
+        const anterior = categoriasCatalogo
+        setCategoriasCatalogo(nuevaLista)
+        setReordenandoCats(true)
+        try {
+            const ordenes = nuevaLista.map((c, i) => ({ id: c.id, orden: i + 1 }))
+            const res = await api.reordenarCategorias(ordenes)
+            if (res && res.ok === false) throw new Error(res.mensaje || "Error al reordenar")
+            if (tenant?.tenant_id) {
+                await queryClient.invalidateQueries({
+                    queryKey: inventarioQueryKeys.categorias(tenant.tenant_id),
+                    refetchType: "active",
+                })
+            }
+        } catch (err: any) {
+            setCategoriasCatalogo(anterior)
+            mostrarMsg(false, `❌ ${err.message || "Error al reordenar categorías"}`)
+        } finally {
+            setReordenandoCats(false)
+        }
+    }
+
     const CATALOGO_LINK = catalogoConfig?.slug
         ? `${typeof window !== "undefined" ? window.location.origin : ""}/catalogo/${catalogoConfig.slug}`
         : ""
@@ -256,6 +282,8 @@ export function useConfigCatalogo(tab: string) {
         renderGuardado,
         // Visibilidad de categorías
         toggleCategoria,
+        reordenarCategorias,
+        reordenandoCats,
         // Compartir
         copiarLink,
         descargarQR,

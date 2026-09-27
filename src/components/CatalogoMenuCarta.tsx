@@ -60,6 +60,8 @@ interface Props {
     busqueda: string
     agrupado?: boolean
     onAbrirProducto?: (p: ProductoPublico) => void
+    // Orden manual de categorías (drag & drop desde Personalización)
+    ordenCategorias?: Record<string, number>
 }
 
 /** Familias tipográficas del diseño SF: serif para nombres/precios, mono para labels */
@@ -78,13 +80,13 @@ function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number
     return { desde: false, precio: p.precio_venta }
 }
 
-export default function CatalogoMenuCarta({ productos, config, tema, agrupado = true, onAbrirProducto }: Props) {
+export default function CatalogoMenuCarta({ productos, config, tema, agrupado = true, onAbrirProducto, ordenCategorias }: Props) {
     // ── Nav de categorías por anclas (sticky) ──
     const seccionesRef = useRef<Record<string, HTMLElement | null>>({})
     const [catActiva, setCatActiva] = useState<string | null>(null)
 
     const agrupados = agruparPorCategoria(productos)
-    const categoriasOrdenadas = ordenarCategorias(Object.keys(agrupados))
+    const categoriasOrdenadas = ordenarCategorias(Object.keys(agrupados), ordenCategorias)
     const conChips = agrupado && categoriasOrdenadas.length > 1
 
     // La barra de anuncios (sticky top:0, ~40px) desplaza el punto donde pegan los chips

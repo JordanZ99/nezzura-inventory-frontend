@@ -60,6 +60,8 @@ interface Props {
     tema: PaletaTema
     agrupado?: boolean
     onAbrirProducto?: (p: ProductoPublico) => void
+    // Orden manual de categorías (drag & drop desde Personalización)
+    ordenCategorias?: Record<string, number>
 }
 
 /**
@@ -74,7 +76,7 @@ function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number
     return { desde: false, precio: p.precio_venta }
 }
 
-export default function CatalogoGridClasico({ productos, config, tema, agrupado = false, onAbrirProducto }: Props) {
+export default function CatalogoGridClasico({ productos, config, tema, agrupado = false, onAbrirProducto, ordenCategorias }: Props) {
     // ── Estado del modo agrupado ──
     const [expandidas, setExpandidas] = useState<Set<string>>(() => new Set())
     const [esMovil, setEsMovil] = useState<boolean>(() =>
@@ -281,7 +283,7 @@ export default function CatalogoGridClasico({ productos, config, tema, agrupado 
     // ── Modo agrupado: fila deslizable por categoría + acordeón ──
     if (agrupado) {
         const agrupados = agruparPorCategoria(productos)
-        const categorias = ordenarCategorias(Object.keys(agrupados))
+        const categorias = ordenarCategorias(Object.keys(agrupados), ordenCategorias)
 
         const estiloFlecha: React.CSSProperties = {
             position: "absolute",

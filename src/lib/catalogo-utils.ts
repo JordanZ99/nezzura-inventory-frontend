@@ -26,8 +26,22 @@ export function agruparPorCategoria<T extends { categoria?: string[] | null }>(p
 /**
  * Ordena las categorías alfabéticamente (es, sin diferenciar mayúsculas),
  * dejando "Sin categoría" siempre al final.
+ *
+ * `ordenPersonalizado` (mapa nombre → posición) lo define el drag & drop de
+ * Personalización: si existe, se respeta esa secuencia; todo lo que no esté
+ * en el mapa (incluida "Sin categoría") va al final, alfabético.
  */
-export function ordenarCategorias(categorias: string[]): string[] {
+export function ordenarCategorias(categorias: string[], ordenPersonalizado?: Record<string, number>): string[] {
+    if (ordenPersonalizado && Object.keys(ordenPersonalizado).length > 0) {
+        return [...categorias].sort((a, b) => {
+            const ia = ordenPersonalizado[a]
+            const ib = ordenPersonalizado[b]
+            if (ia !== undefined && ib !== undefined) return ia - ib
+            if (ia !== undefined) return -1
+            if (ib !== undefined) return 1
+            return a.localeCompare(b, "es", { sensitivity: "base" })
+        })
+    }
     return [...categorias].sort((a, b) => {
         if (a === "Sin categoría") return 1
         if (b === "Sin categoría") return -1

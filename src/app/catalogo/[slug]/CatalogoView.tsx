@@ -72,6 +72,8 @@ interface ConfigCatalogo {
 interface RespuestaCatalogo {
     config: ConfigCatalogo
     productos: ProductoPublico[]
+    // Orden manual de las categorías (drag & drop en Personalización): {nombre: posición}
+    orden_categorias?: Record<string, number>
 }
 
 // ── Paleta ligada a las variables CSS de globals.css ──
@@ -111,6 +113,7 @@ const TEMPLATES: Record<string, React.FC<{
     busqueda: string
     agrupado: boolean
     onAbrirProducto?: (p: ProductoPublico) => void
+    ordenCategorias?: Record<string, number>
 }>> = {
     "grid-clasico": CatalogoGridClasico,
     "menu-carta": CatalogoMenuCarta,
@@ -542,6 +545,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 busqueda={busqueda}
                 agrupado={agrupado}
                 onAbrirProducto={setProductoActivo}
+                ordenCategorias={datos.orden_categorias}
             />
 
             {/* ── Paginación (solo en modo plano) ── */}

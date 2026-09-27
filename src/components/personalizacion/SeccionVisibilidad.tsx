@@ -14,6 +14,7 @@ interface Props extends PropsSeccionConfig {
     categoriasCatalogo: Categoria[]
     categoriaToggling: string | null
     toggleCategoria: (categoria: string) => void
+    reordenarCategorias: (nuevaLista: Categoria[]) => void
 }
 
 export function SeccionVisibilidad({
@@ -25,6 +26,7 @@ export function SeccionVisibilidad({
     categoriasCatalogo,
     categoriaToggling,
     toggleCategoria,
+    reordenarCategorias,
 }: Props) {
     return (
         <>
@@ -83,12 +85,13 @@ export function SeccionVisibilidad({
                         Categorías visibles
                     </span>
                     <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: "0 0 12px", fontWeight: 500 }}>
-                        Las categorías que ocultes no se mostrarán en el catálogo público.
+                        Las categorías que ocultes no se mostrarán en el catálogo público. Arrástralas para definir el orden del menú.
                     </p>
                     <ListaCategoriasVisibles
                         categoriasCatalogo={categoriasCatalogo}
                         categoriaToggling={categoriaToggling}
                         toggleCategoria={toggleCategoria}
+                        onReordenar={reordenarCategorias}
                     />
                 </div>
             )}

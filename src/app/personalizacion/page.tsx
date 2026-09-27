@@ -262,6 +262,7 @@ export default function Personalizacion() {
                                     categoriasCatalogo={config.categoriasCatalogo}
                                     categoriaToggling={config.categoriaToggling}
                                     toggleCategoria={config.toggleCategoria}
+                                    reordenarCategorias={config.reordenarCategorias}
                                 />
                                 <CardCompartir
                                     catalogoConfig={config.catalogoConfig}
