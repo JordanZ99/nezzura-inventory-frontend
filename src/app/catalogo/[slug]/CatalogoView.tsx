@@ -422,7 +422,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 </header>
             ) : (
                 /* Modo gradiente: solo header con degradado (el banner es exclusivo del modo imagen) */
-                <header style={{ background: tema.gradient, padding: "48px 24px 40px", textAlign: "center", color: "var(--on-primary)" }}>
+                <header style={{ background: tema.gradient, padding: config.template === "menu-carta" ? "32px 24px 28px" : "48px 24px 40px", textAlign: "center", color: "var(--on-primary)" }}>
                         {config.logo && (
                             /* Logo circular con borde blanco, igual que en el preview del link (WhatsApp) */
                             <img
@@ -478,7 +478,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
             )}
 
             {/* ── Buscador + filtros ── */}
-            <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 0" }}>
+            <div style={{ maxWidth: 1200, margin: "0 auto", padding: config.template === "menu-carta" ? "16px 20px 0" : "24px 20px 0" }}>
                 {/* Buscador */}
                 <input
                     type="text"

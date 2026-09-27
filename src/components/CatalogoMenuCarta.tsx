@@ -9,9 +9,10 @@
 // Sin cajas: los ítems se separan con líneas hairline, como una carta física.
 // ==============================================================================
 
+import { useEffect, useRef, useState } from "react"
 import Icon from "@/components/ui/Icon"
 import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
-import { optimizarImagenCloudinary } from "@/lib/image-utils"
+import { optimizarImagenCuadrada } from "@/lib/image-utils"
 
 interface ProductoPublico {
     producto: string
@@ -37,6 +38,8 @@ interface ConfigCatalogo {
     mostrar_precios: boolean
     mostrar_stock: boolean
     mostrar_categorias: boolean
+    // Texto de la barra de anuncios sticky (puede venir vacío; desplaza los chips)
+    anuncio_texto?: string
 }
 
 interface PaletaTema {
@@ -72,6 +75,43 @@ function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number
 }
 
 export default function CatalogoMenuCarta({ productos, config, tema, agrupado = true, onAbrirProducto }: Props) {
+    // ── Nav de categorías por anclas (sticky) ──
+    const seccionesRef = useRef<Record<string, HTMLElement | null>>({})
+    const [catActiva, setCatActiva] = useState<string | null>(null)
+
+    const agrupados = agruparPorCategoria(productos)
+    const categoriasOrdenadas = ordenarCategorias(Object.keys(agrupados))
+    const conChips = agrupado && categoriasOrdenadas.length > 1
+
+    // La barra de anuncios (sticky top:0, ~40px) desplaza el punto donde pegan los chips
+    const topSticky = conChips && config.anuncio_texto ? 40 : 0
+    const offsetAnclas = topSticky + 56
+
+    // Sección activa: la última cuyo header quedó por encima del área de los chips
+    useEffect(() => {
+        if (!conChips) return
+        const onScroll = () => {
+            let activa: string | null = null
+            for (const cat of categoriasOrdenadas) {
+                const el = seccionesRef.current[cat]
+                if (el && el.getBoundingClientRect().top <= offsetAnclas + 20) activa = cat
+            }
+            setCatActiva(activa)
+        }
+        window.addEventListener("scroll", onScroll, { passive: true })
+        onScroll()
+        return () => window.removeEventListener("scroll", onScroll)
+    }, [conChips, categoriasOrdenadas, offsetAnclas])
+
+    const saltarA = (cat: string) => {
+        const el = seccionesRef.current[cat]
+        setCatActiva(cat)
+        if (el) {
+            const top = el.getBoundingClientRect().top + window.scrollY - offsetAnclas
+            window.scrollTo({ top, behavior: "smooth" })
+        }
+    }
+
     // ── Fila de producto (compartida entre vista agrupada y plana) ──
     const renderItem = (p: ProductoPublico) => {
         // Servicios y compuestos no tienen inventario propio: nunca se "agotan"
@@ -101,7 +141,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                         background: tema.bg,
                     }}>
                         <img
-                            src={optimizarImagenCloudinary(p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`, 600)}
+                            src={optimizarImagenCuadrada(p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`, 240)}
                             alt={p.producto}
                             style={{ width: "100%", height: "100%", objectFit: "cover" }}
                             loading="lazy"
@@ -128,8 +168,8 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                     <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                         <h3 style={{
                             margin: 0,
-                            fontSize: "1.02rem",
-                            fontWeight: 700,
+                            fontSize: "1.08rem",
+                            fontWeight: 800,
                             color: tema.text,
                             lineHeight: 1.3,
                         }}>
@@ -145,9 +185,9 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                         }} />
                         {config.mostrar_precios && (
                             <span style={{
-                                fontSize: "1.08rem",
-                                fontWeight: 800,
-                                color: tema.primaryDark,
+                                fontSize: "0.95rem",
+                                fontWeight: 700,
+                                color: tema.text,
                                 whiteSpace: "nowrap",
                             }}>
                                 {(() => {
@@ -203,7 +243,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
     // ── Modo plano: lista sin separadores ──
     if (!agrupado) {
         return (
-            <main style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px 60px" }}>
+            <main style={{ maxWidth: 780, margin: "0 auto", padding: "16px 20px 60px" }}>
                 {productos.length === 0 ? (
                     <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
                         <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
@@ -217,33 +257,77 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
         )
     }
 
-    // ── Modo agrupado: secciones por categoría ──
-    const agrupados = agruparPorCategoria(productos)
-    const categoriasOrdenadas = ordenarCategorias(Object.keys(agrupados))
+    // ── Modo agrupado: secciones por categoría + nav de anclas ──
 
     return (
-        <main style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px 60px" }}>
+        <main style={{ maxWidth: 780, margin: "0 auto", padding: "16px 20px 60px" }}>
             {productos.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
                     <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
                 </div>
             ) : (
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                    {categoriasOrdenadas.map(categoria => {
+                    {/* Nav sticky de categorías: salta a la sección (no filtra la carta) */}
+                    {conChips && (
+                        <div style={{
+                            position: "sticky",
+                            top: topSticky,
+                            zIndex: 40,
+                            background: tema.bg,
+                            margin: "0 -20px",
+                            padding: "10px 20px 8px",
+                            borderBottom: `1px solid ${tema.border}`,
+                        }}>
+                            <div
+                                className="catalogo-chips"
+                                style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    overflowX: "auto",
+                                    scrollbarWidth: "none",
+                                }}
+                            >
+                                <style>{`.catalogo-chips { -ms-overflow-style: none; scrollbar-width: none; } .catalogo-chips::-webkit-scrollbar { display: none; }`}</style>
+                                {categoriasOrdenadas.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => saltarA(cat)}
+                                        style={{
+                                            padding: "8px 16px", borderRadius: 20,
+                                            border: "none", cursor: "pointer",
+                                            fontSize: "0.8rem", fontWeight: 700,
+                                            whiteSpace: "nowrap",
+                                            background: catActiva === cat ? tema.primary : tema.bgCard,
+                                            color: catActiva === cat ? "var(--on-primary)" : tema.textMuted,
+                                            transition: "all 0.15s",
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        {cat}
+                                        <span style={{ opacity: 0.65, marginLeft: 6, fontSize: "0.7rem", fontWeight: 600 }}>
+                                            {agrupados[cat].length}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {categoriasOrdenadas.map((categoria, idx) => {
                         const items = agrupados[categoria]
                         return (
-                            <div key={categoria}>
-                                {/* Separador de categoría */}
+                            <div key={categoria} ref={el => { seccionesRef.current[categoria] = el }}>
+                                {/* Separador de categoría (el primero queda pegado al nav) */}
                                 <div style={{
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 12,
-                                    margin: "52px 0 14px",
+                                    margin: idx === 0 ? "16px 0 10px" : "36px 0 12px",
                                     paddingLeft: 0,
                                 }}>
                                     <h2 style={{
                                         margin: 0,
-                                        fontSize: "0.85rem",
+                                        fontSize: "0.9rem",
                                         fontWeight: 800,
                                         color: tema.primaryDark,
                                         textTransform: "uppercase",

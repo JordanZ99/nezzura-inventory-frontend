@@ -49,6 +49,16 @@ export function optimizarImagenCloudinary(url: string | undefined, ancho: number
 }
 
 /**
+ * Igual que optimizarImagenCloudinary, pero recorta la imagen a un CUADRADO
+ * (c_fill,g_auto): Cloudinary detecta el sujeto (comida/producto) y el recorte
+ * queda consistente entre fotos de distintas proporciones. Para thumbnails
+ * pequeños da más nitidez que objectFit:cover en un <img> a resolución mayor.
+ */
+export function optimizarImagenCuadrada(url: string | undefined, lado: number): string {
+    return construirUrlCloudinary(url, `c_fill,g_auto,w_${lado},h_${lado},f_auto,q_auto`) ?? url ?? ""
+}
+
+/**
  * Lee un archivo como Data URL usando FileReader.
  */
 function leerArchivoComoDataURL(file: File): Promise<string> {
