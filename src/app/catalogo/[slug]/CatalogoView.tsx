@@ -123,6 +123,52 @@ const TEMA_VARIABLES: PaletaTema = {
     gradient: "var(--gradient-1)",
 }
 
+/**
+ * Capa decorativa del FONDO con imagen (migración 045) + FADE-IN suave.
+ *
+ * Predecarga la URL antes de pintarla: la capa arranca en opacidad 0 y, cuando
+ * el navegador tiene los bits completos (Image.decode()), transiciona al nivel
+ * de opacidad elegido por el tenant. Así el fondo "aparece" en vez de saltar
+ * — siempre queda el color por debajo (background del contenedor raíz) y si la
+ * imagen falla simplemente no aparece: nadie percibe un error.
+ *
+ * zIndex -1 pinta ARRIBA del color de fondo del contenedor y DEBAJO de todo el
+ * contenido (cabecera, tarjetas, pie). Textura → capa desplazable con el scroll
+ * (el patrón fluye con la página); foto 'cover' → fija al viewport sin estirarse
+ * por toda la altura del catálogo. pointer-events none: es decorativa.
+ */
+function CapaFondoCatalogo({ url, textura, opacidad }: { url: string; textura: boolean; opacidad: number }) {
+    const [lista, setLista] = useState(false)
+    useEffect(() => {
+        setLista(false)
+        if (!url) return
+        let activo = true
+        const img = new Image()
+        img.src = url
+        if (typeof img.decode === "function") {
+            img.decode().then(() => { if (activo) setLista(true) }).catch(() => { /* falló la carga: el color queda en paz */ })
+        } else {
+            img.onload = () => { if (activo) setLista(true) }
+        }
+        return () => { activo = false }
+    }, [url])
+    if (!url) return null
+    return (
+        <div aria-hidden="true" style={{
+            position: textura ? "absolute" : "fixed",
+            inset: 0,
+            zIndex: -1,
+            pointerEvents: "none",
+            backgroundImage: `url(${url})`,
+            backgroundRepeat: textura ? "repeat" : "no-repeat",
+            backgroundSize: textura ? "auto" : "cover",
+            backgroundPosition: "center",
+            opacity: lista ? opacidad : 0,
+            transition: "opacity 0.45s ease",
+        }} />
+    )
+}
+
 // ── Mapa de templates ──
 // Asocia cada nombre de template con su componente React.
 // Si el backend devuelve un template no registrado, usa grid-clasico como fallback.
@@ -476,26 +522,9 @@ export default function CatalogoView({ slug }: { slug: string }) {
 
     return (
         <div style={{ minHeight: "100vh", background: fondoColor || tema.bg, color: tema.text, fontFamily: "system-ui, -apple-system, sans-serif", position: "relative", isolation: "isolate" }}>
-            {/* ── Capa del FONDO con imagen (migración 045) ──
-                zIndex -1: pinta ARRIBA del color de fondo del contenedor y
-                DEBAJO de todo el contenido (cabecera, tarjetas, pie de página),
-                que es exactamente donde debe estar. La opacidad de la capa la
-                mezcla con el color. Textura → capa desplazable con el scroll
-                (el patrón fluye con la página); foto 'cover' → fija al viewport
-                sin estirarse por toda la altura del catálogo. Decorativa: no
-                captura eventos. */}
+            {/* ── FONDO con imagen (migración 045, con fade-in suave) ── */}
             {fondoUrl && (
-                <div aria-hidden="true" style={{
-                    position: fondoEsTextura ? "absolute" : "fixed",
-                    inset: 0,
-                    zIndex: -1,
-                    pointerEvents: "none",
-                    backgroundImage: `url(${fondoUrl})`,
-                    backgroundRepeat: fondoEsTextura ? "repeat" : "no-repeat",
-                    backgroundSize: fondoEsTextura ? "auto" : "cover",
-                    backgroundPosition: "center",
-                    opacity: fondoOpacidad,
-                }} />
+                <CapaFondoCatalogo url={fondoUrl} textura={fondoEsTextura} opacidad={fondoOpacidad} />
             )}
             {/* ── Header / Hero ── */}
             {config.hero_estilo === "imagen" && bannerUrl ? (
