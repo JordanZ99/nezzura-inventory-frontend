@@ -27,6 +27,11 @@ export const catalogoApi = {
         banner_mostrar_texto?: boolean
         banner_mostrar_logo?: boolean
         anuncio_texto?: string
+        /** Fondo del catálogo con imagen (migración 045) */
+        fondo_url?: string
+        fondo_modo?: string
+        fondo_opacidad?: number
+        fondo_color?: string
     }) =>
         request<{ ok: boolean; mensaje: string }>("/catalogo_gestion", {
             method: "PUT",

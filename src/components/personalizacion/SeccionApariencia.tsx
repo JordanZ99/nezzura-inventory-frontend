@@ -2,7 +2,8 @@
 // src/components/personalizacion/SeccionApariencia.tsx
 // Sección "Apariencia": estilo de la portada (gradiente/imagen) y, en modo
 // imagen, los banners (escritorio/móvil vía BannerUploader), el color del
-// texto sobre el banner y la visibilidad del título/logo.
+// texto sobre el banner y la visibilidad del título/logo. Además, la imagen/
+// textura de FONDO del catálogo (migración 045) con modo, opacidad y color.
 // ==============================================================================
 
 import Icon from "@/components/ui/Icon"
@@ -15,10 +16,12 @@ import type { PropsSeccionConfig } from "./tipos"
 interface Props extends PropsSeccionConfig {
     bannerInputRef: React.RefObject<HTMLInputElement>
     bannerMovilInputRef: React.RefObject<HTMLInputElement>
+    fondoInputRef: React.RefObject<HTMLInputElement>
     subiendoBanner: boolean
     subiendoBannerMovil: boolean
-    handleBannerFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil") => void
-    quitarBanner: (target: "escritorio" | "movil") => void
+    subiendoFondo: boolean
+    handleBannerFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil" | "fondo") => void
+    quitarBanner: (target: "escritorio" | "movil" | "fondo") => void
 }
 
 export function SeccionApariencia({
@@ -30,8 +33,10 @@ export function SeccionApariencia({
     renderGuardado,
     bannerInputRef,
     bannerMovilInputRef,
+    fondoInputRef,
     subiendoBanner,
     subiendoBannerMovil,
+    subiendoFondo,
     handleBannerFile,
     quitarBanner,
 }: Props) {
@@ -108,6 +113,134 @@ export function SeccionApariencia({
                             )}
                         </button>
                     ))}
+                </div>
+
+                {/* ── Fondo del catálogo con imagen/textura (migración 045) ──
+                    Siempre visible (independiente del estilo de portada): la
+                    imagen se dibuja ENCIMA del color de fondo con opacidad
+                    variable, para mezclarse con el color elegido. */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 22 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Fondo del catálogo</span>
+                        {renderGuardado("fondo_url")}
+                    </div>
+                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 500 }}>
+                        Textura o imagen opcional detrás de todo el catálogo. Bájale la opacidad para mezclarla con el color de fondo.
+                    </p>
+
+                    <BannerUploader
+                        target="fondo"
+                        inputRef={fondoInputRef}
+                        url={catalogoConfig?.fondo_url || ""}
+                        subiendo={subiendoFondo}
+                        onFile={handleBannerFile}
+                        onQuitar={quitarBanner}
+                        renderGuardado={renderGuardado}
+                        campo="fondo_url"
+                        icono="Wallpaper"
+                        etiqueta="Imagen de fondo"
+                        alturaPreview={40}
+                        recomendacion="textura o foto (opcional)"
+                    />
+
+                    {/* Controles solo si hay imagen de fondo */}
+                    {catalogoConfig?.fondo_url && (
+                        <>
+                            {/* Modo: foto a pantalla completa vs textura tileada */}
+                            <div style={{ display: "flex", gap: 10 }}>
+                                {[
+                                    { key: "cover", label: "Cubrir todo", icono: "Maximize", desc: "La foto se estira a pantalla completa" },
+                                    { key: "repeat", label: "Textura repetida", icono: "Grid3X3", desc: "La imagen se repite como patrón" },
+                                ].map(m => (
+                                    <button
+                                        key={m.key}
+                                        onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, fondo_modo: m.key } : null); autoguardar("fondo_modo", { fondo_modo: m.key }) }}
+                                        style={{
+                                            flex: 1, display: "flex", alignItems: "center", gap: 10,
+                                            padding: "10px 12px", borderRadius: 10,
+                                            border: `2px solid ${(catalogoConfig?.fondo_modo || "cover") === m.key ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                            background: (catalogoConfig?.fondo_modo || "cover") === m.key ? "var(--primary-soft)" : "var(--bg-card2)",
+                                            cursor: "pointer", textAlign: "left",
+                                        }}
+                                    >
+                                        <Icon name={m.icono as any} size={16} color={(catalogoConfig?.fondo_modo || "cover") === m.key ? "var(--primary-mid)" : "var(--text-muted)"} />
+                                        <div>
+                                            <span style={{ fontWeight: 700, fontSize: "0.75rem", color: "var(--text-main)" }}>{m.label}</span>
+                                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 500 }}>{m.desc}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Opacidad de la imagen (0-100): se mezcla con el color de fondo */}
+                            <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                                    <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>Opacidad de la imagen</span>
+                                    <span style={{ fontWeight: 800, fontSize: "0.78rem", color: "var(--primary-mid)", minWidth: 42, textAlign: "right" }}>
+                                        {catalogoConfig?.fondo_opacidad ?? 100}%
+                                    </span>
+                                    {renderGuardado("fondo_opacidad")}
+                                </div>
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={100}
+                                    step={5}
+                                    value={catalogoConfig?.fondo_opacidad ?? 100}
+                                    onChange={e => {
+                                        const v = Number(e.target.value)
+                                        setCatalogoConfig(prev => prev ? { ...prev, fondo_opacidad: v } : null)
+                                        autoguardarDebounce("fondo_opacidad", () => ({ fondo_opacidad: v }))
+                                    }}
+                                    style={{ width: "100%", accentColor: "var(--primary-mid)", cursor: "pointer" }}
+                                />
+                                <p style={{ margin: 0, fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                    Al 0% solo se ve el color de fondo; al 100% la imagen cubre el color.
+                                </p>
+                            </div>
+
+                            {/* Color de fondo bajo la imagen */}
+                            <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                                    <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>Color de fondo</span>
+                                    {renderGuardado("fondo_color")}
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                    <button
+                                        onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, fondo_color: "" } : prev); autoguardar("fondo_color", { fondo_color: "" }) }}
+                                        style={{
+                                            display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10, cursor: "pointer",
+                                            border: `2px solid ${!catalogoConfig?.fondo_color ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                            background: "var(--bg-card2)", fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)",
+                                            transition: "all 0.15s",
+                                        }}
+                                    >
+                                        <div style={{
+                                            width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+                                            background: "linear-gradient(135deg, var(--bg-app) 0%, var(--primary-mid) 100%)",
+                                            border: "1.5px solid var(--border-primary)",
+                                        }} />
+                                        Tema
+                                    </button>
+                                    <label style={{
+                                        display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 10, cursor: "pointer",
+                                        border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
+                                    }}>
+                                        <input
+                                            type="color"
+                                            value={catalogoConfig?.fondo_color || "#ffffff"}
+                                            onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, fondo_color: e.target.value } : prev); autoguardarDebounce("fondo_color", () => ({ fondo_color: e.target.value })) }}
+                                            style={{ width: 22, height: 22, border: "none", background: "none", padding: 0, cursor: "pointer" }}
+                                        />
+                                        <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)" }}>Otro color</span>
+                                    </label>
+                                </div>
+                                <p style={{ margin: 0, fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                    Color que se ve bajo la imagen cuando le bajas la opacidad. "Tema" usa el color del tema elegido.
+                                </p>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* ── Solo modo imagen: color del texto y visibilidad del texto ── */}

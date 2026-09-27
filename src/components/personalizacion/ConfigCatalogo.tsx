@@ -19,10 +19,12 @@ import type { PropsSeccionConfig } from "./tipos"
 interface Props extends PropsSeccionConfig {
     bannerInputRef: React.RefObject<HTMLInputElement>
     bannerMovilInputRef: React.RefObject<HTMLInputElement>
+    fondoInputRef: React.RefObject<HTMLInputElement>
     subiendoBanner: boolean
     subiendoBannerMovil: boolean
-    handleBannerFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil") => void
-    quitarBanner: (target: "escritorio" | "movil") => void
+    subiendoFondo: boolean
+    handleBannerFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil" | "fondo") => void
+    quitarBanner: (target: "escritorio" | "movil" | "fondo") => void
     categoriasCatalogo: Categoria[]
     categoriaToggling: string | null
     toggleCategoria: (categoria: string) => void
@@ -39,8 +41,10 @@ export function ConfigCatalogo(props: Props) {
         renderGuardado,
         bannerInputRef,
         bannerMovilInputRef,
+        fondoInputRef,
         subiendoBanner,
         subiendoBannerMovil,
+        subiendoFondo,
         handleBannerFile,
         quitarBanner,
         categoriasCatalogo,
@@ -92,8 +96,10 @@ export function ConfigCatalogo(props: Props) {
                     renderGuardado={renderGuardado}
                     bannerInputRef={bannerInputRef}
                     bannerMovilInputRef={bannerMovilInputRef}
+                    fondoInputRef={fondoInputRef}
                     subiendoBanner={subiendoBanner}
                     subiendoBannerMovil={subiendoBannerMovil}
+                    subiendoFondo={subiendoFondo}
                     handleBannerFile={handleBannerFile}
                     quitarBanner={quitarBanner}
                 />

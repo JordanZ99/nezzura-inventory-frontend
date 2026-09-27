@@ -26,6 +26,14 @@ export interface CatalogoConfig {
     banner_mostrar_texto?: boolean;
     banner_mostrar_logo?: boolean;
     anuncio_texto?: string;
+    /** Fondo del catálogo con imagen (migración 045): '' = usa el color del tema */
+    fondo_url?: string;
+    /** Modo de dibujado: 'cover' (foto completa) | 'repeat' (textura tileada) */
+    fondo_modo?: string;
+    /** Opacidad de la imagen sobre el color de fondo (0-100) */
+    fondo_opacidad?: number;
+    /** Color hex bajo la imagen; '' = color del tema */
+    fondo_color?: string;
     logo?: string;
     created_at?: string;
 }

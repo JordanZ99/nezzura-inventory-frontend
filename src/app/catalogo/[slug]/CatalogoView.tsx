@@ -69,6 +69,11 @@ interface ConfigCatalogo {
     banner_mostrar_texto?: boolean
     banner_mostrar_logo?: boolean
     anuncio_texto?: string
+    // Fondo del catálogo con imagen (migración 045): '' = usa el color del tema
+    fondo_url?: string
+    fondo_modo?: string      // 'cover' (foto completa) | 'repeat' (textura tileada)
+    fondo_opacidad?: number  // 0-100: opacidad de la imagen sobre el color de fondo
+    fondo_color?: string     // hex #RRGGBB bajo la imagen; '' = color del tema
     logo: string
 }
 
@@ -357,6 +362,17 @@ export default function CatalogoView({ slug }: { slug: string }) {
         esMovil ? 800 : 1920
     )
 
+    // ── Fondo del catálogo con imagen/textura (migración 045) ──
+    // La imagen se dibuja ENCIMA del color de fondo (fondo_color o el del tema)
+    // con la opacidad elegida: al bajarla se mezcla con el color. El modo
+    // 'repeat' tilea la imagen como patrón (textura), 'cover' la estira.
+    const fondoUrl = config.fondo_url
+        ? optimizarImagenCloudinary(config.fondo_url, config.fondo_modo === "repeat" ? 640 : 1600)
+        : ""
+    const fondoEsTextura = (config.fondo_modo || "cover") === "repeat"
+    const fondoOpacidad = Math.max(0, Math.min(100, config.fondo_opacidad ?? 100)) / 100
+    const fondoColor = config.fondo_color || ""
+
     // ── Resolver template ──
     const TemplateComponent = TEMPLATES[config.template] || TEMPLATES["grid-clasico"]
 
@@ -459,7 +475,28 @@ export default function CatalogoView({ slug }: { slug: string }) {
     )
 
     return (
-        <div style={{ minHeight: "100vh", background: tema.bg, color: tema.text, fontFamily: "system-ui, -apple-system, sans-serif" }}>
+        <div style={{ minHeight: "100vh", background: fondoColor || tema.bg, color: tema.text, fontFamily: "system-ui, -apple-system, sans-serif", position: "relative", isolation: "isolate" }}>
+            {/* ── Capa del FONDO con imagen (migración 045) ──
+                zIndex -1: pinta ARRIBA del color de fondo del contenedor y
+                DEBAJO de todo el contenido (cabecera, tarjetas, pie de página),
+                que es exactamente donde debe estar. La opacidad de la capa la
+                mezcla con el color. Textura → capa desplazable con el scroll
+                (el patrón fluye con la página); foto 'cover' → fija al viewport
+                sin estirarse por toda la altura del catálogo. Decorativa: no
+                captura eventos. */}
+            {fondoUrl && (
+                <div aria-hidden="true" style={{
+                    position: fondoEsTextura ? "absolute" : "fixed",
+                    inset: 0,
+                    zIndex: -1,
+                    pointerEvents: "none",
+                    backgroundImage: `url(${fondoUrl})`,
+                    backgroundRepeat: fondoEsTextura ? "repeat" : "no-repeat",
+                    backgroundSize: fondoEsTextura ? "auto" : "cover",
+                    backgroundPosition: "center",
+                    opacity: fondoOpacidad,
+                }} />
+            )}
             {/* ── Header / Hero ── */}
             {config.hero_estilo === "imagen" && bannerUrl ? (
                 /* Hero con banner como fondo de imagen.

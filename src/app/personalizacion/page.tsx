@@ -257,8 +257,10 @@ export default function Personalizacion() {
                                     renderGuardado={config.renderGuardado}
                                     bannerInputRef={banners.bannerInputRef}
                                     bannerMovilInputRef={banners.bannerMovilInputRef}
+                                    fondoInputRef={banners.fondoInputRef}
                                     subiendoBanner={banners.subiendoBanner}
                                     subiendoBannerMovil={banners.subiendoBannerMovil}
+                                    subiendoFondo={banners.subiendoFondo}
                                     handleBannerFile={banners.handleBannerFile}
                                     quitarBanner={banners.quitarBanner}
                                     categoriasCatalogo={config.categoriasCatalogo}

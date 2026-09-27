@@ -9,13 +9,15 @@
 import Icon from "@/components/ui/Icon"
 import type { ReactNode } from "react"
 
+type TargetBanner = "escritorio" | "movil" | "fondo"
+
 interface Props {
-    target: "escritorio" | "movil"
+    target: TargetBanner
     inputRef: React.RefObject<HTMLInputElement>
     url: string
     subiendo: boolean
-    onFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil") => void
-    onQuitar: (target: "escritorio" | "movil") => void
+    onFile: (e: React.ChangeEvent<HTMLInputElement>, target: TargetBanner) => void
+    onQuitar: (target: TargetBanner) => void
     renderGuardado: (campo: string) => ReactNode
     campo: string
     icono: string
