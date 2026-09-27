@@ -21,6 +21,7 @@ const TEMAS_OPTS = [
     { key: "cozyYellow", label: "Cozy Yellow", colors: ["#ffd05b", "#eb7456"] },
     { key: "botanical", label: "Botanic Green", colors: ["#24a85b", "#5ec967"] },
     { key: "cottonCandy", label: "Cotton Candy", colors: ["#f472b6", "#7dd3fc"] },
+    { key: "blackGrill", label: "Black Grill", colors: ["#1b1b1b", "#3b3b3b"] },
 ]
 
 export function SeccionPlantilla({ catalogoConfig, setCatalogoConfig, autoguardar, renderGuardado }: PropsSeccionConfig) {

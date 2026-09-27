@@ -4,6 +4,9 @@
 // Template Menú tipo Carta — estilo menú de restaurante/cafetería.
 // - agrupado=true (default): separa los productos por categoría con encabezados.
 // - agrupado=false: lista plana sin separadores (toggle del tenant desactivado).
+// Layout de cada ítem: foto grande a la izquierda (protagonista) y la
+// información (nombre · precio con guía punteada, descripción) a la derecha.
+// Sin cajas: los ítems se separan con líneas hairline, como una carta física.
 // ==============================================================================
 
 import Icon from "@/components/ui/Icon"
@@ -80,70 +83,69 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                 onClick={() => onAbrirProducto?.(p)}
                 style={{
                     display: "flex",
-                    gap: 14,
-                    padding: "14px 16px",
-                    borderRadius: 14,
-                    background: tema.bgCard,
-                    border: `1px solid ${tema.border}`,
-                    transition: "background 0.15s, border-color 0.15s",
+                    gap: 18,
+                    padding: "18px 4px",
+                    borderBottom: `1px solid ${tema.border}`,
+                    transition: "opacity 0.15s",
                     opacity: !esSinStock && agotado && config.mostrar_stock ? 0.55 : 1,
                     cursor: "pointer",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = tema.bg }}
-                onMouseLeave={e => { e.currentTarget.style.background = tema.bgCard }}
             >
-                {/* Foto pequeña (opcional) */}
-                {p.imagen && p.imagen !== "No hay foto" && (
+                {/* Foto protagonista a la izquierda */}
+                {p.imagen && p.imagen !== "No hay foto" ? (
                     <div style={{
-                        width: 52, height: 52,
-                        borderRadius: 12,
+                        width: 104, height: 104,
+                        borderRadius: 14,
                         overflow: "hidden",
                         flexShrink: 0,
                         background: tema.bg,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
                     }}>
                         <img
-                            src={optimizarImagenCloudinary(p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`, 200)}
+                            src={optimizarImagenCloudinary(p.imagen.startsWith("http") ? p.imagen : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/${p.imagen}`, 600)}
                             alt={p.producto}
-                            style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
                             loading="lazy"
                             onError={e => { e.currentTarget.style.display = "none" }}
                         />
                     </div>
+                ) : (
+                    <div style={{
+                        width: 104, height: 104,
+                        borderRadius: 14,
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: 0.25,
+                    }}>
+                        <Icon name="Package" size={40} color={tema.textMuted} />
+                    </div>
                 )}
 
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: 12,
-                    }}>
+                {/* Info a la derecha */}
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                    {/* Nombre · guía punteada · precio */}
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                         <h3 style={{
                             margin: 0,
-                            fontSize: "0.95rem",
+                            fontSize: "1.02rem",
                             fontWeight: 700,
                             color: tema.text,
                             lineHeight: 1.3,
                         }}>
                             {p.producto}
-                            {!esSinStock && agotado && config.mostrar_stock && (
-                                <span style={{
-                                    fontSize: "0.62rem",
-                                    fontWeight: 700,
-                                    color: "#ef4444",
-                                    marginLeft: 8,
-                                }}>
-                                    AGOTADO
-                                </span>
-                            )}
                         </h3>
+                        {/* Guía punteada (marca clásica de menú impreso) */}
+                        <div style={{
+                            flex: 1,
+                            minWidth: 24,
+                            height: 1.5,
+                            background: `repeating-linear-gradient(to right, ${tema.border} 0 5px, transparent 5px 10px)`,
+                            transform: "translateY(-3px)",
+                        }} />
                         {config.mostrar_precios && (
                             <span style={{
-                                fontSize: "1rem",
+                                fontSize: "1.08rem",
                                 fontWeight: 800,
                                 color: tema.primaryDark,
                                 whiteSpace: "nowrap",
@@ -165,13 +167,30 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                             </span>
                         )}
                     </div>
+
+                    {/* Badges: agotado / pocas unidades */}
+                    {config.mostrar_stock && !esSinStock && agotado && (
+                        <span style={{
+                            alignSelf: "flex-start",
+                            marginTop: 6,
+                            fontSize: "0.62rem",
+                            fontWeight: 800,
+                            color: "#ef4444",
+                        }}>
+                            AGOTADO
+                        </span>
+                    )}
+
+                    {/* Descripción */}
                     {p.descripcion && (
                         <p style={{
-                            margin: "4px 0 0",
-                            fontSize: "0.78rem",
+                            margin: "5px 0 0",
+                            fontSize: "0.82rem",
                             color: tema.textMuted,
                             fontWeight: 500,
-                            lineHeight: 1.4,
+                            lineHeight: 1.55,
+                            display: "-webkit-box", WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical", overflow: "hidden",
                         }}>
                             {p.descripcion}
                         </p>
@@ -184,13 +203,13 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
     // ── Modo plano: lista sin separadores ──
     if (!agrupado) {
         return (
-            <main style={{ maxWidth: 700, margin: "0 auto", padding: "24px 20px 60px" }}>
+            <main style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px 60px" }}>
                 {productos.length === 0 ? (
                     <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
                         <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
                     </div>
                 ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
                         {productos.map(renderItem)}
                     </div>
                 )}
@@ -203,13 +222,13 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
     const categoriasOrdenadas = ordenarCategorias(Object.keys(agrupados))
 
     return (
-        <main style={{ maxWidth: 700, margin: "0 auto", padding: "24px 20px 60px" }}>
+        <main style={{ maxWidth: 780, margin: "0 auto", padding: "24px 20px 60px" }}>
             {productos.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
                     <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron productos.</p>
                 </div>
             ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
                     {categoriasOrdenadas.map(categoria => {
                         const items = agrupados[categoria]
                         return (
@@ -219,7 +238,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 12,
-                                    margin: "52px 0 16px",
+                                    margin: "52px 0 14px",
                                     paddingLeft: 0,
                                 }}>
                                     <h2 style={{
@@ -241,7 +260,7 @@ export default function CatalogoMenuCarta({ productos, config, tema, agrupado = 
                                 </div>
 
                                 {/* Productos de esta categoría */}
-                                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                <div style={{ display: "flex", flexDirection: "column" }}>
                                     {items.map(renderItem)}
                                 </div>
                             </div>
