@@ -8,6 +8,17 @@
 import Icon from "@/components/ui/Icon"
 import { ToastBanner } from "@/components/ui/Toast"
 
+/** Datos de contacto opcionales (migración 043) */
+interface ContactoNegocio {
+    telefono: string
+    correo: string
+    instagram: string
+    facebook: string
+    tiktok: string
+    sitio_web: string
+    maps: string
+}
+
 interface Props {
     inputFileRef: React.RefObject<HTMLInputElement>
     logoUrl: string
@@ -22,7 +33,20 @@ interface Props {
     guardando: boolean
     cargandoTenant: boolean
     guardarCambios: () => void
+    contacto: ContactoNegocio
+    setContactoCampo: (campo: keyof ContactoNegocio, valor: string) => void
 }
+
+/** Campos de contacto a renderizar:clave → {label, placeholder, icono, hint} */
+const CAMPOS_CONTACTO: { campo: keyof ContactoNegocio; label: string; placeholder: string; icono: string; hint?: string }[] = [
+    { campo: "telefono", label: "Teléfono", placeholder: "Ej: +52 987 123 4567", icono: "Phone" },
+    { campo: "correo", label: "Correo", placeholder: "Ej: contacto@hola.com", icono: "Mail" },
+    { campo: "instagram", label: "Instagram", placeholder: "Ej: @hola o link", icono: "Instagram" },
+    { campo: "facebook", label: "Facebook", placeholder: "Ej: facebook.com/hola", icono: "Facebook" },
+    { campo: "tiktok", label: "TikTok", placeholder: "Ej: @hola o link", icono: "Music2" },
+    { campo: "sitio_web", label: "Link", placeholder: "Ej: https://tusitio.com", icono: "Link" },
+    { campo: "maps", label: "Ubicación (Google Maps)", placeholder: "Ej: 8F26+3F Cancún, Q.R. o link del lugar", icono: "MapPin", hint: "Acepta el Plus Code o el link del lugar — ideal para negocios físicos." },
+]
 
 export function CardIdentidadNegocio({
     inputFileRef,
@@ -38,6 +62,8 @@ export function CardIdentidadNegocio({
     guardando,
     cargandoTenant,
     guardarCambios,
+    contacto,
+    setContactoCampo,
 }: Props) {
     return (
         <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 320px", maxWidth: 460 }}>
@@ -152,6 +178,41 @@ export function CardIdentidadNegocio({
                     <span style={{ fontSize: "0.68rem", color: "var(--text-muted)", display: "block", marginTop: 6 }}>
                         {guardandoModo ? "Guardando..." : "Se guarda automáticamente"}
                     </span>
+                </div>
+
+                {/* ── Datos de contacto (opcionales, migración 043) ── */}
+                <div>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                        Datos de Contacto
+                    </span>
+                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0 0 10px", fontWeight: 500 }}>
+                        Opcionales: los que agregues podrán mostrarse con tu marca.
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {CAMPOS_CONTACTO.map(c => (
+                            <div key={c.campo}>
+                                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 3 }}>
+                                    <Icon name={c.icono as any} size={13} color="var(--text-muted)" />
+                                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                                        {c.label}
+                                    </span>
+                                </div>
+                                <input
+                                    className="input-primary"
+                                    placeholder={c.placeholder}
+                                    value={contacto[c.campo]}
+                                    onChange={e => setContactoCampo(c.campo, e.target.value)}
+                                    maxLength={c.campo === "sitio_web" || c.campo === "maps" ? 300 : 120}
+                                    style={{ fontSize: "0.8rem" }}
+                                />
+                                {c.hint && (
+                                    <span style={{ fontSize: "0.66rem", color: "var(--text-muted)", display: "block", marginTop: 3, opacity: 0.8 }}>
+                                        {c.hint}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Guardar Cambios */}

@@ -32,6 +32,14 @@ interface TenantInfo {
     puntos_gasto_monto: number  // Y en "X puntos por cada $Y"
     puntos_gasto_pts: number    // X en "X puntos por cada $Y"
     puntos_fijos: number | null // puntos fijos por venta (modo 'fijo')
+    // ── Datos de contacto (migración 043, opcionales; Supabase directo) ──
+    telefono: string
+    correo: string
+    instagram: string
+    facebook: string
+    tiktok: string
+    sitio_web: string
+    maps: string  // Plus Code o link de Google Maps
 }
 
 interface TenantContextValue {
@@ -55,7 +63,20 @@ export interface ActualizarTenant {
     puntos_gasto_monto?: number
     puntos_gasto_pts?: number
     puntos_fijos?: number | null
+    // Datos de contacto (migración 043)
+    telefono?: string
+    correo?: string
+    instagram?: string
+    facebook?: string
+    tiktok?: string
+    sitio_web?: string
+    maps?: string
 }
+
+/** Columnas de contacto opcionales de tenants (migración 043), cargadas/guardadas directo en Supabase. */
+export const CLAVES_CONTACTO: (keyof ActualizarTenant)[] = [
+    "telefono", "correo", "instagram", "facebook", "tiktok", "sitio_web", "maps",
+]
 
 // Claves de TenantInfo que viven en el backend (NO se mandan directo a Supabase).
 const CLAVES_API: (keyof ActualizarTenant)[] = [
@@ -97,7 +118,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             // Leer empresa, logo, plan y giro desde la tabla tenants de Supabase usando el 'id' (UserID)
             const { data, error } = await supabase
                 .from("tenants")
-                .select("id, empresa, logo, plan, giro, modulos")
+                .select("id, empresa, logo, plan, giro, modulos, telefono, correo, instagram, facebook, tiktok, sitio_web, maps")
                 .eq("id", perfil.tenant_id)
                 .single()
 
@@ -122,6 +143,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                 puntos_gasto_monto: perfil.puntos_gasto_monto ?? 10,
                 puntos_gasto_pts: perfil.puntos_gasto_pts ?? 1,
                 puntos_fijos: perfil.puntos_fijos ?? null,
+                // Datos de contacto (migración 043) — opcionales, default vacío
+                telefono: (data?.telefono as string) || "",
+                correo: (data?.correo as string) || "",
+                instagram: (data?.instagram as string) || "",
+                facebook: (data?.facebook as string) || "",
+                tiktok: (data?.tiktok as string) || "",
+                sitio_web: (data?.sitio_web as string) || "",
+                maps: (data?.maps as string) || "",
             })
             if (!error && data) {
                 setTenant(mapaTenant(data.id))

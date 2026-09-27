@@ -216,6 +216,8 @@ export default function Personalizacion() {
                             guardando={cuenta.guardando}
                             cargandoTenant={cargandoTenant}
                             guardarCambios={cuenta.guardarCambios}
+                            contacto={cuenta.contacto}
+                            setContactoCampo={cuenta.setContactoCampo}
                         />
                     </div>
                 )}

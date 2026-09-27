@@ -14,13 +14,29 @@ import { api, descargarDatosJson, descargarDatosXlsx } from "@/lib/api"
 import { useToast } from "@/components/ui/Toast"
 import { useQueryClient } from "@tanstack/react-query"
 import { inventarioQueryKeys } from "@/lib/inventarioQueries"
+import { CLAVES_CONTACTO } from "@/contexts/TenantContext"
+
+/** Datos de contacto opcionales del negocio (tenants, migración 043). */
+interface ContactoNegocio {
+    telefono: string
+    correo: string
+    instagram: string
+    facebook: string
+    tiktok: string
+    sitio_web: string
+    maps: string
+}
+
+const CONTACTO_VACIO: ContactoNegocio = {
+    telefono: "", correo: "", instagram: "", facebook: "", tiktok: "", sitio_web: "", maps: "",
+}
 
 interface UsePersonalizacionCuentaArgs {
     tenant: {
         tenant_id: string; empresa: string; logo: string; plan: string
         zona_horaria: string; metodo_pago_default: string; gasto_comision_automatico: boolean
     } | null
-    actualizar: (data: { empresa?: string; logo?: string; zona_horaria?: string; metodo_pago_default?: string; gasto_comision_automatico?: boolean }) => Promise<void>
+    actualizar: (data: { empresa?: string; logo?: string; zona_horaria?: string; metodo_pago_default?: string; gasto_comision_automatico?: boolean } & Partial<ContactoNegocio>) => Promise<void>
 }
 
 export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizacionCuentaArgs) {
@@ -56,6 +72,14 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         router.replace("/login")
     }
 
+    // ── Datos de contacto del negocio (migración 043, opcionales) ──
+    const [contacto, setContacto] = useState<ContactoNegocio>(CONTACTO_VACIO)
+
+    /** Cambia un solo campo de contacto manteniendo el resto */
+    function setContactoCampo(campo: keyof ContactoNegocio, valor: string) {
+        setContacto(prev => ({ ...prev, [campo]: valor }))
+    }
+
     // Sincronizar formulario con los datos cargados desde el contexto
     useEffect(() => {
         if (tenant) {
@@ -64,6 +88,13 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             setLogoOriginal(tenant.logo || "")
             setZonaHorario(tenant.zona_horaria || "America/Cancun")
             setGastoComision(tenant.gasto_comision_automatico)
+            setContacto(prev => {
+                const nuevo: ContactoNegocio = { ...prev }
+                for (const clave of CLAVES_CONTACTO) {
+                    nuevo[clave as keyof ContactoNegocio] = ((tenant as Record<string, unknown>)[clave as string] as string) || ""
+                }
+                return nuevo
+            })
         }
     }, [tenant])
 
@@ -163,7 +194,7 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         }
     }
 
-    // Guarda empresa y logo en Supabase
+    // Guarda empresa, logo y datos de contacto en Supabase
     async function guardarCambios() {
         if (!empresa.trim()) {
             mostrarMsg(false, "❌ El nombre del negocio no puede estar vacío")
@@ -173,9 +204,15 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             setGuardando(true)
 
             // Llama a la función global actualizar del contexto que actualiza WHERE id = tenant_id
+            const datosContacto: Partial<ContactoNegocio> = {}
+            for (const clave of CLAVES_CONTACTO) {
+                const campo = clave as keyof ContactoNegocio
+                datosContacto[campo] = contacto[campo].trim()
+            }
             await actualizar({
                 empresa: empresa.trim(),
-                logo: logoUrl.trim()
+                logo: logoUrl.trim(),
+                ...datosContacto,
             })
 
             // Si el logo cambió, borrar el anterior de Cloudinary (best-effort)
@@ -243,6 +280,9 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         subiendoLogo,
         descargando,
         inputFileRef,
+        // Datos de contacto (migración 043)
+        contacto,
+        setContactoCampo,
         // Handlers
         handleLogout,
         handleDescargarJson,
