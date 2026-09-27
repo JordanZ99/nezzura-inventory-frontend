@@ -43,7 +43,7 @@ type TabPanel = "ventas" | "clientes" | "historial"
 const TABS_PANEL: { id: TabPanel; label: string; icon: string }[] = [
     { id: "ventas", label: "Ventas", icon: "ShoppingCart" },
     { id: "clientes", label: "Clientes", icon: "Users" },
-    { id: "historial", label: "Historial de cambios", icon: "History" },
+    { id: "historial", label: "Historial", icon: "History" },
 ]
 
 export default function Estadisticas() {
@@ -161,96 +161,96 @@ export default function Estadisticas() {
                 </div>
 
                 {tabPanel === "ventas" && (
-                <>
-                {/* ── Corte de caja por turnos (Fase C) ── */}
-                <CardTurnos />
+                    <>
+                        {/* ── Corte de caja por turnos (Fase C) ── */}
+                        <CardTurnos />
 
-                {/* ── CONTENEDOR PARA EL PDF ── */}
-                <div id="report-container" style={{ padding: 16, background: "var(--bg-card)", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
-                    <ReporteHeader logoSrc={logoSrc} empresa={empresa} dates={dates} periodoLabel={periodoLabel} />
-                    <KpisReporte totalVendido={totalVendido} totalGastos={totalGastos} gananciaNeta={gananciaNeta} ticketPromedio={ticketPromedio} />
-                    <ResumenCobros cobrosPorMetodo={cobrosPorMetodo} propinasPeriodo={propinasPeriodo} conMetodo={conMetodo} porTerminal={porTerminal} />
-                    <GraficasReporte cargando={cargando} totalVendido={totalVendido} top5={top5} globalCostProfit={globalCostProfit} chartDataLine={chartDataLine} chartDataBar={chartDataBar} chartColors={chartColors} valFormatter={valFormatter} />
-                </div>
+                        {/* ── CONTENEDOR PARA EL PDF ── */}
+                        <div id="report-container" style={{ padding: 16, background: "var(--bg-card)", borderRadius: 12, overflow: "hidden", maxWidth: "100%" }}>
+                            <ReporteHeader logoSrc={logoSrc} empresa={empresa} dates={dates} periodoLabel={periodoLabel} />
+                            <KpisReporte totalVendido={totalVendido} totalGastos={totalGastos} gananciaNeta={gananciaNeta} ticketPromedio={ticketPromedio} />
+                            <ResumenCobros cobrosPorMetodo={cobrosPorMetodo} propinasPeriodo={propinasPeriodo} conMetodo={conMetodo} porTerminal={porTerminal} />
+                            <GraficasReporte cargando={cargando} totalVendido={totalVendido} top5={top5} globalCostProfit={globalCostProfit} chartDataLine={chartDataLine} chartDataBar={chartDataBar} chartColors={chartColors} valFormatter={valFormatter} />
+                        </div>
 
-                {/* ── Tabla del Historial de Ventas ── */}
-                <div style={{ marginTop: 32 }}>
-                    <TablaHistorialVentas
-                        totalTickets={totalTickets}
-                        ordenesPaginadas={ordenesPaginadas}
-                        busquedaVentas={busquedaVentas}
-                        setBusquedaVentas={setBusquedaVentas}
-                        ordenVentas={ordenVentas}
-                        setOrdenVentas={setOrdenVentas}
-                        paginaActual={paginaActual}
-                        setPaginaActual={setPaginaActual}
-                        totalPaginas={totalPaginas}
-                        isMobile={isMobile}
-                        ITEMS_POR_PAGINA={ITEMS_POR_PAGINA}
-                        getPaginationRange={getPaginationRange}
-                        editando={editando}
-                        setEditando={setEditando}
-                        editVal={editVal}
-                        setEditVal={setEditVal}
-                        guardando={guardando}
-                        guardarEdicion={guardarEdicion}
-                        setConfirmAnularVentaId={setConfirmAnularVentaId}
-                        ordenEditando={ordenEditando}
-                        setOrdenEditando={setOrdenEditando}
-                        ordenFecha={ordenFecha}
-                        setOrdenFecha={setOrdenFecha}
-                        ordenMetodo={ordenMetodo}
-                        setOrdenMetodo={setOrdenMetodo}
-                        iniciarEdicionOrden={iniciarEdicionOrden}
-                        guardarEdicionOrden={guardarEdicionOrden}
-                        setConfirmAnularOrdenId={setConfirmAnularOrdenId}
-                    />
-                </div>
+                        {/* ── Tabla del Historial de Ventas ── */}
+                        <div style={{ marginTop: 32 }}>
+                            <TablaHistorialVentas
+                                totalTickets={totalTickets}
+                                ordenesPaginadas={ordenesPaginadas}
+                                busquedaVentas={busquedaVentas}
+                                setBusquedaVentas={setBusquedaVentas}
+                                ordenVentas={ordenVentas}
+                                setOrdenVentas={setOrdenVentas}
+                                paginaActual={paginaActual}
+                                setPaginaActual={setPaginaActual}
+                                totalPaginas={totalPaginas}
+                                isMobile={isMobile}
+                                ITEMS_POR_PAGINA={ITEMS_POR_PAGINA}
+                                getPaginationRange={getPaginationRange}
+                                editando={editando}
+                                setEditando={setEditando}
+                                editVal={editVal}
+                                setEditVal={setEditVal}
+                                guardando={guardando}
+                                guardarEdicion={guardarEdicion}
+                                setConfirmAnularVentaId={setConfirmAnularVentaId}
+                                ordenEditando={ordenEditando}
+                                setOrdenEditando={setOrdenEditando}
+                                ordenFecha={ordenFecha}
+                                setOrdenFecha={setOrdenFecha}
+                                ordenMetodo={ordenMetodo}
+                                setOrdenMetodo={setOrdenMetodo}
+                                iniciarEdicionOrden={iniciarEdicionOrden}
+                                guardarEdicionOrden={guardarEdicionOrden}
+                                setConfirmAnularOrdenId={setConfirmAnularOrdenId}
+                            />
+                        </div>
 
-                {/* ── Estadísticas por Producto ── */}
-                <CatalogoProductosEstadisticas
-                    categoriasCatalogo={categoriasCatalogo}
-                    catSelecProd={catSelecProd}
-                    setCatSelecProd={setCatSelecProd}
-                    busquedaProd={busquedaProd}
-                    setBusquedaProd={setBusquedaProd}
-                    ordenProd={ordenProd}
-                    setOrdenProd={setOrdenProd}
-                    productosFiltrados={productosFiltrados}
-                    cargando={cargando}
-                    relacionImagen={relacionImagen}
-                    onSeleccionar={setProdSeleccionado}
-                />
+                        {/* ── Estadísticas por Producto ── */}
+                        <CatalogoProductosEstadisticas
+                            categoriasCatalogo={categoriasCatalogo}
+                            catSelecProd={catSelecProd}
+                            setCatSelecProd={setCatSelecProd}
+                            busquedaProd={busquedaProd}
+                            setBusquedaProd={setBusquedaProd}
+                            ordenProd={ordenProd}
+                            setOrdenProd={setOrdenProd}
+                            productosFiltrados={productosFiltrados}
+                            cargando={cargando}
+                            relacionImagen={relacionImagen}
+                            onSeleccionar={setProdSeleccionado}
+                        />
 
-                {/* ── Modal de detalle del producto ── */}
-                <ModalDetalleProducto
-                    prod={prodSeleccionado}
-                    fotosModal={fotosModal}
-                    indiceFoto={indiceFoto}
-                    setIndiceFoto={setIndiceFoto}
-                    ventas={ventasProducto}
-                    getVentasProducto={getVentasProducto}
-                    descargarImagen={descargarImagen}
-                    onClose={() => setProdSeleccionado(null)}
-                />
+                        {/* ── Modal de detalle del producto ── */}
+                        <ModalDetalleProducto
+                            prod={prodSeleccionado}
+                            fotosModal={fotosModal}
+                            indiceFoto={indiceFoto}
+                            setIndiceFoto={setIndiceFoto}
+                            ventas={ventasProducto}
+                            getVentasProducto={getVentasProducto}
+                            descargarImagen={descargarImagen}
+                            onClose={() => setProdSeleccionado(null)}
+                        />
 
-                {/* ── Modal: Confirmar anular venta ── */}
-                <ModalConfirmarAnular
-                    confirmAnularVentaId={confirmAnularVentaId}
-                    onCancel={() => setConfirmAnularVentaId(null)}
-                    onConfirm={anularVenta}
-                />
+                        {/* ── Modal: Confirmar anular venta ── */}
+                        <ModalConfirmarAnular
+                            confirmAnularVentaId={confirmAnularVentaId}
+                            onCancel={() => setConfirmAnularVentaId(null)}
+                            onConfirm={anularVenta}
+                        />
 
-                {/* ── Modal: Confirmar anular ticket completo ── */}
-                <ModalConfirmarAnularOrden
-                    confirmAnularOrdenId={confirmAnularOrdenId}
-                    nTicket={ordenesPaginadas.find(o => o.id === confirmAnularOrdenId)?.n_ticket ?? null}
-                    onCancel={() => setConfirmAnularOrdenId(null)}
-                    onConfirm={anularOrden}
-                />
+                        {/* ── Modal: Confirmar anular ticket completo ── */}
+                        <ModalConfirmarAnularOrden
+                            confirmAnularOrdenId={confirmAnularOrdenId}
+                            nTicket={ordenesPaginadas.find(o => o.id === confirmAnularOrdenId)?.n_ticket ?? null}
+                            onCancel={() => setConfirmAnularOrdenId(null)}
+                            onConfirm={anularOrden}
+                        />
 
-                <div />
-                </>
+                        <div />
+                    </>
                 )}
 
                 {tabPanel === "clientes" && <TabClientes rango={rango} todo={todo} />}
