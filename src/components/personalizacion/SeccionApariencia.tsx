@@ -6,11 +6,12 @@
 // textura de FONDO del catálogo (migración 045) con modo, opacidad y color.
 // ==============================================================================
 
+import { useEffect } from "react"
 import Icon from "@/components/ui/Icon"
 import SeccionHeader from "@/components/ui/SeccionHeader"
 import Switch from "@/components/ui/Switch"
 import { BannerUploader } from "./BannerUploader"
-import { FUENTES_CATALOGO, FUENTES_ORDEN } from "@/lib/catalogo-fuentes"
+import { FUENTES_CATALOGO, FUENTES_ORDEN, CSS_GESTOR_FUENTES } from "@/lib/catalogo-fuentes"
 import type { PropsSeccionConfig } from "./tipos"
 
 interface Props extends PropsSeccionConfig {
@@ -40,11 +41,25 @@ export function SeccionApariencia({
     handleBannerFile,
     quitarBanner,
 }: Props) {
+    // ── Carga del CSS combinado de Google Fonts (previsualización) ──
+    // Igual que hace CatalogoView para el catálogo, pero con todas las
+    // familias de una sola vez (un request, cacheado por el navegador).
+    useEffect(() => {
+        if (!CSS_GESTOR_FUENTES || document.getElementById("css-fuentes-gestor")) return
+        const link = document.createElement("link")
+        link.id = "css-fuentes-gestor"
+        link.rel = "stylesheet"
+        link.href = CSS_GESTOR_FUENTES
+        document.head.appendChild(link)
+    }, [])
+
     return (
         <>
             <SeccionHeader icono="Palette" titulo="Apariencia" />
 
-            {/* ── Tipografía display (migración 044) ── */}
+            {/* ── Tipografía display (migración 044) ──
+                Cards desglosadas: cada opción se muestra escrita en su
+                propia tipografía para previsualizarla al instante. */}
             <div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
                     <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Tipografía</span>
@@ -53,29 +68,42 @@ export function SeccionApariencia({
                 <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0 0 10px", fontWeight: 500 }}>
                     Se aplica a nombres, precios y títulos. Los textos informativos quedan en la fuente neutral.
                 </p>
-                <select
-                    value={catalogoConfig?.fuente || "sistema"}
-                    onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, fuente: e.target.value } : null); autoguardar("fuente", { fuente: e.target.value }) }}
-                    style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        border: "1.5px solid var(--border-primary)",
-                        background: "var(--bg-card2)",
-                        color: "var(--text-main)",
-                        fontWeight: 600,
-                        fontSize: "0.82rem",
-                        cursor: "pointer",
-                        outline: "none",
-                    }}
-                >
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     {FUENTES_ORDEN.map(k => {
                         const f = FUENTES_CATALOGO[k]
+                        const activa = (catalogoConfig?.fuente || "sistema") === k
                         return (
-                            <option key={k} value={k}>{f.label} — {f.desc}</option>
+                            <button
+                                key={k}
+                                onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, fuente: k } : null); autoguardar("fuente", { fuente: k }) }}
+                                style={{
+                                    display: "flex", alignItems: "center", gap: 12,
+                                    padding: "12px 14px", borderRadius: 12,
+                                    border: `2px solid ${activa ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                    background: activa ? "var(--primary-soft)" : "var(--bg-card2)",
+                                    cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                                    width: "100%",
+                                }}
+                            >
+                                <span style={{
+                                    fontFamily: f.stack === "inherit" ? undefined : f.stack,
+                                    fontWeight: 700, fontSize: "1.2rem",
+                                    color: activa ? "var(--primary-mid)" : "var(--text-main)",
+                                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                    flexShrink: 1, minWidth: 0,
+                                }}>
+                                    {f.label}
+                                </span>
+                                <div style={{ marginLeft: "auto", flexShrink: 0, display: "flex", alignItems: "center", gap: 10 }}>
+                                    <div style={{ textAlign: "right", maxWidth: 160 }}>
+                                        <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600, lineHeight: 1.35 }}>{f.desc}</p>
+                                    </div>
+                                    {activa && <Icon name="CircleCheck" size={18} color="var(--primary-mid)" />}
+                                </div>
+                            </button>
                         )
                     })}
-                </select>
+                </div>
             </div>
 
             {/* ── Estilo del hero ── */}

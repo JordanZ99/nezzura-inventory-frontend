@@ -100,6 +100,28 @@ export const FUENTES_ORDEN = [
     "sistema", "serif", "playfair", "cormorant", "poppins", "quicksand", "oswald", "baloo2",
 ]
 
+/**
+ * Extrae el parámetro family=... de un CSS2 de Google Fonts individual.
+ */
+function familiaDeCss(url: string): string {
+    const m = url.match(/family=([^&]+)/)
+    return m ? m[1] : ""
+}
+
+/**
+ * CSS2 combinado con TODAS las familias del catálogo, para el selector
+ * visual del gestor (previsualización por tarjeta). Un solo request que
+ * el navegador cachea por ~1 año.
+ */
+export const CSS_GESTOR_FUENTES =
+    "https://fonts.googleapis.com/css2?" +
+    FUENTES_ORDEN
+        .map(k => FUENTES_CATALOGO[k].googleCss)
+        .filter(Boolean)
+        .map(u => `family=${familiaDeCss(u as string)}`)
+        .join("&") +
+    "&display=swap"
+
 /** Normaliza cualquier valor de config a una opción válida ('sistema' fallback). */
 export function normalizarFuente(fuente: string | null | undefined): FuenteCatalogo {
     if (fuente && FUENTES_CATALOGO[fuente]) return FUENTES_CATALOGO[fuente]
