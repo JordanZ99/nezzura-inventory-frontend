@@ -632,8 +632,14 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 >
                     <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", ...overlayVelo }} />
                     {config.hero_layout!.elementos!.map(el => {
-                        // En móvil el render escala ~38% para conservar proporción
-                        const factor = esMovil ? 0.62 : 1
+                        // Tamaños en vw: los px del editor fueron calibrados para un
+                        // viewport de 1920 (escritorio) / 1280 (móvil) — así el texto
+                        // SIEMPRE escala con el ancho de la caja y nunca se compacta
+                        // (el salto de línea en vivo es idéntico al del mini canva).
+                        // Clamp inferior: el texto no baja de un mínimo legible.
+                        const fuenteTexto = esMovil
+                            ? `max(13px, ${(el.tamano ?? 56) / 12.8}vw)`
+                            : `${(el.tamano ?? 56) / 19.2}vw`
                         // Logo: imagen circular escalable (w = % del ancho)
                         if (el.tipo === "logo") {
                             if (!config.logo) return null
@@ -662,7 +668,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                         left: `${el.x}%`,
                                         top: `${el.y}%`,
                                         width: `${el.w ?? 40}%`,
-                                        fontSize: `${(el.tamano ?? 56) * factor}px`,
+                                        fontSize: fuenteTexto,
                                         fontFamily: FUENTES_HERO[el.fuente ?? "playfair"]?.stack ?? "'Playfair Display', Georgia, serif",
                                         fontWeight: Number(el.peso ?? 700),
                                         color: el.color || "#fff",
@@ -712,7 +718,9 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         if (el.tipo === "red") {
                             const r = heroRedesVisibles.find(x => x.red === el.red)
                             if (!r) return null
-                            const s = Math.max(22, (el.tamano ?? 40) * (esMovil ? 0.8 : 1))
+                            const tamanho = esMovil
+                                ? `max(22px, ${(el.tamano ?? 40) / 12.8}vw)`
+                                : `${(el.tamano ?? 40) / 19.2}vw`
                             return (
                                 <a
                                     key={el.id}
@@ -722,7 +730,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                     aria-label={r.red}
                                     style={{
                                         position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
-                                        width: s, height: s, borderRadius: "50%",
+                                        width: tamanho, height: tamanho, borderRadius: "50%",
                                         display: "flex", alignItems: "center", justifyContent: "center",
                                         background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
                                         transition: "background 0.15s", boxSizing: "border-box",
@@ -730,18 +738,19 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                     onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.28)" }}
                                     onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.14)" }}
                                 >
-                                    <IconoRedSocial red={r.red} size={s * 0.5} color="#fff" />
+                                    <IconoRedSocial red={r.red} size={esMovil ? 15 : 19} color="#fff" />
                                 </a>
                             )
                         }
                         // boton: CTA editable (texto, tamaño y color desde el editor)
+                        // El CTA usa em: el font-size en vw escala el padding también.
                         return (
                             <button
                                 key={el.id}
                                 onClick={irAlContenido}
                                 style={{
                                     position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
-                                    padding: `${(el.tamano ?? 15) * 0.65}px ${(el.tamano ?? 15) * 1.7}px`,
+                                    padding: "0.65em 1.7em",
                                     borderRadius: 999, border: "none",
                                     background: el.color || "var(--primary-mid,var(--primary))",
                                     color: (function (hex?: string) {
@@ -751,7 +760,10 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                         const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16)
                                         return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1a1a1a" : "#fff"
                                     })(el.color),
-                                    fontWeight: 800, fontSize: `${(el.tamano ?? 15) * factor}px`,
+                                    fontWeight: 800,
+                                    fontSize: esMovil
+                                        ? `max(10px, ${(el.tamano ?? 15) / 12.8}vw)`
+                                        : `${(el.tamano ?? 15) / 19.2}vw`,
                                     cursor: "pointer", whiteSpace: "nowrap",
                                     display: "flex", alignItems: "center", gap: 4,
                                     boxShadow: "0 10px 30px rgba(0,0,0,0.45)",

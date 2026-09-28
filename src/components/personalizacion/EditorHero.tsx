@@ -282,8 +282,18 @@ export function EditorHero({
 
     const selEl = lista.find(x => x.id === sel)
 
-    // Escala WYSIWYG: px del hero real (1920) → px del canvas actual
-    const escala = anchoCanvas ? anchoCanvas / 1920 : 0.36
+    // ── Vista activa: escritorio (1920) o móvil (390, escalado a 1280 base) ──
+    // El tamaño de fuente en el PÚBLICO es `tamano/19.2 vw` (desktop) y
+    // `max(13px, tamano/12.8 vw)` (móvil). Para reproducirlo 1:1 dentro del
+    // canvas: escala = anchoCanvas / (1920 | 1280), y los px mínimos del clamp
+    // se simulan a la misma escala del visor (13px × canvas/390).
+    const [modo, setModo] = useState<"escritorio" | "movil">("escritorio")
+    const base = modo === "movil" ? 1280 : 1920
+    const escala = anchoCanvas ? anchoCanvas / base : (modo === "movil" ? 0.2 : 0.36)
+    const escalaMin = anchoCanvas ? anchoCanvas / 390 : 0.66   // para simular los clamps de pantalla chica
+    const minTexto = modo === "movil" ? 13 * escalaMin : 0
+    const minBoton = modo === "movil" ? 10 * escalaMin : 0
+    const minRed = modo === "movil" ? 22 * escalaMin : 0
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -331,20 +341,50 @@ export function EditorHero({
                 </button>
             </div>
 
-            {/* ── Canvas WYSIWYG ── */}
-            <div
-                ref={canvasRef}
-                onPointerDown={() => setSel(null)}
-                style={{
-                    position: "relative", width: "100%", aspectRatio: "16 / 9",
-                    borderRadius: 12, overflow: "hidden", boxSizing: "border-box",
-                    border: "1.5px solid var(--border-primary)",
-                    background: heroUrl
-                        ? `url(${optimizarImagenCloudinary(heroUrl, 1280)}) center / cover no-repeat`
-                        : "var(--bg-app)",
-                    userSelect: "none", touchAction: "none",
-                }}
-            >
+            {/* Pestañas de vista: escritorio / móvil */}
+            <div style={{ display: "flex", gap: 8 }}>
+                {([
+                    { key: "escritorio" as const, label: "Escritorio", icono: "Monitor" },
+                    { key: "movil" as const, label: "Móvil", icono: "Smartphone" },
+                ]).map(v => {
+                    const on = modo === v.key
+                    return (
+                        <button
+                            key={v.key}
+                            onClick={() => setModo(v.key)}
+                            style={{
+                                display: "flex", alignItems: "center", gap: 6, padding: "6px 14px",
+                                borderRadius: 10, cursor: "pointer", fontSize: "0.76rem", fontWeight: 700,
+                                border: `1.5px solid ${on ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                background: on ? "var(--primary-soft)" : "var(--bg-card2)",
+                                color: on ? "var(--primary-mid)" : "var(--text-muted)",
+                            }}
+                        >
+                            <Icon name={v.icono as any} size={14} />
+                            {v.label}
+                        </button>
+                    )
+                })}
+            </div>
+
+            {/* ── Canvas WYSIWYG (escritorio 16:9 / móvil retrato 390×844) ──
+                En móvil el CONTENEDOR se achica: el canvas simula la pantalla
+                con la misma layout (%). El texto/reddes/botón escalan con la
+                MISMA fórmula del render público. */}
+            <div style={{ width: modo === "movil" ? "100%" : "100%", maxWidth: modo === "movil" ? 320 : "100%", margin: modo === "movil" ? "0 auto" : undefined }}>
+                <div
+                    ref={canvasRef}
+                    onPointerDown={() => setSel(null)}
+                    style={{
+                        position: "relative", width: "100%", aspectRatio: modo === "movil" ? "390 / 844" : "16 / 9",
+                        borderRadius: 12, overflow: "hidden", boxSizing: "border-box",
+                        border: "1.5px solid var(--border-primary)",
+                        background: heroUrl
+                            ? `url(${optimizarImagenCloudinary(heroUrl, 1280)}) center / cover no-repeat`
+                            : "var(--bg-app)",
+                        userSelect: "none", touchAction: "none",
+                    }}
+                >
                 {!heroUrl && (
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: "0.78rem", fontWeight: 600 }}>
                         Sube la imagen del Hero arriba para previsualizarla aquí
@@ -397,7 +437,7 @@ export function EditorHero({
                             )}
                             {el.tipo === "texto" && (
                                 <div style={{
-                                    fontSize: `${(el.tamano ?? 56) * escala}px`,
+                                    fontSize: `${Math.max(minTexto, (el.tamano ?? 56) * escala)}px`,
                                     fontFamily: FUENTES_CATALOGO[el.fuente ?? "playfair"]?.stack ?? "'Playfair Display', Georgia, serif",
                                     fontWeight: Number(el.peso ?? 700),
                                     color: el.color || "#fff",
@@ -412,13 +452,14 @@ export function EditorHero({
                             )}
                             {el.tipo === "red" && (
                                 <div style={{
-                                    width: el.tamano ?? 40, height: el.tamano ?? 40,
+                                    width: Math.max(minRed, (el.tamano ?? 40) * escala),
+                                    height: Math.max(minRed, (el.tamano ?? 40) * escala),
                                     borderRadius: "50%",
                                     display: "flex", alignItems: "center", justifyContent: "center",
                                     background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
                                     pointerEvents: "none",
                                 }}>
-                                    <Icon name={ICONO_RED[el.red ?? "instagram"] as any} size={(el.tamano ?? 40) * 0.5} color="#fff" />
+                                    <Icon name={ICONO_RED[el.red ?? "instagram"] as any} size={(el.tamano ?? 40) * escala * 0.5} color="#fff" />
                                 </div>
                             )}
                             {el.tipo === "redes" && (
@@ -436,11 +477,11 @@ export function EditorHero({
                             )}
                             {el.tipo === "boton" && (
                                 <div style={{
-                                    padding: `${((el.tamano ?? 15) * escala) * 0.7}px ${((el.tamano ?? 15) * escala) * 1.6}px`,
+                                    padding: `${Math.max(minBoton, (el.tamano ?? 15) * escala) * 0.65}px ${Math.max(minBoton, (el.tamano ?? 15) * escala) * 1.7}px`,
                                     borderRadius: 999,
                                     background: el.color || "var(--primary-mid)",
                                     color: textoContraste(el.color),
-                                    fontWeight: 800, fontSize: `${(el.tamano ?? 15) * escala}px`,
+                                    fontWeight: 800, fontSize: `${Math.max(minBoton, (el.tamano ?? 15) * escala)}px`,
                                     whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6,
                                     pointerEvents: "none",
                                 }}>
@@ -479,6 +520,7 @@ export function EditorHero({
                         </div>
                     )
                 })}
+                </div>
             </div>
 
             {/* ── Panel de propiedades del elemento seleccionado ── */}
