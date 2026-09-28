@@ -39,6 +39,9 @@ export interface HeroLayout {
     /** Mini-canva (Fase 2): elementos posicionados libremente.
      *  No vacío → el render público SOLO dibuja estos elementos. */
     elementos?: HeroElemento[];
+    /** Layout INDEPENDIENTE para teléfono. Ausente → móvil hereda
+     *  'elementos' escalado. El editor móvil escribe aquí directamente. */
+    elementos_movil?: HeroElemento[];
 }
 export interface CatalogoConfig {
     id: number;

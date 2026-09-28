@@ -7,17 +7,24 @@
 //     con tipografía (7 display de lib/catalogo-fuentes), tamaño, color,
 //     peso y alineación.
 //   - LOGO: arrastrable y escalable (usa el logo del negocio).
-//   - REDES SOCIALES: fila de iconos (links de Identidad del Negocio).
-//   - BOTÓN "Ver el catálogo": arrastrable, texto y tamaño editables.
+//   - REDES: un botón por cada red con link llenado (tipo 'red'),
+//     tamaño y lugar independientes.
+//   - BOTÓN "Ver el catálogo": texto, tamaño y color editables.
 //
-// IMÁN DE ALINEACIÓN: al arrastrar, si una borda/centro del elemento se
-// acerca (< thr) a bordas/centros de OTRO elemento o al centro del canvas,
-// "salta" al punto de alineación y se dibuja una guía temporal.
+// IMÁN DE ALINEACIÓN: bordes/centros del elemento enganchan con los de OTRO
+// elemento o el centro del canvas. Con:
+//   1) Medidas REALES del DOM (getBoundingClientRect → % del canvas),
+//   2) Histéresis: engancha con THR (1.1%) y solo suelta a > THR_OFF (1.9%),
+//      entre frames el enganche SE MANTIENE (adiós al parpadeo).
 //
-// Coordenadas en porcentajes del hero (x, y, w: 0-100). El mismo layout escala
-// en móvil. El estado vive en catalogoConfig.hero_layout.elementos; cada gesto
-// agenda un guardado con debounce ({ elementos: LISTA COMPLETA } — el backend
-// reemplaza el array).
+// DOS SETS DE COORDENADAS: 'elementos' (escritorio, base 1920) e
+// 'elementos_movil' (teléfono, base 1280/clamps de pantalla chica). Si el
+// set móvil no existe, hereda el de escritorio; la primera edición en la
+// pestaña móvil lo crea (copia del escritorio). Lo que corrijas en un canva
+// NO cambia el otro.
+//
+// El estado vive en catalogoConfig.hero_layout; cada gesto agenda guardado
+// con debounce ({ [set]: LISTA COMPLETA } — el backend reemplaza el array).
 // ==============================================================================
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
@@ -27,23 +34,24 @@ import { optimizarImagenCloudinary } from "@/lib/image-utils"
 import type { HeroElemento } from "@/types"
 
 interface Props {
-    heroUrl: string          // imagen hero actual
-    logoUrl: string          // logo del negocio
-    redesDisponibles: string[]  // redes con link llenado (instagram/facebook/tiktok/whatsapp)
-    elementos: HeroElemento[]
-    onCambiar: (elementos: HeroElemento[]) => void   // mutate + agenda guardado
+    heroUrl: string              // imagen hero actual
+    logoUrl: string              // logo del negocio
+    redesDisponibles: string[]   // redes con link llenado
+    elementosEscritorio: HeroElemento[]
+    elementosMovil?: HeroElemento[]   // set teléfono (undefined = hereda escritorio)
+    onCambiar: (elementos: HeroElemento[], modo: "escritorio" | "movil") => void
 }
 
 /** Siete tipografías display del gestor (excluye 'sistema': es la sans neutral) */
 const FUENTES_CANVA = FUENTES_ORDEN.filter(k => k !== "sistema")
 
-/** Umbral del imán: distancia (% del canvas) a la que un borde "engancha" */
+/** Imán: engancha bajo THR, suelta hasta cruzar THR_OFF (histéresis) */
 const THR = 1.1
+const THR_OFF = 1.9
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-/** Color de texto legible sobre el fondo del botón: si el hex elegido es
- *  claro usamos texto oscuro, si es oscuro (o vacío = tema) texto blanco. */
+/** Color de texto legible sobre el fondo del botón */
 function textoContraste(hex?: string): string {
     if (!hex) return "#fff"
     const c = hex.replace("#", "")
@@ -54,16 +62,7 @@ function textoContraste(hex?: string): string {
     return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1a1a1a" : "#fff"
 }
 
-/** Ancho estimado (%) de un elemento — el imán lo usa para bordes/centros.
- *  Texto/logo tienen w real; redes/botón lo estimamos (el navegador lo mide). */
-function anchoDe(el: HeroElemento): number {
-    if (el.tipo === "logo") return el.w ?? 10
-    if (el.tipo === "texto") return el.w ?? 40
-    if (el.tipo === "redes") return 13
-    return 20
-}
-
-/** Crea un elemento por defecto en el centro del hero */
+/** Crea un elemento por defecto */
 function nuevoElemento(tipo: HeroElemento["tipo"], id: string): HeroElemento {
     if (tipo === "texto") return { id, tipo, x: 22, y: 42, w: 40, texto: "Escribe aquí...", fuente: "playfair", tamano: 56, color: "#ffffff", peso: "700", align: "center" }
     if (tipo === "logo") return { id, tipo, x: 45, y: 14, w: 10 }
@@ -71,31 +70,47 @@ function nuevoElemento(tipo: HeroElemento["tipo"], id: string): HeroElemento {
     return { id, tipo: "boton", x: 30, y: 80, texto: "Ver el catálogo", tamano: 15, color: "" }
 }
 
-// Iconos por red (el Icon consume el nombre tipado de lucide)
+// Iconos por red
 const ICONO_RED: Record<string, string> = {
     instagram: "Instagram", facebook: "Facebook", tiktok: "Music2", whatsapp: "Phone",
 }
-
-/** Etiquetas legibles de cada red (panel y título del icono) */
 const ETIQUETAS_RED: Record<string, string> = {
     instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", whatsapp: "WhatsApp",
 }
+
+/** Caja de un elemento medida del DOM, en % del canvas */
+interface Caja { x0: number; y0: number; x1: number; y1: number }
+
+/** Fijado del imán: guía dibujada + posición ajustada que SE MANTIENE.
+ *  off = offset del borde enganchado respecto a la posición del elemento. */
+interface Fijado { adj: number; pos: number; off: number }
 
 export function EditorHero({
     heroUrl,
     logoUrl,
     redesDisponibles,
-    elementos,
+    elementosEscritorio,
+    elementosMovil,
     onCambiar,
 }: Props) {
-    const [lista, setLista] = useState<HeroElemento[]>(elementos)
+    const [modo, setModo] = useState<"escritorio" | "movil">("escritorio")
+    // El set ACTIVO: en móvil 'elementos_movil' si ya existe; si no, una vista
+    // del escritorio (la primera edición clona a elementos_movil vía onCambiar).
+    const escritorio = elementosEscritorio
+    const activo = modo === "movil" ? (elementosMovil ?? elementosEscritorio) : elementosEscritorio
+
+    const [lista, setLista] = useState<HeroElemento[]>(elementosEscritorio)
     const [sel, setSel] = useState<string | null>(null)
     const [guia, setGuia] = useState<{ axis: "v" | "h"; pos: number }[]>([])
     const canvasRef = useRef<HTMLDivElement>(null)
-    const listaRef = useRef(lista)                      // estado fresco SIN re-render
-    const [, setTick] = useState(0)                      // fuerza repintado en drag
+    const listaRef = useRef(lista)                     // estado fresco SIN re-render
+    const [, setTick] = useState(0)                    // fuerza repintado en drag
 
-    // Ancho real del canvas para escalar los tamaños de fuente WYSIWYG
+    // Sincronizar lista local cuando cambia el set activo (cambio de pestaña,
+    // carga asíncrona de config o retorno del guardado del propio gesto).
+    useEffect(() => { setLista(activo); listaRef.current = activo }, [activo, modo])
+
+    // Ancho real del canvas para escala WYSIWYG
     const [anchoCanvas, setAnchoCanvas] = useState(0)
     useLayoutEffect(() => {
         if (!canvasRef.current) return
@@ -108,7 +123,6 @@ export function EditorHero({
     }, [])
 
     // Inyectar CSS de Google Fonts para previsualizar las 7 tipografías
-    // (mismo patrón del acordeón de fuentes del gestor: un request cacheado).
     useLayoutEffect(() => {
         if (!CSS_GESTOR_FUENTES || document.getElementById("css-fuentes-gestor")) return
         const link = document.createElement("link")
@@ -118,29 +132,46 @@ export function EditorHero({
         document.head.appendChild(link)
     }, [])
 
-    // Sincronizar lista local cuando el config carga de forma asíncrona
-    // (el padre actualiza hero_layout con la MISMA referencia al persistir,
-    // así el sync no estorba los gestos activos).
-    useEffect(() => { setLista(elementos) }, [elementos])
-
-    // Al terminar cualquier gesto: delegamos la lista completa al padre,
-    // que actualiza catalogoConfig + agenda el guardado con debounce.
     function persistir() {
-        onCambiar(listaRef.current)
+        onCambiar(listaRef.current, modo)
     }
 
-    // ── Puntos de alineación del entorno: centros del canvas ──
-    // (los compañeros los aporta el algoritmo de imán por elemento)
-
-    // ── Drag con imán + resize con el mouse (Pointer Events, sin librerías) ──
-    function iniciarDrag(e: React.PointerEvent, el: HeroElemento, modo: "mover" | "escalar") {
+    // ── Drag con imán (histéresis) + resize con el mouse ──
+    function iniciarDrag(e: React.PointerEvent, el: HeroElemento, dragModo: "mover" | "escalar") {
         e.preventDefault()
         e.stopPropagation()
         const rect = canvasRef.current?.getBoundingClientRect()
         if (!rect) return
         setSel(el.id)
-        const ini = { ...el }
+
+        // Medidas REALES: cajas de los demás (anclas) y la mía, en % del canvas
+        const medir = (id: string): Caja | null => {
+            const node = document.querySelector(`[data-hero-el="${id}"]`) as HTMLElement | null
+            if (!node) return null
+            const r = node.getBoundingClientRect()
+            return {
+                x0: ((r.left - rect.left) / rect.width) * 100,
+                y0: ((r.top - rect.top) / rect.height) * 100,
+                x1: ((r.right - rect.left) / rect.width) * 100,
+                y1: ((r.bottom - rect.top) / rect.height) * 100,
+            }
+        }
+        const anclas: Caja[] = listaRef.current
+            .filter(o => o.id !== el.id)
+            .map(o => medir(o.id))
+            .filter(Boolean) as Caja[]
+        const self = medir(el.id)
+        const selfW0 = self ? self.x1 - self.x0 : 40
+        const selfH0 = self ? self.y1 - self.y0 : 10
+        // Offsets de borde→posición: los bordes reales medidos al iniciar;
+        // durante el gesto solo cambia la posición (tamaño constante).
+        const ejeX: { off: number }[] = [{ off: self ? self.x0 - el.x : 0 }, { off: self ? (self.x0 + self.x1) / 2 - el.x : 20 }, { off: self ? self.x1 - el.x : 40 }]
+        const ejeY: { off: number }[] = [{ off: self ? self.y0 - el.y : 0 }, { off: self ? self.y1 - el.y : 10 }]
+
+        const dragState = { ejer: { x: null as Fijado | null, y: null as Fijado | null }, dragModo }
+
         const clienteX = e.clientX, clienteY = e.clientY
+        const ini = { x: el.x, y: el.y, w: el.w ?? 40 }
 
         const mover = (ev: PointerEvent) => {
             const dx = ((ev.clientX - clienteX) / rect.width) * 100
@@ -150,72 +181,57 @@ export function EditorHero({
             const act = { ...listaRef.current[i] }
             const guias: { axis: "v" | "h"; pos: number }[] = []
 
-            if (modo === "mover") {
-                let nx = clamp((ini.x + dx), 0, 100)
-                let ny = clamp((ini.y + dy), 0, 100)
-                let ajustoV = false, ajustoH = false
-
-                // Ancho/mítad de YO y de los demás para bordar/centrar
-                const selfW = anchoDe(act)
-
-                // ── IMÁN horizontal: comparar borde izq, centro y borde der
-                //     contra los mismos anclajes de los otros y el centro del canvas
-                for (const otro of listaRef.current) {
-                    if (otro.id === el.id) continue
-                    const WI = anchoDe(otro)
-                    const anclajesOtro = [
-                        { pos: otro.x, tipo: "borde" as const },
-                        { pos: otro.x + WI / 2, tipo: "centro" as const },
-                        { pos: otro.x + WI, tipo: "borde" as const },
-                    ]
-                    for (const a of anclajesOtro) {
-                        // Yo: izquierda / centro / derecha
-                        const opciones = [
-                            { delta: a.pos - nx, pos: nx, lado: "izq" as const, adj: a.pos },
-                            { delta: a.pos - (nx + selfW / 2), pos: nx + selfW / 2, lado: "centro" as const, adj: a.pos - selfW / 2 },
-                            { delta: a.pos - (nx + selfW), pos: nx + selfW, lado: "der" as const, adj: a.pos - selfW },
-                        ]
-                        for (const o of opciones) {
-                            if (Math.abs(o.delta) < THR) { nx = Math.round(o.adj * 10) / 10; ajustoV = true; guias.push({ axis: "v", pos: a.pos }) ; break }
+            if (dragModo === "mover") {
+                // ── Resolver un eje con histéresis ──
+                // valCrudo = posición cruda (sin imán). Si hay enganche activo
+                // se MANTIENE hasta cruzar THR_OFF; solo entonces se re-evalúa
+                // contra todas las anclas (medidas del DOM + centro del canvas).
+                const resolver = (
+                    valCrudo: number,
+                    fijado: Fijado | null,
+                    offs: { off: number }[],
+                    anclasEje: number[],
+                    hayCentro: boolean,
+                ): { val: number; fijado: Fijado | null; pos: number | null } => {
+                    if (fijado) {
+                        const d = Math.abs(fijado.pos - (valCrudo + fijado.off))
+                        if (d <= THR_OFF) {
+                            return { val: fijado.adj, fijado, pos: fijado.pos }
                         }
-                        if (ajustoV) break
                     }
-                    if (ajustoV) break
-                }
-                // Centro del canvas como anclaje permanente
-                if (!ajustoV) {
-                    for (const o of [nx, nx + selfW / 2, nx + selfW]) {
-                        if (Math.abs(50 - o) < THR) { nx = Math.round((50 - (o - nx)) * 10) / 10; ajustoV = true; guias.push({ axis: "v", pos: 50 }); break }
-                    }
-                }
-
-                // ── IMÁN vertical: bordes superiores/inferiores aproximados
-                const altoSelf = el.tipo === "logo" ? (act.w ?? 10) / 2.5 : 6   // alto estimado (%)
-                for (const otro of listaRef.current) {
-                    if (otro.id === el.id) continue
-                    const altoOtro = otro.tipo === "logo" ? (otro.w ?? 10) / 2.5 : 6
-                    const alturas = [otro.y, otro.y + altoOtro]
-                    for (const a of alturas) {
-                        for (const y0 of [ny, ny + altoSelf]) {
-                            if (Math.abs(a - y0) < THR) { ny = Math.round(y0 + (a - y0) * 10) / 10; ajustoH = true; guias.push({ axis: "h", pos: a }); break }
+                    let mejor: { d: number; adj: number; pos: number; off: number } | null = null
+                    const anclajes = hayCentro ? [...anclasEje, 50] : anclasEje
+                    for (const p of anclajes) {
+                        for (const { off } of offs) {
+                            const d = Math.abs(p - (valCrudo + off))
+                            if (!mejor || d < mejor.d) mejor = { d, adj: p - off, pos: p, off }
                         }
-                        if (ajustoH) break
                     }
-                    if (ajustoH) break
-                }
-                if (!ajustoH) {
-                    for (const y0 of [ny, ny + altoSelf]) {
-                        if (Math.abs(50 - y0) < THR) { ny = Math.round(y0 + (50 - y0) * 10) / 10; ajustoH = true; guias.push({ axis: "h", pos: 50 }); break }
+                    if (mejor && mejor.d < THR) {
+                        return { val: clamp(mejor.adj, 0, 100), fijado: mejor, pos: mejor.pos }
                     }
+                    return { val: clamp(valCrudo, 0, 100), fijado: null, pos: null }
                 }
 
-                act.x = clamp(Math.round(nx * 10) / 10, 0, 100)
-                act.y = clamp(Math.round(ny * 10) / 10, 0, 100)
-                setGuia(guias)
+                const nx = resolver(ini.x + dx, dragState.ejer.x,
+                    ejeX,
+                    anclas.flatMap(b => [b.x0, (b.x0 + b.x1) / 2, b.x1]), true)
+                const ny = resolver(ini.y + dy, dragState.ejer.y,
+                    ejeY,
+                    anclas.flatMap(b => [b.y0, b.y1]), false)
+
+                dragState.ejer.x = nx.fijado
+                dragState.ejer.y = ny.fijado
+                setGuia([
+                    ...(nx.pos !== null ? [{ axis: "v" as const, pos: nx.pos }] : []),
+                    ...(ny.pos !== null ? [{ axis: "h" as const, pos: ny.pos }] : []),
+                ])
+
+                act.x = Math.round(nx.val * 10) / 10
+                act.y = Math.round(ny.val * 10) / 10
             } else {
                 // Escalar: manija horizontal (ancho del elemento)
-                const nw = clamp((ini.w ?? 40) + dx, 4, 100)
-                act.w = clamp(Math.round(nw * 10) / 10, 4, 100)
+                act.w = clamp(Math.round((ini.w + dx) * 10) / 10, 4, 100)
             }
             listaRef.current[i] = act
             setLista([...listaRef.current])
@@ -225,7 +241,6 @@ export function EditorHero({
             window.removeEventListener("pointermove", mover)
             window.removeEventListener("pointerup", subir)
             window.removeEventListener("pointercancel", subir)
-            dragRef.current = null
             setGuia([])
             persistir()
         }
@@ -233,9 +248,6 @@ export function EditorHero({
         window.addEventListener("pointerup", subir)
         window.addEventListener("pointercancel", subir)
     }
-
-    // Referencia para limpiar listeners al desmontar durante un gesto
-    const dragRef = useRef<{ id: string } | null>(null)
 
     function agregar(tipo: HeroElemento["tipo"]) {
         const id = `el_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
@@ -246,8 +258,7 @@ export function EditorHero({
         persistir()
     }
 
-    /** + Redes: añade un botón INDEPENDIENTE por cada red con link llenado.
-     *  Cada icono se puede mover/escalar por separado (tipo 'red'). */
+    /** + Redes: añade un botón INDEPENDIENTE por cada red con link llenado */
     function agregarRedes() {
         if (!redesDisponibles.length) return
         const base = Date.now().toString(36)
@@ -282,15 +293,12 @@ export function EditorHero({
 
     const selEl = lista.find(x => x.id === sel)
 
-    // ── Vista activa: escritorio (1920) o móvil (390, escalado a 1280 base) ──
-    // El tamaño de fuente en el PÚBLICO es `tamano/19.2 vw` (desktop) y
-    // `max(13px, tamano/12.8 vw)` (móvil). Para reproducirlo 1:1 dentro del
-    // canvas: escala = anchoCanvas / (1920 | 1280), y los px mínimos del clamp
-    // se simulan a la misma escala del visor (13px × canvas/390).
-    const [modo, setModo] = useState<"escritorio" | "movil">("escritorio")
+    // Escala WYSIWYG: px del hero real → px del canvas actual.
+    // Mismo criterio que el render público: text/boton/redes escalan con el
+    // ancho real (1920 escritorio / 1280 a vista móvil simulada).
     const base = modo === "movil" ? 1280 : 1920
     const escala = anchoCanvas ? anchoCanvas / base : (modo === "movil" ? 0.2 : 0.36)
-    const escalaMin = anchoCanvas ? anchoCanvas / 390 : 0.66   // para simular los clamps de pantalla chica
+    const escalaMin = anchoCanvas ? anchoCanvas / 390 : 0.66
     const minTexto = modo === "movil" ? 13 * escalaMin : 0
     const minBoton = modo === "movil" ? 10 * escalaMin : 0
     const minRed = modo === "movil" ? 22 * escalaMin : 0
@@ -341,8 +349,8 @@ export function EditorHero({
                 </button>
             </div>
 
-            {/* Pestañas de vista: escritorio / móvil */}
-            <div style={{ display: "flex", gap: 8 }}>
+            {/* Pestañas de vista: escritorio / móvil (sets INDEPENDIENTES) */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {([
                     { key: "escritorio" as const, label: "Escritorio", icono: "Monitor" },
                     { key: "movil" as const, label: "Móvil", icono: "Smartphone" },
@@ -365,13 +373,15 @@ export function EditorHero({
                         </button>
                     )
                 })}
+                {modo === "movil" && !elementosMovil && (
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                        Hereda la de escritorio — el primer cambio crea la versión móvil
+                    </span>
+                )}
             </div>
 
-            {/* ── Canvas WYSIWYG (escritorio 16:9 / móvil retrato 390×844) ──
-                En móvil el CONTENEDOR se achica: el canvas simula la pantalla
-                con la misma layout (%). El texto/reddes/botón escalan con la
-                MISMA fórmula del render público. */}
-            <div style={{ width: modo === "movil" ? "100%" : "100%", maxWidth: modo === "movil" ? 320 : "100%", margin: modo === "movil" ? "0 auto" : undefined }}>
+            {/* ── Canvas WYSIWYG (escritorio 16:9 / móvil retrato 390×844) ── */}
+            <div style={{ width: "100%", maxWidth: modo === "movil" ? 320 : "100%", margin: modo === "movil" ? "0 auto" : undefined }}>
                 <div
                     ref={canvasRef}
                     onPointerDown={() => setSel(null)}
@@ -385,141 +395,140 @@ export function EditorHero({
                         userSelect: "none", touchAction: "none",
                     }}
                 >
-                {!heroUrl && (
-                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: "0.78rem", fontWeight: 600 }}>
-                        Sube la imagen del Hero arriba para previsualizarla aquí
-                    </div>
-                )}
-                {/* Velo como en el público (aprox gradiente oscuro con opacidad 40) */}
-                {heroUrl && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25))", opacity: 0.4, pointerEvents: "none" }} />}
-
-                {/* Guías del imán (v = vertical que baja el fondo, h = horizontal) */}
-                {guia.map(g => (
-                    <div
-                        key={`${g.axis}${g.pos}`}
-                        style={g.axis === "v"
-                            ? { position: "absolute", left: `${g.pos}%`, top: 0, bottom: 0, width: 1, background: "var(--primary-mid)", opacity: 0.85, pointerEvents: "none", zIndex: 10 }
-                            : { position: "absolute", top: `${g.pos}%`, left: 0, right: 0, height: 1, background: "var(--primary-mid)", opacity: 0.85, pointerEvents: "none", zIndex: 10 }
-                        }
-                    />
-                ))}
-
-                {lista.map(el => {
-                    const activo = sel === el.id
-                    const borde = activo ? "var(--primary-mid)" : "transparent"
-                    return (
-                        <div
-                            key={el.id}
-                            onPointerDown={e => iniciarDrag(e, el, "mover")}
-                            style={{
-                                position: "absolute",
-                                left: `${el.x}%`,
-                                top: `${el.y}%`,
-                                width: (el.tipo === "texto" || el.tipo === "logo") ? `${el.w ?? 40}%` : undefined,
-                                cursor: "move",
-                                outline: `1.5px dashed ${borde === "transparent" ? "rgba(255,255,255,0.35)" : borde}`,
-                                outlineOffset: 2,
-                                pointerEvents: "auto",
-                            }}
-                        >
-                            {el.tipo === "logo" && logoUrl && (
-                                <img
-                                    src={optimizarImagenCloudinary(logoUrl, 300)}
-                                    alt="Logo"
-                                    style={{
-                                        width: "100%", aspectRatio: "1 / 1", borderRadius: "50%",
-                                        objectFit: "cover", background: "#fff",
-                                        border: "3px solid rgba(255,255,255,0.9)",
-                                        boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-                                        pointerEvents: "none", display: "block",
-                                    }}
-                                />
-                            )}
-                            {el.tipo === "texto" && (
-                                <div style={{
-                                    fontSize: `${Math.max(minTexto, (el.tamano ?? 56) * escala)}px`,
-                                    fontFamily: FUENTES_CATALOGO[el.fuente ?? "playfair"]?.stack ?? "'Playfair Display', Georgia, serif",
-                                    fontWeight: Number(el.peso ?? 700),
-                                    color: el.color || "#fff",
-                                    textAlign: (el.align ?? "center") as "left" | "center" | "right",
-                                    lineHeight: 1.15,
-                                    whiteSpace: "pre-wrap",
-                                    textShadow: "0 2px 12px rgba(0,0,0,0.4)",
-                                    pointerEvents: "none",
-                                }}>
-                                    {el.texto || "Texto"}
-                                </div>
-                            )}
-                            {el.tipo === "red" && (
-                                <div style={{
-                                    width: Math.max(minRed, (el.tamano ?? 40) * escala),
-                                    height: Math.max(minRed, (el.tamano ?? 40) * escala),
-                                    borderRadius: "50%",
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                    background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
-                                    pointerEvents: "none",
-                                }}>
-                                    <Icon name={ICONO_RED[el.red ?? "instagram"] as any} size={(el.tamano ?? 40) * escala * 0.5} color="#fff" />
-                                </div>
-                            )}
-                            {el.tipo === "redes" && (
-                                <div style={{ display: "flex", gap: 8, pointerEvents: "none" }}>
-                                    {(["instagram", "facebook", "tiktok", "whatsapp"] as const).map(red => (
-                                        <span key={red} style={{
-                                            width: 34, height: 34, borderRadius: "50%",
-                                            display: "flex", alignItems: "center", justifyContent: "center",
-                                            background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
-                                        }}>
-                                            <Icon name={ICONO_RED[red] as any} size={15} color="#fff" />
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                            {el.tipo === "boton" && (
-                                <div style={{
-                                    padding: `${Math.max(minBoton, (el.tamano ?? 15) * escala) * 0.65}px ${Math.max(minBoton, (el.tamano ?? 15) * escala) * 1.7}px`,
-                                    borderRadius: 999,
-                                    background: el.color || "var(--primary-mid)",
-                                    color: textoContraste(el.color),
-                                    fontWeight: 800, fontSize: `${Math.max(minBoton, (el.tamano ?? 15) * escala)}px`,
-                                    whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6,
-                                    pointerEvents: "none",
-                                }}>
-                                    {el.texto || "Ver el catálogo"}
-                                </div>
-                            )}
-                            {/* Manija de redimensionar (texto y logo) */}
-                            {(el.tipo === "texto" || el.tipo === "logo") && (
-                                <div
-                                    onPointerDown={e => iniciarDrag(e, el, "escalar")}
-                                    style={{
-                                        position: "absolute", right: -6, bottom: -6,
-                                        width: 12, height: 12, borderRadius: 3,
-                                        background: "var(--primary-mid)", border: "2px solid #fff",
-                                        cursor: "ew-resize",
-                                    }}
-                                />
-                            )}
-                            {/* Eliminar (solo seleccionado) */}
-                            {activo && (
-                                <button
-                                    onPointerDown={e => { e.stopPropagation(); e.preventDefault() }}
-                                    onClick={e => { e.stopPropagation(); quitar(el.id) }}
-                                    title="Eliminar elemento"
-                                    style={{
-                                        position: "absolute", top: -10, right: -10,
-                                        width: 20, height: 20, borderRadius: "50%",
-                                        background: "#e53935", color: "#fff", fontSize: 10, fontWeight: 800,
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        cursor: "pointer", border: "none", boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
-                                    }}
-                                >
-                                    ✕
-                                </button>
-                            )}
+                    {!heroUrl && (
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: "0.78rem", fontWeight: 600 }}>
+                            Sube la imagen del Hero arriba para previsualizarla aquí
                         </div>
-                    )
-                })}
+                    )}
+                    {heroUrl && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25))", opacity: 0.4, pointerEvents: "none" }} />}
+
+                    {/* Guías del imán */}
+                    {guia.map(g => (
+                        <div
+                            key={`${g.axis}${g.pos}`}
+                            style={g.axis === "v"
+                                ? { position: "absolute", left: `${g.pos}%`, top: 0, bottom: 0, width: 1, background: "var(--primary-mid)", opacity: 0.85, pointerEvents: "none", zIndex: 10 }
+                                : { position: "absolute", top: `${g.pos}%`, left: 0, right: 0, height: 1, background: "var(--primary-mid)", opacity: 0.85, pointerEvents: "none", zIndex: 10 }
+                            }
+                        />
+                    ))}
+
+                    {lista.map(el => {
+                        const activoSel = sel === el.id
+                        const borde = activoSel ? "var(--primary-mid)" : "transparent"
+                        return (
+                            <div
+                                key={el.id}
+                                data-hero-el={el.id}
+                                onPointerDown={e => iniciarDrag(e, el, "mover")}
+                                style={{
+                                    position: "absolute",
+                                    left: `${el.x}%`,
+                                    top: `${el.y}%`,
+                                    width: (el.tipo === "texto" || el.tipo === "logo") ? `${el.w ?? 40}%` : undefined,
+                                    cursor: "move",
+                                    outline: `1.5px dashed ${borde === "transparent" ? "rgba(255,255,255,0.35)" : borde}`,
+                                    outlineOffset: 2,
+                                    pointerEvents: "auto",
+                                }}
+                            >
+                                {el.tipo === "logo" && logoUrl && (
+                                    <img
+                                        src={optimizarImagenCloudinary(logoUrl, 300)}
+                                        alt="Logo"
+                                        style={{
+                                            width: "100%", aspectRatio: "1 / 1", borderRadius: "50%",
+                                            objectFit: "cover", background: "#fff",
+                                            border: "3px solid rgba(255,255,255,0.9)",
+                                            boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                                            pointerEvents: "none", display: "block",
+                                        }}
+                                    />
+                                )}
+                                {el.tipo === "texto" && (
+                                    <div style={{
+                                        fontSize: `${Math.max(minTexto, (el.tamano ?? 56) * escala)}px`,
+                                        fontFamily: FUENTES_CATALOGO[el.fuente ?? "playfair"]?.stack ?? "'Playfair Display', Georgia, serif",
+                                        fontWeight: Number(el.peso ?? 700),
+                                        color: el.color || "#fff",
+                                        textAlign: (el.align ?? "center") as "left" | "center" | "right",
+                                        lineHeight: 1.15,
+                                        whiteSpace: "pre-wrap",
+                                        textShadow: "0 2px 12px rgba(0,0,0,0.4)",
+                                        pointerEvents: "none",
+                                    }}>
+                                        {el.texto || "Texto"}
+                                    </div>
+                                )}
+                                {el.tipo === "red" && (
+                                    <div style={{
+                                        width: Math.max(minRed, (el.tamano ?? 40) * escala),
+                                        height: Math.max(minRed, (el.tamano ?? 40) * escala),
+                                        borderRadius: "50%",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
+                                        pointerEvents: "none",
+                                    }}>
+                                        <Icon name={ICONO_RED[el.red ?? "instagram"] as any} size={(el.tamano ?? 40) * escala * 0.5} color="#fff" />
+                                    </div>
+                                )}
+                                {el.tipo === "redes" && (
+                                    <div style={{ display: "flex", gap: 8, pointerEvents: "none" }}>
+                                        {(["instagram", "facebook", "tiktok", "whatsapp"] as const).map(red => (
+                                            <span key={red} style={{
+                                                width: 34, height: 34, borderRadius: "50%",
+                                                display: "flex", alignItems: "center", justifyContent: "center",
+                                                background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
+                                            }}>
+                                                <Icon name={ICONO_RED[red] as any} size={15} color="#fff" />
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                                {el.tipo === "boton" && (
+                                    <div style={{
+                                        padding: `${Math.max(minBoton, (el.tamano ?? 15) * escala) * 0.65}px ${Math.max(minBoton, (el.tamano ?? 15) * escala) * 1.7}px`,
+                                        borderRadius: 999,
+                                        background: el.color || "var(--primary-mid)",
+                                        color: textoContraste(el.color),
+                                        fontWeight: 800, fontSize: `${Math.max(minBoton, (el.tamano ?? 15) * escala)}px`,
+                                        whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6,
+                                        pointerEvents: "none",
+                                    }}>
+                                        {el.texto || "Ver el catálogo"}
+                                    </div>
+                                )}
+                                {/* Manija de redimensionar (texto y logo) */}
+                                {(el.tipo === "texto" || el.tipo === "logo") && (
+                                    <div
+                                        onPointerDown={e => iniciarDrag(e, el, "escalar")}
+                                        style={{
+                                            position: "absolute", right: -6, bottom: -6,
+                                            width: 12, height: 12, borderRadius: 3,
+                                            background: "var(--primary-mid)", border: "2px solid #fff",
+                                            cursor: "ew-resize",
+                                        }}
+                                    />
+                                )}
+                                {activoSel && (
+                                    <button
+                                        onPointerDown={e => { e.stopPropagation(); e.preventDefault() }}
+                                        onClick={e => { e.stopPropagation(); quitar(el.id) }}
+                                        title="Eliminar elemento"
+                                        style={{
+                                            position: "absolute", top: -10, right: -10,
+                                            width: 20, height: 20, borderRadius: "50%",
+                                            background: "#e53935", color: "#fff", fontSize: 10, fontWeight: 800,
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            cursor: "pointer", border: "none", boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                        )
+                    })}
                 </div>
             </div>
 
@@ -543,20 +552,12 @@ export function EditorHero({
                     <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
                         Link de Identidad del Negocio. Cambia su tamaño y muévelo de forma independiente.
                     </p>
-                    <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }}>
-                        <div style={{ flex: 1, minWidth: 150 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Tamaño</span>
-                                <span style={{ fontWeight: 800, fontSize: "0.74rem", color: "var(--primary-mid)" }}>{selEl.tamano ?? 40}px</span>
-                            </div>
-                            <input
-                                type="range" min={20} max={80} step={2}
-                                value={selEl.tamano ?? 40}
-                                onChange={e => actualizar(selEl.id, { tamano: Number(e.target.value) })}
-                                style={{ width: "100%", accentColor: "var(--primary-mid)", cursor: "pointer" }}
-                            />
-                        </div>
-                    </div>
+                    <input
+                        type="range" min={20} max={80} step={2}
+                        value={selEl.tamano ?? 40}
+                        onChange={e => actualizar(selEl.id, { tamano: Number(e.target.value) })}
+                        style={{ width: "100%", accentColor: "var(--primary-mid)", cursor: "pointer" }}
+                    />
                 </div>
             )}
             {selEl && (selEl.tipo === "logo" || selEl.tipo === "redes") && (
@@ -564,7 +565,7 @@ export function EditorHero({
                     <p style={{ margin: 0, fontSize: "0.74rem", color: "var(--text-muted)", fontWeight: 600 }}>
                         {selEl.tipo === "logo"
                             ? "Logo del negocio — escálalo con la manija inferior-derecha del elemento."
-                            : "Redes sociales — se muestran Instagram, Facebook, TikTok y WhatsApp del negocio (Identidad del Negocio)."}
+                            : "Redes sociales — fila clásica con las redes del negocio."}
                     </p>
                     <button onClick={() => quitar(selEl.id)} style={{ border: "none", background: "none", color: "#e53935", fontWeight: 700, fontSize: "0.72rem", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
                         <Icon name="Trash2" size={13} /> Eliminar
@@ -573,7 +574,7 @@ export function EditorHero({
             )}
             {!selEl && lista.length > 0 && (
                 <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                    Consejo: haz clic en un elemento para editarlo y arrástralo a la posición que quieras. Al pasar cerca de otra figura aparecerá un ímán que alinea bordes y centros. La manija inferior-derecha cambia el tamaño.
+                    Consejo: haz clic en un elemento para editarlo y arrástralo. Al pasar cerca de otra figura aparecerá el imán que alinea bordes y centros. La manija inferior-derecha cambia el tamaño.
                 </p>
             )}
         </div>
@@ -696,7 +697,7 @@ function TextoPanel({ el, onActualizar, onQuitar }: {
     )
 }
 
-/* ── Panel del botón: texto + tamaño ── */
+/* ── Panel del botón: texto + tamaño + color ── */
 function BotonPanel({ el, onActualizar, onQuitar }: {
     el: HeroElemento
     onActualizar: (id: string, cambios: Partial<HeroElemento>) => void

@@ -369,7 +369,11 @@ export default function CatalogoView({ slug }: { slug: string }) {
     // el CSS de Google Fonts de todas las usadas por los elementos.
     useEffect(() => {
         if (!datos) return
-        const usadas = (datos.config.hero_layout?.elementos || [])
+        const sets = [
+            ...(datos.config.hero_layout?.elementos || []),
+            ...(datos.config.hero_layout?.elementos_movil || []),
+        ]
+        const usadas = sets
             .map(e => e.fuente)
             .filter(Boolean) as string[]
         const cssUrls = Array.from(new Set(usadas))
@@ -385,7 +389,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
             link.href = url
             document.head.appendChild(link)
         }
-    }, [datos?.config.hero_layout?.elementos])
+    }, [datos?.config.hero_layout?.elementos, datos?.config.hero_layout?.elementos_movil])
 
     // ── Favicon dinámico: usa el logo del tenant ──
     useEffect(() => {
@@ -614,7 +618,18 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 <CapaFondoCatalogo url={fondoUrl} textura={fondoEsTextura} opacidad={fondoOpacidad} />
             )}
             {/* ── Header / Hero ── */}
-            {config.hero_estilo === "hero" && heroUrl && (config.hero_layout?.elementos?.length ?? 0) > 0 ? (
+            {(() => {
+                if (!datos) return null
+                const totalProductos = datos.productos.length
+                // Set por breakpoint: en móvil se usa el layout del canva móvil;
+                // si todavía no existe (elementos_movil undefined) hereda el de
+                // escritorio escalado. El editor móvil escribe aquí directo.
+                const layout = config.hero_layout || {}
+                const elementosCanva = esMovil
+                    ? (layout.elementos_movil ?? layout.elementos)
+                    : layout.elementos
+                if (!(config.hero_estilo === "hero" && heroUrl && (elementosCanva?.length ?? 0) > 0)) return null
+                return (
                 /* Modo HERO — MINI CANVA (migración 049, Fase 2): los elementos
                    del editor se dibujan en coordenadas % del viewport. La misma
                    layout escala en móvil (texto ~62%). El velo es el mismo del
@@ -631,7 +646,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     }}
                 >
                     <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", ...overlayVelo }} />
-                    {config.hero_layout!.elementos!.map(el => {
+                    {elementosCanva!.map(el => {
                         // Tamaños en vw: los px del editor fueron calibrados para un
                         // viewport de 1920 (escritorio) / 1280 (móvil) — así el texto
                         // SIEMPRE escala con el ancho de la caja y nunca se compacta
@@ -777,7 +792,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         )
                     })}
                 </header>
-            ) : config.hero_estilo === "hero" && heroUrl ? (
+                )
+            if (config.hero_estilo === "hero" && heroUrl) return (
                 /* Modo HERO (migración 047): imagen a PANTALLA COMPLETA
                    (100vh) con velo de color/gradiente configurable y botón
                    para bajar al catálogo. Funciona en cualquier plantilla.
@@ -891,7 +907,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         </button>
                     )}
                 </header>
-            ) : config.hero_estilo === "imagen" && bannerUrl ? (
+                )
+            if (config.hero_estilo === "imagen" && bannerUrl) return (
                 /* Hero con banner como fondo de imagen.
                    El marco SIEMPRE conserva la relación del crop (1920×373 escritorio /
                    750×420 móvil), con el texto centrado adentro: con o sin título,
@@ -943,13 +960,15 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                     {config.subtitulo}
                                 </p>
                             )}
-                            <p style={{ fontSize: "0.75rem", opacity: 0.75, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5, textShadow: sombraTexto(config.banner_texto_color) }}>
-                                {datos.productos.length} productos
+                            <p style={{ fontSize: "0.75rem", opacity: 0.75, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5,                                 textShadow: sombraTexto(config.banner_texto_color) }}>
+                                {totalProductos} productos
                             </p>
                         </div>
                     )}
                 </header>
-            ) : (
+                )
+            // Gradiente: sin canva, sin hero legacy y sin banner → header simple
+            return (
                 /* Modo gradiente: solo header con degradado (el banner es exclusivo del modo imagen) */
                 <header style={{ background: tema.gradient, padding: config.template === "menu-carta" ? "32px 24px 28px" : "48px 24px 40px", textAlign: "center", color: "var(--on-primary)" }}>
                         {config.logo && (
@@ -978,10 +997,11 @@ export default function CatalogoView({ slug }: { slug: string }) {
                             </p>
                         )}
                         <p style={{ fontSize: "0.75rem", opacity: 0.6, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5 }}>
-                            {datos.productos.length} productos
+                            {totalProductos} productos
                         </p>
                     </header>
-            )}
+            )
+        })()}
 
             {/* ── Barra de anuncios (opcional, sticky) ──
                 Colocada DEBAJO del banner/hero. Con overflow-x: clip en html/body,

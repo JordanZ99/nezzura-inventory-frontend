@@ -324,11 +324,13 @@ export function SeccionApariencia({
                                 catalogoConfig?.tiktok && "tiktok",
                                 (catalogoConfig?.telefono || "").replace(/\D/g, "").length >= 8 && "whatsapp",
                             ].filter(Boolean) as string[])}
-                            elementos={catalogoConfig?.hero_layout?.elementos ?? []}
-                                onCambiar={elementos => {
-                                    setCatalogoConfig(prev => prev ? { ...prev, hero_layout: { ...(prev.hero_layout || {}), elementos } } : prev)
-                                    autoguardarDebounce("hero_layout", () => ({ hero_layout: { elementos } }))
-                                }}
+                            elementosEscritorio={catalogoConfig?.hero_layout?.elementos ?? []}
+                            elementosMovil={catalogoConfig?.hero_layout?.elementos_movil as any}
+                            onCambiar={(elementos, modo) => {
+                                const clave = modo === "movil" ? "elementos_movil" : "elementos"
+                                setCatalogoConfig(prev => prev ? { ...prev, hero_layout: { ...(prev.hero_layout || {}), [clave]: elementos } } : prev)
+                                autoguardarDebounce("hero_layout", () => ({ hero_layout: { [clave]: elementos } }) as any)
+                            }}
                             />
                         </div>
 
