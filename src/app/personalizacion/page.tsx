@@ -299,6 +299,19 @@ export default function Personalizacion() {
                 />
             )}
 
+            {/* ── Modal de recorte CIRCULAR del logo del negocio (1:1) ──
+                El logo se muestra bordeado circular en todo el sistema
+                (hero canva, header del catálogo, header del gestor). */}
+            {cuenta.logoCrop && (
+                <ImageCropperModal
+                    imageUrl={cuenta.logoCrop.url}
+                    aspectRatio={1}
+                    dimensionLabel="1:1 · logo circular"
+                    onCropComplete={cuenta.handleLogoCropComplete}
+                    onCancel={cuenta.cancelarLogoCrop}
+                />
+            )}
+
             <div style={{ height: 32 }} />
         </div>
     )

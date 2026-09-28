@@ -63,6 +63,8 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
     // Gasto automático de comisiones de terminal (Fase B)
     const [gastoComision, setGastoComision] = useState(false)
     const [subiendoLogo, setSubiendoLogo] = useState(false)
+    // Recorte del logo en curso (mismo modal que banners): { url: blob URL }
+    const [logoCrop, setLogoCrop] = useState<{ url: string } | null>(null)
     // Tipo de descarga en curso: "json" | "xlsx" | null (respaldo de datos)
     const [descargando, setDescargando] = useState<"json" | "xlsx" | null>(null)
     const inputFileRef = useRef<HTMLInputElement>(null)
@@ -179,18 +181,43 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         if (!file || !tenant?.tenant_id) return
         try {
             setSubiendoLogo(true)
+            // El logo SIEMPRE se muestra circular: abrimos el recorte 1:1
+            // (mismo modal que banners/productos) antes de subir. La subida
+            // ocurre al confirmar en handleLogoCropComplete.
+            const url = URL.createObjectURL(file)
+            setLogoCrop({ url })
+        } catch (err: any) {
+            mostrarMsg(false, `❌ ${err.message || "Error al abrir el recorte del logo"}`)
+        } finally {
+            setSubiendoLogo(false)
+            if (inputFileRef.current) inputFileRef.current.value = ""
+        }
+    }
 
-            // Subir foto directamente sin compresión
+    /** Recorte del logo confirmado: subir el blob 1:1 a Cloudinary */
+    async function handleLogoCropComplete(blob: Blob) {
+        if (!logoCrop || !tenant?.tenant_id) return
+        const url = logoCrop.url
+        setLogoCrop(null)
+        URL.revokeObjectURL(url)
+        try {
+            setSubiendoLogo(true)
             const nombreClave = `_logo_${tenant.tenant_id.slice(0, 8)}`
-            const { ruta } = await api.subirFoto(nombreClave, file)
+            const { ruta } = await api.subirFoto(nombreClave, blob as File)
 
             setLogoUrl(ruta)
-            mostrarMsg(true, "📷 Logo subido temporalmente — Haz clic en Guardar Cambios para aplicarlo en el sistema")
+            mostrarMsg(true, "📷 Logo recortado y subido — Haz clic en Guardar Cambios para aplicarlo en el sistema")
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error al subir logo"}`)
         } finally {
             setSubiendoLogo(false)
-            if (inputFileRef.current) inputFileRef.current.value = ""
+        }
+    }
+
+    function cancelarLogoCrop() {
+        if (logoCrop) {
+            URL.revokeObjectURL(logoCrop.url)
+            setLogoCrop(null)
         }
     }
 
@@ -280,6 +307,10 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         subiendoLogo,
         descargando,
         inputFileRef,
+        // Recorte circular del logo
+        logoCrop,
+        handleLogoCropComplete,
+        cancelarLogoCrop,
         // Datos de contacto (migración 043)
         contacto,
         setContactoCampo,
