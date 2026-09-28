@@ -729,10 +729,9 @@ function BotonPanel({ el, onActualizar, onQuitar }: {
                 <div style={{ flex: 1, minWidth: 150 }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Tamaño</span>
-                        <span style={{ fontWeight: 800, fontSize: "0.74rem", color: "var(--primary-mid)" }}>{el.tamano ?? 15}px</span>
-                    </div>
+                        <span style={{ fontWeight: 800, fontSize: "0.74rem", color: "var(--primary-mid)" }}>{el.tamano ?? 15}px</span>                    </div>
                     <input
-                        type="range" min={10} max={36} step={1}
+                        type="range" min={10} max={160} step={1}
                         value={el.tamano ?? 15}
                         onChange={e => onActualizar(el.id, { tamano: Number(e.target.value) })}
                         style={{ width: "100%", accentColor: "var(--primary-mid)", cursor: "pointer" }}
