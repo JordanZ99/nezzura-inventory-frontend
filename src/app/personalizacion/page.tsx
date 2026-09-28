@@ -162,7 +162,7 @@ export default function Personalizacion() {
                 </div>
 
                 {/* ── Selector de Pestañas (Tabs) ── */}
-                <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
                     {TABS.map(t => (
                         <button
                             key={t.id}
@@ -202,6 +202,11 @@ export default function Personalizacion() {
                             handleDescargarXlsx={cuenta.handleDescargarXlsx}
                             handleLogout={cuenta.handleLogout}
                         />
+                    </div>
+                )}
+
+                {tab === "negocio" && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
                         <CardIdentidadNegocio
                             inputFileRef={cuenta.inputFileRef}
                             logoUrl={cuenta.logoUrl}
@@ -219,11 +224,6 @@ export default function Personalizacion() {
                             contacto={cuenta.contacto}
                             setContactoCampo={cuenta.setContactoCampo}
                         />
-                    </div>
-                )}
-
-                {tab === "negocio" && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
                         <CardMiNegocio
                             zonaHoraria={cuenta.zonaHorario}
                             setZonaHoraria={cuenta.setZonaHorario}
