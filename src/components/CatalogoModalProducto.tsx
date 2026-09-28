@@ -243,12 +243,29 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
         transition: "background 0.15s",
     }
 
+    // Deteca pantallas chicas (<640px, mismo breakpoint que las media queries
+    // del modo Menú Carta). En móvil el modal split colapsa (la foto no tiene
+    // ancho y sus hijos son absolutas) → se reusa el modal estilo IG que sí
+    // está probado en móvil. Componente que solo monta tras click de usuario,
+    // por lo que leer window en el initializer no genera mismatch de SSR.
+    const [esPantallaChica, setEsPantallaChica] = useState(
+        () => typeof window !== "undefined" && window.matchMedia("(max-width: 639.98px)").matches
+    )
+    useEffect(() => {
+        const mq = window.matchMedia("(max-width: 639.98px)")
+        const actualizar = () => setEsPantallaChica(mq.matches)
+        actualizar()
+        mq.addEventListener("change", actualizar)
+        return () => mq.removeEventListener("change", actualizar)
+    }, [])
+
     // ══════════════════════════════════════════════════════════════════════
     // MODO MENÚ CARTA — port del DishModal de Santa Fé:
     // foto grande a la izquierda (55%, badge de categoría abajo), info a la
     // derecha (desc, dashed, precio serif grande, variaciones, tags, footer).
+    // En pantallas chicas el split colapsa → se usa el modal IG (más abajo).
     // ══════════════════════════════════════════════════════════════════════
-    if (config.template === "menu-carta") {
+    if (config.template === "menu-carta" && !esPantallaChica) {
         return (
             <div
                 style={{
