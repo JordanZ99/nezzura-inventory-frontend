@@ -13,6 +13,7 @@ interface TenantInfo {
     empresa: string
     logo: string
     plan: string  // "basico" | "plus" — controla features como galería de imágenes
+    zona_horaria: string  // Zona IANA del negocio (ej. "America/Cancun") para cálculo correcto de fechas locales
 }
 
 interface TenantContextValue {
@@ -40,10 +41,10 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
             const perfil = await api.getPerfil()
             if (!perfil?.tenant_id) { setCargando(false); return }
 
-            // Leer empresa, logo y plan desde la tabla tenants de Supabase usando el 'id' (UserID)
+            // Leer empresa, logo, plan y zona horaria desde la tabla tenants de Supabase usando el 'id' (UserID)
             const { data, error } = await supabase
                 .from("tenants")
-                .select("id, empresa, logo, plan")
+                .select("id, empresa, logo, plan, zona_horaria")
                 .eq("id", perfil.tenant_id)
                 .single()
 
@@ -52,11 +53,13 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                     tenant_id: data.id,
                     empresa: data.empresa || "",
                     logo: data.logo || "",
-                    plan: data.plan || "basico"
+                    plan: data.plan || "basico",
+                    // Fallback a Cancún: es la zona con la que se registraron los datos históricos
+                    zona_horaria: data.zona_horaria || "America/Cancun"
                 })
             } else {
                 // Si no tiene fila aún, guardamos solo el tenant_id
-                setTenant({ tenant_id: perfil.tenant_id, empresa: "", logo: "", plan: "basico" })
+                setTenant({ tenant_id: perfil.tenant_id, empresa: "", logo: "", plan: "basico", zona_horaria: "America/Cancun" })
             }
         } catch (e) {
             console.error("Error cargando tenant:", e)

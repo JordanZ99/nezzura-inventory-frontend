@@ -10,6 +10,7 @@ import { DateRangePicker, DateRangePickerValue, DonutChart, LineChart, BarChart 
 import Icon from "@/components/ui/Icon"
 import { useChartColors } from "@/components/hooks/useChartColors"
 import { useTenant } from "@/contexts/TenantContext"
+import { fechaLocal } from "@/lib/fechas"
 
 // Dynamic import to avoid SSR issues with Three.js
 const Antigravity = dynamic(() => import("@/components/Antigravity"), { ssr: false })
@@ -35,6 +36,9 @@ export default function Estadisticas() {
 
     const [guardando, setGuardando] = useState(false)
     const { tenant } = useTenant()
+    // Zona horaria del negocio (IANA): todas las fechas se agrupan según el
+    // día local del negocio, no según el reloj del navegador ni el UTC crudo.
+    const tz = tenant?.zona_horaria
 
     // Responsive
     const [isMobile, setIsMobile] = useState(false)
@@ -98,9 +102,17 @@ export default function Estadisticas() {
     }
 
     // --- Filtrado ---
+    // Las fechas del backend son TEXT con formatos mixtos (ISO con offset,
+    // naive legacy en UTC y fechas simples). parseFechaUTC interpreta cada
+    // formato con un único criterio y los límites del DatePicker se fijan a
+    // mediodía LOCAL para que un registro nunca caiga fuera por la hora.
     const ventasFiltradas = ventas.filter(v => {
-        const f = new Date(v.fecha)
-        if (dates.from && f < dates.from) return false
+        const fRaw = new Date(v.fecha)
+        if (isNaN(fRaw.getTime())) return true // fecha ilegible: no filtrarla
+        const diaISO = fechaLocal(v.fecha, tz)
+        const [yy, mm, dd] = diaISO.split("-").map(Number)
+        const f = new Date(yy, mm - 1, dd, 12, 0, 0) // mediodía local del día del registro
+        if (dates.from && f < new Date(dates.from.getFullYear(), dates.from.getMonth(), dates.from.getDate(), 12, 0, 0)) return false
         if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
         // Buscador por nombre o descripción del producto
         if (busquedaVentas.trim()) {
@@ -122,8 +134,12 @@ export default function Estadisticas() {
     })
 
     const gastosFiltrados = gastos.filter(g => {
-        const f = new Date(g.fecha)
-        if (dates.from && f < dates.from) return false
+        const fRaw = new Date(g.fecha)
+        if (isNaN(fRaw.getTime())) return true
+        const diaISO = fechaLocal(g.fecha, tz)
+        const [yy, mm, dd] = diaISO.split("-").map(Number)
+        const f = new Date(yy, mm - 1, dd, 12, 0, 0) // mediodía local del día del registro
+        if (dates.from && f < new Date(dates.from.getFullYear(), dates.from.getMonth(), dates.from.getDate(), 12, 0, 0)) return false
         if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
         return true
     })
@@ -162,8 +178,12 @@ export default function Estadisticas() {
     function getVentasProducto(prod: Producto) {
         const ventasProd = ventas.filter(v => v.producto === prod.producto && v.estado !== "Inactivo")
         const ventasEnRango = ventasProd.filter(v => {
-            const f = new Date(v.fecha)
-            if (dates.from && f < dates.from) return false
+            const fRaw = new Date(v.fecha)
+            if (isNaN(fRaw.getTime())) return true
+            const diaISO = fechaLocal(v.fecha, tz)
+            const [yy, mm, dd] = diaISO.split("-").map(Number)
+            const f = new Date(yy, mm - 1, dd, 12, 0, 0)
+            if (dates.from && f < new Date(dates.from.getFullYear(), dates.from.getMonth(), dates.from.getDate(), 12, 0, 0)) return false
             if (dates.to && f > new Date(dates.to.getTime() + 86400000)) return false
             return true
         })
@@ -208,7 +228,9 @@ export default function Estadisticas() {
     if (otros > 0) top5.push({ name: "Otros", value: otros })
 
     const salesByDate = ventasActivas.reduce((acc, v) => {
-        const d = v.fecha.substring(0, 10)
+        // Agrupar por FECHA LOCAL del negocio (no por los primeros 10 chars
+        // del texto en UTC: eso desplazaba ventas nocturnas al día siguiente)
+        const d = fechaLocal(v.fecha, tz)
         acc[d] = (acc[d] || 0) + v.total_venta
         return acc
     }, {} as Record<string, number>)
@@ -479,7 +501,7 @@ export default function Estadisticas() {
                                             <td style={{ padding: "12px 16px", fontWeight: 600 }}>#{v.n_ticket || v.id}</td>
                                             <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>
                                                 {editando === v.id ? (
-                                                    <input type="date" value={editVal.fecha.substring(0, 10)} onChange={e => setEditVal(p => ({ ...p, fecha: e.target.value + "T12:00:00.000Z" }))} className="input-primary" style={{ width: 120, padding: 4 }} />
+                                                    <input type="date" value={fechaLocal(editVal.fecha, tz)} onChange={e => setEditVal(p => ({ ...p, fecha: e.target.value + "T12:00:00.000Z" }))} className="input-primary" style={{ width: 120, padding: 4 }} />
                                                 ) : new Date(v.fecha).toLocaleDateString()}
                                             </td>
                                             <td style={{ padding: "12px 16px" }}>

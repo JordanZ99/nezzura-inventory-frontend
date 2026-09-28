@@ -33,7 +33,9 @@ export default function GestionGastosProgramados() {
         tipo: "fijo" as string,
         valor: "",
         frecuencia: "mensual",
-        proxima_fecha: new Date().toISOString().substring(0, 10),
+        // Fecha local YYYY-MM-DD (toLocaleDateString en-CA). NO toISOString():
+        // devolvería la fecha UTC y entre 12:00 y 5:00 AM (UTC-5) saldría "ayer".
+        proxima_fecha: new Date().toLocaleDateString("en-CA"),
     })
 
     async function recargar() {
@@ -90,7 +92,9 @@ export default function GestionGastosProgramados() {
                 ...f,
                 nombre: "",
                 valor: "",
-                proxima_fecha: new Date().toISOString().substring(0, 10),
+                // Fecha local YYYY-MM-DD (toLocaleDateString en-CA). NO toISOString():
+        // devolvería la fecha UTC y entre 12:00 y 5:00 AM (UTC-5) saldría "ayer".
+        proxima_fecha: new Date().toLocaleDateString("en-CA"),
             }))
             await recargar()
         } catch (e: unknown) {

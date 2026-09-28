@@ -24,7 +24,10 @@ export default function Gastos() {
     const [gastos, setGastos] = useState<Gasto[]>([])
     const [cargando, setCargando] = useState(true)
     const [form, setForm] = useState({
-        fecha: new Date().toISOString().substring(0, 10),
+        // Fecha local del navegador en YYYY-MM-DD (toLocaleDateString en-CA).
+        // NO usar toISOString(): devolvería la fecha UTC y entre 12:00 y 5:00 AM
+        // (UTC-5) fecharía el gasto un día antes del real.
+        fecha: new Date().toLocaleDateString("en-CA"),
         categoria: "Otros",
         descripcion: "",
         monto: ""
