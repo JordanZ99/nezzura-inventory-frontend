@@ -67,7 +67,7 @@ interface ConfigCatalogo {
     relacion_imagen?: string  // '1:1' (default) | '4:5' — relación global de las fotos de producto
     banner_url?: string
     banner_url_movil?: string
-    hero_estilo?: string      // 'gradiente' | 'imagen'
+    hero_estilo?: string      // 'gradiente' | 'imagen' | 'hero' (pantalla completa)
     banner_texto_color?: string
     banner_mostrar_texto?: boolean
     banner_mostrar_logo?: boolean
@@ -77,6 +77,11 @@ interface ConfigCatalogo {
     fondo_modo?: string      // 'cover' (foto completa) | 'repeat' (textura tileada)
     fondo_opacidad?: number  // 0-100: opacidad de la imagen sobre el color de fondo
     fondo_color?: string     // hex #RRGGBB bajo la imagen; '' = color del tema
+    // Modo Hero de la portada (migración 047): imagen a pantalla completa
+    hero_url?: string
+    hero_url_movil?: string  // móvil preferido si existe; '' = hero_url centrado
+    hero_color?: string      // hex del velo; '' = gradiente oscuro del tema
+    hero_opacidad?: number   // 0-100
     logo: string
 }
 
@@ -411,6 +416,21 @@ export default function CatalogoView({ slug }: { slug: string }) {
         esMovil ? 800 : 1920
     )
 
+    // ── Modo Hero (migración 047): imagen a pantalla completa con velo ──
+    // En móvil se prefiere el crop retrato (hero_url_movil) si existe. El velo
+    // delimita contraste sobre la foto: hex del tenant o gradiente oscuro.
+    const heroUrl = optimizarImagenCloudinary(
+        (esMovil && config.hero_url_movil) ? config.hero_url_movil : config.hero_url,
+        esMovil ? 900 : 1920
+    )
+    const heroOpacidad = Math.max(0, Math.min(100, config.hero_opacidad ?? 40)) / 100
+    const overlayVelo: React.CSSProperties = config.hero_color
+        ? { background: config.hero_color, opacity: heroOpacidad }
+        : { background: "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25))", opacity: heroOpacidad }
+    const irAlContenido = () => {
+        document.getElementById("catalogo-contenido")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+
     // ── Fondo del catálogo con imagen/textura (migración 045) ──
     // La imagen se dibuja ENCIMA del color de fondo (fondo_color o el del tema)
     // con la opacidad elegida: al bajarla se mezcla con el color. El modo
@@ -530,7 +550,93 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 <CapaFondoCatalogo url={fondoUrl} textura={fondoEsTextura} opacidad={fondoOpacidad} />
             )}
             {/* ── Header / Hero ── */}
-            {config.hero_estilo === "imagen" && bannerUrl ? (
+            {config.hero_estilo === "hero" && heroUrl ? (
+                /* Modo HERO (migración 047): imagen a PANTALLA COMPLETA
+                   (100vh) con velo de color/gradiente configurable y botón
+                   para bajar al catálogo. Funciona en cualquier plantilla.
+                   El botón queda a la IZQUIERDA en escritorio y CENTRADO
+                   abajo en móvil. */
+                <header style={{
+                    position: "relative",
+                    width: "100%",
+                    height: "100vh",
+                    background: `url(${heroUrl}) center / cover no-repeat`,
+                    color: config.banner_texto_color || "#fff",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center",
+                    padding: "20px",
+                    overflow: "hidden",
+                }}>
+                    {/* Velo sobre la imagen (color del tenant o gradiente) */}
+                    <div
+                        aria-hidden
+                        style={{
+                            position: "absolute", inset: 0, pointerEvents: "none",
+                            ...overlayVelo,
+                        }}
+                    />
+                    <div style={{ position: "relative", zIndex: 2 }}>
+                        {config.banner_mostrar_logo !== false && config.logo && (
+                            <img
+                                src={optimizarImagenCloudinary(config.logo, 200)}
+                                alt={config.titulo || "Logo del catálogo"}
+                                style={{
+                                    width: esMovil ? 72 : 104,
+                                    height: esMovil ? 72 : 104,
+                                    borderRadius: "50%",
+                                    objectFit: "cover",
+                                    border: "3px solid rgba(255,255,255,0.9)",
+                                    display: "block",
+                                    margin: "0 auto 14px",
+                                    background: "#fff",
+                                    boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                                }}
+                            />
+                        )}
+                        {config.banner_mostrar_texto !== false && (
+                            <div>
+                                <h1 style={{ fontSize: esMovil ? "calc(1.5rem * var(--fd-scale, 1))" : "calc(2.1rem * var(--fd-scale, 1))", fontWeight: 800, margin: "0 0 4px", letterSpacing: -0.5, fontFamily: "var(--font-display, inherit)", textShadow: sombraTexto(config.banner_texto_color) }}>
+                                    {config.titulo || "Catálogo"}
+                                </h1>
+                                {config.subtitulo && (
+                                    <p style={{ fontSize: "1rem", opacity: 0.9, margin: 0, fontWeight: 500, textShadow: sombraTexto(config.banner_texto_color) }}>
+                                        {config.subtitulo}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    {/* Botón para abrir el catálogo: izquierda (desktop) / centrado (móvil) */}
+                    <button
+                        onClick={irAlContenido}
+                        style={{
+                            position: "absolute", zIndex: 2,
+                            bottom: esMovil ? 36 : 48,
+                            left: esMovil ? "50%" : 48,
+                            transform: esMovil ? "translateX(-50%)" : "none",
+                            padding: "12px 28px",
+                            borderRadius: 999,
+                            border: "none",
+                            background: "var(--primary-mid,var(--primary))",
+                            color: "#fff",
+                            fontWeight: 800,
+                            fontSize: "0.92rem",
+                            cursor: "pointer",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
+                            display: "flex", alignItems: "center", gap: 8,
+                            transition: "transform 0.15s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = esMovil ? "translateX(-50%) scale(1.04)" : "scale(1.04)" }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = esMovil ? "translateX(-50%)" : "none" }}
+                    >
+                        <Icon name="ArrowDown" size={18} />
+                        Ver el catálogo
+                    </button>
+                </header>
+            ) : config.hero_estilo === "imagen" && bannerUrl ? (
                 /* Hero con banner como fondo de imagen.
                    El marco SIEMPRE conserva la relación del crop (1920×373 escritorio /
                    750×420 móvil), con el texto centrado adentro: con o sin título,
@@ -646,7 +752,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
             )}
 
             {/* ── Buscador + filtros ── */}
-            <div style={{ maxWidth: 1200, margin: "0 auto", padding: config.template === "menu-carta" ? "16px 20px 0" : "24px 20px 0" }}>
+            <div id="catalogo-contenido" style={{ maxWidth: 1200, margin: "0 auto", padding: config.template === "menu-carta" ? "16px 20px 0" : "24px 20px 0" }}>
                 {/* Buscador */}
                 <input
                     type="text"

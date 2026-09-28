@@ -29,11 +29,15 @@ interface Props extends PropsSeccionConfig {
     bannerInputRef: React.RefObject<HTMLInputElement>
     bannerMovilInputRef: React.RefObject<HTMLInputElement>
     fondoInputRef: React.RefObject<HTMLInputElement>
+    heroInputRef: React.RefObject<HTMLInputElement>
+    heroMovilInputRef: React.RefObject<HTMLInputElement>
     subiendoBanner: boolean
     subiendoBannerMovil: boolean
     subiendoFondo: boolean
-    handleBannerFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil" | "fondo") => void
-    quitarBanner: (target: "escritorio" | "movil" | "fondo") => void
+    subiendoHero: boolean
+    subiendoHeroMovil: boolean
+    handleBannerFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil" | "fondo" | "hero" | "hero_movil") => void
+    quitarBanner: (target: "escritorio" | "movil" | "fondo" | "hero" | "hero_movil") => void
     categoriasCatalogo: Categoria[]
     categoriaToggling: string | null
     toggleCategoria: (categoria: string) => void
@@ -51,9 +55,13 @@ export function ConfigCatalogo(props: Props) {
         bannerInputRef,
         bannerMovilInputRef,
         fondoInputRef,
+        heroInputRef,
+        heroMovilInputRef,
         subiendoBanner,
         subiendoBannerMovil,
         subiendoFondo,
+        subiendoHero,
+        subiendoHeroMovil,
         handleBannerFile,
         quitarBanner,
         categoriasCatalogo,
@@ -122,9 +130,13 @@ export function ConfigCatalogo(props: Props) {
                         bannerInputRef={bannerInputRef}
                         bannerMovilInputRef={bannerMovilInputRef}
                         fondoInputRef={fondoInputRef}
+                        heroInputRef={heroInputRef}
+                        heroMovilInputRef={heroMovilInputRef}
                         subiendoBanner={subiendoBanner}
                         subiendoBannerMovil={subiendoBannerMovil}
                         subiendoFondo={subiendoFondo}
+                        subiendoHero={subiendoHero}
+                        subiendoHeroMovil={subiendoHeroMovil}
                         handleBannerFile={handleBannerFile}
                         quitarBanner={quitarBanner}
                     />

@@ -7,7 +7,7 @@ import ImageCropperModal from "@/components/ui/ImageCropperModal"
 import PageHeader from "@/components/ui/PageHeader"
 import { usePersonalizacionCuenta } from "@/hooks/usePersonalizacionCuenta"
 import { useConfigCatalogo } from "@/hooks/useConfigCatalogo"
-import { useBanners } from "@/hooks/useBanners"
+import { useBanners, RELACION_CROP } from "@/hooks/useBanners"
 import { obtenerTemaGestor } from "@/lib/temas"
 import { CardInfoCuenta } from "@/components/personalizacion/CardInfoCuenta"
 import { CardIdentidadNegocio } from "@/components/personalizacion/CardIdentidadNegocio"
@@ -258,9 +258,13 @@ export default function Personalizacion() {
                                     bannerInputRef={banners.bannerInputRef}
                                     bannerMovilInputRef={banners.bannerMovilInputRef}
                                     fondoInputRef={banners.fondoInputRef}
+                                    heroInputRef={banners.heroInputRef}
+                                    heroMovilInputRef={banners.heroMovilInputRef}
                                     subiendoBanner={banners.subiendoBanner}
                                     subiendoBannerMovil={banners.subiendoBannerMovil}
                                     subiendoFondo={banners.subiendoFondo}
+                                    subiendoHero={banners.subiendoHero}
+                                    subiendoHeroMovil={banners.subiendoHeroMovil}
                                     handleBannerFile={banners.handleBannerFile}
                                     quitarBanner={banners.quitarBanner}
                                     categoriasCatalogo={config.categoriasCatalogo}
@@ -288,8 +292,8 @@ export default function Personalizacion() {
             {banners.bannerCrop && (
                 <ImageCropperModal
                     imageUrl={banners.bannerCrop.url}
-                    aspectRatio={banners.bannerCrop.target === "escritorio" ? 1920 / 373 : 750 / 420}
-                    dimensionLabel={banners.bannerCrop.target === "escritorio" ? "1920 × 373" : "750 × 420"}
+                    aspectRatio={RELACION_CROP[banners.bannerCrop.target].ratio}
+                    dimensionLabel={RELACION_CROP[banners.bannerCrop.target].etiqueta}
                     onCropComplete={banners.handleBannerCropComplete}
                     onCancel={banners.cancelarCrop}
                 />

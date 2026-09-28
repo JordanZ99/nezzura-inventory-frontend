@@ -15,7 +15,16 @@ import { api, type CatalogoConfig } from "@/lib/api"
 import { comprimirBanner } from "@/lib/image-utils"
 import { useToast } from "@/components/ui/Toast"
 
-export type TargetBanner = "escritorio" | "movil" | "fondo"
+export type TargetBanner = "escritorio" | "movil" | "fondo" | "hero" | "hero_movil"
+
+// Relación y etiqueta del crop por target (compartido con el modal de recorte
+// en personalizacion/page.tsx): los valores 'hero' son de la migración 047.
+export const RELACION_CROP: Record<Exclude<TargetBanner, "fondo">, { ratio: number; etiqueta: string }> = {
+    escritorio: { ratio: 1920 / 373, etiqueta: "1920 × 373" },
+    movil: { ratio: 750 / 420, etiqueta: "750 × 420" },
+    hero: { ratio: 1920 / 1080, etiqueta: "1920 × 1080" },
+    hero_movil: { ratio: 750 / 1334, etiqueta: "750 × 1334" },
+}
 
 interface UseBannersArgs {
     tenant: { tenant_id: string } | null
@@ -30,11 +39,15 @@ export function useBanners({ tenant, catalogoConfig, setCatalogoConfig, ejecutar
     const bannerInputRef = useRef<HTMLInputElement>(null)
     const bannerMovilInputRef = useRef<HTMLInputElement>(null)
     const fondoInputRef = useRef<HTMLInputElement>(null)
+    const heroInputRef = useRef<HTMLInputElement>(null)
+    const heroMovilInputRef = useRef<HTMLInputElement>(null)
     const [subiendoBanner, setSubiendoBanner] = useState(false)
     const [subiendoBannerMovil, setSubiendoBannerMovil] = useState(false)
     const [subiendoFondo, setSubiendoFondo] = useState(false)
-    // Crop del banner: imagen seleccionada esperando recorte (escritorio o móvil)
-    const [bannerCrop, setBannerCrop] = useState<{ url: string; target: "escritorio" | "movil" } | null>(null)
+    const [subiendoHero, setSubiendoHero] = useState(false)
+    const [subiendoHeroMovil, setSubiendoHeroMovil] = useState(false)
+    // Crop del banner: imagen seleccionada esperando recorte (escritorio, móvil o hero)
+    const [bannerCrop, setBannerCrop] = useState<{ url: string; target: Exclude<TargetBanner, "fondo"> } | null>(null)
 
     // ── Subir banner/hero del catálogo (escritorio o móvil) ──
     // 1) Se elige el archivo → se abre el modal de recorte con la relación correcta.
@@ -58,10 +71,15 @@ export function useBanners({ tenant, catalogoConfig, setCatalogoConfig, ejecutar
         setBannerCrop(null)
         const esMovil = target === "movil"
         try {
-            if (esMovil) setSubiendoBannerMovil(true)
+            if (target === "hero") setSubiendoHero(true)
+            else if (target === "hero_movil") setSubiendoHeroMovil(true)
+            else if (esMovil) setSubiendoBannerMovil(true)
             else setSubiendoBanner(true)
-            const nombreClave = `_banner${esMovil ? "_movil" : ""}_${tenant.tenant_id.slice(0, 8)}`
-            const archivo = new File([blob], `banner-${esMovil ? "movil" : "escritorio"}.jpg`, { type: blob.type || "image/jpeg" })
+            const esHero = target === "hero" || target === "hero_movil"
+            const nombreClave = esHero
+                ? `_banner_${target === "hero" ? "hero" : "hero_movil"}_${tenant.tenant_id.slice(0, 8)}`
+                : `_banner${esMovil ? "_movil" : ""}_${tenant.tenant_id.slice(0, 8)}`
+            const archivo = new File([blob], `banner-${target}.jpg`, { type: blob.type || "image/jpeg" })
             // Comprimir conservando resolución (máx 1920px) antes de subir:
             // el endpoint tiene límite de 1MB y los banners lo superan fácilmente
             let imgAEnviar: Blob | File = archivo
@@ -69,25 +87,21 @@ export function useBanners({ tenant, catalogoConfig, setCatalogoConfig, ejecutar
             catch { /* enviar el recorte si falla la compresión */ }
             const { ruta } = await api.subirFoto(nombreClave, imgAEnviar as File)
             // URL anterior del banner: se borra de Cloudinary solo tras guardar el nuevo
-            const viejaUrl = esMovil ? (catalogoConfig?.banner_url_movil || "") : (catalogoConfig?.banner_url || "")
-            if (esMovil) {
-                setCatalogoConfig(prev => prev ? { ...prev, banner_url_movil: ruta } : prev)
-                const ok = await ejecutarGuardado("banner_url_movil", { banner_url_movil: ruta })
-                if (ok && viejaUrl && viejaUrl !== ruta) {
-                    api.borrarImagen(viejaUrl).catch(() => {})
-                } else if (!ok) {
-                    // Guardado falló: limpiar la imagen recién subida (huérfana)
-                    api.borrarImagen(ruta).catch(() => {})
-                }
-            } else {
-                setCatalogoConfig(prev => prev ? { ...prev, banner_url: ruta } : prev)
-                const ok = await ejecutarGuardado("banner_url", { banner_url: ruta })
-                if (ok && viejaUrl && viejaUrl !== ruta) {
-                    api.borrarImagen(viejaUrl).catch(() => {})
-                } else if (!ok) {
-                    // Guardado falló: limpiar la imagen recién subida (huérfana)
-                    api.borrarImagen(ruta).catch(() => {})
-                }
+            const viejaUrl = esHero
+                ? (target === "hero" ? (catalogoConfig?.hero_url || "") : (catalogoConfig?.hero_url_movil || ""))
+                : esMovil ? (catalogoConfig?.banner_url_movil || "") : (catalogoConfig?.banner_url || "")
+            let campo: string, campoUrl: string
+            if (target === "hero") { campo = "hero_url"; campoUrl = "hero_url" }
+            else if (target === "hero_movil") { campo = "hero_url_movil"; campoUrl = "hero_url_movil" }
+            else if (esMovil) { campo = "banner_url_movil"; campoUrl = campo }
+            else { campo = "banner_url"; campoUrl = campo }
+            setCatalogoConfig(prev => prev ? { ...prev, [campoUrl]: ruta } : prev)
+            const ok = await ejecutarGuardado(campo, { [campo]: ruta })
+            if (ok && viejaUrl && viejaUrl !== ruta) {
+                api.borrarImagen(viejaUrl).catch(() => {})
+            } else if (!ok) {
+                // Guardado falló: limpiar la imagen recién subida (huérfana)
+                api.borrarImagen(ruta).catch(() => {})
             }
             mostrarMsg(true, "🖼️ Banner subido y aplicado")
         } catch (err: any) {
@@ -95,6 +109,8 @@ export function useBanners({ tenant, catalogoConfig, setCatalogoConfig, ejecutar
         } finally {
             setSubiendoBannerMovil(false)
             setSubiendoBanner(false)
+            setSubiendoHero(false)
+            setSubiendoHeroMovil(false)
             // Revocar el objectURL una vez el modal ya se desmontó
             setTimeout(() => URL.revokeObjectURL(url), 0)
         }
@@ -132,11 +148,15 @@ export function useBanners({ tenant, catalogoConfig, setCatalogoConfig, ejecutar
         }
     }
 
-    // ── Quitar banner (escritorio o móvil) o el fondo ──
+    // ── Quitar banner (escritorio, móvil, hero) o el fondo ──
     async function quitarBanner(target: TargetBanner) {
         const campo = target === "fondo" ? "fondo_url"
+            : target === "hero" ? "hero_url"
+            : target === "hero_movil" ? "hero_url_movil"
             : target === "escritorio" ? "banner_url" : "banner_url_movil"
         const viejaUrl = target === "fondo" ? (catalogoConfig?.fondo_url || "")
+            : target === "hero" ? (catalogoConfig?.hero_url || "")
+            : target === "hero_movil" ? (catalogoConfig?.hero_url_movil || "")
             : target === "escritorio" ? (catalogoConfig?.banner_url || "") : (catalogoConfig?.banner_url_movil || "")
         setCatalogoConfig(prev => prev ? { ...prev, [campo]: "" } : prev)
         const ok = await ejecutarGuardado(campo, { [campo]: "" })
@@ -157,9 +177,13 @@ export function useBanners({ tenant, catalogoConfig, setCatalogoConfig, ejecutar
         bannerInputRef,
         bannerMovilInputRef,
         fondoInputRef,
+        heroInputRef,
+        heroMovilInputRef,
         subiendoBanner,
         subiendoBannerMovil,
         subiendoFondo,
+        subiendoHero,
+        subiendoHeroMovil,
         bannerCrop,
         handleBannerFile,
         handleBannerCropComplete,

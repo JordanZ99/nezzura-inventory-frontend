@@ -1,15 +1,15 @@
 // ==============================================================================
 // src/components/personalizacion/BannerUploader.tsx
 // Subcomponente reutilizable para el banner del catálogo: vista previa,
-// subir imagen (abre el modal de recorte) y quitar. Se usa 2 veces (escritorio
-// y móvil) con los mismos props — antes eran 2 bloques casi idénticos en
+// subir imagen (abre el modal de recorte) y quitar. Se usa en escritorio,
+// móvil y modo Hero (migración 047) — antes eran bloques casi idénticos en
 // SeccionApariencia.
 // ==============================================================================
 
 import Icon from "@/components/ui/Icon"
 import type { ReactNode } from "react"
 
-type TargetBanner = "escritorio" | "movil" | "fondo"
+type TargetBanner = "escritorio" | "movil" | "fondo" | "hero" | "hero_movil"
 
 interface Props {
     target: TargetBanner

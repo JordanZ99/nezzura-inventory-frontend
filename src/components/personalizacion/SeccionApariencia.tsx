@@ -18,11 +18,15 @@ interface Props extends PropsSeccionConfig {
     bannerInputRef: React.RefObject<HTMLInputElement>
     bannerMovilInputRef: React.RefObject<HTMLInputElement>
     fondoInputRef: React.RefObject<HTMLInputElement>
+    heroInputRef: React.RefObject<HTMLInputElement>
+    heroMovilInputRef: React.RefObject<HTMLInputElement>
     subiendoBanner: boolean
     subiendoBannerMovil: boolean
     subiendoFondo: boolean
-    handleBannerFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil" | "fondo") => void
-    quitarBanner: (target: "escritorio" | "movil" | "fondo") => void
+    subiendoHero: boolean
+    subiendoHeroMovil: boolean
+    handleBannerFile: (e: React.ChangeEvent<HTMLInputElement>, target: "escritorio" | "movil" | "fondo" | "hero" | "hero_movil") => void
+    quitarBanner: (target: "escritorio" | "movil" | "fondo" | "hero" | "hero_movil") => void
 }
 
 export function SeccionApariencia({
@@ -35,9 +39,13 @@ export function SeccionApariencia({
     bannerInputRef,
     bannerMovilInputRef,
     fondoInputRef,
+    heroInputRef,
+    heroMovilInputRef,
     subiendoBanner,
     subiendoBannerMovil,
     subiendoFondo,
+    subiendoHero,
+    subiendoHeroMovil,
     handleBannerFile,
     quitarBanner,
 }: Props) {
@@ -161,6 +169,7 @@ export function SeccionApariencia({
                     {[
                         { key: "gradiente", label: "Gradiente", desc: "Fondo con degradado del tema (recomendado)" },
                         { key: "imagen", label: "Imagen de fondo", desc: "El banner cubre toda la portada con el título encima" },
+                        { key: "hero", label: "Hero", desc: "Imagen a pantalla completa con botón para bajar al catálogo" },
                     ].map(h => (
                         <button
                             key={h.key}
@@ -174,7 +183,7 @@ export function SeccionApariencia({
                                 width: "100%",
                             }}
                         >
-                            <Icon name={h.key === "imagen" ? "Image" : "Palette"} size={20} color={(catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-mid)" : "var(--text-muted)"} />
+                            <Icon name={h.key === "imagen" ? "Image" : h.key === "hero" ? "MonitorPlay" : "Palette"} size={20} color={(catalogoConfig?.hero_estilo || "gradiente") === h.key ? "var(--primary-mid)" : "var(--text-muted)"} />
                             <div>
                                 <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>{h.label}</span>
                                 <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>{h.desc}</p>
@@ -187,6 +196,114 @@ export function SeccionApariencia({
                         </button>
                     ))}
                 </div>
+
+                {/* ── Modo Hero (migración 047): 1 imagen con 2 crops
+                    (escritorio 16:9 / móvil retrato), velo de color o
+                    gradiente con opacidad. Se muestra a pantalla completa
+                    en cualquier plantilla. ── */}
+                {catalogoConfig?.hero_estilo === "hero" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 22 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Imagen del Hero</span>
+                            {renderGuardado("hero_url")}
+                        </div>
+                        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0, fontWeight: 500 }}>
+                            Ocupa todo el viewport al abrir el catálogo. Sube el recorte de cada tamaño abajo.
+                        </p>
+
+                        <BannerUploader
+                            target="hero"
+                            inputRef={heroInputRef}
+                            url={catalogoConfig?.hero_url || ""}
+                            subiendo={subiendoHero}
+                            onFile={handleBannerFile}
+                            onQuitar={quitarBanner}
+                            renderGuardado={renderGuardado}
+                            campo="hero_url"
+                            icono="Monitor"
+                            etiqueta="Hero escritorio"
+                            alturaPreview={44}
+                            recomendacion="1920 × 1080 px (pantalla completa)"
+                        />
+
+                        <BannerUploader
+                            target="hero_movil"
+                            inputRef={heroMovilInputRef}
+                            url={catalogoConfig?.hero_url_movil || ""}
+                            subiendo={subiendoHeroMovil}
+                            onFile={handleBannerFile}
+                            onQuitar={quitarBanner}
+                            renderGuardado={renderGuardado}
+                            campo="hero_url_movil"
+                            icono="Smartphone"
+                            etiqueta="Hero móvil"
+                            alturaPreview={48}
+                            recomendacion="750 × 1334 px (retrato)"
+                        />
+
+                        {/* Velo: color o gradiente + opacidad */}
+                        <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>Velo sobre la imagen</span>
+                                {renderGuardado("hero_color")}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                                <button
+                                    onClick={() => { setCatalogoConfig(prev => prev ? { ...prev, hero_color: "" } : prev); autoguardar("hero_color", { hero_color: "" }) }}
+                                    style={{
+                                        display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10, cursor: "pointer",
+                                        border: `2px solid ${!(catalogoConfig?.hero_color) ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                        background: "var(--bg-card2)", fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)",
+                                        transition: "all 0.15s",
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+                                        background: "linear-gradient(135deg, var(--bg-app) 0%, var(--primary-mid) 100%)",
+                                        border: "1.5px solid var(--border-primary)",
+                                    }} />
+                                    Gradiente del tema
+                                </button>
+                                <label style={{
+                                    display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 10, cursor: "pointer",
+                                    border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
+                                }}>
+                                    <input
+                                        type="color"
+                                        value={catalogoConfig?.hero_color || "#1e1e1e"}
+                                        onChange={e => { setCatalogoConfig(prev => prev ? { ...prev, hero_color: e.target.value } : prev); autoguardar("hero_color", { hero_color: e.target.value }) }}
+                                        style={{ width: 22, height: 22, border: "none", background: "none", padding: 0, cursor: "pointer" }}
+                                    />
+                                    <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-main)" }}>Otro color</span>
+                                </label>
+                            </div>
+
+                            {/* Opacidad del velo (0-100) */}
+                            <div style={{ marginTop: 4 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                                    <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>Opacidad del velo</span>
+                                    <span style={{ fontWeight: 800, fontSize: "0.78rem", color: "var(--primary-mid)", minWidth: 42, textAlign: "right" }}>
+                                        {catalogoConfig?.hero_opacidad ?? 40}%
+                                    </span>
+                                    {renderGuardado("hero_opacidad")}
+                                </div>
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={100}
+                                    step={5}
+                                    value={catalogoConfig?.hero_opacidad ?? 40}
+                                    onChange={e => {
+                                        const v = Number(e.target.value)
+                                        setCatalogoConfig(prev => prev ? { ...prev, hero_opacidad: v } : null)
+                                        autoguardarDebounce("hero_opacidad", () => ({ hero_opacidad: v }))
+                                    }}
+                                    style={{ width: "100%", accentColor: "var(--primary-mid)", cursor: "pointer" }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* ── Fondo del catálogo con imagen/textura (migración 045) ──
                     Siempre visible (independiente del estilo de portada): la

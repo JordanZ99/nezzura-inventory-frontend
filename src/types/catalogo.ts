@@ -21,7 +21,7 @@ export interface CatalogoConfig {
     fuente?: string;
     banner_url?: string;
     banner_url_movil?: string;
-    hero_estilo?: string;      // 'gradiente' | 'imagen'
+    hero_estilo?: string;      // 'gradiente' | 'imagen' | 'hero' (pantalla completa)
     banner_texto_color?: string;
     banner_mostrar_texto?: boolean;
     banner_mostrar_logo?: boolean;
@@ -34,6 +34,15 @@ export interface CatalogoConfig {
     fondo_opacidad?: number;
     /** Color hex bajo la imagen; '' = color del tema */
     fondo_color?: string;
+    /** Portada Hero a pantalla completa (migración 047) */
+    /** Imagen hero escritorio (crop 16:9, 1920×1080) */
+    hero_url?: string;
+    /** Imagen hero móvil (crop retrato, 750×1334); '' = usa hero_url centrado */
+    hero_url_movil?: string;
+    /** Color hex del velo sobre la imagen; '' = gradiente oscuro del tema */
+    hero_color?: string;
+    /** Opacidad del velo (0-100) */
+    hero_opacidad?: number;
     logo?: string;
     created_at?: string;
 }
