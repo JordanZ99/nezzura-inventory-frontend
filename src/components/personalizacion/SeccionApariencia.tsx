@@ -314,10 +314,17 @@ export function SeccionApariencia({
                                 <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>Composición del Hero</span>
                                 {renderGuardado("hero_layout")}
                             </div>
-                            <EditorHero
-                                heroUrl={catalogoConfig?.hero_url || ""}
-                                logoUrl={catalogoConfig?.logo || ""}
-                                elementos={catalogoConfig?.hero_layout?.elementos ?? []}
+                        {/* Redes con link llenado: para añadir botones independientes */}
+                        <EditorHero
+                            heroUrl={catalogoConfig?.hero_url || ""}
+                            logoUrl={catalogoConfig?.logo || ""}
+                            redesDisponibles={([
+                                catalogoConfig?.instagram && "instagram",
+                                catalogoConfig?.facebook && "facebook",
+                                catalogoConfig?.tiktok && "tiktok",
+                                (catalogoConfig?.telefono || "").replace(/\D/g, "").length >= 8 && "whatsapp",
+                            ].filter(Boolean) as string[])}
+                            elementos={catalogoConfig?.hero_layout?.elementos ?? []}
                                 onCambiar={elementos => {
                                     setCatalogoConfig(prev => prev ? { ...prev, hero_layout: { ...(prev.hero_layout || {}), elementos } } : prev)
                                     autoguardarDebounce("hero_layout", () => ({ hero_layout: { elementos } }))

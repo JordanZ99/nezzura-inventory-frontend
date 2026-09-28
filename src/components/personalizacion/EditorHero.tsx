@@ -29,6 +29,7 @@ import type { HeroElemento } from "@/types"
 interface Props {
     heroUrl: string          // imagen hero actual
     logoUrl: string          // logo del negocio
+    redesDisponibles: string[]  // redes con link llenado (instagram/facebook/tiktok/whatsapp)
     elementos: HeroElemento[]
     onCambiar: (elementos: HeroElemento[]) => void   // mutate + agenda guardado
 }
@@ -40,6 +41,18 @@ const FUENTES_CANVA = FUENTES_ORDEN.filter(k => k !== "sistema")
 const THR = 1.1
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
+
+/** Color de texto legible sobre el fondo del botón: si el hex elegido es
+ *  claro usamos texto oscuro, si es oscuro (o vacío = tema) texto blanco. */
+function textoContraste(hex?: string): string {
+    if (!hex) return "#fff"
+    const c = hex.replace("#", "")
+    if (c.length < 6) return "#fff"
+    const r = parseInt(c.slice(0, 2), 16)
+    const g = parseInt(c.slice(2, 4), 16)
+    const b = parseInt(c.slice(4, 6), 16)
+    return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1a1a1a" : "#fff"
+}
 
 /** Ancho estimado (%) de un elemento — el imán lo usa para bordes/centros.
  *  Texto/logo tienen w real; redes/botón lo estimamos (el navegador lo mide). */
@@ -55,7 +68,7 @@ function nuevoElemento(tipo: HeroElemento["tipo"], id: string): HeroElemento {
     if (tipo === "texto") return { id, tipo, x: 22, y: 42, w: 40, texto: "Escribe aquí...", fuente: "playfair", tamano: 56, color: "#ffffff", peso: "700", align: "center" }
     if (tipo === "logo") return { id, tipo, x: 45, y: 14, w: 10 }
     if (tipo === "redes") return { id, tipo, x: 44, y: 82 }
-    return { id, tipo: "boton", x: 30, y: 80, texto: "Ver el catálogo", tamano: 15 }
+    return { id, tipo: "boton", x: 30, y: 80, texto: "Ver el catálogo", tamano: 15, color: "" }
 }
 
 // Iconos por red (el Icon consume el nombre tipado de lucide)
@@ -63,9 +76,15 @@ const ICONO_RED: Record<string, string> = {
     instagram: "Instagram", facebook: "Facebook", tiktok: "Music2", whatsapp: "Phone",
 }
 
+/** Etiquetas legibles de cada red (panel y título del icono) */
+const ETIQUETAS_RED: Record<string, string> = {
+    instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", whatsapp: "WhatsApp",
+}
+
 export function EditorHero({
     heroUrl,
     logoUrl,
+    redesDisponibles,
     elementos,
     onCambiar,
 }: Props) {
@@ -227,6 +246,25 @@ export function EditorHero({
         persistir()
     }
 
+    /** + Redes: añade un botón INDEPENDIENTE por cada red con link llenado.
+     *  Cada icono se puede mover/escalar por separado (tipo 'red'). */
+    function agregarRedes() {
+        if (!redesDisponibles.length) return
+        const base = Date.now().toString(36)
+        const nuevos = redesDisponibles.map((red, i) => ({
+            id: `el_${base}${i}_${Math.random().toString(36).slice(2, 5)}`,
+            tipo: "red",
+            red,
+            x: clamp(40 + i * 10, 0, 100),
+            y: 84,
+            tamano: 40,
+        }))
+        listaRef.current = [...listaRef.current, ...nuevos]
+        setLista(listaRef.current)
+        setSel(nuevos[0].id)
+        persistir()
+    }
+
     function actualizar(id: string, cambios: Partial<HeroElemento>) {
         const i = listaRef.current.findIndex(x => x.id === id)
         if (i < 0) return
@@ -255,31 +293,42 @@ export function EditorHero({
                 {([
                     { tipo: "texto" as const, label: "Texto", icono: "Type" },
                     { tipo: "logo" as const, label: "Logo", icono: "CircleUserRound" },
-                    { tipo: "redes" as const, label: "Redes", icono: "Share2" },
                     { tipo: "boton" as const, label: "Botón", icono: "RectangleHorizontal" },
-                ]).map(b => {
-                    const sinLogo = b.tipo === "logo" && !logoUrl
-                    return (
-                        <button
-                            key={b.tipo}
-                            onClick={() => agregar(b.tipo)}
-                            disabled={sinLogo}
-                            title={sinLogo ? "Sube un logo en Identidad del Negocio" : undefined}
-                            style={{
-                                display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
-                                borderRadius: 10, cursor: sinLogo ? "not-allowed" : "pointer",
-                                fontSize: "0.78rem", fontWeight: 700, opacity: sinLogo ? 0.45 : 1,
-                                border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
-                                color: "var(--text-main)", transition: "all 0.15s",
-                            }}
-                            onMouseEnter={e => { if (!sinLogo) e.currentTarget.style.borderColor = "var(--primary-mid)" }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-primary)" }}
-                        >
-                            <Icon name={b.icono as any} size={15} color="var(--primary-mid)" />
-                            {b.label}
-                        </button>
-                    )
-                })}
+                ]).map(b => (
+                    <button
+                        key={b.tipo}
+                        onClick={() => agregar(b.tipo)}
+                        style={{
+                            display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
+                            borderRadius: 10, cursor: "pointer",
+                            fontSize: "0.78rem", fontWeight: 700,
+                            border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
+                            color: "var(--text-main)", transition: "all 0.15s",
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--primary-mid)" }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-primary)" }}
+                    >
+                        <Icon name={b.icono as any} size={15} color="var(--primary-mid)" />
+                        {b.label}
+                    </button>
+                ))}
+                <button
+                    onClick={() => agregarRedes()}
+                    disabled={redesDisponibles.length === 0}
+                    title={redesDisponibles.length === 0 ? "Llena Instagram, Facebook, TikTok o teléfono en Identidad del Negocio" : undefined}
+                    style={{
+                        display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
+                        borderRadius: 10, cursor: redesDisponibles.length === 0 ? "not-allowed" : "pointer",
+                        fontSize: "0.78rem", fontWeight: 700, opacity: redesDisponibles.length === 0 ? 0.45 : 1,
+                        border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
+                        color: "var(--text-main)", transition: "all 0.15s",
+                    }}
+                    onMouseEnter={e => { if (redesDisponibles.length) e.currentTarget.style.borderColor = "var(--primary-mid)" }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-primary)" }}
+                >
+                    <Icon name="Share2" size={15} color="var(--primary-mid)" />
+                    {redesDisponibles.length ? `Redes (${redesDisponibles.length})` : "Redes"}
+                </button>
             </div>
 
             {/* ── Canvas WYSIWYG ── */}
@@ -361,6 +410,17 @@ export function EditorHero({
                                     {el.texto || "Texto"}
                                 </div>
                             )}
+                            {el.tipo === "red" && (
+                                <div style={{
+                                    width: el.tamano ?? 40, height: el.tamano ?? 40,
+                                    borderRadius: "50%",
+                                    display: "flex", alignItems: "center", justifyContent: "center",
+                                    background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
+                                    pointerEvents: "none",
+                                }}>
+                                    <Icon name={ICONO_RED[el.red ?? "instagram"] as any} size={(el.tamano ?? 40) * 0.5} color="#fff" />
+                                </div>
+                            )}
                             {el.tipo === "redes" && (
                                 <div style={{ display: "flex", gap: 8, pointerEvents: "none" }}>
                                     {(["instagram", "facebook", "tiktok", "whatsapp"] as const).map(red => (
@@ -378,12 +438,12 @@ export function EditorHero({
                                 <div style={{
                                     padding: `${((el.tamano ?? 15) * escala) * 0.7}px ${((el.tamano ?? 15) * escala) * 1.6}px`,
                                     borderRadius: 999,
-                                    background: "var(--primary-mid)", color: "#fff",
+                                    background: el.color || "var(--primary-mid)",
+                                    color: textoContraste(el.color),
                                     fontWeight: 800, fontSize: `${(el.tamano ?? 15) * escala}px`,
                                     whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6,
                                     pointerEvents: "none",
                                 }}>
-                                    <Icon name="ArrowDown" size={14} />
                                     {el.texto || "Ver el catálogo"}
                                 </div>
                             )}
@@ -427,6 +487,35 @@ export function EditorHero({
             )}
             {selEl && selEl.tipo === "boton" && (
                 <BotonPanel el={selEl} onActualizar={actualizar} onQuitar={quitar} />
+            )}
+            {selEl && selEl.tipo === "red" && (
+                <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                            {ETIQUETAS_RED[selEl.red ?? "instagram"]}
+                        </span>
+                        <button onClick={() => quitar(selEl.id)} style={{ border: "none", background: "none", color: "#e53935", fontWeight: 700, fontSize: "0.72rem", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                            <Icon name="Trash2" size={13} /> Eliminar
+                        </button>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                        Link de Identidad del Negocio. Cambia su tamaño y muévelo de forma independiente.
+                    </p>
+                    <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }}>
+                        <div style={{ flex: 1, minWidth: 150 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Tamaño</span>
+                                <span style={{ fontWeight: 800, fontSize: "0.74rem", color: "var(--primary-mid)" }}>{selEl.tamano ?? 40}px</span>
+                            </div>
+                            <input
+                                type="range" min={20} max={80} step={2}
+                                value={selEl.tamano ?? 40}
+                                onChange={e => actualizar(selEl.id, { tamano: Number(e.target.value) })}
+                                style={{ width: "100%", accentColor: "var(--primary-mid)", cursor: "pointer" }}
+                            />
+                        </div>
+                    </div>
+                </div>
             )}
             {selEl && (selEl.tipo === "logo" || selEl.tipo === "redes") && (
                 <div style={{ padding: "10px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
@@ -600,6 +689,27 @@ function BotonPanel({ el, onActualizar, onQuitar }: {
                         style={{ width: "100%", accentColor: "var(--primary-mid)", cursor: "pointer" }}
                     />
                 </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                    <input
+                        type="color" value={el.color || "#1f6f5c"}
+                        onChange={e => onActualizar(el.id, { color: e.target.value })}
+                        style={{ width: 24, height: 24, border: "none", background: "none", padding: 0, cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)" }}>Color</span>
+                </label>
+                <button
+                    onClick={() => onActualizar(el.id, { color: "" })}
+                    title="Usar el color del tema"
+                    style={{
+                        padding: "5px 10px", borderRadius: 8, cursor: "pointer", fontSize: "0.72rem", fontWeight: 700,
+                        border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
+                        color: el.color ? "var(--text-muted)" : "var(--primary-mid)",
+                        display: "flex", alignItems: "center", gap: 6,
+                    }}
+                >
+                    <span style={{ width: 14, height: 14, borderRadius: "50%", background: "linear-gradient(135deg, var(--bg-app) 0%, var(--primary-mid) 100%)", border: "1.5px solid var(--border-primary)" }} />
+                    Tema
+                </button>
             </div>
         </div>
     )

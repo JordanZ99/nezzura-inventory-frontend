@@ -708,7 +708,33 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                 </div>
                             )
                         }
-                        // boton: CTA editable (texto y tamaño desde el editor)
+                        // red: un botón por red social, tamaño y lugar independientes
+                        if (el.tipo === "red") {
+                            const r = heroRedesVisibles.find(x => x.red === el.red)
+                            if (!r) return null
+                            const s = Math.max(22, (el.tamano ?? 40) * (esMovil ? 0.8 : 1))
+                            return (
+                                <a
+                                    key={el.id}
+                                    href={r.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label={r.red}
+                                    style={{
+                                        position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
+                                        width: s, height: s, borderRadius: "50%",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
+                                        transition: "background 0.15s", boxSizing: "border-box",
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.28)" }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.14)" }}
+                                >
+                                    <IconoRedSocial red={r.red} size={s * 0.5} color="#fff" />
+                                </a>
+                            )
+                        }
+                        // boton: CTA editable (texto, tamaño y color desde el editor)
                         return (
                             <button
                                 key={el.id}
@@ -717,17 +743,23 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                     position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
                                     padding: `${(el.tamano ?? 15) * 0.65}px ${(el.tamano ?? 15) * 1.7}px`,
                                     borderRadius: 999, border: "none",
-                                    background: "var(--primary-mid,var(--primary))", color: "#fff",
+                                    background: el.color || "var(--primary-mid,var(--primary))",
+                                    color: (function (hex?: string) {
+                                        if (!hex) return "#fff"
+                                        const c = hex.replace("#", "")
+                                        if (c.length < 6) return "#fff"
+                                        const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16)
+                                        return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1a1a1a" : "#fff"
+                                    })(el.color),
                                     fontWeight: 800, fontSize: `${(el.tamano ?? 15) * factor}px`,
                                     cursor: "pointer", whiteSpace: "nowrap",
-                                    display: "flex", alignItems: "center", gap: 8,
+                                    display: "flex", alignItems: "center", gap: 4,
                                     boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
                                     transition: "transform 0.15s",
                                 }}
                                 onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)" }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = "none" }}
                             >
-                                <Icon name="ArrowDown" size={18} />
                                 {el.texto || "Ver el catálogo"}
                             </button>
                         )

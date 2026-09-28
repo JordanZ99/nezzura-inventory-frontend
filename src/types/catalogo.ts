@@ -7,20 +7,22 @@
  *  escala en móvil sin configuración extra. WYSIWYG en el editor. */
 export interface HeroElemento {
     id: string
-    /** 'texto' | 'redes' | 'boton' */
+    /** 'texto' | 'logo' | 'redes' | 'red' | 'boton' */
     tipo: string
     /** Posición del borde superior-izquierdo, % del ancho/alto del hero */
     x: number
     y: number
-    /** Ancho del elemento, % del hero (solo texto: controla el salto de línea) */
+    /** Ancho del elemento, % del hero (texto/logo: controla salto de línea/tamaño) */
     w?: number
-    /** Solo texto: contenido, tipografía, tamaño px (desktop), color, peso, alineación */
+    /** Solo texto: contenido, tipografía, tamaño px (desktop), color, peso, alineación.
+     *  boton: texto del CTA + tamaño.  red: la red social que representa. */
     texto?: string
     fuente?: string      // clave de FUENTES_CATALOGO
     tamano?: number      // px en desktop; el render móvil escala ~0.62x
-    color?: string       // hex #RRGGBB
+    color?: string       // hex #RRGGBB (texto del elemento, fondo del botón)
     peso?: string        // '400' | '600' | '700' | '800'
     align?: string       // 'left' | 'center' | 'right'
+    red?: string         // 'instagram' | 'facebook' | 'tiktok' | 'whatsapp' (tipo 'red')
 }
 
 /** Reglas del bloque Hero (migración 049, Fase 1). Dict PARCIAL:
@@ -84,6 +86,11 @@ export interface CatalogoConfig {
      *  Claves ausentes = defaults (texto centro, logo/botón visibles, sin redes). */
     hero_layout?: HeroLayout;
     logo?: string;
+    /** Contacto del tenant (GET /catalogo_gestion): para el mini canva del hero */
+    telefono?: string;
+    instagram?: string;
+    facebook?: string;
+    tiktok?: string;
     created_at?: string;
 }
 
