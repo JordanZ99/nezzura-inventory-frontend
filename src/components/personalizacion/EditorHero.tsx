@@ -1,30 +1,18 @@
 // ==============================================================================
 // src/components/personalizacion/EditorHero.tsx
-// Mini-canva del Hero (migración 049): WYSIWYG sobre la imagen hero con
-// elementos posicionables con el mouse:
+// Mini-canva del Hero (migración 049) con DOS CANVAS INDEPENDIENTES:
 //
-//   - Cajas de TEXTO: arrastrables + escalables (manija inferior-derecha),
-//     con tipografía (7 display de lib/catalogo-fuentes), tamaño, color,
-//     peso y alineación.
-//   - LOGO: arrastrable y escalable (usa el logo del negocio).
-//   - REDES: un botón por cada red con link llenado (tipo 'red'),
-//     tamaño y lugar independientes.
-//   - BOTÓN "Ver el catálogo": texto, tamaño y color editables.
+//   ┌ Canva de ESCRITORIO (16:9, base 1920) → hero_layout.elementos
+//   └ Canva de MÓVIL     (retrato 390×844, base 1280) → hero_layout.elementos_movil
 //
-// IMÁN DE ALINEACIÓN: bordes/centros del elemento enganchan con los de OTRO
-// elemento o el centro del canvas. Con:
-//   1) Medidas REALES del DOM (getBoundingClientRect → % del canvas),
-//   2) Histéresis: engancha con THR (1.1%) y solo suelta a > THR_OFF (1.9%),
-//      entre frames el enganche SE MANTIENE (adiós al parpadeo).
+// Cada canva tiene SU propia lista de elementos, selección y panel de
+// propiedades: lo que edites en uno NO toca al otro. El canva móvil arranca
+// VACÍO (la herencia solo es explícita con "Clonar del escritorio"); en el
+// catálogo público, si elementos_movil aún no existe, el teléfono muestra el
+// escritorio escalado (retrocompatible).
 //
-// DOS SETS DE COORDENADAS: 'elementos' (escritorio, base 1920) e
-// 'elementos_movil' (teléfono, base 1280/clamps de pantalla chica). Si el
-// set móvil no existe, hereda el de escritorio; la primera edición en la
-// pestaña móvil lo crea (copia del escritorio). Lo que corrijas en un canva
-// NO cambia el otro.
-//
-// El estado vive en catalogoConfig.hero_layout; cada gesto agenda guardado
-// con debounce ({ [set]: LISTA COMPLETA } — el backend reemplaza el array).
+// IMÁN: bordes/centros medidos del DOM + histéresis (engancha <1.1%,
+// suelta a >1.9% — sin parpadeo). Elementos: texto, logo, red, redes, boton.
 // ==============================================================================
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
@@ -38,20 +26,22 @@ interface Props {
     logoUrl: string              // logo del negocio
     redesDisponibles: string[]   // redes con link llenado
     elementosEscritorio: HeroElemento[]
-    elementosMovil?: HeroElemento[]   // set teléfono (undefined = hereda escritorio)
+    elementosMovil?: HeroElemento[]
     onCambiar: (elementos: HeroElemento[], modo: "escritorio" | "movil") => void
 }
 
-/** Siete tipografías display del gestor (excluye 'sistema': es la sans neutral) */
+/** Siete tipografías display del gestor (excluye 'sistema') */
 const FUENTES_CANVA = FUENTES_ORDEN.filter(k => k !== "sistema")
 
-/** Imán: engancha bajo THR, suelta hasta cruzar THR_OFF (histéresis) */
+/** Imán: engancha <THR, suelta >THR_OFF (histéresis) */
 const THR = 1.1
 const THR_OFF = 1.9
 
+/** Tamaño de texto máximo del gestor (px en desktop) */
+const MAX_TAMANO = 320
+
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
-/** Color de texto legible sobre el fondo del botón */
 function textoContraste(hex?: string): string {
     if (!hex) return "#fff"
     const c = hex.replace("#", "")
@@ -62,7 +52,6 @@ function textoContraste(hex?: string): string {
     return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1a1a1a" : "#fff"
 }
 
-/** Crea un elemento por defecto */
 function nuevoElemento(tipo: HeroElemento["tipo"], id: string): HeroElemento {
     if (tipo === "texto") return { id, tipo, x: 22, y: 42, w: 40, texto: "Escribe aquí...", fuente: "playfair", tamano: 56, color: "#ffffff", peso: "700", align: "center" }
     if (tipo === "logo") return { id, tipo, x: 45, y: 14, w: 10 }
@@ -70,7 +59,6 @@ function nuevoElemento(tipo: HeroElemento["tipo"], id: string): HeroElemento {
     return { id, tipo: "boton", x: 30, y: 80, texto: "Ver el catálogo", tamano: 15, color: "" }
 }
 
-// Iconos por red
 const ICONO_RED: Record<string, string> = {
     instagram: "Instagram", facebook: "Facebook", tiktok: "Music2", whatsapp: "Phone",
 }
@@ -78,39 +66,51 @@ const ETIQUETAS_RED: Record<string, string> = {
     instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", whatsapp: "WhatsApp",
 }
 
-/** Caja de un elemento medida del DOM, en % del canvas */
 interface Caja { x0: number; y0: number; x1: number; y1: number }
-
-/** Fijado del imán: guía dibujada + posición ajustada que SE MANTIENE.
- *  off = offset del borde enganchado respecto a la posición del elemento. */
 interface Fijado { adj: number; pos: number; off: number }
 
-export function EditorHero({
+/* ════════════════════════════════════════════════════════════════════════════
+   CanvaSet: UN canvas (escritorio o móvil) con estado independiente.
+   ════════════════════════════════════════════════════════════════════════════ */
+function CanvaSet({
+    modo,
     heroUrl,
     logoUrl,
     redesDisponibles,
-    elementosEscritorio,
-    elementosMovil,
+    elementos,
+    elementosDelOtro,
     onCambiar,
-}: Props) {
-    const [modo, setModo] = useState<"escritorio" | "movil">("escritorio")
-    // El set ACTIVO: en móvil 'elementos_movil' si ya existe; si no, una vista
-    // del escritorio (la primera edición clona a elementos_movil vía onCambiar).
-    const escritorio = elementosEscritorio
-    const activo = modo === "movil" ? (elementosMovil ?? elementosEscritorio) : elementosEscritorio
-
-    const [lista, setLista] = useState<HeroElemento[]>(elementosEscritorio)
+    paginaVacia,
+    onClonarOtro,
+    onVaciar,
+}: {
+    modo: "escritorio" | "movil"
+    heroUrl: string
+    logoUrl: string
+    redesDisponibles: string[]
+    elementos: HeroElemento[]
+    elementosDelOtro?: HeroElemento[]
+    onCambiar: (elementos: HeroElemento[], modo: "escritorio" | "movil") => void
+    /** Texto del placeholder cuando el canva está vacío */
+    paginaVacia: string
+    /** Solo móvil: reemplaza el set actual por una copia del otro */
+    onClonarOtro?: () => void
+    /** Solo móvil: borra TODO el set */
+    onVaciar: () => void
+}) {
+    const [lista, setLista] = useState<HeroElemento[]>(elementos)
     const [sel, setSel] = useState<string | null>(null)
     const [guia, setGuia] = useState<{ axis: "v" | "h"; pos: number }[]>([])
     const canvasRef = useRef<HTMLDivElement>(null)
-    const listaRef = useRef(lista)                     // estado fresco SIN re-render
-    const [, setTick] = useState(0)                    // fuerza repintado en drag
+    const listaRef = useRef(lista)
+    const [, setTick] = useState(0)
 
-    // Sincronizar lista local cuando cambia el set activo (cambio de pestaña,
-    // carga asíncrona de config o retorno del guardado del propio gesto).
-    useEffect(() => { setLista(activo); listaRef.current = activo }, [activo, modo])
+    // Sincronizar cuando cambie la lista guardada (gestos, herencia, clonar/vaciar)
+    useEffect(() => {
+        setLista(elementos)
+        listaRef.current = elementos
+    }, [elementos])
 
-    // Ancho real del canvas para escala WYSIWYG
     const [anchoCanvas, setAnchoCanvas] = useState(0)
     useLayoutEffect(() => {
         if (!canvasRef.current) return
@@ -122,7 +122,6 @@ export function EditorHero({
         return () => ro.disconnect()
     }, [])
 
-    // Inyectar CSS de Google Fonts para previsualizar las 7 tipografías
     useLayoutEffect(() => {
         if (!CSS_GESTOR_FUENTES || document.getElementById("css-fuentes-gestor")) return
         const link = document.createElement("link")
@@ -132,11 +131,9 @@ export function EditorHero({
         document.head.appendChild(link)
     }, [])
 
-    function persistir() {
-        onCambiar(listaRef.current, modo)
-    }
+    function persistir() { onCambiar(listaRef.current, modo) }
 
-    // ── Drag con imán (histéresis) + resize con el mouse ──
+    // ── Drag con imán (histéresis, medidas del DOM) + resize ──
     function iniciarDrag(e: React.PointerEvent, el: HeroElemento, dragModo: "mover" | "escalar") {
         e.preventDefault()
         e.stopPropagation()
@@ -144,7 +141,6 @@ export function EditorHero({
         if (!rect) return
         setSel(el.id)
 
-        // Medidas REALES: cajas de los demás (anclas) y la mía, en % del canvas
         const medir = (id: string): Caja | null => {
             const node = document.querySelector(`[data-hero-el="${id}"]`) as HTMLElement | null
             if (!node) return null
@@ -161,15 +157,10 @@ export function EditorHero({
             .map(o => medir(o.id))
             .filter(Boolean) as Caja[]
         const self = medir(el.id)
-        const selfW0 = self ? self.x1 - self.x0 : 40
-        const selfH0 = self ? self.y1 - self.y0 : 10
-        // Offsets de borde→posición: los bordes reales medidos al iniciar;
-        // durante el gesto solo cambia la posición (tamaño constante).
-        const ejeX: { off: number }[] = [{ off: self ? self.x0 - el.x : 0 }, { off: self ? (self.x0 + self.x1) / 2 - el.x : 20 }, { off: self ? self.x1 - el.x : 40 }]
-        const ejeY: { off: number }[] = [{ off: self ? self.y0 - el.y : 0 }, { off: self ? self.y1 - el.y : 10 }]
+        const ejeX = self ? [{ off: self.x0 - el.x }, { off: (self.x0 + self.x1) / 2 - el.x }, { off: self.x1 - el.x }] : [{ off: 0 }, { off: 20 }, { off: 40 }]
+        const ejeY = self ? [{ off: self.y0 - el.y }, { off: self.y1 - el.y }] : [{ off: 0 }, { off: 10 }]
 
-        const dragState = { ejer: { x: null as Fijado | null, y: null as Fijado | null }, dragModo }
-
+        const ejer = { x: null as Fijado | null, y: null as Fijado | null }
         const clienteX = e.clientX, clienteY = e.clientY
         const ini = { x: el.x, y: el.y, w: el.w ?? 40 }
 
@@ -182,10 +173,6 @@ export function EditorHero({
             const guias: { axis: "v" | "h"; pos: number }[] = []
 
             if (dragModo === "mover") {
-                // ── Resolver un eje con histéresis ──
-                // valCrudo = posición cruda (sin imán). Si hay enganche activo
-                // se MANTIENE hasta cruzar THR_OFF; solo entonces se re-evalúa
-                // contra todas las anclas (medidas del DOM + centro del canvas).
                 const resolver = (
                     valCrudo: number,
                     fijado: Fijado | null,
@@ -195,9 +182,7 @@ export function EditorHero({
                 ): { val: number; fijado: Fijado | null; pos: number | null } => {
                     if (fijado) {
                         const d = Math.abs(fijado.pos - (valCrudo + fijado.off))
-                        if (d <= THR_OFF) {
-                            return { val: fijado.adj, fijado, pos: fijado.pos }
-                        }
+                        if (d <= THR_OFF) return { val: fijado.adj, fijado, pos: fijado.pos }
                     }
                     let mejor: { d: number; adj: number; pos: number; off: number } | null = null
                     const anclajes = hayCentro ? [...anclasEje, 50] : anclasEje
@@ -213,24 +198,17 @@ export function EditorHero({
                     return { val: clamp(valCrudo, 0, 100), fijado: null, pos: null }
                 }
 
-                const nx = resolver(ini.x + dx, dragState.ejer.x,
-                    ejeX,
-                    anclas.flatMap(b => [b.x0, (b.x0 + b.x1) / 2, b.x1]), true)
-                const ny = resolver(ini.y + dy, dragState.ejer.y,
-                    ejeY,
-                    anclas.flatMap(b => [b.y0, b.y1]), false)
-
-                dragState.ejer.x = nx.fijado
-                dragState.ejer.y = ny.fijado
+                const nx = resolver(ini.x + dx, ejer.x, ejeX, anclas.flatMap(b => [b.x0, (b.x0 + b.x1) / 2, b.x1]), true)
+                const ny = resolver(ini.y + dy, ejer.y, ejeY, anclas.flatMap(b => [b.y0, b.y1]), false)
+                ejer.x = nx.fijado
+                ejer.y = ny.fijado
                 setGuia([
                     ...(nx.pos !== null ? [{ axis: "v" as const, pos: nx.pos }] : []),
                     ...(ny.pos !== null ? [{ axis: "h" as const, pos: ny.pos }] : []),
                 ])
-
                 act.x = Math.round(nx.val * 10) / 10
                 act.y = Math.round(ny.val * 10) / 10
             } else {
-                // Escalar: manija horizontal (ancho del elemento)
                 act.w = clamp(Math.round((ini.w + dx) * 10) / 10, 4, 100)
             }
             listaRef.current[i] = act
@@ -258,7 +236,7 @@ export function EditorHero({
         persistir()
     }
 
-    /** + Redes: añade un botón INDEPENDIENTE por cada red con link llenado */
+    /** + Redes: un botón por cada red con link llenado */
     function agregarRedes() {
         if (!redesDisponibles.length) return
         const base = Date.now().toString(36)
@@ -293,9 +271,7 @@ export function EditorHero({
 
     const selEl = lista.find(x => x.id === sel)
 
-    // Escala WYSIWYG: px del hero real → px del canvas actual.
-    // Mismo criterio que el render público: text/boton/redes escalan con el
-    // ancho real (1920 escritorio / 1280 a vista móvil simulada).
+    // Escala WYSIWYG (igual que el público): 1920 desktop / 1280 móvil
     const base = modo === "movil" ? 1280 : 1920
     const escala = anchoCanvas ? anchoCanvas / base : (modo === "movil" ? 0.2 : 0.36)
     const escalaMin = anchoCanvas ? anchoCanvas / 390 : 0.66
@@ -305,6 +281,33 @@ export function EditorHero({
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* Cabecera del canva */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 800, fontSize: "0.8rem", color: "var(--text-main)" }}>
+                    <Icon name={modo === "escritorio" ? "Monitor" : "Smartphone"} size={16} color="var(--primary-mid)" />
+                    {modo === "escritorio" ? "Canva de escritorio" : "Canva móvil"}
+                </span>
+                {lista.length > 0 && (
+                    <span style={{ display: "flex", gap: 8 }}>
+                        {modo === "movil" && onClonarOtro && (
+                            <button
+                                onClick={onClonarOtro}
+                                title="Reemplazar este canva con una copia del de escritorio"
+                                style={{ padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontSize: "0.7rem", fontWeight: 700, border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}
+                            >
+                                <Icon name="Copy" size={12} /> Clonar del escritorio
+                            </button>
+                        )}
+                        <button
+                            onClick={onVaciar}
+                            style={{ padding: "4px 10px", borderRadius: 8, cursor: "pointer", fontSize: "0.7rem", fontWeight: 700, border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)", color: "#e53935", display: "flex", alignItems: "center", gap: 4 }}
+                        >
+                            <Icon name="Trash2" size={12} /> {modo === "movil" ? "Descartar" : "Vaciar"}
+                        </button>
+                    </span>
+                )}
+            </div>
+
             {/* Barra de herramientas */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Añadir</span>
@@ -318,13 +321,10 @@ export function EditorHero({
                         onClick={() => agregar(b.tipo)}
                         style={{
                             display: "flex", alignItems: "center", gap: 6, padding: "7px 12px",
-                            borderRadius: 10, cursor: "pointer",
-                            fontSize: "0.78rem", fontWeight: 700,
+                            borderRadius: 10, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700,
                             border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
                             color: "var(--text-main)", transition: "all 0.15s",
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--primary-mid)" }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-primary)" }}
                     >
                         <Icon name={b.icono as any} size={15} color="var(--primary-mid)" />
                         {b.label}
@@ -339,48 +339,15 @@ export function EditorHero({
                         borderRadius: 10, cursor: redesDisponibles.length === 0 ? "not-allowed" : "pointer",
                         fontSize: "0.78rem", fontWeight: 700, opacity: redesDisponibles.length === 0 ? 0.45 : 1,
                         border: "1.5px solid var(--border-primary)", background: "var(--bg-card2)",
-                        color: "var(--text-main)", transition: "all 0.15s",
+                        color: "var(--text-main)",
                     }}
-                    onMouseEnter={e => { if (redesDisponibles.length) e.currentTarget.style.borderColor = "var(--primary-mid)" }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-primary)" }}
                 >
                     <Icon name="Share2" size={15} color="var(--primary-mid)" />
                     {redesDisponibles.length ? `Redes (${redesDisponibles.length})` : "Redes"}
                 </button>
             </div>
 
-            {/* Pestañas de vista: escritorio / móvil (sets INDEPENDIENTES) */}
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                {([
-                    { key: "escritorio" as const, label: "Escritorio", icono: "Monitor" },
-                    { key: "movil" as const, label: "Móvil", icono: "Smartphone" },
-                ]).map(v => {
-                    const on = modo === v.key
-                    return (
-                        <button
-                            key={v.key}
-                            onClick={() => setModo(v.key)}
-                            style={{
-                                display: "flex", alignItems: "center", gap: 6, padding: "6px 14px",
-                                borderRadius: 10, cursor: "pointer", fontSize: "0.76rem", fontWeight: 700,
-                                border: `1.5px solid ${on ? "var(--primary-mid)" : "var(--border-primary)"}`,
-                                background: on ? "var(--primary-soft)" : "var(--bg-card2)",
-                                color: on ? "var(--primary-mid)" : "var(--text-muted)",
-                            }}
-                        >
-                            <Icon name={v.icono as any} size={14} />
-                            {v.label}
-                        </button>
-                    )
-                })}
-                {modo === "movil" && !elementosMovil && (
-                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                        Hereda la de escritorio — el primer cambio crea la versión móvil
-                    </span>
-                )}
-            </div>
-
-            {/* ── Canvas WYSIWYG (escritorio 16:9 / móvil retrato 390×844) ── */}
+            {/* ── Canvas WYSIWYG ── */}
             <div style={{ width: "100%", maxWidth: modo === "movil" ? 320 : "100%", margin: modo === "movil" ? "0 auto" : undefined }}>
                 <div
                     ref={canvasRef}
@@ -395,14 +362,13 @@ export function EditorHero({
                         userSelect: "none", touchAction: "none",
                     }}
                 >
-                    {!heroUrl && (
-                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: "0.78rem", fontWeight: 600 }}>
-                            Sube la imagen del Hero arriba para previsualizarla aquí
+                    {lista.length === 0 && (
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: "0.78rem", fontWeight: 600, zIndex: 3 }}>
+                            {paginaVacia}
                         </div>
                     )}
                     {heroUrl && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25))", opacity: 0.4, pointerEvents: "none" }} />}
 
-                    {/* Guías del imán */}
                     {guia.map(g => (
                         <div
                             key={`${g.axis}${g.pos}`}
@@ -498,7 +464,6 @@ export function EditorHero({
                                         {el.texto || "Ver el catálogo"}
                                     </div>
                                 )}
-                                {/* Manija de redimensionar (texto y logo) */}
                                 {(el.tipo === "texto" || el.tipo === "logo") && (
                                     <div
                                         onPointerDown={e => iniciarDrag(e, el, "escalar")}
@@ -532,9 +497,9 @@ export function EditorHero({
                 </div>
             </div>
 
-            {/* ── Panel de propiedades del elemento seleccionado ── */}
+            {/* ── Paneles de propiedades ── */}
             {selEl && selEl.tipo === "texto" && (
-                <TextoPanel el={selEl} onActualizar={actualizar} onQuitar={quitar} />
+                <TextoPanel el={selEl} maxTamano={MAX_TAMANO} onActualizar={actualizar} onQuitar={quitar} />
             )}
             {selEl && selEl.tipo === "boton" && (
                 <BotonPanel el={selEl} onActualizar={actualizar} onQuitar={quitar} />
@@ -545,13 +510,10 @@ export function EditorHero({
                         <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
                             {ETIQUETAS_RED[selEl.red ?? "instagram"]}
                         </span>
-                        <button onClick={() => quitar(selEl.id)} style={{ border: "none", background: "none", color: "#e53935", fontWeight: 700, fontSize: "0.72rem", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                        <button onClick={() => quitar(selEl.id)} style={{ border: "none", background: "none", color: "#e53935", fontWeight: 700, fontSize: "0.72rem", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                             <Icon name="Trash2" size={13} /> Eliminar
                         </button>
                     </div>
-                    <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                        Link de Identidad del Negocio. Cambia su tamaño y muévelo de forma independiente.
-                    </p>
                     <input
                         type="range" min={20} max={80} step={2}
                         value={selEl.tamano ?? 40}
@@ -564,26 +526,70 @@ export function EditorHero({
                 <div style={{ padding: "10px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
                     <p style={{ margin: 0, fontSize: "0.74rem", color: "var(--text-muted)", fontWeight: 600 }}>
                         {selEl.tipo === "logo"
-                            ? "Logo del negocio — escálalo con la manija inferior-derecha del elemento."
+                            ? "Logo del negocio — escálalo con la manija inferior-derecha."
                             : "Redes sociales — fila clásica con las redes del negocio."}
                     </p>
-                    <button onClick={() => quitar(selEl.id)} style={{ border: "none", background: "none", color: "#e53935", fontWeight: 700, fontSize: "0.72rem", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                    <button onClick={() => quitar(selEl.id)} style={{ border: "none", background: "none", color: "#e53935", fontWeight: 700, fontSize: "0.72rem", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                         <Icon name="Trash2" size={13} /> Eliminar
                     </button>
                 </div>
-            )}
-            {!selEl && lista.length > 0 && (
-                <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                    Consejo: haz clic en un elemento para editarlo y arrástralo. Al pasar cerca de otra figura aparecerá el imán que alinea bordes y centros. La manija inferior-derecha cambia el tamaño.
-                </p>
             )}
         </div>
     )
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+   EditorHero: envoltorio con los DOS canva independentes + guardado.
+   ════════════════════════════════════════════════════════════════════════════ */
+export function EditorHero({
+    heroUrl,
+    logoUrl,
+    redesDisponibles,
+    elementosEscritorio,
+    elementosMovil,
+    onCambiar,
+}: Props) {
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <CanvaSet
+                modo="escritorio"
+                heroUrl={heroUrl}
+                logoUrl={logoUrl}
+                redesDisponibles={redesDisponibles}
+                elementos={elementosEscritorio}
+                onCambiar={onCambiar}
+                paginaVacia="Canva de escritorio vacío — añade cajas de texto, logo, redes o el botón"
+                onVaciar={() => onCambiar([], "escritorio")}
+            />
+            <CanvaSet
+                modo="movil"
+                heroUrl={heroUrl}
+                logoUrl={logoUrl}
+                redesDisponibles={redesDisponibles}
+                /* El canva móvil se ve igual al INFO: SIEMPRE su set: los que
+                   ya existen (si no, vacío con placeholder). */
+                elementos={elementosMovil ?? []}
+                elementosDelOtro={elementosEscritorio}
+                onCambiar={onCambiar}
+                paginaVacia="Canva móvil vacío — clona el de escritorio o empieza de cero"
+                onClonarOtro={() => {
+                    // Clonar = candidatos del canva con nuevos ids para evitar duplicados
+                    const renombrados = (elementosEscritorio || []).map((e, i) => ({
+                        ...e,
+                        id: `cl_${Date.now().toString(36)}${i}_${Math.random().toString(36).slice(2, 5)}`,
+                    }))
+                    onCambiar(renombrados, "movil")
+                }}
+                onVaciar={() => onCambiar([], "movil")}
+            />
+        </div>
+    )
+}
+
 /* ── Panel de la caja de texto ── */
-function TextoPanel({ el, onActualizar, onQuitar }: {
+function TextoPanel({ el, maxTamano, onActualizar, onQuitar }: {
     el: HeroElemento
+    maxTamano: number
     onActualizar: (id: string, cambios: Partial<HeroElemento>) => void
     onQuitar: (id: string) => void
 }) {
@@ -604,7 +610,6 @@ function TextoPanel({ el, onActualizar, onQuitar }: {
                 style={{ fontSize: "0.82rem", resize: "vertical" }}
             />
 
-            {/* Tipografías disponibles (7 display del gestor) */}
             <div>
                 <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Tipografía</span>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -630,7 +635,6 @@ function TextoPanel({ el, onActualizar, onQuitar }: {
                 </div>
             </div>
 
-            {/* Tamaño + color + alineación + peso */}
             <div style={{ display: "flex", gap: 14, alignItems: "flex-end", flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 150 }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -638,7 +642,7 @@ function TextoPanel({ el, onActualizar, onQuitar }: {
                         <span style={{ fontWeight: 800, fontSize: "0.74rem", color: "var(--primary-mid)" }}>{el.tamano ?? 56}px</span>
                     </div>
                     <input
-                        type="range" min={16} max={160} step={2}
+                        type="range" min={16} max={maxTamano} step={2}
                         value={el.tamano ?? 56}
                         onChange={e => onActualizar(el.id, { tamano: Number(e.target.value) })}
                         style={{ width: "100%", accentColor: "var(--primary-mid)", cursor: "pointer" }}
