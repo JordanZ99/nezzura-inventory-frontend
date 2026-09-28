@@ -40,30 +40,30 @@ const config: Config = {
         chart4: { 500: "rgb(var(--chart-4))" },
         chart5: { 500: "rgb(var(--chart-5))" },
         chart6: { 500: "rgb(var(--chart-6))" },
-        // Tremor SOLO reconoce colores estándar de Tailwind (pink, rose, etc.)
-        // Sobreescribimos "pink" con tu paleta de marca.
-        // Cuando cambies de tema, actualiza estos hex junto con globals.css.
+        // Tremor SOLO reconoce colores estándar de Tailwind (pink, rose, etc.).
+        // Sobreescribimos "pink" con las variables del tema activo para que
+        // los componentes internos de Tremor sigan la marca sin hardcodear hex.
         pink: {
-          50: "#fdf6f9",
-          100: "#fce4ec",
-          200: "#ffaec3",
-          300: "#ff9494",
-          400: "#f06292",
-          500: "#e91e8c",
-          600: "#d81884",
-          700: "#c2185b",
-          800: "#ad1457",
-          900: "#880e4f",
-          950: "#6d0a3e",
+          50: "var(--primary-soft)",
+          100: "var(--primary-pale)",
+          200: "var(--primary-pale)",
+          300: "var(--primary-light)",
+          400: "var(--primary-light)",
+          500: "var(--primary-mid)",
+          600: "var(--primary-mid)",
+          700: "var(--primary-dark)",
+          800: "var(--primary-dark)",
+          900: "var(--primary-dark)",
+          950: "var(--primary-dark)",
         },
         tremor: {
           brand: {
-            faint: "#fdf6f9",
-            muted: "#ff9494",
-            subtle: "#e91e8c",
-            DEFAULT: "#e91e8c",
-            emphasis: "#c2185b",
-            inverted: "#ffffff",
+            faint: "var(--primary-soft)",
+            muted: "var(--primary-pale)",
+            subtle: "var(--primary-light)",
+            DEFAULT: "var(--primary-mid)",
+            emphasis: "var(--primary-dark)",
+            inverted: "var(--on-primary)",
           },
           background: {
             muted: "var(--bg-card2)",
