@@ -82,6 +82,8 @@ interface ConfigCatalogo {
     hero_url_movil?: string  // móvil preferido si existe; '' = hero_url centrado
     hero_color?: string      // hex del velo; '' = gradiente oscuro del tema
     hero_opacidad?: number   // 0-100
+    // Layout personalizable del hero (migración 049, Fase 1): dict parcial
+    hero_layout?: { texto_posicion?: "centro" | "arriba-izq" | "abajo-izq"; mostrar_logo?: boolean; mostrar_redes?: boolean; mostrar_boton?: boolean }
     logo: string
 }
 
@@ -229,13 +231,27 @@ function rangoPaginas(actual: number, total: number): (number | "…")[] {
  * Íconos de marcas (lucide-react ya no incluye Instagram/Facebook): SVG inline
  * estándar, aceptan color para heredar el tema del footer.
  */
-function IconoRedSocial({ red, size = 19, color }: { red: "instagram" | "facebook"; size?: number; color: string }) {
+function IconoRedSocial({ red, size = 19, color }: { red: "instagram" | "facebook" | "tiktok" | "whatsapp"; size?: number; color: string }) {
     if (red === "instagram") {
         return (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2.5" y="2.5" width="19" height="19" rx="5" />
                 <circle cx="12" cy="12" r="4.2" />
                 <circle cx="17.4" cy="6.6" r="1.1" fill={color} stroke="none" />
+            </svg>
+        )
+    }
+    if (red === "tiktok") {
+        return (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+                <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.09 1.9.73 3.77 1.98 5.19a7.8 7.8 0 0 0 4.55 2.4v3.92a11.86 11.86 0 0 1-5.2-1.2 6.83 6.83 0 0 1-2.47-1.67v9.76c0 3.02-2.03 5.7-4.95 6.6-2.92.9-6.12-.12-7.94-2.57A8.84 8.84 0 0 1 .5 9.79a8.7 8.7 0 0 1 9.28-4.72v3.95a5.6 5.6 0 0 0-4.26.62 4.94 4.94 0 0 0-.86 7.5 4.9 4.9 0 0 0 6.9.3c.98-.93 1.46-2.27 1.46-3.61L12.53.02z" />
+            </svg>
+        )
+    }
+    if (red === "whatsapp") {
+        return (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.074-.149-.668-1.612-.916-2.207-.24-.595-.482-.51-.669-.51-.173 0-.371-.025-.57-.025-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.999-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
             </svg>
         )
     }
@@ -427,6 +443,31 @@ export default function CatalogoView({ slug }: { slug: string }) {
     const overlayVelo: React.CSSProperties = config.hero_color
         ? { background: config.hero_color, opacity: heroOpacidad }
         : { background: "linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.25))", opacity: heroOpacidad }
+    // ── Layout del hero (migración 049, Fase 1) ──
+    // Reglas PARCIALES configuradas desde Ajustes; lo ausente usa defaults.
+    const heroLayout = config.hero_layout || {}
+    const heroTextoPos = heroLayout.texto_posicion || "centro"
+    const heroMostrarLogo = heroLayout.mostrar_logo ?? (config.banner_mostrar_logo !== false)
+    const heroMostrarRedes = heroLayout.mostrar_redes === true
+    const heroMostrarBoton = heroLayout.mostrar_boton ?? true
+    const heroContacto = datos?.contacto || { telefono: "", correo: "", instagram: "", facebook: "", tiktok: "", sitio_web: "", maps: "" }
+    const heroRedes = construirLinksContacto(heroContacto)
+    const heroRedesVisibles = (["instagram", "facebook", "tiktok", "whatsapp"] as const)
+        .map(red => ({ red, url: heroRedes[red] }))
+        .filter(r => r.url)
+    // Alineación del bloque central según texto_posicion: centro (default),
+    // arriba-izquierda o abajo-izquierda (mismo criterio en móvil, compacto).
+    const heroAlineacion: React.CSSProperties = esMovil
+        ? heroTextoPos === "centro"
+            ? { alignItems: "center", justifyContent: "center", textAlign: "center", padding: "20px" }
+            : heroTextoPos === "arriba-izq"
+                ? { alignItems: "flex-start", justifyContent: "flex-start", textAlign: "left", padding: "72px 24px 20px" }
+                : { alignItems: "flex-start", justifyContent: "flex-end", textAlign: "left", padding: "20px 24px 96px" }
+        : heroTextoPos === "centro"
+            ? { alignItems: "center", justifyContent: "center", textAlign: "center", padding: "20px" }
+            : heroTextoPos === "arriba-izq"
+                ? { alignItems: "flex-start", justifyContent: "flex-start", textAlign: "left", padding: "96px 48px 20px" }
+                : { alignItems: "flex-start", justifyContent: "flex-end", textAlign: "left", padding: "20px 48px 112px" }
     const irAlContenido = () => {
         document.getElementById("catalogo-contenido")?.scrollIntoView({ behavior: "smooth", block: "start" })
     }
@@ -564,10 +605,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     color: config.banner_texto_color || "#fff",
                     display: "flex",
                     flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                    padding: "20px",
+                    ...heroAlineacion,
                     overflow: "hidden",
                 }}>
                     {/* Velo sobre la imagen (color del tenant o gradiente) */}
@@ -578,8 +616,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
                             ...overlayVelo,
                         }}
                     />
-                    <div style={{ position: "relative", zIndex: 2 }}>
-                        {config.banner_mostrar_logo !== false && config.logo && (
+                    <div style={{ position: "relative", zIndex: 2, maxWidth: esMovil ? "100%" : 640 }}>
+                        {heroMostrarLogo && config.banner_mostrar_logo !== false && config.logo && (
                             <img
                                 src={optimizarImagenCloudinary(config.logo, 200)}
                                 alt={config.titulo || "Logo del catálogo"}
@@ -590,7 +628,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                     objectFit: "cover",
                                     border: "3px solid rgba(255,255,255,0.9)",
                                     display: "block",
-                                    margin: "0 auto 14px",
+                                    margin: heroTextoPos === "centro" ? "0 auto 14px" : "0 0 14px",
                                     background: "#fff",
                                     boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                                 }}
@@ -608,33 +646,64 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                 )}
                             </div>
                         )}
+                        {/* Iconos de redes sociales (migración 049, Fase 1):
+                            solo las que el negocio llenó en Identidad del Negocio */}
+                        {heroMostrarRedes && heroRedesVisibles.length > 0 && (
+                            <div style={{
+                                display: "flex", gap: 12, marginTop: 22,
+                                justifyContent: heroTextoPos === "centro" ? "center" : "flex-start",
+                            }}>
+                                {heroRedesVisibles.map(r => (
+                                    <a
+                                        key={r.red}
+                                        href={r.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label={r.red}
+                                        style={{
+                                            width: 38, height: 38, borderRadius: "50%",
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            background: "rgba(255,255,255,0.14)",
+                                            backdropFilter: "blur(6px)",
+                                            transition: "transform 0.15s, background 0.15s",
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.28)"; e.currentTarget.style.transform = "scale(1.1)" }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.14)"; e.currentTarget.style.transform = "none" }}
+                                    >
+                                        <IconoRedSocial red={r.red} size={18} color="#fff" />
+                                    </a>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     {/* Botón para abrir el catálogo: izquierda (desktop) / centrado (móvil) */}
-                    <button
-                        onClick={irAlContenido}
-                        style={{
-                            position: "absolute", zIndex: 2,
-                            bottom: esMovil ? 36 : 48,
-                            left: esMovil ? "50%" : 48,
-                            transform: esMovil ? "translateX(-50%)" : "none",
-                            padding: "12px 28px",
-                            borderRadius: 999,
-                            border: "none",
-                            background: "var(--primary-mid,var(--primary))",
-                            color: "#fff",
-                            fontWeight: 800,
-                            fontSize: "0.92rem",
-                            cursor: "pointer",
-                            boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
-                            display: "flex", alignItems: "center", gap: 8,
-                            transition: "transform 0.15s",
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = esMovil ? "translateX(-50%) scale(1.04)" : "scale(1.04)" }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = esMovil ? "translateX(-50%)" : "none" }}
-                    >
-                        <Icon name="ArrowDown" size={18} />
-                        Ver el catálogo
-                    </button>
+                    {heroMostrarBoton && (
+                        <button
+                            onClick={irAlContenido}
+                            style={{
+                                position: "absolute", zIndex: 2,
+                                bottom: esMovil ? 36 : 48,
+                                left: esMovil ? "50%" : 48,
+                                transform: esMovil ? "translateX(-50%)" : "none",
+                                padding: "12px 28px",
+                                borderRadius: 999,
+                                border: "none",
+                                background: "var(--primary-mid,var(--primary))",
+                                color: "#fff",
+                                fontWeight: 800,
+                                fontSize: "0.92rem",
+                                cursor: "pointer",
+                                boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
+                                display: "flex", alignItems: "center", gap: 8,
+                                transition: "transform 0.15s",
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = esMovil ? "translateX(-50%) scale(1.04)" : "scale(1.04)" }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = esMovil ? "translateX(-50%)" : "none" }}
+                        >
+                            <Icon name="ArrowDown" size={18} />
+                            Ver el catálogo
+                        </button>
+                    )}
                 </header>
             ) : config.hero_estilo === "imagen" && bannerUrl ? (
                 /* Hero con banner como fondo de imagen.

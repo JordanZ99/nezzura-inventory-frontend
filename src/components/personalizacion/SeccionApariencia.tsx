@@ -302,6 +302,82 @@ export function SeccionApariencia({
                                 />
                             </div>
                         </div>
+
+                        {/* ── Composición del Hero (migración 049, Fase 1) ──
+                            Parche parcial sobre hero_layout: cada control manda
+                            SOLO su clave; el backend hace merge sobre el jsonb.
+                            Claves ausentes = defaults del render público. */}
+                        {(() => {
+                            const layout = catalogoConfig?.hero_layout || {}
+                            const guardarLayout = (cambios: NonNullable<typeof catalogoConfig.hero_layout>) => {
+                                setCatalogoConfig(prev => prev ? { ...prev, hero_layout: { ...(prev.hero_layout || {}), ...cambios } } : prev)
+                                autoguardar("hero_layout", { hero_layout: cambios })
+                            }
+                            const posiciones = [
+                                { key: "centro", label: "Centro", icono: "AlignCenter" },
+                                { key: "arriba-izq", label: "Arriba", icono: "AlignStartVertical" },
+                                { key: "abajo-izq", label: "Abajo", icono: "AlignEndVertical" },
+                            ]
+                            const posActual: string = layout.texto_posicion || "centro"
+                            return (
+                                <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 12 }}>
+                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                        <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>Composición</span>
+                                        {renderGuardado("hero_layout")}
+                                    </div>
+
+                                    {/* Posición del bloque de texto */}
+                                    <div>
+                                        <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Posición del texto</span>
+                                        <div style={{ display: "flex", gap: 8 }}>
+                                            {posiciones.map(p => (
+                                                <button
+                                                    key={p.key}
+                                                    onClick={() => guardarLayout({ texto_posicion: p.key as any })}
+                                                    style={{
+                                                        flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                                        padding: "8px 6px", borderRadius: 10, cursor: "pointer", fontSize: "0.78rem",
+                                                        fontWeight: 700, transition: "all 0.15s",
+                                                        border: `1.5px solid ${posActual === p.key ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                                        background: posActual === p.key ? "var(--primary-soft)" : "var(--bg-card2)",
+                                                        color: posActual === p.key ? "var(--primary-mid)" : "var(--text-muted)",
+                                                    }}
+                                                >
+                                                    <Icon name={p.icono as any} size={15} />
+                                                    {p.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Toggles de elementos */}
+                                    {[
+                                        { clave: "mostrar_logo", label: "Mostrar logo", desc: "Logo circular sobre la imagen" },
+                                        { clave: "mostrar_redes", label: "Mostrar redes sociales", desc: "Instagram, Facebook, TikTok y WhatsApp del negocio" },
+                                        { clave: "mostrar_boton", label: "Mostrar botón “Ver el catálogo”", desc: "Abajo del hero para bajar al catálogo" },
+                                    ].map(item => {
+                                        // Defaults: logo y botón visibles; redes ocultas.
+                                        // La clave explícita en el layout SIEMPRE gana.
+                                        const defaultVal = item.clave !== "mostrar_redes"
+                                        const records = layout as Record<string, boolean | undefined>
+                                        const checked = records[item.clave] ?? defaultVal
+                                        return (
+                                            <div key={item.clave} style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between" }}>
+                                                <div>
+                                                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>{item.label}</p>
+                                                    <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 500 }}>{item.desc}</p>
+                                                </div>
+                                                <Switch
+                                                    checked={checked}
+                                                    onChange={() => guardarLayout({ [item.clave]: !checked } as any)}
+                                                    disabled={false}
+                                                />
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )
+                        })()}
                     </div>
                 )}
 

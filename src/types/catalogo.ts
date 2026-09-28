@@ -1,6 +1,19 @@
 /**
  * Configuración del catálogo público de un tenant.
  */
+
+/** Reglas del bloque Hero (migración 049, Fase 1). Dict PARCIAL:
+ *  todo lo ausente usa los defaults del render público. */
+export interface HeroLayout {
+    /** Posición del bloque de texto: 'centro' | 'arriba-izq' | 'abajo-izq' */
+    texto_posicion?: "centro" | "arriba-izq" | "abajo-izq";
+    /** Mostrar el logo circular (null/true = visible) */
+    mostrar_logo?: boolean;
+    /** Mostrar iconos de redes sociales del negocio (null/false = oculto) */
+    mostrar_redes?: boolean;
+    /** Mostrar el botón "Ver el catálogo" (null/true = visible) */
+    mostrar_boton?: boolean;
+}
 export interface CatalogoConfig {
     id: number;
     slug: string;
@@ -43,6 +56,9 @@ export interface CatalogoConfig {
     hero_color?: string;
     /** Opacidad del velo (0-100) */
     hero_opacidad?: number;
+    /** Layout personalizable del hero (migración 049, Fase 1): dict PARCIAL.
+     *  Claves ausentes = defaults (texto centro, logo/botón visibles, sin redes). */
+    hero_layout?: HeroLayout;
     logo?: string;
     created_at?: string;
 }

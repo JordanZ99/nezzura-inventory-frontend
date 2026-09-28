@@ -32,6 +32,18 @@ export const catalogoApi = {
         fondo_modo?: string
         fondo_opacidad?: number
         fondo_color?: string
+        /** Portada Hero (migración 047) */
+        hero_url?: string
+        hero_url_movil?: string
+        hero_color?: string
+        hero_opacidad?: number
+        /** Layout del hero (migración 049, Fase 1): parche parcial sobre el jsonb */
+        hero_layout?: {
+            texto_posicion?: "centro" | "arriba-izq" | "abajo-izq"
+            mostrar_logo?: boolean
+            mostrar_redes?: boolean
+            mostrar_boton?: boolean
+        }
     }) =>
         request<{ ok: boolean; mensaje: string }>("/catalogo_gestion", {
             method: "PUT",
