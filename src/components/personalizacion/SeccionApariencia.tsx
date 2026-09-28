@@ -316,6 +316,7 @@ export function SeccionApariencia({
                             </div>
                             <EditorHero
                                 heroUrl={catalogoConfig?.hero_url || ""}
+                                logoUrl={catalogoConfig?.logo || ""}
                                 elementos={catalogoConfig?.hero_layout?.elementos ?? []}
                                 onCambiar={elementos => {
                                     setCatalogoConfig(prev => prev ? { ...prev, hero_layout: { ...(prev.hero_layout || {}), elementos } } : prev)

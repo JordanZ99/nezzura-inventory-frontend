@@ -632,8 +632,27 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 >
                     <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", ...overlayVelo }} />
                     {config.hero_layout!.elementos!.map(el => {
-                        // Escala del texto: en móvil reduce ~38% para conservar proporción
+                        // En móvil el render escala ~38% para conservar proporción
                         const factor = esMovil ? 0.62 : 1
+                        // Logo: imagen circular escalable (w = % del ancho)
+                        if (el.tipo === "logo") {
+                            if (!config.logo) return null
+                            return (
+                                <img
+                                    key={el.id}
+                                    src={optimizarImagenCloudinary(config.logo, 300)}
+                                    alt={config.titulo || "Logo del catálogo"}
+                                    style={{
+                                        position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
+                                        width: `${el.w ?? 10}%`, aspectRatio: "1 / 1",
+                                        borderRadius: "50%", objectFit: "cover", background: "#fff",
+                                        border: "3px solid rgba(255,255,255,0.9)",
+                                        boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                                        display: "block",
+                                    }}
+                                />
+                            )
+                        }
                         if (el.tipo === "texto") {
                             return (
                                 <div
@@ -689,17 +708,17 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                 </div>
                             )
                         }
-                        // boton: "Ver el catálogo"
+                        // boton: CTA editable (texto y tamaño desde el editor)
                         return (
                             <button
                                 key={el.id}
                                 onClick={irAlContenido}
                                 style={{
                                     position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
-                                    padding: esMovil ? "10px 20px" : "12px 28px",
+                                    padding: `${(el.tamano ?? 15) * 0.65}px ${(el.tamano ?? 15) * 1.7}px`,
                                     borderRadius: 999, border: "none",
                                     background: "var(--primary-mid,var(--primary))", color: "#fff",
-                                    fontWeight: 800, fontSize: esMovil ? "0.78rem" : "0.92rem",
+                                    fontWeight: 800, fontSize: `${(el.tamano ?? 15) * factor}px`,
                                     cursor: "pointer", whiteSpace: "nowrap",
                                     display: "flex", alignItems: "center", gap: 8,
                                     boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
@@ -709,7 +728,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                 onMouseLeave={e => { e.currentTarget.style.transform = "none" }}
                             >
                                 <Icon name="ArrowDown" size={18} />
-                                Ver el catálogo
+                                {el.texto || "Ver el catálogo"}
                             </button>
                         )
                     })}
