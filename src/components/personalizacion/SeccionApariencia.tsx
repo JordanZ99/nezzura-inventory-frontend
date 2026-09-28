@@ -317,6 +317,7 @@ export function SeccionApariencia({
                         {/* Redes con link llenado: para añadir botones independientes */}
                         <EditorHero
                             heroUrl={catalogoConfig?.hero_url || ""}
+                            heroUrlMovil={catalogoConfig?.hero_url_movil || ""}
                             logoUrl={catalogoConfig?.logo || ""}
                             redesDisponibles={([
                                 catalogoConfig?.instagram && "instagram",

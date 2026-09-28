@@ -22,7 +22,8 @@ import { optimizarImagenCloudinary } from "@/lib/image-utils"
 import type { HeroElemento } from "@/types"
 
 interface Props {
-    heroUrl: string              // imagen hero actual
+    heroUrl: string              // imagen hero actual (escritorio)
+    heroUrlMovil?: string        // recorte retrato; el canva móvil lo usa si existe
     logoUrl: string              // logo del negocio
     redesDisponibles: string[]   // redes con link llenado
     elementosEscritorio: HeroElemento[]
@@ -85,7 +86,7 @@ function CanvaSet({
     onVaciar,
 }: {
     modo: "escritorio" | "movil"
-    heroUrl: string
+    heroUrl: string              // imagen de fondo correspondiente al breakpoint
     logoUrl: string
     redesDisponibles: string[]
     elementos: HeroElemento[]
@@ -543,6 +544,7 @@ function CanvaSet({
    ════════════════════════════════════════════════════════════════════════════ */
 export function EditorHero({
     heroUrl,
+    heroUrlMovil,
     logoUrl,
     redesDisponibles,
     elementosEscritorio,
@@ -563,11 +565,11 @@ export function EditorHero({
             />
             <CanvaSet
                 modo="movil"
-                heroUrl={heroUrl}
+                heroUrl={heroUrlMovil || heroUrl}
                 logoUrl={logoUrl}
                 redesDisponibles={redesDisponibles}
-                /* El canva móvil se ve igual al INFO: SIEMPRE su set: los que
-                   ya existen (si no, vacío con placeholder). */
+                /* El canva móvil siempre edita su PROPIO set (vacío si aún
+                   no existe). Con placeholder hasta clonar o crear elementos. */
                 elementos={elementosMovil ?? []}
                 elementosDelOtro={elementosEscritorio}
                 onCambiar={onCambiar}
