@@ -5,6 +5,7 @@
 // handlers vienen de usePersonalizacionCuenta vía props.
 // ==============================================================================
 
+import { useState } from "react"
 import Icon from "@/components/ui/Icon"
 import { ToastBanner } from "@/components/ui/Toast"
 
@@ -65,6 +66,10 @@ export function CardIdentidadNegocio({
     contacto,
     setContactoCampo,
 }: Props) {
+    // Datos de contacto plegados por defecto: solo se muestran al desglosar
+    // el acordeón (flecha abajo), para no saturar la tarjeta.
+    const [contactoDesglosado, setContactoDesglosado] = useState(false)
+    const contactosLlenos = CAMPOS_CONTACTO.filter(c => contacto[c.campo].trim()).length
     return (
         <div className="card fade-up" style={{ padding: "24px 28px", flex: "1 1 320px", maxWidth: 460 }}>
             <h2 style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 800 }}>Identidad del Negocio</h2>
@@ -180,39 +185,68 @@ export function CardIdentidadNegocio({
                     </span>
                 </div>
 
-                {/* ── Datos de contacto (opcionales, migración 043) ── */}
+                {/* ── Datos de contacto (opcionales, migración 043) ──
+                    Acordeón: cerrado ocupa una fila; la flecha desglosa
+                    los inputs. Muestra cuántos campos van llenos. */}
                 <div>
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-                        Datos de Contacto
-                    </span>
-                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0 0 10px", fontWeight: 500 }}>
-                        Opcionales: los que agregues podrán mostrarse con tu marca.
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {CAMPOS_CONTACTO.map(c => (
-                            <div key={c.campo}>
-                                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 3 }}>
-                                    <Icon name={c.icono as any} size={13} color="var(--text-muted)" />
-                                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
-                                        {c.label}
-                                    </span>
+                    <button
+                        onClick={() => setContactoDesglosado(v => !v)}
+                        style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            width: "100%", padding: "10px 14px",
+                            borderRadius: 10, cursor: "pointer",
+                            border: "1px solid var(--border-primary)",
+                            background: "var(--bg-card2)", textAlign: "left",
+                            transition: "background 0.15s",
+                        }}
+                    >
+                        <Icon name="Contact" size={16} color="var(--text-muted)" />
+                        <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-main)", textTransform: "uppercase" }}>
+                            Datos de Contacto
+                        </span>
+                        {contactosLlenos > 0 && (
+                            <span style={{
+                                fontSize: "0.66rem", fontWeight: 700, color: "var(--primary-mid)",
+                                background: "var(--primary-soft)", padding: "2px 8px", borderRadius: 999,
+                            }}>
+                                {contactosLlenos}/{CAMPOS_CONTACTO.length}
+                            </span>
+                        )}
+                        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: "0.66rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                {contactoDesglosado ? "Cargar menos" : "Opcionales"}
+                            </span>
+                            <Icon name={contactoDesglosado ? "ChevronUp" : "ChevronDown"} size={16} color="var(--text-muted)" />
+                        </div>
+                    </button>
+
+                    {contactoDesglosado && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+                            {CAMPOS_CONTACTO.map(c => (
+                                <div key={c.campo}>
+                                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 3 }}>
+                                        <Icon name={c.icono as any} size={13} color="var(--text-muted)" />
+                                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                                            {c.label}
+                                        </span>
+                                    </div>
+                                    <input
+                                        className="input-primary"
+                                        placeholder={c.placeholder}
+                                        value={contacto[c.campo]}
+                                        onChange={e => setContactoCampo(c.campo, e.target.value)}
+                                        maxLength={c.campo === "sitio_web" || c.campo === "maps" ? 300 : 120}
+                                        style={{ fontSize: "0.8rem" }}
+                                    />
+                                    {c.hint && (
+                                        <span style={{ fontSize: "0.66rem", color: "var(--text-muted)", display: "block", marginTop: 3, opacity: 0.8 }}>
+                                            {c.hint}
+                                        </span>
+                                    )}
                                 </div>
-                                <input
-                                    className="input-primary"
-                                    placeholder={c.placeholder}
-                                    value={contacto[c.campo]}
-                                    onChange={e => setContactoCampo(c.campo, e.target.value)}
-                                    maxLength={c.campo === "sitio_web" || c.campo === "maps" ? 300 : 120}
-                                    style={{ fontSize: "0.8rem" }}
-                                />
-                                {c.hint && (
-                                    <span style={{ fontSize: "0.66rem", color: "var(--text-muted)", display: "block", marginTop: 3, opacity: 0.8 }}>
-                                        {c.hint}
-                                    </span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Guardar Cambios */}
