@@ -37,13 +37,9 @@ export const catalogoApi = {
         hero_url_movil?: string
         hero_color?: string
         hero_opacidad?: number
-        /** Layout del hero (migración 049, Fase 1): parche parcial sobre el jsonb */
-        hero_layout?: {
-            texto_posicion?: "centro" | "arriba-izq" | "abajo-izq"
-            mostrar_logo?: boolean
-            mostrar_redes?: boolean
-            mostrar_boton?: boolean
-        }
+        /** Layout del hero (migración 049): parche parcial sobre el jsonb.
+         *  elementos: mini-canva (Fase 2) — el editor manda el array COMPLETO. */
+        hero_layout?: import("@/types").HeroLayout
     }) =>
         request<{ ok: boolean; mensaje: string }>("/catalogo_gestion", {
             method: "PUT",

@@ -20,7 +20,7 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
-import { normalizarFuente } from "@/lib/catalogo-fuentes"
+import { normalizarFuente, FUENTES_CATALOGO as FUENTES_HERO } from "@/lib/catalogo-fuentes"
 import { normalizarTema } from "@/lib/temas"
 import Icon from "@/components/ui/Icon"
 import CatalogoGridClasico from "@/components/CatalogoGridClasico"
@@ -83,7 +83,7 @@ interface ConfigCatalogo {
     hero_color?: string      // hex del velo; '' = gradiente oscuro del tema
     hero_opacidad?: number   // 0-100
     // Layout personalizable del hero (migración 049, Fase 1): dict parcial
-    hero_layout?: { texto_posicion?: "centro" | "arriba-izq" | "abajo-izq"; mostrar_logo?: boolean; mostrar_redes?: boolean; mostrar_boton?: boolean }
+    hero_layout?: import("@/types").HeroLayout
     logo: string
 }
 
@@ -364,6 +364,29 @@ export default function CatalogoView({ slug }: { slug: string }) {
         }
     }, [datos?.config.fuente])
 
+    // ── Fuentes de los ELEMENTOS del hero (mini canva, migración 049) ──
+    // Cada caja de texto puede elegir su propia tipografía display: se inyecta
+    // el CSS de Google Fonts de todas las usadas por los elementos.
+    useEffect(() => {
+        if (!datos) return
+        const usadas = (datos.config.hero_layout?.elementos || [])
+            .map(e => e.fuente)
+            .filter(Boolean) as string[]
+        const cssUrls = Array.from(new Set(usadas))
+            .map(k => FUENTES_HERO[k]?.googleCss)
+            .filter(Boolean) as string[]
+        if (!cssUrls.length) return
+        for (const url of cssUrls) {
+            const id = `hero-fuente-css-${url}`
+            if (document.getElementById(id)) continue
+            const link = document.createElement("link")
+            link.id = id
+            link.rel = "stylesheet"
+            link.href = url
+            document.head.appendChild(link)
+        }
+    }, [datos?.config.hero_layout?.elementos])
+
     // ── Favicon dinámico: usa el logo del tenant ──
     useEffect(() => {
         const logoUrl = datos?.config?.logo
@@ -591,7 +614,107 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 <CapaFondoCatalogo url={fondoUrl} textura={fondoEsTextura} opacidad={fondoOpacidad} />
             )}
             {/* ── Header / Hero ── */}
-            {config.hero_estilo === "hero" && heroUrl ? (
+            {config.hero_estilo === "hero" && heroUrl && (config.hero_layout?.elementos?.length ?? 0) > 0 ? (
+                /* Modo HERO — MINI CANVA (migración 049, Fase 2): los elementos
+                   del editor se dibujan en coordenadas % del viewport. La misma
+                   layout escala en móvil (texto ~62%). El velo es el mismo del
+                   modo hero clásico. */
+                <header
+                    id="top"
+                    style={{
+                        position: "relative",
+                        width: "100%",
+                        height: "100vh",
+                        background: `url(${heroUrl}) center / cover no-repeat`,
+                        color: config.banner_texto_color || "#fff",
+                        overflow: "hidden",
+                    }}
+                >
+                    <div aria-hidden style={{ position: "absolute", inset: 0, pointerEvents: "none", ...overlayVelo }} />
+                    {config.hero_layout!.elementos!.map(el => {
+                        // Escala del texto: en móvil reduce ~38% para conservar proporción
+                        const factor = esMovil ? 0.62 : 1
+                        if (el.tipo === "texto") {
+                            return (
+                                <div
+                                    key={el.id}
+                                    style={{
+                                        position: "absolute",
+                                        left: `${el.x}%`,
+                                        top: `${el.y}%`,
+                                        width: `${el.w ?? 40}%`,
+                                        fontSize: `${(el.tamano ?? 56) * factor}px`,
+                                        fontFamily: FUENTES_HERO[el.fuente ?? "playfair"]?.stack ?? "'Playfair Display', Georgia, serif",
+                                        fontWeight: Number(el.peso ?? 700),
+                                        color: el.color || "#fff",
+                                        textAlign: (el.align ?? "center") as "left" | "center" | "right",
+                                        lineHeight: 1.15,
+                                        whiteSpace: "pre-wrap",
+                                        textShadow: sombraTexto(el.color || config.banner_texto_color),
+                                        zIndex: 2,
+                                    }}
+                                >
+                                    {el.texto}
+                                </div>
+                            )
+                        }
+                        if (el.tipo === "redes") {
+                            return (
+                                <div
+                                    key={el.id}
+                                    style={{
+                                        position: "absolute", left: `${el.x}%`, top: `${el.y}%`,
+                                        display: "flex", gap: esMovil ? 8 : 10, zIndex: 2,
+                                    }}
+                                >
+                                    {heroRedesVisibles.map(r => (
+                                        <a
+                                            key={r.red}
+                                            href={r.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            aria-label={r.red}
+                                            style={{
+                                                width: esMovil ? 30 : 40, height: esMovil ? 30 : 40, borderRadius: "50%",
+                                                display: "flex", alignItems: "center", justifyContent: "center",
+                                                background: "rgba(255,255,255,0.14)", backdropFilter: "blur(6px)",
+                                                transition: "background 0.15s",
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.28)" }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.14)" }}
+                                        >
+                                            <IconoRedSocial red={r.red} size={esMovil ? 15 : 19} color="#fff" />
+                                        </a>
+                                    ))}
+                                </div>
+                            )
+                        }
+                        // boton: "Ver el catálogo"
+                        return (
+                            <button
+                                key={el.id}
+                                onClick={irAlContenido}
+                                style={{
+                                    position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
+                                    padding: esMovil ? "10px 20px" : "12px 28px",
+                                    borderRadius: 999, border: "none",
+                                    background: "var(--primary-mid,var(--primary))", color: "#fff",
+                                    fontWeight: 800, fontSize: esMovil ? "0.78rem" : "0.92rem",
+                                    cursor: "pointer", whiteSpace: "nowrap",
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
+                                    transition: "transform 0.15s",
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)" }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = "none" }}
+                            >
+                                <Icon name="ArrowDown" size={18} />
+                                Ver el catálogo
+                            </button>
+                        )
+                    })}
+                </header>
+            ) : config.hero_estilo === "hero" && heroUrl ? (
                 /* Modo HERO (migración 047): imagen a PANTALLA COMPLETA
                    (100vh) con velo de color/gradiente configurable y botón
                    para bajar al catálogo. Funciona en cualquier plantilla.

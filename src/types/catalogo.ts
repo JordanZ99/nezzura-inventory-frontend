@@ -2,6 +2,27 @@
  * Configuración del catálogo público de un tenant.
  */
 
+/** Elemento posicionado dentro del hero (migración 049, mini-canva).
+ *  Coordenadas en PORCENTAJES del viewport (0-100); así la misma layout
+ *  escala en móvil sin configuración extra. WYSIWYG en el editor. */
+export interface HeroElemento {
+    id: string
+    /** 'texto' | 'redes' | 'boton' */
+    tipo: string
+    /** Posición del borde superior-izquierdo, % del ancho/alto del hero */
+    x: number
+    y: number
+    /** Ancho del elemento, % del hero (solo texto: controla el salto de línea) */
+    w?: number
+    /** Solo texto: contenido, tipografía, tamaño px (desktop), color, peso, alineación */
+    texto?: string
+    fuente?: string      // clave de FUENTES_CATALOGO
+    tamano?: number      // px en desktop; el render móvil escala ~0.62x
+    color?: string       // hex #RRGGBB
+    peso?: string        // '400' | '600' | '700' | '800'
+    align?: string       // 'left' | 'center' | 'right'
+}
+
 /** Reglas del bloque Hero (migración 049, Fase 1). Dict PARCIAL:
  *  todo lo ausente usa los defaults del render público. */
 export interface HeroLayout {
@@ -13,6 +34,9 @@ export interface HeroLayout {
     mostrar_redes?: boolean;
     /** Mostrar el botón "Ver el catálogo" (null/true = visible) */
     mostrar_boton?: boolean;
+    /** Mini-canva (Fase 2): elementos posicionados libremente.
+     *  No vacío → el render público SOLO dibuja estos elementos. */
+    elementos?: HeroElemento[];
 }
 export interface CatalogoConfig {
     id: number;

@@ -11,6 +11,7 @@ import Icon from "@/components/ui/Icon"
 import SeccionHeader from "@/components/ui/SeccionHeader"
 import Switch from "@/components/ui/Switch"
 import { BannerUploader } from "./BannerUploader"
+import { EditorHero } from "./EditorHero"
 import { FUENTES_CATALOGO, FUENTES_ORDEN, CSS_GESTOR_FUENTES } from "@/lib/catalogo-fuentes"
 import type { PropsSeccionConfig } from "./tipos"
 
@@ -303,10 +304,32 @@ export function SeccionApariencia({
                             </div>
                         </div>
 
-                        {/* ── Composición del Hero (migración 049, Fase 1) ──
-                            Parche parcial sobre hero_layout: cada control manda
-                            SOLO su clave; el backend hace merge sobre el jsonb.
-                            Claves ausentes = defaults del render público. */}
+                        {/* ── Composición del Hero (migración 049) ──
+                            Mini Canva Fase 2: elementos arrastrables con el
+                            mouse que guardan su posición en hero_layout.
+                            La composición clásica solo es válida (y visible)
+                            cuando NO hay elementos de canva. */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                <span style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>Composición del Hero</span>
+                                {renderGuardado("hero_layout")}
+                            </div>
+                            <EditorHero
+                                heroUrl={catalogoConfig?.hero_url || ""}
+                                elementos={catalogoConfig?.hero_layout?.elementos ?? []}
+                                onCambiar={elementos => {
+                                    setCatalogoConfig(prev => prev ? { ...prev, hero_layout: { ...(prev.hero_layout || {}), elementos } } : prev)
+                                    autoguardarDebounce("hero_layout", () => ({ hero_layout: { elementos } }))
+                                }}
+                            />
+                        </div>
+
+                        {/* ── Composición clásica (Fase 1): posición del texto y
+                            toggles. Solo aplica cuando NO hay elementos del
+                            mini Canva (el render público prioriza estos). */}
+                        {!(catalogoConfig?.hero_layout?.elementos?.length) && (
+                            <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 12, opacity: 0.9 }}>
+                                <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Composición clásica</p>
                         {(() => {
                             const layout = catalogoConfig?.hero_layout || {}
                             const guardarLayout = (cambios: NonNullable<typeof catalogoConfig.hero_layout>) => {
@@ -378,6 +401,8 @@ export function SeccionApariencia({
                                 </div>
                             )
                         })()}
+                            </div>
+                        )}
                     </div>
                 )}
 
