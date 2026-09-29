@@ -628,8 +628,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                 const elementosCanva = esMovil
                     ? (layout.elementos_movil ?? layout.elementos)
                     : layout.elementos
-                if (!(config.hero_estilo === "hero" && heroUrl && (elementosCanva?.length ?? 0) > 0)) return null
-                return (
+                if (config.hero_estilo === "hero" && heroUrl && (elementosCanva?.length ?? 0) > 0) return (
                 /* Modo HERO — MINI CANVA (migración 049, Fase 2): los elementos
                    del editor se dibujan en coordenadas % del viewport. La misma
                    layout escala en móvil (texto ~62%). El velo es el mismo del
