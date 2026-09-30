@@ -194,6 +194,8 @@ export const productosApi = {
             zona_horaria: string
             metodo_pago_default: string
             gasto_comision_automatico: boolean
+            // Días de descanso del negocio (migración 051)
+            dias_cerrados: string[]
             // Cartera de clientes + sistema de puntos (migraciones 038/039)
             clientes_activos: boolean
             cliente_campos: import("@/types").ClienteCampos

@@ -16,7 +16,23 @@ interface Props {
     cargandoTenant: boolean
     gastoComision: boolean
     toggleGastoComision: (v: boolean) => void
+    // Días en que el negocio NO abre (migración 051): el Análisis Inteligente
+    // los descuenta de la concentración de ventas y no sugiere promos ahí.
+    diasCerrados: string[]
+    toggleDiaCerrado: (dia: string) => void
+    guardandoDias: boolean
 }
+
+/** Días de la semana en orden natural; sin acento (mismas claves del backend). */
+const DIAS_SEMANA: { valor: string; etiqueta: string }[] = [
+    { valor: "lunes", etiqueta: "Lun" },
+    { valor: "martes", etiqueta: "Mar" },
+    { valor: "miercoles", etiqueta: "Mié" },
+    { valor: "jueves", etiqueta: "Jue" },
+    { valor: "viernes", etiqueta: "Vie" },
+    { valor: "sabado", etiqueta: "Sáb" },
+    { valor: "domingo", etiqueta: "Dom" },
+]
 
 // Zonas IANA curadas (las más relevantes para negocios de LATAM + referencia).
 const GRUPOS_ZONAS: { grupo: string; zonas: string[] }[] = [
@@ -92,6 +108,9 @@ export function CardMiNegocio({
     cargandoTenant,
     gastoComision,
     toggleGastoComision,
+    diasCerrados,
+    toggleDiaCerrado,
+    guardandoDias,
 }: Props) {
     const [reloj, setReloj] = useState(() => horaEnZona(zonaHoraria))
 
@@ -200,6 +219,44 @@ export function CardMiNegocio({
                             Registrar automáticamente cada comisión como gasto ("Comisiones bancarias") al cobrar con tarjeta. Recomendado para que la ganancia neta cuadre contra el depósito del banco.
                         </span>
                     </label>
+                </div>
+
+                {/* Días de descanso (migración 051) */}
+                <div style={{ marginTop: 20 }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
+                        Días de descanso
+                    </span>
+                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "0 0 10px", fontWeight: 500 }}>
+                        Los días en que NO abres. El análisis inteligente los descuenta al
+                        buscar tu día más flojo y nunca sugiere promos ahí.
+                    </p>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {DIAS_SEMANA.map(d => {
+                            const activo = diasCerrados.includes(d.valor)
+                            return (
+                                <button
+                                    key={d.valor}
+                                    type="button"
+                                    onClick={() => toggleDiaCerrado(d.valor)}
+                                    disabled={guardandoDias || cargandoTenant}
+                                    style={{
+                                        padding: "7px 14px", borderRadius: 999, cursor: guardandoDias ? "wait" : "pointer",
+                                        fontSize: "0.78rem", fontWeight: 800, transition: "all 0.15s",
+                                        border: `1.5px solid ${activo ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                        background: activo ? "var(--primary-soft)" : "var(--bg-card2)",
+                                        color: activo ? "var(--primary-dark)" : "var(--text-muted)",
+                                    }}
+                                >
+                                    {d.etiqueta}
+                                </button>
+                            )
+                        })}
+                    </div>
+                    <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", margin: "8px 0 0", fontWeight: 600 }}>
+                        {diasCerrados.length === 0
+                            ? "Abre los 7 días — no hay días de descanso marcados."
+                            : `Sin abrir: ${DIAS_SEMANA.filter(d => diasCerrados.includes(d.valor)).map(d => d.etiqueta).join(", ")}.`}
+                    </p>
                 </div>
             </div>
         </div>

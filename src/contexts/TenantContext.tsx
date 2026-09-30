@@ -20,6 +20,7 @@ interface TenantInfo {
     zona_horaria: string  // IANA (ej. "America/Cancun") — día contable del negocio
     metodo_pago_default: string  // método con el que el POS preselecciona el cobro
     gasto_comision_automatico: boolean  // registra comisiones de terminal como gasto al cobrar
+    dias_cerrados: string[]  // días de la semana en que el negocio NO abre (migración 051)
     giro: string  // 'tienda' | 'restaurante' — preset de módulos del negocio (migración 035)
     modulos: Record<string, boolean> | null  // override de módulos; null = preset del giro
     // ── Cartera de clientes (migración 038) ──
@@ -55,6 +56,7 @@ export interface ActualizarTenant {
     zona_horaria?: string
     metodo_pago_default?: string
     gasto_comision_automatico?: boolean
+    dias_cerrados?: string[]
     clientes_activos?: boolean
     cliente_campos?: ClienteCampos
     puntos_activos?: boolean
@@ -80,7 +82,7 @@ export const CLAVES_CONTACTO: (keyof ActualizarTenant)[] = [
 
 // Claves de TenantInfo que viven en el backend (NO se mandan directo a Supabase).
 const CLAVES_API: (keyof ActualizarTenant)[] = [
-    "zona_horaria", "gasto_comision_automatico",
+    "zona_horaria", "gasto_comision_automatico", "dias_cerrados",
     "clientes_activos", "cliente_campos",
     "puntos_activos", "puntos_valor_punto", "puntos_modo",
     "puntos_gasto_monto", "puntos_gasto_pts", "puntos_fijos",
@@ -130,6 +132,7 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
                 zona_horaria: perfil.zona_horaria || ZONA_DEFAULT,
                 metodo_pago_default: perfil.metodo_pago_default || "efectivo",
                 gasto_comision_automatico: perfil.gasto_comision_automatico ?? false,
+                dias_cerrados: Array.isArray(perfil.dias_cerrados) ? perfil.dias_cerrados : [],
                 // Giro del negocio (migración 035): si la fila aún no tiene la
                 // columna poblada, 'tienda' = comportamiento actual.
                 giro: data?.giro || "tienda",

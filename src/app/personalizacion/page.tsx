@@ -232,6 +232,9 @@ export default function Personalizacion() {
                             cargandoTenant={cargandoTenant}
                             gastoComision={cuenta.gastoComision}
                             toggleGastoComision={cuenta.toggleGastoComision}
+                            diasCerrados={cuenta.diasCerrados}
+                            toggleDiaCerrado={cuenta.toggleDiaCerrado}
+                            guardandoDias={cuenta.guardandoDias}
                         />
                         {/* Cartera de clientes + sistema de puntos (migraciones 038/039) */}
                         <CardClientesConfig cargandoTenant={cargandoTenant} />

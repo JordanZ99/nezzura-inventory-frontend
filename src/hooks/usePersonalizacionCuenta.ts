@@ -35,8 +35,15 @@ interface UsePersonalizacionCuentaArgs {
     tenant: {
         tenant_id: string; empresa: string; logo: string; plan: string
         zona_horaria: string; metodo_pago_default: string; gasto_comision_automatico: boolean
+        dias_cerrados?: string[]
     } | null
-    actualizar: (data: { empresa?: string; logo?: string; zona_horaria?: string; metodo_pago_default?: string; gasto_comision_automatico?: boolean } & Partial<ContactoNegocio>) => Promise<void>
+    actualizar: (data: { empresa?: string; logo?: string; zona_horaria?: string; metodo_pago_default?: string; gasto_comision_automatico?: boolean; dias_cerrados?: string[] } & Partial<ContactoNegocio>) => Promise<void>
+}
+
+/** Días de la semana en orden natural (lunes → domingo). */
+function sortedDias(dias: string[]): string[] {
+    const orden = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
+    return dias.sort((a, b) => orden.indexOf(a) - orden.indexOf(b))
 }
 
 export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizacionCuentaArgs) {
@@ -62,6 +69,9 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
     const [guardandoZona, setGuardandoZona] = useState(false)
     // Gasto automático de comisiones de terminal (Fase B)
     const [gastoComision, setGastoComision] = useState(false)
+    // Días de descanso del negocio (migración 051): 'sabado', 'domingo', ...
+    const [diasCerrados, setDiasCerrados] = useState<string[]>([])
+    const [guardandoDias, setGuardandoDias] = useState(false)
     const [subiendoLogo, setSubiendoLogo] = useState(false)
     // Recorte del logo en curso (mismo modal que banners): { url: blob URL }
     const [logoCrop, setLogoCrop] = useState<{ url: string } | null>(null)
@@ -90,6 +100,7 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             setLogoOriginal(tenant.logo || "")
             setZonaHorario(tenant.zona_horaria || "America/Cancun")
             setGastoComision(tenant.gasto_comision_automatico)
+            if (Array.isArray(tenant.dias_cerrados)) setDiasCerrados(tenant.dias_cerrados)
             setContacto(prev => {
                 const nuevo: ContactoNegocio = { ...prev }
                 for (const clave of CLAVES_CONTACTO) {
@@ -288,6 +299,23 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         }
     }
 
+    /** Marca/desmarca un día de descanso (migración 051): guarda la lista completa. */
+    async function toggleDiaCerrado(dia: string) {
+        const previo = diasCerrados
+        const nuevos = previo.includes(dia) ? previo.filter(d => d !== dia) : sortedDias([...previo, dia])
+        setDiasCerrados(nuevos)
+        setGuardandoDias(true)
+        try {
+            await actualizar({ dias_cerrados: nuevos })
+            mostrarMsg(true, nuevos.length ? "✅ Días de descanso actualizados" : "✅ Negocio abierto los 7 días")
+        } catch (err: unknown) {
+            setDiasCerrados(previo)
+            mostrarMsg(false, `❌ ${err instanceof Error ? err.message : "Error"}`)
+        } finally {
+            setGuardandoDias(false)
+        }
+    }
+
     return {
         // Estado (lectura + escritura según lo que consume el JSX)
         cargando,
@@ -304,6 +332,9 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         guardandoZona,
         gastoComision,
         toggleGastoComision,
+        diasCerrados,
+        toggleDiaCerrado,
+        guardandoDias,
         subiendoLogo,
         descargando,
         inputFileRef,
