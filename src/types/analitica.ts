@@ -11,6 +11,11 @@ export interface Hallazgo {
     titulo: string
     detalle: string
     recomendacion: string
+    /** Sobre qué ventana se calculó: evita que el encabezado (período elegido)
+     *  se lea como si también rigiera a las reglas de inventario (90 días). */
+    ventana?: string
+    /** Acción opcional: lleva a donde se resuelve el problema. */
+    accion?: { texto: string; href: string }
 }
 
 export interface MetricasAnalisis {
