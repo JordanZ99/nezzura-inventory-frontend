@@ -18,6 +18,8 @@ import { useEstadisticasDatos } from "@/hooks/useEstadisticasDatos"
 import { rangoDeDates, useEstadisticasRango } from "@/hooks/useEstadisticasRango"
 import { useEstadisticasCalculos } from "@/hooks/useEstadisticasCalculos"
 import { useEstadisticasUI, type PresetPeriodo } from "@/hooks/useEstadisticasUI"
+import { useAnalisisInteligente } from "@/hooks/useAnalisisInteligente"
+import PanelAnalisisInteligente from "@/components/estadisticas/PanelAnalisisInteligente"
 import ReporteHeader from "@/components/estadisticas/ReporteHeader"
 import KpisReporte from "@/components/estadisticas/KpisReporte"
 import ResumenCobros from "@/components/estadisticas/ResumenCobros"
@@ -73,6 +75,11 @@ export default function Estadisticas() {
         ? `${ETIQUETAS_PRESET.custom}: ${dates.from.toLocaleDateString()} — ${(dates.to ?? new Date()).toLocaleDateString()}`
         : ETIQUETAS_PRESET[preset]
 
+    // Análisis Inteligente (plan Plus): se genera bajo demanda para el
+    // período que está elegido arriba, así que va en la tarjeta de controles.
+    const esPlus = tenant?.plan === "plus"
+    const analisis = useAnalisisInteligente({ desde: rango.desde, hasta: rango.hasta, todo }, esPlus)
+
     return (
         <div style={{ minHeight: "100vh", background: "var(--bg-app)" }}>
 
@@ -127,10 +134,37 @@ export default function Estadisticas() {
                                 </div>
                             )}
                         </div>
+                        {/* Botón del Análisis Inteligente: alineado a la derecha con el
+                            período que analiza. Fuera de #report-container a propósito. */}
+                        <button
+                            onClick={analisis.abierto ? analisis.cerrar : analisis.generar}
+                            disabled={analisis.cargando}
+                            style={{
+                                display: "flex", alignItems: "center", gap: 8,
+                                padding: "9px 16px", borderRadius: 10, cursor: analisis.cargando ? "wait" : "pointer",
+                                border: "1px solid var(--primary-mid)", background: "var(--primary-soft)",
+                                color: "var(--primary-dark)", fontWeight: 800, fontSize: "0.82rem",
+                                opacity: analisis.cargando ? 0.7 : 1, transition: "all 0.15s",
+                            }}
+                        >
+                            <Icon name="Sparkles" size={16} color="var(--primary-mid)" />
+                            {analisis.cargando ? "Analizando…" : analisis.abierto ? "Ocultar análisis" : "Análisis Inteligente"}
+                        </button>
                     </div>
                 </div>
 
                 <ToastBanner />
+
+                {/* ── Análisis Inteligente (bajo demanda, solo plan Plus) ── */}
+                {analisis.abierto && (
+                    <PanelAnalisisInteligente
+                        datos={analisis.datos}
+                        cargando={analisis.cargando}
+                        error={analisis.error}
+                        esPlus={esPlus}
+                        onCerrar={analisis.cerrar}
+                    />
+                )}
 
                 {/* ── Tabs: Ventas | Clientes (mismo período contable) ── */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>

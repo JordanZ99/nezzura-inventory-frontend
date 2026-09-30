@@ -8,6 +8,7 @@ import { statsApi } from "./stats"
 import { mesasApi } from "./mesas"
 import { clientesApi } from "./clientes"
 import { conteosApi } from "./conteos"
+import { analiticaApi } from "./analitica"
 
 export * from "./client"
 export * from "./productos"
@@ -20,6 +21,7 @@ export * from "./stats"
 export * from "./mesas"
 export * from "./clientes"
 export * from "./conteos"
+export * from "./analitica"
 
 export const api = {
     ...productosApi,
@@ -32,4 +34,5 @@ export const api = {
     ...mesasApi,
     ...clientesApi,
     ...conteosApi,
+    ...analiticaApi,
 }
