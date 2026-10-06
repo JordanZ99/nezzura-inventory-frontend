@@ -319,6 +319,7 @@ export function SeccionApariencia({
                             heroUrl={catalogoConfig?.hero_url || ""}
                             heroUrlMovil={catalogoConfig?.hero_url_movil || ""}
                             logoUrl={catalogoConfig?.logo || ""}
+                            mapsDato={(catalogoConfig?.maps || "").trim()}
                             redesDisponibles={([
                                 catalogoConfig?.instagram && "instagram",
                                 catalogoConfig?.facebook && "facebook",

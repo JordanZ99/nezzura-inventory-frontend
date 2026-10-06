@@ -22,7 +22,15 @@ export interface HeroElemento {
     color?: string       // hex #RRGGBB (texto del elemento, fondo del botón)
     peso?: string        // '400' | '600' | '700' | '800'
     align?: string       // 'left' | 'center' | 'right'
-    red?: string         // 'instagram' | 'facebook' | 'tiktok' | 'whatsapp' (tipo 'red')
+     red?: string         // 'instagram' | 'facebook' | 'tiktok' | 'whatsapp' (tipo 'red')
+    /** Solo boton: radio del borde en px (999 = píldora; 0 = cuadrado). Ausente = píldora */
+    radio?: number
+    /** Solo boton: 'catalogo' (bajar al catálogo, default) | 'maps' (abrir Ubicación en Google Maps) */
+    accion?: string
+    /** Solo boton: 'solido' (default) | 'outline' (fantasma: fondo translúcido + borde de 2px) */
+    estilo?: string
+    /** Solo boton: color del texto del CTA; ''/ausente = automático por contraste */
+    color_texto?: string
 }
 
 /** Reglas del bloque Hero (migración 049, Fase 1). Dict PARCIAL:
@@ -94,6 +102,8 @@ export interface CatalogoConfig {
     instagram?: string;
     facebook?: string;
     tiktok?: string;
+    /** Ubicación del negocio (Plus Code o link de Google Maps): habilita "Cómo llegar" en el botón del hero */
+    maps?: string;
     created_at?: string;
 }
 

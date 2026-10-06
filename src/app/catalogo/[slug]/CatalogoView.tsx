@@ -756,35 +756,65 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                 </a>
                             )
                         }
-                        // boton: CTA editable (texto, tamaño y color desde el editor)
+                        // boton: CTA editable (texto, tamaño, color, redondeo,
+                        // tipografía, estilo y función desde el editor).
                         // El CTA usa em: el font-size en vw escala el padding también.
+                        const fantasma = el.estilo === "outline"
+                        const colorTextoBoton = el.color_texto || (fantasma
+                            ? (el.color || "#fff")
+                            // Sin color_texto: negro/blanco por contraste con el fondo
+                            : (function (hex?: string) {
+                                if (!hex) return "#fff"
+                                const c = hex.replace("#", "")
+                                if (c.length < 6) return "#fff"
+                                const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16)
+                                return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1a1a1a" : "#fff"
+                            })(el.color))
+                        const estiloBoton: React.CSSProperties = {
+                            position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
+                            padding: "0.65em 1.7em",
+                            borderRadius: Math.min(999, Math.max(0, el.radio ?? 999)),
+                            background: fantasma ? "rgba(255,255,255,0.08)" : (el.color || "var(--primary-mid,var(--primary))"),
+                            border: fantasma ? `2px solid ${el.color || "var(--primary-mid,var(--primary))"}` : "none",
+                            backdropFilter: fantasma ? "blur(6px)" : undefined,
+                            color: colorTextoBoton,
+                            fontWeight: 800,
+                            fontFamily: el.fuente ? (FUENTES_HERO[el.fuente]?.stack ?? undefined) : undefined,
+                            fontSize: esMovil
+                                ? `max(10px, ${(el.tamano ?? 15) / 12.8}vw)`
+                                : `${(el.tamano ?? 15) / 19.2}vw`,
+                            cursor: "pointer", whiteSpace: "nowrap",
+                            display: "flex", alignItems: "center", gap: 4,
+                            boxShadow: fantasma ? "none" : "0 10px 30px rgba(0,0,0,0.45)",
+                            transition: "transform 0.15s",
+                        }
+                        const hoverBoton = (e: React.SyntheticEvent<HTMLElement>) => { e.currentTarget.style.transform = "scale(1.04)" }
+                        const salirHover = (e: React.SyntheticEvent<HTMLElement>) => { e.currentTarget.style.transform = "none" }
+                        // Función 'maps': abre la Ubicación del negocio en Mapas
+                        // (solo si hay dirección; si no, baja al catálogo).
+                        if (el.accion === "maps" && heroRedes.maps) {
+                            return (
+                                <a
+                                    key={el.id}
+                                    href={heroRedes.maps}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label={el.texto || "Cómo llegar"}
+                                    style={estiloBoton}
+                                    onMouseEnter={hoverBoton}
+                                    onMouseLeave={salirHover}
+                                >
+                                    {el.texto || "Ver el catálogo"}
+                                </a>
+                            )
+                        }
                         return (
                             <button
                                 key={el.id}
                                 onClick={irAlContenido}
-                                style={{
-                                    position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
-                                    padding: "0.65em 1.7em",
-                                    borderRadius: 999, border: "none",
-                                    background: el.color || "var(--primary-mid,var(--primary))",
-                                    color: (function (hex?: string) {
-                                        if (!hex) return "#fff"
-                                        const c = hex.replace("#", "")
-                                        if (c.length < 6) return "#fff"
-                                        const r = parseInt(c.slice(0, 2), 16), g = parseInt(c.slice(2, 4), 16), b = parseInt(c.slice(4, 6), 16)
-                                        return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1a1a1a" : "#fff"
-                                    })(el.color),
-                                    fontWeight: 800,
-                                    fontSize: esMovil
-                                        ? `max(10px, ${(el.tamano ?? 15) / 12.8}vw)`
-                                        : `${(el.tamano ?? 15) / 19.2}vw`,
-                                    cursor: "pointer", whiteSpace: "nowrap",
-                                    display: "flex", alignItems: "center", gap: 4,
-                                    boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
-                                    transition: "transform 0.15s",
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)" }}
-                                onMouseLeave={e => { e.currentTarget.style.transform = "none" }}
+                                style={estiloBoton}
+                                onMouseEnter={hoverBoton}
+                                onMouseLeave={salirHover}
                             >
                                 {el.texto || "Ver el catálogo"}
                             </button>

@@ -26,6 +26,9 @@ interface Props {
     heroUrlMovil?: string        // recorte retrato; el canva móvil lo usa si existe
     logoUrl: string              // logo del negocio
     redesDisponibles: string[]   // redes con link llenado
+    /** Ubicación (Google Maps) del negocio; '' = sin dirección.
+     *  Habilita la función "Cómo llegar" del botón del canva. */
+    mapsDato: string
     elementosEscritorio: HeroElemento[]
     elementosMovil?: HeroElemento[]
     onCambiar: (elementos: HeroElemento[], modo: "escritorio" | "movil") => void
@@ -53,11 +56,18 @@ function textoContraste(hex?: string): string {
     return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? "#1a1a1a" : "#fff"
 }
 
+/** Color del texto del CTA: manual (color_texto) o automático por estilo. */
+function colorTextoBoton(el: HeroElemento): string {
+    if (el.color_texto) return el.color_texto
+    if (el.estilo === "outline") return el.color || "#fff"
+    return textoContraste(el.color)
+}
+
 function nuevoElemento(tipo: HeroElemento["tipo"], id: string): HeroElemento {
     if (tipo === "texto") return { id, tipo, x: 22, y: 42, w: 40, texto: "Escribe aquí...", fuente: "playfair", tamano: 56, color: "#ffffff", peso: "700", align: "center" }
     if (tipo === "logo") return { id, tipo, x: 45, y: 14, w: 10 }
     if (tipo === "redes") return { id, tipo, x: 44, y: 82 }
-    return { id, tipo: "boton", x: 30, y: 80, texto: "Ver el catálogo", tamano: 15, color: "" }
+    return { id, tipo: "boton", x: 30, y: 80, texto: "Ver el catálogo", tamano: 15, color: "", radio: 16, estilo: "solido", accion: "catalogo" }
 }
 
 const ICONO_RED: Record<string, string> = {
@@ -78,6 +88,7 @@ function CanvaSet({
     heroUrl,
     logoUrl,
     redesDisponibles,
+    mapsDato,
     elementos,
     elementosDelOtro,
     onCambiar,
@@ -89,6 +100,7 @@ function CanvaSet({
     heroUrl: string              // imagen de fondo correspondiente al breakpoint
     logoUrl: string
     redesDisponibles: string[]
+    mapsDato: string
     elementos: HeroElemento[]
     elementosDelOtro?: HeroElemento[]
     onCambiar: (elementos: HeroElemento[], modo: "escritorio" | "movil") => void
@@ -452,19 +464,26 @@ function CanvaSet({
                                         ))}
                                     </div>
                                 )}
-                                {el.tipo === "boton" && (
-                                    <div style={{
-                                        padding: `${Math.max(minBoton, (el.tamano ?? 15) * escala) * 0.65}px ${Math.max(minBoton, (el.tamano ?? 15) * escala) * 1.7}px`,
-                                        borderRadius: 999,
-                                        background: el.color || "var(--primary-mid)",
-                                        color: textoContraste(el.color),
-                                        fontWeight: 800, fontSize: `${Math.max(minBoton, (el.tamano ?? 15) * escala)}px`,
-                                        whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6,
-                                        pointerEvents: "none",
-                                    }}>
-                                        {el.texto || "Ver el catálogo"}
-                                    </div>
-                                )}
+                                {el.tipo === "boton" && (() => {
+                                    const fantasma = el.estilo === "outline"
+                                    const fs = Math.max(minBoton, (el.tamano ?? 15) * escala)
+                                    return (
+                                        <div style={{
+                                            padding: `${fs * 0.65}px ${fs * 1.7}px`,
+                                            borderRadius: el.radio ?? 999,
+                                            background: fantasma ? "rgba(255,255,255,0.08)" : (el.color || "var(--primary-mid)"),
+                                            border: fantasma ? `2px solid ${el.color || "var(--primary-mid)"}` : "none",
+                                            backdropFilter: fantasma ? "blur(6px)" : undefined,
+                                            color: colorTextoBoton(el),
+                                            fontWeight: 800, fontSize: `${fs}px`,
+                                            fontFamily: el.fuente ? (FUENTES_CATALOGO[el.fuente]?.stack ?? undefined) : undefined,
+                                            whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6,
+                                            pointerEvents: "none",
+                                        }}>
+                                            {el.texto || "Ver el catálogo"}
+                                        </div>
+                                    )
+                                })()}
                                 {(el.tipo === "texto" || el.tipo === "logo") && (
                                     <div
                                         onPointerDown={e => iniciarDrag(e, el, "escalar")}
@@ -503,7 +522,7 @@ function CanvaSet({
                 <TextoPanel el={selEl} maxTamano={MAX_TAMANO} onActualizar={actualizar} onQuitar={quitar} />
             )}
             {selEl && selEl.tipo === "boton" && (
-                <BotonPanel el={selEl} onActualizar={actualizar} onQuitar={quitar} />
+                <BotonPanel el={selEl} mapsDato={mapsDato} onActualizar={actualizar} onQuitar={quitar} />
             )}
             {selEl && selEl.tipo === "red" && (
                 <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -547,6 +566,7 @@ export function EditorHero({
     heroUrlMovil,
     logoUrl,
     redesDisponibles,
+    mapsDato,
     elementosEscritorio,
     elementosMovil,
     onCambiar,
@@ -558,6 +578,7 @@ export function EditorHero({
                 heroUrl={heroUrl}
                 logoUrl={logoUrl}
                 redesDisponibles={redesDisponibles}
+                mapsDato={mapsDato}
                 elementos={elementosEscritorio}
                 onCambiar={onCambiar}
                 paginaVacia="Canva de escritorio vacío — añade cajas de texto, logo, redes o el botón"
@@ -568,6 +589,7 @@ export function EditorHero({
                 heroUrl={heroUrlMovil || heroUrl}
                 logoUrl={logoUrl}
                 redesDisponibles={redesDisponibles}
+                mapsDato={mapsDato}
                 /* El canva móvil siempre edita su PROPIO set (vacío si aún
                    no existe). Con placeholder hasta clonar o crear elementos. */
                 elementos={elementosMovil ?? []}
@@ -703,12 +725,17 @@ function TextoPanel({ el, maxTamano, onActualizar, onQuitar }: {
     )
 }
 
-/* ── Panel del botón: texto + tamaño + color ── */
-function BotonPanel({ el, onActualizar, onQuitar }: {
+/* ── Panel del botón: texto + función + estilo + tipografía + tamaño + color +
+      redondeo + color del texto ── */
+function BotonPanel({ el, mapsDato, onActualizar, onQuitar }: {
     el: HeroElemento
+    mapsDato: string             // Ubicación (Google Maps) del negocio; '' = sin dirección
     onActualizar: (id: string, cambios: Partial<HeroElemento>) => void
     onQuitar: (id: string) => void
 }) {
+    const esPildora = (el.radio ?? 999) > 40
+    const estiloActual = el.estilo ?? "solido"
+    const accionActual = el.accion ?? "catalogo"
     return (
         <div style={{ padding: "12px 16px", background: "var(--bg-card2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -725,11 +752,105 @@ function BotonPanel({ el, onActualizar, onQuitar }: {
                 onChange={e => onActualizar(el.id, { texto: e.target.value })}
                 style={{ fontSize: "0.82rem" }}
             />
+
+            {/* Función: bajar al catálogo o abrir Google Maps con la ubicación */}
+            <div>
+                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Función</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                        onClick={() => onActualizar(el.id, { accion: "catalogo" })}
+                        title="Desplaza la vista hasta el menú"
+                        style={{
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                            padding: "8px 6px", borderRadius: 10, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
+                            border: `1.5px solid ${accionActual === "catalogo" ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                            background: accionActual === "catalogo" ? "var(--primary-soft)" : "var(--bg-card2)",
+                            color: accionActual === "catalogo" ? "var(--primary-mid)" : "var(--text-muted)",
+                        }}
+                    >
+                        <Icon name="List" size={15} /> Ver el catálogo
+                    </button>
+                    <button
+                        onClick={() => { if (mapsDato) onActualizar(el.id, { accion: "maps" }) }}
+                        disabled={!mapsDato}
+                        title={mapsDato ? "Abre la ubicación del negocio en Google Maps" : "Llena Ubicación (Google Maps) en Identidad del Negocio"}
+                        style={{
+                            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                            padding: "8px 6px", borderRadius: 10, cursor: mapsDato ? "pointer" : "not-allowed", fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
+                            opacity: mapsDato ? 1 : 0.45,
+                            border: `1.5px solid ${accionActual === "maps" ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                            background: accionActual === "maps" ? "var(--primary-soft)" : "var(--bg-card2)",
+                            color: accionActual === "maps" ? "var(--primary-mid)" : "var(--text-muted)",
+                        }}
+                    >
+                        <Icon name="MapPin" size={15} /> Cómo llegar
+                    </button>
+                </div>
+            </div>
+
+            {/* Estilo: sólido (fondo lleno) o fantasma (outline) */}
+            <div>
+                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Estilo</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                    {([
+                        { key: "solido", label: "Sólido" },
+                        { key: "outline", label: "Fantasma" },
+                    ] as const).map(e => {
+                        const on = estiloActual === e.key
+                        return (
+                            <button
+                                key={e.key}
+                                onClick={() => onActualizar(el.id, { estilo: e.key })}
+                                style={{
+                                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                    padding: "8px 6px", borderRadius: 10, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700, transition: "all 0.15s",
+                                    border: `1.5px solid ${on ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                    background: on ? "var(--primary-soft)" : "var(--bg-card2)",
+                                    color: on ? "var(--primary-mid)" : "var(--text-muted)",
+                                }}
+                            >
+                                {e.key === "solido" && <span style={{ width: 14, height: 14, borderRadius: 999, background: el.color || "var(--primary-mid)", border: "1.5px solid var(--border-primary)" }} />}
+                                {e.key === "outline" && <span style={{ width: 14, height: 14, borderRadius: 999, background: "rgba(255,255,255,0.08)", border: `2px solid ${el.color || "var(--primary-mid)"}` }} />}
+                                {e.label}
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Tipografía: las mismas 7 display del canva (Tema = la del catálogo) */}
+            <div>
+                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Tipografía</span>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {FUENTES_ORDEN.map(k => {
+                        const f = FUENTES_CATALOGO[k]
+                        const on = (el.fuente ?? "") === k
+                        return (
+                            <button
+                                key={k}
+                                onClick={() => onActualizar(el.id, { fuente: k === "sistema" ? undefined : k })}
+                                style={{
+                                    padding: "6px 12px", borderRadius: 10, cursor: "pointer", fontSize: "0.78rem",
+                                    fontWeight: on ? 800 : 600, fontFamily: f.stack, transition: "all 0.15s",
+                                    border: `1.5px solid ${on ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                    background: on ? "var(--primary-soft)" : "var(--bg-card2)",
+                                    color: on ? "var(--primary-mid)" : "var(--text-main)",
+                                }}
+                            >
+                                {k === "sistema" ? "Tema" : f.label.replace(/ \(serif\)/, "")}
+                            </button>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Tamaño del texto + color del fondo */}
             <div style={{ display: "flex", gap: 14, alignItems: "flex-end" }}>
                 <div style={{ flex: 1, minWidth: 150 }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                         <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Tamaño</span>
-                        <span style={{ fontWeight: 800, fontSize: "0.74rem", color: "var(--primary-mid)" }}>{el.tamano ?? 15}px</span>                    </div>
+                        <span style={{ fontWeight: 800, fontSize: "0.74rem", color: "var(--primary-mid)" }}>{el.tamano ?? 15}px</span>
+                    </div>
                     <input
                         type="range" min={10} max={160} step={1}
                         value={el.tamano ?? 15}
@@ -757,6 +878,60 @@ function BotonPanel({ el, onActualizar, onQuitar }: {
                 >
                     <span style={{ width: 14, height: 14, borderRadius: "50%", background: "linear-gradient(135deg, var(--bg-app) 0%, var(--primary-mid) 100%)", border: "1.5px solid var(--border-primary)" }} />
                     Tema
+                </button>
+            </div>
+
+            {/* Redondeo: slider 0-40px + preset píldora */}
+            <div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Redondeo</span>
+                    <span style={{ fontWeight: 800, fontSize: "0.74rem", color: "var(--primary-mid)" }}>{esPildora ? "Píldora" : `${el.radio ?? 999}px`}</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                        type="range" min={0} max={40} step={2}
+                        value={esPildora ? 40 : (el.radio ?? 999)}
+                        onChange={e => onActualizar(el.id, { radio: Number(e.target.value) })}
+                        style={{ flex: 1, accentColor: "var(--primary-mid)", cursor: "pointer" }}
+                    />
+                    <button
+                        onClick={() => onActualizar(el.id, { radio: esPildora ? 16 : 999 })}
+                        title="Píldora (totalmente redondeado)"
+                        style={{
+                            padding: "5px 10px", borderRadius: 8, cursor: "pointer", fontSize: "0.72rem", fontWeight: 700,
+                            border: `1.5px solid ${esPildora ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                            background: esPildora ? "var(--primary-soft)" : "var(--bg-card2)",
+                            color: esPildora ? "var(--primary-mid)" : "var(--text-muted)",
+                            display: "flex", alignItems: "center", gap: 6,
+                        }}
+                    >
+                        <span style={{ width: 18, height: 12, borderRadius: 999, background: "var(--primary-mid)" }} />
+                        Píldora
+                    </button>
+                </div>
+            </div>
+
+            {/* Color del texto: manual o automático por contraste */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                    <input
+                        type="color" value={el.color_texto || "#ffffff"}
+                        onChange={e => onActualizar(el.id, { color_texto: e.target.value })}
+                        style={{ width: 24, height: 24, border: "none", background: "none", padding: 0, cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)" }}>Color del texto</span>
+                </label>
+                <button
+                    onClick={() => onActualizar(el.id, { color_texto: "" })}
+                    title="Automático: negro o blanco según el contraste"
+                    style={{
+                        padding: "5px 10px", borderRadius: 8, cursor: "pointer", fontSize: "0.72rem", fontWeight: 700,
+                        border: `1.5px solid ${el.color_texto ? "var(--border-primary)" : "var(--primary-mid)"}`,
+                        background: el.color_texto ? "var(--bg-card2)" : "var(--primary-soft)",
+                        color: el.color_texto ? "var(--text-muted)" : "var(--primary-mid)",
+                    }}
+                >
+                    Auto
                 </button>
             </div>
         </div>
