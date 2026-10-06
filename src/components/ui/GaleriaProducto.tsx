@@ -18,7 +18,7 @@
 //   - **Drag & Drop**: botón "Reordenar" que activa grid de miniaturas arrastrables
 // ==============================================================================
 
-import { useRef, useState, useCallback } from "react"
+import { useRef, useState, useCallback, useEffect } from "react"
 import {
     DndContext, closestCenter, PointerSensor, useSensor, useSensors,
     type DragEndEvent,
@@ -257,6 +257,9 @@ export default function GaleriaProducto({
     // ── Estados internos ──
     const [carouselIndex, setCarouselIndex] = useState(0)
     const [modoReordenar, setModoReordenar] = useState(false)
+    // true mientras se arrastra una imagen EXTERNA sobre el formulario
+    const [arrastrando, setArrastrando] = useState(false)
+    const dragCountRef = useRef(0)
 
     // Sensores para DnD (PointerSensor para mouse + tacto)
     const sensors = useSensors(
@@ -360,6 +363,74 @@ export default function GaleriaProducto({
         e.target.value = "" // limpiar input para permitir re-seleccionar
     }, [])
 
+    /** Abre el cropper con un archivo dado (Ctrl+V o arrastrar — siempre como foto nueva) */
+    const iniciarCropperDeArchivo = useCallback((file: File) => {
+        replaceIndexRef.current = -1
+        pendingFileRef.current = file
+        const url = URL.createObjectURL(file)
+        setCropperImageUrl(url)
+        setShowCropper(true)
+    }, [])
+
+    // ── Pegar imagen (Ctrl+V): silencioso, sin instrucciones en pantalla ──
+    // Escucha el paste global mientras la galería existe; solo reacciona si
+    // el portapapeles contiene una imagen (pegar texto no la molesta, porque
+    // no lleva files) y queda espacio libre.
+    useEffect(() => {
+        const pegar = (e: ClipboardEvent) => {
+            if (disabled) return
+            const items = e.clipboardData?.items
+            if (!items) return
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i]
+                if (it.type.startsWith("image/")) {
+                    const file = it.getAsFile()
+                    if (file) {
+                        e.preventDefault()
+                        const ext = it.type.split("/")[1] || "png"
+                        const pegado = new File([file], `pegado_${Date.now()}.${ext}`, { type: it.type })
+                        iniciarCropperDeArchivo(pegado)
+                    }
+                    break
+                }
+            }
+        }
+        window.addEventListener("paste", pegar)
+        return () => window.removeEventListener("paste", pegar)
+    }, [disabled, iniciarCropperDeArchivo])
+
+    // ── Arrastrar imagen desde fuera (explorador/otra pestaña) ──
+    // dragCount: dragenter/dragleave disparan por cada hijo; solo cuando
+    // regresa a cero la imagen "salió" del componente.
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        if (disabled || !lugarLibre) return
+        if (!e.dataTransfer?.types?.includes("Files")) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = "copy"
+        if (!arrastrando) setArrastrando(true)
+    }, [disabled, lugarLibre, arrastrando])
+
+    const handleDragEnter = useCallback((e: React.DragEvent) => {
+        if (disabled || !lugarLibre) return
+        if (!e.dataTransfer?.types?.includes("Files")) return
+        dragCountRef.current++
+    }, [disabled, lugarLibre])
+
+    const handleDragLeave = useCallback(() => {
+        dragCountRef.current = Math.max(0, dragCountRef.current - 1)
+        if (dragCountRef.current === 0) setArrastrando(false)
+    }, [])
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        dragCountRef.current = 0
+        setArrastrando(false)
+        if (disabled || !lugarLibre) return
+        const file = Array.from(e.dataTransfer?.files || []).find(f => f.type.startsWith("image/"))
+        if (!file) return
+        e.preventDefault()
+        iniciarCropperDeArchivo(file)
+    }, [disabled, lugarLibre, iniciarCropperDeArchivo])
+
     /** El cropper terminó de recortar — insertar/reemplazar foto */
     const handleCropComplete = useCallback((croppedBlob: Blob) => {
         // Liberar URL temporal del cropper
@@ -436,7 +507,41 @@ export default function GaleriaProducto({
     const fotoActual = fotos[carouselIndex]
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            style={{
+                display: "flex", flexDirection: "column", gap: 8,
+                borderRadius: 14,
+                transition: "box-shadow 0.2s",
+                // Aro de luz sobre la galería mientras una imagen vuela encima
+                boxShadow: arrastrando ? "0 0 0 3px var(--primary-mid)" : undefined,
+            }}
+        >
+            {/* ── Iluminación de la pantalla cuando se arrastra una imagen ──
+                Velo sutil sobre TODO + aro en la galería: indica que soltar
+                aquí pega la foto, sin alargar la interfaz con instrucciones. */}
+            {arrastrando && (
+                <>
+                    <div style={{ position: "fixed", inset: 0, background: "var(--primary-mid)", opacity: 0.08, zIndex: 9998, pointerEvents: "none" }} />
+                    <div style={{
+                        position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                        zIndex: 9999, pointerEvents: "none",
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                        padding: "22px 34px", borderRadius: 16,
+                        background: "color-mix(in srgb, var(--bg-card2) 88%, transparent)",
+                        border: "2px dashed var(--primary-mid)",
+                        backdropFilter: "blur(6px)", boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
+                    }}>
+                        <Icon name="ImagePlus" size={34} color="var(--primary-mid)" />
+                        <span style={{ fontSize: "0.9rem", fontWeight: 800, color: "var(--primary-mid)" }}>
+                            Suelta la imagen aquí
+                        </span>
+                    </div>
+                </>
+            )}
             {/* Label */}
             <label style={{
                 fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)",
