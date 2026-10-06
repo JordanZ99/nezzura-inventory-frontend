@@ -773,6 +773,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         const estiloBoton: React.CSSProperties = {
                             position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
                             padding: "0.65em 1.7em",
+                            boxSizing: "border-box", // el borde del fantasma pinta POR DENTRO (mismo tamaño que el sólido)
                             borderRadius: Math.min(999, Math.max(0, el.radio ?? 999)),
                             background: fantasma ? "rgba(255,255,255,0.08)" : (el.color || "var(--primary-mid,var(--primary))"),
                             border: fantasma ? `2px solid ${el.color || "var(--primary-mid,var(--primary))"}` : "none",

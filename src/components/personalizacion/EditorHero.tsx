@@ -470,6 +470,7 @@ function CanvaSet({
                                     return (
                                         <div style={{
                                             padding: `${fs * 0.65}px ${fs * 1.7}px`,
+                                            boxSizing: "border-box", // mismo tamaño que el público (borde interior)
                                             borderRadius: el.radio ?? 999,
                                             background: fantasma ? "rgba(255,255,255,0.08)" : (el.color || "var(--primary-mid)"),
                                             border: fantasma ? `2px solid ${el.color || "var(--primary-mid)"}` : "none",
@@ -560,6 +561,8 @@ function CanvaSet({
 
 /* ════════════════════════════════════════════════════════════════════════════
    EditorHero: envoltorio con los DOS canva independentes + guardado.
+   Toggle VISUAL: solo el canva activo se monta — son dos componentes
+   independientes con su propio estado/guardado, nunca se mezclan.
    ════════════════════════════════════════════════════════════════════════════ */
 export function EditorHero({
     heroUrl,
@@ -571,41 +574,73 @@ export function EditorHero({
     elementosMovil,
     onCambiar,
 }: Props) {
+    const [vista, setVista] = useState<"escritorio" | "movil">("escritorio")
+    const vistas = [
+        { key: "escritorio" as const, label: "Escritorio", icono: "Monitor" },
+        { key: "movil" as const, label: "Móvil", icono: "Smartphone" },
+    ]
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <CanvaSet
-                modo="escritorio"
-                heroUrl={heroUrl}
-                logoUrl={logoUrl}
-                redesDisponibles={redesDisponibles}
-                mapsDato={mapsDato}
-                elementos={elementosEscritorio}
-                onCambiar={onCambiar}
-                paginaVacia="Canva de escritorio vacío — añade cajas de texto, logo, redes o el botón"
-                onVaciar={() => onCambiar([], "escritorio")}
-            />
-            <CanvaSet
-                modo="movil"
-                heroUrl={heroUrlMovil || heroUrl}
-                logoUrl={logoUrl}
-                redesDisponibles={redesDisponibles}
-                mapsDato={mapsDato}
-                /* El canva móvil siempre edita su PROPIO set (vacío si aún
-                   no existe). Con placeholder hasta clonar o crear elementos. */
-                elementos={elementosMovil ?? []}
-                elementosDelOtro={elementosEscritorio}
-                onCambiar={onCambiar}
-                paginaVacia="Canva móvil vacío — clona el de escritorio o empieza de cero"
-                onClonarOtro={() => {
-                    // Clonar = candidatos del canva con nuevos ids para evitar duplicados
-                    const renombrados = (elementosEscritorio || []).map((e, i) => ({
-                        ...e,
-                        id: `cl_${Date.now().toString(36)}${i}_${Math.random().toString(36).slice(2, 5)}`,
-                    }))
-                    onCambiar(renombrados, "movil")
-                }}
-                onVaciar={() => onCambiar([], "movil")}
-            />
+            {/* Toggle de vista: puramente visual (mantiene cada canva intacto) */}
+            <div style={{ display: "flex", gap: 8 }}>
+                {vistas.map(v => {
+                    const on = vista === v.key
+                    return (
+                        <button
+                            key={v.key}
+                            onClick={() => setVista(v.key)}
+                            style={{
+                                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                padding: "8px 6px", borderRadius: 10, cursor: "pointer", fontSize: "0.78rem",
+                                fontWeight: on ? 800 : 700, transition: "all 0.15s",
+                                border: `1.5px solid ${on ? "var(--primary-mid)" : "var(--border-primary)"}`,
+                                background: on ? "var(--primary-soft)" : "var(--bg-card2)",
+                                color: on ? "var(--primary-mid)" : "var(--text-muted)",
+                            }}
+                        >
+                            <Icon name={v.icono as any} size={15} />
+                            {v.label}
+                        </button>
+                    )
+                })}
+            </div>
+            {vista === "escritorio" && (
+                <CanvaSet
+                    modo="escritorio"
+                    heroUrl={heroUrl}
+                    logoUrl={logoUrl}
+                    redesDisponibles={redesDisponibles}
+                    mapsDato={mapsDato}
+                    elementos={elementosEscritorio}
+                    onCambiar={onCambiar}
+                    paginaVacia="Canva de escritorio vacío — añade cajas de texto, logo, redes o el botón"
+                    onVaciar={() => onCambiar([], "escritorio")}
+                />
+            )}
+            {vista === "movil" && (
+                <CanvaSet
+                    modo="movil"
+                    heroUrl={heroUrlMovil || heroUrl}
+                    logoUrl={logoUrl}
+                    redesDisponibles={redesDisponibles}
+                    mapsDato={mapsDato}
+                    /* El canva móvil siempre edita su PROPIO set (vacío si aún
+                       no existe). Con placeholder hasta clonar o crear elementos. */
+                    elementos={elementosMovil ?? []}
+                    elementosDelOtro={elementosEscritorio}
+                    onCambiar={onCambiar}
+                    paginaVacia="Canva móvil vacío — clona el de escritorio o empieza de cero"
+                    onClonarOtro={() => {
+                        // Clonar = candidatos del canva con nuevos ids para evitar duplicados
+                        const renombrados = (elementosEscritorio || []).map((e, i) => ({
+                            ...e,
+                            id: `cl_${Date.now().toString(36)}${i}_${Math.random().toString(36).slice(2, 5)}`,
+                        }))
+                        onCambiar(renombrados, "movil")
+                    }}
+                    onVaciar={() => onCambiar([], "movil")}
+                />
+            )}
         </div>
     )
 }
