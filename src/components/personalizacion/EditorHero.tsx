@@ -470,10 +470,10 @@ function CanvaSet({
                                     return (
                                         <div style={{
                                             padding: `${fs * 0.65}px ${fs * 1.7}px`,
-                                            boxSizing: "border-box", // mismo tamaño que el público (borde interior)
                                             borderRadius: el.radio ?? 999,
                                             background: fantasma ? "rgba(255,255,255,0.08)" : (el.color || "var(--primary-mid)"),
-                                            border: fantasma ? `2px solid ${el.color || "var(--primary-mid)"}` : "none",
+                                            border: "none",
+                                            boxShadow: fantasma ? `inset 0 0 0 ${Math.max(2, fs * 0.09)}px ${el.color || "var(--primary-mid)"}` : undefined,
                                             backdropFilter: fantasma ? "blur(6px)" : undefined,
                                             color: colorTextoBoton(el),
                                             fontWeight: 800, fontSize: `${fs}px`,

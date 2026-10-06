@@ -773,10 +773,9 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         const estiloBoton: React.CSSProperties = {
                             position: "absolute", left: `${el.x}%`, top: `${el.y}%`, zIndex: 2,
                             padding: "0.65em 1.7em",
-                            boxSizing: "border-box", // el borde del fantasma pinta POR DENTRO (mismo tamaño que el sólido)
                             borderRadius: Math.min(999, Math.max(0, el.radio ?? 999)),
                             background: fantasma ? "rgba(255,255,255,0.08)" : (el.color || "var(--primary-mid,var(--primary))"),
-                            border: fantasma ? `2px solid ${el.color || "var(--primary-mid,var(--primary))"}` : "none",
+                            border: "none",
                             backdropFilter: fantasma ? "blur(6px)" : undefined,
                             color: colorTextoBoton,
                             fontWeight: 800,
@@ -786,7 +785,11 @@ export default function CatalogoView({ slug }: { slug: string }) {
                                 : `${(el.tamano ?? 15) / 19.2}vw`,
                             cursor: "pointer", whiteSpace: "nowrap",
                             display: "flex", alignItems: "center", gap: 4,
-                            boxShadow: fantasma ? "none" : "0 10px 30px rgba(0,0,0,0.45)",
+                            // Fantasma: anillo interior (inset) — NO agranda la caja
+                            // respecto al sólido, como sí lo haría un border.
+                            boxShadow: fantasma
+                                ? `inset 0 0 0 2px ${el.color || "var(--primary-mid,var(--primary))"}`
+                                : "0 10px 30px rgba(0,0,0,0.45)",
                             transition: "transform 0.15s",
                         }
                         const hoverBoton = (e: React.SyntheticEvent<HTMLElement>) => { e.currentTarget.style.transform = "scale(1.04)" }
