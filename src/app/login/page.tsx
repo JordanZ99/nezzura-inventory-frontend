@@ -18,6 +18,27 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [showPass, setShowPass] = useState(false)
+    const [resetOpen, setResetOpen] = useState(false)
+    const [resetEmail, setResetEmail] = useState("")
+    const [resetLoading, setResetLoading] = useState(false)
+    const [resetSent, setResetSent] = useState(false)
+    const [resetError, setResetError] = useState<string | null>(null)
+
+    async function handleReset(e: React.FormEvent) {
+        e.preventDefault()
+        setResetLoading(true)
+        setResetError(null)
+        setResetSent(false)
+
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(resetEmail)
+
+        if (resetErr) {
+            setResetError(resetErr.message)
+        } else {
+            setResetSent(true)
+        }
+        setResetLoading(false)
+    }
 
     async function handleLogin(e: React.FormEvent) {
         e.preventDefault()
@@ -338,10 +359,215 @@ export default function LoginPage() {
                         color: "rgba(255,255,255,0.5)",
                         fontWeight: 500,
                     }}>
-                        Nezzura Digital · Panel privado
+                        <button
+                            type="button"
+                            onClick={() => { setResetOpen(true); setResetSent(false); setResetError(null) }}
+                            className="footer-link"
+                        >
+                            Cambiar contraseña
+                        </button>
                     </p>
                 </div>
             </BorderGlow>
+
+            {/* Modal: Cambiar contraseña */}
+            {resetOpen && (
+                <div
+                    onClick={e => { if (e.target === e.currentTarget) setResetOpen(false) }}
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(0,0,0,0.55)",
+                        backdropFilter: "blur(6px)",
+                        WebkitBackdropFilter: "blur(6px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 24,
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        style={{
+                            width: "100%",
+                            maxWidth: 420,
+                            background: "rgba(30, 18, 62, 0.92)",
+                            backdropFilter: "blur(24px)",
+                            WebkitBackdropFilter: "blur(24px)",
+                            border: "1.5px solid rgba(255,255,255,0.2)",
+                            borderRadius: 24,
+                            padding: "36px 32px",
+                            position: "relative",
+                            animation: "fadeUp 0.35s ease both",
+                        }}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setResetOpen(false)}
+                            style={{
+                                position: "absolute", top: 18, right: 20,
+                                background: "none", border: "none", cursor: "pointer", padding: 0,
+                            }}
+                        >
+                            <Icon name="X" size={18} color="rgba(255,255,255,0.6)" />
+                        </button>
+
+                        <div style={{ textAlign: "center", marginBottom: 24 }}>
+                            <div style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "rgba(255,255,255,0.15)",
+                                borderRadius: "50%",
+                                width: 56, height: 56,
+                                marginBottom: 14,
+                            }}>
+                                <Icon name="KeyRound" size={26} color="#fff" />
+                            </div>
+                            <h2 style={{
+                                margin: 0,
+                                fontSize: "1.15rem",
+                                fontWeight: 800,
+                                color: "#fff",
+                                letterSpacing: -0.2,
+                            }}>
+                                Cambiar contraseña
+                            </h2>
+                            <p style={{
+                                margin: "8px 0 0",
+                                fontSize: "0.82rem",
+                                color: "rgba(255,255,255,0.65)",
+                                fontWeight: 500,
+                            }}>
+                                {resetSent
+                                    ? "Si el correo existe en Nezzura Digital, te enviamos un enlace para cambiar tu contraseña."
+                                    : "Escribe tu correo y te enviaremos un enlace de cambio de contraseña."}
+                            </p>
+                        </div>
+
+                        {!resetSent ? (
+                            <form onSubmit={handleReset} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                    <label style={{
+                                        fontSize: "0.72rem",
+                                        fontWeight: 700,
+                                        color: "rgba(255,255,255,0.85)",
+                                        textTransform: "uppercase",
+                                        letterSpacing: 0.8,
+                                    }}>
+                                        Correo electrónico
+                                    </label>
+                                    <input
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        value={resetEmail}
+                                        onChange={e => setResetEmail(e.target.value)}
+                                        placeholder="correo@ejemplo.com"
+                                        style={{
+                                            width: "100%",
+                                            background: "rgba(255,255,255,0.18)",
+                                            border: "1.5px solid rgba(255,255,255,0.35)",
+                                            borderRadius: 12,
+                                            padding: "11px 14px",
+                                            fontSize: "0.9rem",
+                                            color: "#fff",
+                                            outline: "none",
+                                            transition: "border-color 0.2s, box-shadow 0.2s",
+                                        }}
+                                        onFocus={e => {
+                                            e.target.style.borderColor = "rgba(255,255,255,0.7)"
+                                            e.target.style.boxShadow = "0 0 0 3px rgba(255,255,255,0.15)"
+                                        }}
+                                        onBlur={e => {
+                                            e.target.style.borderColor = "rgba(255,255,255,0.35)"
+                                            e.target.style.boxShadow = "none"
+                                        }}
+                                    />
+                                </div>
+
+                                {resetError && (
+                                    <div style={{
+                                        background: "rgba(244, 67, 54, 0.2)",
+                                        border: "1px solid rgba(244, 67, 54, 0.4)",
+                                        borderRadius: 10,
+                                        padding: "10px 14px",
+                                        fontSize: "0.82rem",
+                                        color: "#fff",
+                                        fontWeight: 600,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                    }}>
+                                        <Icon name="CircleAlert" size={15} color="#fff" />
+                                        {resetError}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={resetLoading}
+                                    style={{
+                                        background: resetLoading ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.95)",
+                                        color: "#6841d2",
+                                        border: "none",
+                                        borderRadius: 12,
+                                        padding: "13px 20px",
+                                        fontWeight: 800,
+                                        fontSize: "0.95rem",
+                                        cursor: resetLoading ? "not-allowed" : "pointer",
+                                        transition: "all 0.2s",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: 8,
+                                    }}
+                                >
+                                    {resetLoading ? (
+                                        <>
+                                            <div style={{ animation: "spin 1s linear infinite", display: "flex" }}>
+                                                <Icon name="Loader" size={18} color="#6841d2" />
+                                            </div>
+                                            Enviando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Icon name="Mail" size={18} color="#6841d2" />
+                                            Enviar correo
+                                        </>
+                                    )}
+                                </button>
+                            </form>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setResetOpen(false)}
+                                style={{
+                                    width: "100%",
+                                    background: "rgba(255,255,255,0.95)",
+                                    color: "#6841d2",
+                                    border: "none",
+                                    borderRadius: 12,
+                                    padding: "13px 20px",
+                                    fontWeight: 800,
+                                    fontSize: "0.95rem",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: 8,
+                                }}
+                            >
+                                <Icon name="Check" size={18} color="#6841d2" />
+                                Entendido
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 input::placeholder { color: rgba(255,255,255,0.45) !important; }
@@ -349,6 +575,20 @@ export default function LoginPage() {
                 @keyframes fadeUp {
                     from { opacity: 0; transform: translateY(20px); }
                     to   { opacity: 1; transform: translateY(0); }
+                }
+                .footer-link {
+                    background: none;
+                    border: none;
+                    padding: 0;
+                    cursor: pointer;
+                    font: inherit;
+                    font-size: 0.72rem;
+                    color: rgba(255,255,255,0.5);
+                    fontWeight: 500;
+                    text-decoration: none;
+                }
+                .footer-link:hover {
+                    text-decoration: underline;
                 }
             `}</style>
         </div>
