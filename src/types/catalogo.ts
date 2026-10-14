@@ -56,7 +56,7 @@ export interface CatalogoConfig {
     slug: string;
     activo: boolean;
     tema: string;
-    template: string;  // 'grid-clasico' | 'menu-carta'
+    template: string;  // 'grid-clasico' | 'grid-carta' | ...
     titulo: string;
     subtitulo: string;
     mostrar_precios: boolean;
