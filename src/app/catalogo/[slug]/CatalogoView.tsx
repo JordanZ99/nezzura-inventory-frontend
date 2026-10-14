@@ -17,7 +17,7 @@
 // renderiza el componente correspondiente (grid-clasico, menu-carta, etc.)
 // ==============================================================================
 
-import { useState, useEffect, useCallback, useRef, Fragment } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
 import { normalizarFuente, FUENTES_CATALOGO as FUENTES_HERO } from "@/lib/catalogo-fuentes"
@@ -26,6 +26,7 @@ import Icon from "@/components/ui/Icon"
 import CatalogoGridClasico from "@/components/CatalogoGridClasico"
 import CatalogoMenuCarta from "@/components/CatalogoMenuCarta"
 import CatalogoModalProducto from "@/components/CatalogoModalProducto"
+import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
 
 // ── Tipos ──
 
@@ -535,6 +536,19 @@ export default function CatalogoView({ slug }: { slug: string }) {
     const productosVisibles = agrupado
         ? productosFiltrados
         : productosFiltrados.slice(inicio, inicio + ITEMS_POR_PAGINA)
+
+    // ── Lista de navegación del modal (flechas laterales y teclado ← / →) ──
+    // En modo agrupado el menú NO se dibuja en el orden del arreglo: las secciones
+    // se ordenan con ordenarCategorias (drag & drop de Personalización). Si el
+    // modal navegara el arreglo plano, "→" saltaría al id siguiente aunque
+    // pertenezca a otra categoría. Con esta lista el modal recorre los platillos
+    // en el MISMO orden en que se lee el menú: categoría por categoría.
+    const listaNavegableModal = useMemo(() => {
+        if (!agrupado) return productosVisibles
+        const agrupados = agruparPorCategoria(productosVisibles)
+        return ordenarCategorias(Object.keys(agrupados), datos.orden_categorias)
+            .flatMap(cat => agrupados[cat])
+    }, [agrupado, productosVisibles, datos.orden_categorias])
 
     // ── Helpers de la paginación (compartidos entre móvil y escritorio) ──
     // Estilo idéntico al del Historial de Ventas (estadísticas): padding 6px 14px,
@@ -1181,7 +1195,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                     config={config}
                     tema={tema}
                     onClose={cerrarProducto}
-                    listaNavegable={productosVisibles}
+                    listaNavegable={listaNavegableModal}
                     onNavegar={setProductoActivo}
                 />
             )}
