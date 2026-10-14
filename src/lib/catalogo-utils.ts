@@ -50,6 +50,20 @@ export function ordenarCategorias(categorias: string[], ordenPersonalizado?: Rec
 }
 
 /**
+ * Precio mínimo de las variaciones DISPONIBLES: si el producto tiene
+ * variaciones, las agotadas no cuentan para el "desde $X". Si todas están
+ * agotadas, cae al precio del producto.
+ *
+ * Du valor: { desde: true } indica que se muestra el prefijo "desde".
+ */
+export function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number }[]; precio_venta: number }): { desde: boolean; precio: number } {
+    const vars = p.variaciones || []
+    const disponibles = vars.length > 0 ? vars.filter(v => (v.stock ?? 0) > 0) : vars
+    if (disponibles.length > 0) return { desde: true, precio: Math.min(...disponibles.map(v => v.precio)) }
+    return { desde: false, precio: p.precio_venta }
+}
+
+/**
  * Icono emoji para cada categoría basado en palabras clave.
  * Si no encuentra coincidencia, devuelve un genérico.
  */

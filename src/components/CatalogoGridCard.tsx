@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Icon from "@/components/ui/Icon"
-import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
+import { agruparPorCategoria, ordenarCategorias, minPrecioDisponible } from "@/lib/catalogo-utils"
 import { optimizarImagenRecorte } from "@/lib/image-utils"
 
 interface ProductoPublico {
@@ -70,18 +70,6 @@ interface Props {
 /** Familias tipográficas del catálogo: display = var(--font-display); mono para labels */
 const SERIF = "var(--font-display, Georgia, serif)"
 const MONO = "ui-monospace, 'Cascadia Mono', 'Courier New', monospace"
-
-/**
- * Precio mínimo de las variaciones DISPONIBLES: si el producto tiene
- * variaciones, las agotadas no cuentan para el "desde $X". Si todas están
- * agotadas, cae al precio del producto.
- */
-function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number }[]; precio_venta: number }): { desde: boolean; precio: number } {
-    const vars = p.variaciones || []
-    const disponibles = vars.length > 0 ? vars.filter(v => (v.stock ?? 0) > 0) : vars
-    if (disponibles.length > 0) return { desde: true, precio: Math.min(...disponibles.map(v => v.precio)) }
-    return { desde: false, precio: p.precio_venta }
-}
 
 export default function CatalogoGridCard({ productos, config, tema, agrupado = true, onAbrirProducto, ordenCategorias }: Props) {
     // ── Nav de categorías por anclas (sticky) ──
