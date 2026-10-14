@@ -14,7 +14,7 @@
 // gestor (globals.css) actualiza el catálogo público automáticamente.
 //
 // Sistema de templates: el backend devuelve config.template y la página
-// renderiza el componente correspondiente (grid-clasico, grid-carta, etc.)
+// renderiza el componente correspondiente (grid-clasico, grid-card, etc.)
 // ==============================================================================
 
 import { useState, useEffect, useCallback, useRef, Fragment } from "react"
@@ -24,7 +24,7 @@ import { normalizarFuente, FUENTES_CATALOGO as FUENTES_HERO } from "@/lib/catalo
 import { normalizarTema } from "@/lib/temas"
 import Icon from "@/components/ui/Icon"
 import CatalogoGridClasico from "@/components/CatalogoGridClasico"
-import CatalogoGridCarta from "@/components/CatalogoGridCarta"
+import CatalogoGridCard from "@/components/CatalogoGridCard"
 import CatalogoModalProducto from "@/components/CatalogoModalProducto"
 import { agruparPorCategoria, ordenarCategorias } from "@/lib/catalogo-utils"
 
@@ -193,7 +193,7 @@ const TEMPLATES: Record<string, React.FC<{
     ordenCategorias?: Record<string, number>
 }>> = {
     "grid-clasico": CatalogoGridClasico,
-    "grid-carta": CatalogoGridCarta,
+    "grid-card": CatalogoGridCard,
 }
 
 /**
@@ -528,8 +528,8 @@ export default function CatalogoView({ slug }: { slug: string }) {
     // ── Agrupación por categoría vs paginación ──
     // Con agrupación activa se muestran TODOS los productos por secciones (sin paginar).
     // NULL = el tenant no ha tocado el toggle: preserva el comportamiento previo por template
-    // (grid-carta agrupaba siempre; grid-clasico mostraba lista plana)
-    const agrupado = config.agrupar_por_categoria ?? config.template === "grid-carta"
+    // (grid-card agrupaba siempre; grid-clasico mostraba lista plana)
+    const agrupado = config.agrupar_por_categoria ?? config.template === "grid-card"
     const totalPaginas = Math.max(1, Math.ceil(productosFiltrados.length / ITEMS_POR_PAGINA))
     const paginaSegura = Math.min(paginaActual, totalPaginas)
     const inicio = (paginaSegura - 1) * ITEMS_POR_PAGINA
@@ -1020,7 +1020,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
             // Gradiente: sin canva, sin hero legacy y sin banner → header simple
             return (
                 /* Modo gradiente: solo header con degradado (el banner es exclusivo del modo imagen) */
-                <header style={{ background: tema.gradient, padding: config.template === "grid-carta" ? "32px 24px 28px" : "48px 24px 40px", textAlign: "center", color: "var(--on-primary)" }}>
+                <header style={{ background: tema.gradient, padding: config.template === "grid-card" ? "32px 24px 28px" : "48px 24px 40px", textAlign: "center", color: "var(--on-primary)" }}>
                         {config.logo && (
                             /* Logo circular con borde blanco, igual que en el preview del link (WhatsApp) */
                             <img
@@ -1077,7 +1077,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
             )}
 
             {/* ── Buscador + filtros ── */}
-            <div id="catalogo-contenido" style={{ maxWidth: 1200, margin: "0 auto", padding: config.template === "grid-carta" ? "16px 20px 0" : "24px 20px 0" }}>
+            <div id="catalogo-contenido" style={{ maxWidth: 1200, margin: "0 auto", padding: config.template === "grid-card" ? "16px 20px 0" : "24px 20px 0" }}>
                 {/* Buscador */}
                 <input
                     type="text"

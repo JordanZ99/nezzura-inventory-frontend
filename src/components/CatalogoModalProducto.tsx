@@ -65,7 +65,7 @@ interface Props {
     config: ConfigCatalogo
     tema: PaletaTema
     onClose: () => void
-    // Modo Grid Carta: lista visible para navegar platillos con las flechas
+    // Modo Grid Card: lista visible para navegar platillos con las flechas
     // laterales + callback para mostrar otro producto.
     listaNavegable?: ProductoPublico[]
     onNavegar?: (p: ProductoPublico) => void
@@ -175,7 +175,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
     // Primer stage: la misma w_600 del grid (ya en caché del navegador → instantáneo)
     const fotoRapida = optimizarImagenCloudinary(fotoActual, 600)
 
-    // ── Alta natural de la imagen (modo Grid Carta) ──
+    // ── Alta natural de la imagen (modo Grid Card) ──
     // Al cargar mide naturalWidth/naturalHeight y da al contenedor esa
     // proporción exacta: el modal crece con la imagen y nunca la recorta.
     const [dimFoto, setDimFoto] = useState<{ w: number; h: number } | null>(null)
@@ -238,7 +238,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
     }
 
     // Deteca pantallas chicas (<640px, mismo breakpoint que las media queries
-    // del modo Grid Carta). En móvil el modal split colapsa (la foto no tiene
+    // del modo Grid Card). En móvil el modal split colapsa (la foto no tiene
     // ancho y sus hijos son absolutas) → se reusa el modal estilo IG que sí
     // está probado en móvil. Componente que solo monta tras click de usuario,
     // por lo que leer window en el initializer no genera mismatch de SSR.
@@ -309,7 +309,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
     // derecha (desc, dashed, precio serif grande, variaciones, tags, footer).
     // En pantallas chicas el split colapsa → se usa el modal IG (más abajo).
     // ══════════════════════════════════════════════════════════════════════
-    if (config.template === "grid-carta" && !esPantallaChica) {
+    if (config.template === "grid-card" && !esPantallaChica) {
         return (
             <div
                 style={{

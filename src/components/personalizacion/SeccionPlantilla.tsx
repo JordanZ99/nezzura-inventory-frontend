@@ -11,7 +11,7 @@ import type { PropsSeccionConfig } from "./tipos"
 
 const TEMPLATES_OPTS = [
     { value: "grid-clasico", label: "Grid Clásico", icon: "LayoutGrid", desc: "Tarjetas con imagen, nombre y precio. Ideal para tiendas." },
-    { value: "grid-carta", label: "Grid Carta", icon: "NotebookText", desc: "Cards agrupadas por categorías. Ideal para restaurantes." },
+    { value: "grid-card", label: "Grid Card", icon: "NotebookText", desc: "Cards agrupadas por categorías. Ideal para restaurantes." },
 ]
 
 const TEMAS_OPTS = [

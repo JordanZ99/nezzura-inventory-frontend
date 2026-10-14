@@ -1,7 +1,7 @@
 "use client"
 // ==============================================================================
-// src/components/CatalogoGridCarta.tsx
-// Template Grid tipo Carta — port del diseño Santa Fé (AsaderoLayout).
+// src/components/CatalogoGridCard.tsx
+// Template Grid Card — port del diseño Santa Fé (AsaderoLayout).
 // - Cards en grid 1/2/3 columnas con foto 4:3 (mismas proporciones/tamaños
 //   de SF), nombre serif, separador dashed y precio destacado.
 // - agrupado=true (default): secciones por categoría con encabezado bordeado.
@@ -83,7 +83,7 @@ function minPrecioDisponible(p: { variaciones?: { precio: number; stock?: number
     return { desde: false, precio: p.precio_venta }
 }
 
-export default function CatalogoGridCarta({ productos, config, tema, agrupado = true, onAbrirProducto, ordenCategorias }: Props) {
+export default function CatalogoGridCard({ productos, config, tema, agrupado = true, onAbrirProducto, ordenCategorias }: Props) {
     // ── Nav de categorías por anclas (sticky) ──
     const seccionesRef = useRef<Record<string, HTMLElement | null>>({})
     const sentinelRef = useRef<HTMLDivElement | null>(null)

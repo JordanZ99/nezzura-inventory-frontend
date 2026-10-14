@@ -42,7 +42,7 @@ export const FUENTES_CATALOGO: Record<string, FuenteCatalogo> = {
         key: "serif",
         label: "Elegante (serif)",
         stack: "Georgia, 'Times New Roman', serif",
-        desc: "La serif clásica del Grid Carta, ahora opcional.",
+        desc: "La serif clásica del Grid Card, ahora opcional.",
         escala: 1.02,
     },
     playfair: {
