@@ -265,7 +265,7 @@ export default function CatalogoMenu({ productos, config, tema, agrupado = true,
                 </div>
             )}
 
-            <main style={{ maxWidth: 680, margin: "0 auto", padding: "16px 20px 60px" }}>
+            <main style={{ maxWidth: 880, margin: "0 auto", padding: "16px 20px 60px" }}>
                 {productos.length === 0 ? (
                     <div style={{ textAlign: "center", padding: 60, color: tema.textMuted }}>
                         <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>No se encontraron platillos.</p>
