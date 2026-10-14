@@ -17,7 +17,7 @@
 // renderiza el componente correspondiente (grid-clasico, menu-carta, etc.)
 // ==============================================================================
 
-import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from "react"
+import { useState, useEffect, useCallback, useRef, Fragment } from "react"
 import { fetchCatalogoPublico } from "@/lib/api"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
 import { normalizarFuente, FUENTES_CATALOGO as FUENTES_HERO } from "@/lib/catalogo-fuentes"
@@ -543,12 +543,15 @@ export default function CatalogoView({ slug }: { slug: string }) {
     // modal navegara el arreglo plano, "→" saltaría al id siguiente aunque
     // pertenezca a otra categoría. Con esta lista el modal recorre los platillos
     // en el MISMO orden en que se lee el menú: categoría por categoría.
-    const listaNavegableModal = useMemo(() => {
-        if (!agrupado) return productosVisibles
+    // Cálculo directo (sin useMemo): este punto queda tras los early returns de
+    // cargando/error y un hook aquí desincronizaría el conteo entre renders
+    // (React error #310).
+    let listaNavegableModal = productosVisibles
+    if (agrupado) {
         const agrupados = agruparPorCategoria(productosVisibles)
-        return ordenarCategorias(Object.keys(agrupados), datos.orden_categorias)
+        listaNavegableModal = ordenarCategorias(Object.keys(agrupados), datos.orden_categorias)
             .flatMap(cat => agrupados[cat])
-    }, [agrupado, productosVisibles, datos.orden_categorias])
+    }
 
     // ── Helpers de la paginación (compartidos entre móvil y escritorio) ──
     // Estilo idéntico al del Historial de Ventas (estadísticas): padding 6px 14px,
