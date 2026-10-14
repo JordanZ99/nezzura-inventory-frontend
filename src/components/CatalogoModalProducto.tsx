@@ -253,33 +253,40 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
         return () => mq.removeEventListener("change", actualizar)
     }, [])
 
-    // Teclado del modal: Escape cierra; ← / → navega platillos (modo Menú
-    // Carta en pantallas grandes, igual que las flechas laterales) o fotos
-    // (modal estilo IG en móvil / otros templates).
+    // Teclado del modal: Escape cierra; flechas en dos niveles:
+    //   ← / →         = FOTO del carrusel (si el platillo tiene >1 foto)
+    //   Shift+← / →   = PLATILLO anterior/siguiente de la lista del menú
+    // Si el platillo solo tiene 1 foto, ← / → salta directo al platillo:
+    // el caso común (carta con una foto por platillo) se siente igual que antes.
     const onTeclaGlobal = useCallback((e: KeyboardEvent) => {
         if (e.key === "Escape") {
             onClose()
             return
         }
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return
-        // Modo Menú Carta en desktop: las flechas alternan PLATILLOS
-        if (config.template === "menu-carta" && !esPantallaChica && listaNavegable && listaNavegable.length > 1) {
-            const idx = listaNavegable.findIndex(p => p.producto === producto.producto)
-            if (idx < 0) return
-            const destino = e.key === "ArrowLeft" ? listaNavegable[idx - 1] : listaNavegable[idx + 1]
+        const lista = listaNavegable || []
+        const idxLista = lista.findIndex(p => p.producto === producto.producto)
+        const puedeNavegarPlatillo = lista.length > 1 && idxLista >= 0
+        const navegarPlatillo = () => {
+            if (!puedeNavegarPlatillo) return
+            const destino = e.key === "ArrowLeft" ? lista[idxLista - 1] : lista[idxLista + 1]
             if (destino) {
                 e.preventDefault()
                 onNavegar?.(destino)
             }
+        }
+        if (e.shiftKey) {
+            navegarPlatillo()
             return
         }
-        // Resto de casos: las flechas cambian la FOTO del carrusel
         if (galeria.length > 1) {
             e.preventDefault()
             if (e.key === "ArrowLeft") setIndice(i => Math.max(0, i - 1))
             else setIndice(i => Math.min(galeria.length - 1, i + 1))
+            return
         }
-    }, [onClose, config.template, esPantallaChica, listaNavegable, producto.producto, galeria.length, onNavegar])
+        navegarPlatillo()
+    }, [onClose, listaNavegable, producto.producto, galeria.length, onNavegar])
 
     // Bloquear el scroll de la página (body + html) mientras el modal está abierto
     // y registrar el manejo del teclado
@@ -330,6 +337,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                     <button
                                         onClick={e => { e.stopPropagation(); onNavegar?.(lista[idx - 1]) }}
                                         aria-label="Platillo anterior"
+                                        title="Platillo anterior (Shift + ←)"
                                         style={{
                                             position: "absolute", top: "50%", right: "calc(100% + 12px)",
                                             transform: "translateY(-50%)", zIndex: 30,
@@ -349,6 +357,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                     <button
                                         onClick={e => { e.stopPropagation(); onNavegar?.(lista[idx + 1]) }}
                                         aria-label="Platillo siguiente"
+                                        title="Platillo siguiente (Shift + →)"
                                         style={{
                                             position: "absolute", top: "50%", left: "calc(100% + 12px)",
                                             transform: "translateY(-50%)", zIndex: 30,
@@ -386,7 +395,13 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                     }}
                 >
                     <div className="sfmc-form-split">
-                    <style>{`.sfmc-form-split { display: flex; flex-direction: column; } @media (min-width: 640px) { .sfmc-form-split { flex-direction: row; } .sfmc-form-info { width: 45%; } }`}</style>
+                    <style>{`.sfmc-form-split { display: flex; flex-direction: column; } @media (min-width: 640px) { .sfmc-form-split { flex-direction: row; } .sfmc-form-info { width: 45%; } }
+/* Flechas de FOTO del carrusel: solo se revelan al pasar el cursor por la
+   foto (o al enfocarlas con Tab) para saturar menos el modal. El swipe
+   táctil sigue funcionando en tabletas sin hover. */
+.sfmc-btn-foto { opacity: 0; transition: opacity .2s ease; }
+.sfmc-modal-foto:hover .sfmc-btn-foto { opacity: 1; }
+.sfmc-btn-foto:focus-visible { opacity: 1; }`}</style>
 
                     {/* IZQUIERDA: foto protagonista (su altura natural define la del modal) */}
                     <div
@@ -488,11 +503,14 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                             </button>
                         )}
 
-                        {/* Flechas del carrusel (solo si hay más de una foto) */}
+                        {/* Flechas del carrusel (solo si hay más de una foto).
+                            Se rotulan con hint para descubrirlas al hover. */}
                         {galeria.length > 1 && indiceSeguro > 0 && (
                             <button
                                 onClick={e => { e.stopPropagation(); anterior() }}
                                 aria-label="Foto anterior"
+                                title="Foto anterior (←)"
+                                className="sfmc-btn-foto"
                                 style={{ ...estiloFlecha, left: 10 }}
                                 onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
                                 onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
@@ -504,6 +522,8 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                             <button
                                 onClick={e => { e.stopPropagation(); siguiente() }}
                                 aria-label="Foto siguiente"
+                                title="Foto siguiente (→)"
+                                className="sfmc-btn-foto"
                                 style={{ ...estiloFlecha, right: 10 }}
                                 onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,0,0,0.7)" }}
                                 onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.45)" }}
