@@ -29,6 +29,30 @@ export class ApiError extends Error {
     }
 }
 
+/**
+ * Convierte el campo 'detail' de FastAPI (string, lista de validación o
+ * objeto) en texto legible. Sin esto, un 422 de validación muestra
+ * "[object Object]" en el toast de error.
+ */
+function detalleATexto(detalle: unknown): string | undefined {
+    if (typeof detalle === "string" || typeof detalle === "number") return String(detalle)
+    if (Array.isArray(detalle)) {
+        // FastAPI 422: [{loc: [...], msg: "...", type: "..."}, ...]
+        const partes = detalle.map(item => {
+            if (typeof item === "string") return item
+            if (item && typeof item === "object" && "msg" in item) {
+                const { msg, loc } = item as { msg?: string; loc?: unknown }
+                const donde = Array.isArray(loc) ? loc.slice(1).join(".") : ""
+                return `${msg || JSON.stringify(item)}${donde ? ` (campo: ${donde})` : ""}`
+            }
+            return JSON.stringify(item)
+        })
+        return partes.join("; ")
+    }
+    if (detalle && typeof detalle === "object") return JSON.stringify(detalle)
+    return undefined
+}
+
 export async function request<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
     const authHeaders = await getAuthHeaders()
     const res = await fetch(`${BASE_URL}${path}`, {
@@ -45,7 +69,7 @@ export async function request<T = unknown>(path: string, options: RequestInit = 
         let sqlstate: string | undefined
         try {
             const err = await res.json()
-            errStr = err.detail || err.mensaje || JSON.stringify(err)
+            errStr = detalleATexto(err.detail) || err.mensaje || JSON.stringify(err)
             codigo = err.codigo
             sqlstate = err.sqlstate
         } catch {
@@ -81,7 +105,7 @@ export async function fetchCatalogoPublico<T = unknown>(slug: string): Promise<T
         let errStr = "Error al cargar el catálogo"
         try {
             const err = await res.json()
-            errStr = err.detail || JSON.stringify(err)
+            errStr = detalleATexto(err.detail) || JSON.stringify(err)
         } catch {
             // ignore
         }
