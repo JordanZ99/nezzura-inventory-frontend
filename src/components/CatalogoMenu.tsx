@@ -287,7 +287,7 @@ export default function CatalogoMenu({ productos, config, tema, agrupado = true,
                                         alignItems: "center",
                                         justifyContent: "center",
                                         gap: 14,
-                                        margin: idx === 0 ? "20px 0 10px" : "34px 0 10px",
+                                        margin: idx === 0 ? "20px 0 30px" : "102px 0 30px",
                                     }}>
                                         <span style={{
                                             height: 1, flex: 1,
