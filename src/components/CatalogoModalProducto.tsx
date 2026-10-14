@@ -148,6 +148,10 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
         return lista
     })()
 
+    // ¿El producto tiene alguna foto para mostrar? (principal + extras + variaciones).
+    // Sin fotos el modal reduce a una card de solo info (sin contenedor de imagen).
+    const conFoto = galeria.length > 0
+
     const [indice, setIndice] = useState(0)
     const touchX = useRef<number | null>(null)
     // Controla el swap: primero se ve la w_600 (ya en caché desde el grid) y
@@ -403,7 +407,9 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
 .sfmc-modal-foto:hover .sfmc-btn-foto { opacity: 1; }
 .sfmc-btn-foto:focus-visible { opacity: 1; }`}</style>
 
-                    {/* IZQUIERDA: foto protagonista (su altura natural define la del modal) */}
+                    {/* IZQUIERDA: foto protagonista (su altura natural define la del modal).
+                        Sin fotos se omite por completo: el modal queda como card de solo info. */}
+                    {conFoto && (
                     <div
                         className="sfmc-modal-foto"
                         style={{
@@ -556,6 +562,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                             </span>
                         )}
                     </div>
+                    )}
 
                     {/* DERECHA: info */}
                     <div
@@ -563,6 +570,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                         style={{
                             flex: 1,
                             minWidth: 0,
+                            ...(conFoto ? {} : { width: "100%" }),
                             display: "flex",
                             flexDirection: "column",
                             background: tema.bg,
@@ -847,7 +855,9 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                     </button>
                 </div>
 
-                {/* ── Foto: carrusel con swipe + flechas (relación global 1:1 o 4:5) ── */}
+                {/* ── Foto: carrusel con swipe + flechas (relación global 1:1 o 4:5).
+                    Sin fotos el bloque se omite: solo queda la card de info ── */}
+                {conFoto && (
                 <div
                     className="cata-modal-carrusel"
                     style={{
@@ -966,6 +976,7 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                         </button>
                     )}
                 </div>
+                )}
 
                 {/* Dots de posición */}
                 {galeria.length > 1 && (
