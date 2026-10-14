@@ -9,7 +9,7 @@
 // Respeta las opciones del catálogo: mostrar_precios, mostrar_stock, mostrar_categorias.
 // ==============================================================================
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Icon from "@/components/ui/Icon"
 import { optimizarImagenCloudinary } from "@/lib/image-utils"
 
@@ -164,22 +164,6 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [variacionSel])
 
-    // Bloquear el scroll de la página (body + html) mientras el modal está abierto
-    // y cerrar con la tecla Escape
-    useEffect(() => {
-        const prevBody = document.body.style.overflow
-        const prevHtml = document.documentElement.style.overflow
-        document.body.style.overflow = "hidden"
-        document.documentElement.style.overflow = "hidden"
-        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
-        window.addEventListener("keydown", onKey)
-        return () => {
-            document.body.style.overflow = prevBody
-            document.documentElement.style.overflow = prevHtml
-            window.removeEventListener("keydown", onKey)
-        }
-    }, [onClose])
-
     const anterior = () => setIndice(i => Math.max(0, i - 1))
     const siguiente = () => setIndice(i => Math.min(galeria.length - 1, i + 1))
 
@@ -216,7 +200,17 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
     useEffect(() => {
         setImagenLista(false)
         setDimFoto(null)
-    }, [fotoActualOptimizada])    // Servicios y compuestos no tienen inventario propio: nunca se "agotan"
+    }, [fotoActualOptimizada])
+
+    // Al cambiar de platillo (flechas del teclado o flechas laterales del modal),
+    // volver a la foto de portada y limpiar la variación seleccionada, como si
+    // el nuevo platillo se abriera desde cero.
+    useEffect(() => {
+        setIndice(0)
+        setVariacionSel("")
+    }, [producto])
+
+    // Servicios y compuestos no tienen inventario propio: nunca se "agotan"
     const esSinStock = producto.tipo_producto !== undefined && producto.tipo_producto !== "stock"
     const agotado = !esSinStock && producto.stock_total <= 0
     // Nombre base para los archivos descargados + descarga de todas las fotos
@@ -258,6 +252,49 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
         mq.addEventListener("change", actualizar)
         return () => mq.removeEventListener("change", actualizar)
     }, [])
+
+    // Teclado del modal: Escape cierra; ← / → navega platillos (modo Menú
+    // Carta en pantallas grandes, igual que las flechas laterales) o fotos
+    // (modal estilo IG en móvil / otros templates).
+    const onTeclaGlobal = useCallback((e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+            onClose()
+            return
+        }
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return
+        // Modo Menú Carta en desktop: las flechas alternan PLATILLOS
+        if (config.template === "menu-carta" && !esPantallaChica && listaNavegable && listaNavegable.length > 1) {
+            const idx = listaNavegable.findIndex(p => p.producto === producto.producto)
+            if (idx < 0) return
+            const destino = e.key === "ArrowLeft" ? listaNavegable[idx - 1] : listaNavegable[idx + 1]
+            if (destino) {
+                e.preventDefault()
+                onNavegar?.(destino)
+            }
+            return
+        }
+        // Resto de casos: las flechas cambian la FOTO del carrusel
+        if (galeria.length > 1) {
+            e.preventDefault()
+            if (e.key === "ArrowLeft") setIndice(i => Math.max(0, i - 1))
+            else setIndice(i => Math.min(galeria.length - 1, i + 1))
+        }
+    }, [onClose, config.template, esPantallaChica, listaNavegable, producto.producto, galeria.length, onNavegar])
+
+    // Bloquear el scroll de la página (body + html) mientras el modal está abierto
+    // y registrar el manejo del teclado
+    useEffect(() => {
+        const prevBody = document.body.style.overflow
+        const prevHtml = document.documentElement.style.overflow
+        document.body.style.overflow = "hidden"
+        document.documentElement.style.overflow = "hidden"
+        window.addEventListener("keydown", onTeclaGlobal)
+        return () => {
+            document.body.style.overflow = prevBody
+            document.documentElement.style.overflow = prevHtml
+            window.removeEventListener("keydown", onTeclaGlobal)
+        }
+    }, [onTeclaGlobal])
 
     // ══════════════════════════════════════════════════════════════════════
     // MODO MENÚ CARTA — port del DishModal de Santa Fé:
