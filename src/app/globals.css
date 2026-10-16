@@ -659,9 +659,9 @@
   --border-primary: hsl(23, 15%, 17%);
 
   /* Tipografía — nunca blanco puro, reduce fatiga visual */
-  --text-main: hsl(43, 100%, 50%);
+  --text-main: hsl(14, 21%, 88%);
   --text-muted: hsl(32, 16%, 55%);
-  --text-white: hsl(38, 100%, 88%);
+  --text-white: hsl(45, 20%, 92%);
 
   /* --- EFECTOS & SOMBRAS --- */
   --card-shadow: 0 4px 24px 0 hsl(0 0% 0% / 30%);
