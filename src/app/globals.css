@@ -659,7 +659,7 @@
   --border-primary: hsl(23, 15%, 17%);
 
   /* Tipografía — nunca blanco puro, reduce fatiga visual */
-  --text-main: hsl(43, 100%, 87%);
+  --text-main: hsl(43, 100%, 50%);
   --text-muted: hsl(32, 16%, 55%);
   --text-white: hsl(38, 100%, 88%);
 
