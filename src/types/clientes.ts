@@ -18,6 +18,26 @@ export interface ClienteCampos {
 
 export type ModoPuntos = "por_gasto" | "fijo"
 
+// ── CRM (Fase B: migs 054/055) ────────────────────────────────────────────────
+
+/** Etiqueta libre del negocio (catálogo por tenant). */
+export interface Etiqueta {
+    id: string
+    nombre: string
+    color: string
+}
+
+/** Registro del timeline de seguimiento de un cliente. */
+export type TipoInteraccion = "nota" | "llamada" | "visita" | "promo"
+
+export interface Interaccion {
+    id: string
+    tipo: TipoInteraccion
+    texto: string
+    creado_por: string
+    fecha: string
+}
+
 export interface Cliente {
     id: string
     nombre: string
@@ -26,6 +46,11 @@ export interface Cliente {
     notas: string | null
     activo: boolean
     fecha_registro: string
+    /** CRM: cumpleaños (YYYY-MM-DD) y canal/campaña de adquisición. */
+    cumpleanos: string | null
+    origen: string | null
+    /** Etiquetas asignadas (viene del SQL como array de {id, nombre, color}). */
+    etiquetas: Etiqueta[]
     saldo_puntos: number
     compras: number
     total_gastado: number
@@ -51,10 +76,58 @@ export interface CompraCliente {
     cantidad_items: number
 }
 
-/** Detalle de UN cliente (GET /clientes/{id}): incluye historial. */
+/** Detalle de UN cliente (GET /clientes/{id}): incluye historial + timeline. */
 export interface ClienteDetalle extends Cliente {
     movimientos: MovimientoPuntos[]
     ultimas_compras: CompraCliente[]
+    interacciones: Interaccion[]
+}
+
+/** Segmento dinámico (GET /clientes/segmentos): censado contra compras/puntos. */
+export interface Segmento {
+    id: string
+    nombre: string
+    descripcion: string
+    conteo: number
+    ids: string[]
+}
+
+/** LTV de un cliente (recalculado on-demand; nada persistido). */
+export interface LtvCliente {
+    cliente_id: string
+    nombre: string
+    activo: boolean
+    compras: number
+    gasto: number
+    ticket_promedio: number
+    frecuencia_mensual: number
+    dias_sin_comprar: number
+    ltv_historico: number
+    ltv_proyectado: number
+}
+
+export interface LtvSegmento {
+    id: string
+    nombre: string
+    conteo: number
+    ltv_promedio: number
+    ltv_total: number
+    gasto_historico: number
+}
+
+/** Respuesta completa del LTV (GET /clientes/ltv). */
+export interface LtvResumen {
+    global: {
+        horizonte_meses: number
+        /** 0..1; en la UI se muestra como %. */
+        tasa_retencion: number
+        clientes_con_compras: number
+        clientes_recurrentes: number
+        ltv_promedio_proyectado: number
+        gasto_total_historico: number
+    }
+    segmentos: LtvSegmento[]
+    clientes: LtvCliente[]
 }
 
 /** Un punto de la serie temporal (por período). */

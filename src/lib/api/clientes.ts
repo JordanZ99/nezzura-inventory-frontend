@@ -1,5 +1,8 @@
 import { request, conQuery } from "./client"
-import type { Cliente, ClienteDetalle, ResumenClientes } from "@/types"
+import type {
+    Cliente, ClienteDetalle, ResumenClientes,
+    Etiqueta, Segmento, LtvResumen, Interaccion, TipoInteraccion,
+} from "@/types"
 
 export interface CrearClientePayload {
     nombre: string
@@ -7,6 +10,9 @@ export interface CrearClientePayload {
     telefono?: string
     pin?: string
     notas?: string
+    /** CRM: cumpleaños ISO (YYYY-MM-DD) y canal/campaña de adquisición. */
+    cumpleanos?: string | null
+    origen?: string | null
 }
 
 export interface ActualizarClientePayload {
@@ -17,6 +23,9 @@ export interface ActualizarClientePayload {
     pin?: string
     notas?: string
     activo?: boolean
+    /** CRM: undefined = sin cambio; "" = borrar; "YYYY-MM-DD" = fijar. */
+    cumpleanos?: string | ""
+    origen?: string
 }
 
 export const clientesApi = {
@@ -58,4 +67,46 @@ export const clientesApi = {
             todo: params?.todo,
             granularidad: params?.granularidad,
         })),
+
+    // ── CRM (Fase B: etiquetas libres, timeline, segmentos y LTV) ──
+
+    //Catálogo de etiquetas del negocio (con conteo de clientes por etiqueta).
+    getEtiquetas: () => request<Etiqueta[]>("/clientes/etiquetas"),
+
+    crearEtiqueta: (nombre: string, color?: string) =>
+        request<{ ok: boolean; etiqueta: Etiqueta }>("/clientes/etiquetas", {
+            method: "POST", body: JSON.stringify({ nombre, color: color ?? null }),
+        }),
+
+    actualizarEtiqueta: (id: string, data: { nombre?: string; color?: string }) =>
+        request<{ ok: boolean; etiqueta: Etiqueta }>(`/clientes/etiquetas/${id}`, {
+            method: "PATCH", body: JSON.stringify(data),
+        }),
+
+    //Elimina la etiqueta y la desasigna de todos los clientes (CASCADE).
+    eliminarEtiqueta: (id: string) =>
+        request<{ ok: boolean; mensaje: string }>(`/clientes/etiquetas/${id}`, { method: "DELETE" }),
+
+    //Sincroniza el set de etiquetas de UN cliente (replace-all): la lista
+    //enviada ES el resultado final.
+    setEtiquetasCliente: (idCliente: string, etiquetaIds: string[]) =>
+        request<{ ok: boolean; etiquetas: Etiqueta[] }>(`/clientes/${idCliente}/etiquetas`, {
+            method: "PUT", body: JSON.stringify({ etiqueta_ids: etiquetaIds }),
+        }),
+
+    //Nueva nota de seguimiento: nota | llamada | visita | promo.
+    addInteraccion: (idCliente: string, tipo: TipoInteraccion, texto: string, creadoPor?: string) =>
+        request<{ ok: boolean; interaccion: Interaccion }>(`/clientes/${idCliente}/interacciones`, {
+            method: "POST", body: JSON.stringify({ tipo, texto, creado_por: creadoPor ?? null }),
+        }),
+
+    getInteracciones: (idCliente: string, limite = 50) =>
+        request<Interaccion[]>(conQuery(`/clientes/${idCliente}/interacciones`, { limite })),
+
+    //Segmentos dinámicos de la cartera activa (censados contra compras/puntos).
+    getSegmentos: () => request<Segmento[]>("/clientes/segmentos"),
+
+    //LTV con datos observados: por cliente, resumen global y por segmento.
+    getLtv: (horizonteMeses = 12) =>
+        request<LtvResumen>(conQuery("/clientes/ltv", { horizonte_meses: horizonteMeses })),
 }
