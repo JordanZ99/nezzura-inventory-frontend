@@ -36,6 +36,8 @@ interface Props {
     inv: Producto[]
     capturas: Record<string, number | null>
     onMarcar: (producto: string, variacion: string, valor: number | null) => void
+    /** Alta de renglón manual (producto nunca registrado). Devuelve false si falló. */
+    onAgregarManual: (producto: string, inicial: number | null) => Promise<boolean>
     relacionImagen: string
 }
 
@@ -103,18 +105,40 @@ function StepperConteo({ fila, contado, onMarcar }: { fila: FilaConteo; contado:
 }
 
 /** Grid de captura del conteo. */
-export default function GridConteo({ items, inv, capturas, onMarcar, relacionImagen }: Props) {
+export default function GridConteo({ items, inv, capturas, onMarcar, onAgregarManual, relacionImagen }: Props) {
     const [buscador, setBuscador] = useState("")
     const [buscadorDebounced, setBuscadorDebounced] = useState("")
     const [catSelec, setCatSelec] = useState("Todas")
     const [orden, setOrden] = useState("pendientes")
     const [aCiegas, setACiegas] = useState(false)
+    // Alta manual de un producto no registrado (056)
+    const [modalManual, setModalManual] = useState(false)
+    const [nombreManual, setNombreManual] = useState("")
+    const [inicialManual, setInicialManual] = useState("")
+    const [agregandoManual, setAgregandoManual] = useState(false)
 
     // Debounce del buscador (mismo patrón que useInventarioUI, 300ms)
     useEffect(() => {
         const timer = setTimeout(() => setBuscadorDebounced(buscador), 300)
         return () => clearTimeout(timer)
     }, [buscador])
+
+    /** Alta manual: envía nombre + inicial (opcional) y limpia el mini-form. */
+    async function agregarManual() {
+        const nombre = nombreManual.trim()
+        if (!nombre || agregandoManual) return
+        const texto = inicialManual.trim()
+        let inicial: number | null = null
+        if (texto) {
+            const num = parseFloat(texto.replace(",", "."))
+            if (isNaN(num) || num < 0) return
+            inicial = num
+        }
+        setAgregandoManual(true)
+        const ok = await onAgregarManual(nombre, inicial)
+        setAgregandoManual(false)
+        if (ok) { setModalManual(false); setNombreManual(""); setInicialManual("") }
+    }
 
     // Renglones enriquecidos con la ficha del producto (imagen, categorías,
     // códigos, fraccionable) + el contado LOCAL (lo que el usuario lleva).
@@ -207,6 +231,20 @@ export default function GridConteo({ items, inv, capturas, onMarcar, relacionIma
                 </div>
             </div>
 
+            {/* Alta manual: productos que nunca se registraron */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+                <button
+                    onClick={() => setModalManual(true)}
+                    style={{
+                        display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 10,
+                        border: "1px dashed var(--border-primary)", background: "var(--bg-card)",
+                        color: "var(--primary-dark)", fontWeight: 700, fontSize: "0.75rem", cursor: "pointer",
+                    }}
+                >
+                    <Icon name="PackagePlus" size={14} /> Agregar producto no registrado
+                </button>
+            </div>
+
             {/* Grid de renglones */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
                 {visibles.length === 0 ? (
@@ -218,7 +256,9 @@ export default function GridConteo({ items, inv, capturas, onMarcar, relacionIma
                 ) : (
                     visibles.map(fila => {
                         const contado = fila.contado
-                        const delta = contado === null ? null : Math.round((contado - fila.esperado) * 1000) / 1000
+                        // Manual: el "sistema" es el inicial declarado (o nada).
+                        const base = fila.origen === "manual" ? (fila.inicial ?? null) : fila.esperado
+                        const delta = contado === null || base === null ? null : Math.round((contado - base) * 1000) / 1000
                         return (
                             <div key={fila.id} className="card fade-up" style={{ padding: 12, transition: "transform 0.15s, box-shadow 0.15s" }}
                                 onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 30px var(--primary-glow)" }}
@@ -245,6 +285,11 @@ export default function GridConteo({ items, inv, capturas, onMarcar, relacionIma
                                 <p style={{ fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                     {fila.producto}
                                 </p>
+                                {fila.origen === "manual" && (
+                                    <span style={{ display: "inline-block", fontSize: "0.62rem", fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-bg)", border: "1px solid var(--border-primary)", borderRadius: 6, padding: "1px 6px", marginBottom: 2 }}>
+                                        No registrado
+                                    </span>
+                                )}
                                 {fila.variacion && (
                                     <span style={{ display: "inline-block", fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "var(--bg-card2)", borderRadius: 6, padding: "2px 6px", marginBottom: 2 }}>
                                         {fila.variacion}
@@ -254,7 +299,9 @@ export default function GridConteo({ items, inv, capturas, onMarcar, relacionIma
                                 {!aCiegas && (
                                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                                         <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)" }}>
-                                            Sistema: {fila.esperado}
+                                            {fila.origen === "manual"
+                                                ? `Inicial: ${fila.inicial ?? "—"}`
+                                                : `Sistema: ${fila.esperado}`}
                                         </span>
                                         {delta !== null && (
                                             <span style={{
@@ -281,6 +328,57 @@ export default function GridConteo({ items, inv, capturas, onMarcar, relacionIma
                     })
                 )}
             </div>
+
+            {/* ── Modal: alta de producto no registrado ── */}
+            {modalManual && (
+                <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 24 }}
+                    onClick={() => !agregandoManual && setModalManual(false)}
+                >
+                    <div className="card" onClick={e => e.stopPropagation()} style={{ maxWidth: 420, width: "100%", padding: 24, gap: 14, display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", border: "1px solid var(--border-light)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--gradient-1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                <Icon name="PackagePlus" size={24} color="#fff" />
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>Producto no registrado</h3>
+                        </div>
+                        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)", fontWeight: 600, lineHeight: 1.5 }}>
+                            Para mercancía que nunca diste de alta: cuenta lo que queda y,
+                            al cerrar, se dará de alta con el costo/precio que indiques.
+                        </p>
+                        <div>
+                            <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", marginBottom: 4 }}>Nombre *</label>
+                            <input className="input-primary" autoFocus maxLength={200}
+                                placeholder="Ej. Collar artesanal azul"
+                                value={nombreManual}
+                                onChange={e => setNombreManual(e.target.value)}
+                                onKeyDown={e => { if (e.key === "Enter") agregarManual() }}
+                                style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, fontSize: "0.85rem", outline: "none" }} />
+                        </div>
+                        <div>
+                            <label style={{ display: "block", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", marginBottom: 4 }}>¿Cuánto había al inicio? (opcional)</label>
+                            <input type="number" inputMode="decimal" min={0} step="1"
+                                placeholder="Para estimar cuánto vendió al cerrar"
+                                value={inicialManual}
+                                onChange={e => setInicialManual(e.target.value)}
+                                onKeyDown={e => { if (e.key === "Enter") agregarManual() }}
+                                style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, fontSize: "0.85rem", outline: "none" }} />
+                            <p style={{ margin: "6px 0 0", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                Si lo pones y queda menos, al cerrar se declara la venta de la diferencia con el precio que captures.
+                            </p>
+                        </div>
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                            <button onClick={() => setModalManual(false)} disabled={agregandoManual}
+                                style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>
+                                Cancelar
+                            </button>
+                            <button className="btn-primary" onClick={agregarManual} disabled={!nombreManual.trim() || agregandoManual}>
+                                <Icon name={agregandoManual ? "LoaderCircle" : "Plus"} size={15} />
+                                {agregandoManual ? "Agregando…" : "Agregar al conteo"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     )
 }

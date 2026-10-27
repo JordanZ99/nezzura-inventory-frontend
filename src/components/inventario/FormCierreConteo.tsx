@@ -3,7 +3,12 @@
 // Pantalla de cierre del conteo: lista SOLO las diferencias contra el stock
 // VIVO (lo que el backend resolverá) y pide la decisión por renglón:
 //   - Faltantes:  Merma (default) | Se vendió | Stock estaba mal
+//     'Se vendió' admite un precio REAL por renglón (subasta, descuento,
+//     oferta); vacío = precio de lista del lote PEPS (comportamiento previo).
 //   - Sobrantes:  Stock estaba mal (default) | Llegó sin registrar (costo/precio opcional)
+//   - No registrados (056): renglones manuales — el producto se da de alta
+//     con lo contado y, si declaró 'inicial', la venta se declara con el
+//     precio REAL capturado (requerido: no hay precio de lista).
 // "Todo merma" clasifica en bloque; la fecha aplica a las ventas declaradas
 // (para que el bazar del sábado caiga al día contable del sábado). La
 // confirmación final resume lo que se aplicará antes de tocar cualquier stock.
@@ -59,6 +64,12 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
     const [resoluciones, setResoluciones] = useState<Record<string, Resolucion>>({})
     // Costo/precio opcionales para "Ingreso no registrado" (default: último lote)
     const [extras, setExtras] = useState<Record<string, { costo: string; precio: string }>>({})
+    // Datos por renglón MANUAL: costo unitario (venta + lote), precio a futuro
+    // del lote y precio REAL de la venta declarada (requerido si vendió).
+    const [manualesExtras, setManualesExtras] = useState<Record<string, { costo: string; precio: string; real: string }>>({})
+    // Precio REAL capturado por renglón vendido (subasta, descuento, oferta).
+    // Vacío = usar el precio de lista (comportamiento anterior).
+    const [preciosReales, setPreciosReales] = useState<Record<string, string>>({})
     const [fecha, setFecha] = useState<string>(hoyLocal())
     const [confirmando, setConfirmando] = useState(false)
 
@@ -82,19 +93,43 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
         return p.precio_venta
     }
 
+    // Precio REAL por unidad del renglón vendido: lo que el usuario capturó
+    // en el input (vacío/inválido = precio de lista). Es la misma cifra que
+    // enviará el backend al crear las ventas retroactivas.
+    const precioRealDe = (f: FilaCierre): number => {
+        const texto = preciosReales[claveDe(f.item)]
+        if (texto === undefined) return precioDe(f)
+        const num = parseFloat(texto.replace(",", "."))
+        return isNaN(num) || num < 0 ? precioDe(f) : num
+    }
+
     const filas: FilaCierre[] = useMemo(() => items.map(item => {
         const contado = capturas[claveConteo(item.producto, item.variacion)] ?? null
-        const vivo = vivoDe(item)
+        // Manual (056): no hay stock de sistema — el "vivo" es el inicial
+        // declarado por el usuario (negativo de delta = vendió).
+        const manual = (item.origen ?? "snapshot") === "manual"
+        const vivo = manual ? (item.inicial ?? null) : vivoDe(item)
         const delta = contado !== null && vivo !== null ? Math.round((contado - vivo) * 1000) / 1000 : null
         return { item, contado, vivo, delta }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [items, inv, capturas])
 
-    const sinContar = filas.filter(f => f.contado === null)
-    const omitidos = filas.filter(f => f.contado !== null && f.vivo === null)
-    const cuadran = filas.filter(f => f.delta !== null && Math.abs(f.delta) <= EPSILON)
-    const faltantes = filas.filter(f => f.delta !== null && f.delta < -EPSILON)
-    const sobrantes = filas.filter(f => f.delta !== null && f.delta > EPSILON)
+    // Manuales: productos que nunca se registraron (se dan de alta al cerrar).
+    const manuales = filas.filter(f => (f.item.origen ?? "snapshot") === "manual")
+    const manualesActivos = manuales.filter(f => f.contado !== null)
+    const manualesSinContar = manuales.filter(f => f.contado === null)
+    // Snapshot: renglones normales con stock del sistema.
+    const snapshot = filas.filter(f => (f.item.origen ?? "snapshot") !== "manual")
+
+    /** Uds vendidas de un renglón manual (inicial − contado); null si no declaró inicial. */
+    const vendidasDe = (f: FilaCierre): number | null =>
+        f.item.inicial != null ? Math.round((f.item.inicial - (f.contado ?? 0)) * 1000) / 1000 : null
+
+    const sinContar = snapshot.filter(f => f.contado === null)
+    const omitidos = snapshot.filter(f => f.contado !== null && f.vivo === null)
+    const cuadran = snapshot.filter(f => f.delta !== null && Math.abs(f.delta) <= EPSILON)
+    const faltantes = snapshot.filter(f => f.delta !== null && f.delta < -EPSILON)
+    const sobrantes = snapshot.filter(f => f.delta !== null && f.delta > EPSILON)
 
     const claveDe = (item: { producto: string; variacion: string }) =>
         claveConteo(item.producto, item.variacion)
@@ -127,7 +162,7 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
             const res = resolucionDe(f)
             const uds = Math.abs(f.delta ?? 0)
             if (res === "merma") { mermas++; mermaUds += uds; mermaCosto += uds * (productoDe(f.item)?.costo_promedio ?? 0) }
-            else if (res === "venta") { ventas++; ventaUds += uds; ventaTotal += uds * precioDe(f) }
+            else if (res === "venta") { ventas++; ventaUds += uds; ventaTotal += uds * precioRealDe(f) }
             else ajustes++
         }
         for (const f of sobrantes) {
@@ -136,9 +171,23 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
             if (res === "entrada_no_registrada") { entradas++; entradasUds += uds }
             else ajustes++
         }
-        return { mermas, mermaUds, mermaCosto, ventas, ventaUds, ventaTotal, entradas, entradasUds, ajustes }
+        // Manuales (056): venta declarada con precio REAL + alta del remanente
+        let manualesAltas = 0, manualesAltasUds = 0
+        for (const f of manualesActivos) {
+            const ex = manualesExtras[claveDe(f.item)]
+            const parse = (s?: string) => { const n = parseFloat((s ?? "").replace(",", ".")); return isNaN(n) || n < 0 ? null : n }
+            const real = parse(ex?.real)
+            const vendidas = vendidasDe(f)
+            if (vendidas !== null && vendidas > EPSILON) {
+                ventas++
+                ventaUds += vendidas
+                ventaTotal += vendidas * (real ?? 0)
+            }
+            if ((f.contado ?? 0) > EPSILON) { manualesAltas++; manualesAltasUds += f.contado ?? 0 }
+        }
+        return { mermas, mermaUds, mermaCosto, ventas, ventaUds, ventaTotal, entradas, entradasUds, ajustes, manualesAltas, manualesAltasUds }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filas, resoluciones, inv])
+    }, [filas, resoluciones, preciosReales, manualesExtras, inv])
 
     function construirPayload(): ResolucionConteoItem[] {
         const out: ResolucionConteoItem[] = []
@@ -149,6 +198,13 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
                 variacion: f.item.variacion,
                 resolucion: res,
             }
+            if (res === "venta") {
+                // Solo se declara el precio real si el usuario lo cambió: así
+                // el backend sigue usando el precio de lista de cada chunk
+                // PEPS cuando el precio real es el de catálogo.
+                const real = precioRealDe(f)
+                if (Math.abs(real - precioDe(f)) > 0.0001) item.precio_real = real
+            }
             if (res === "entrada_no_registrada") {
                 const ex = extras[claveDe(f.item)]
                 const costo = parseFloat((ex?.costo ?? "").replace(",", "."))
@@ -156,6 +212,30 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
                 if (!isNaN(costo) && costo >= 0) item.costo = costo
                 if (!isNaN(precio) && precio >= 0) item.precio_venta = precio
             }
+            out.push(item)
+        }
+        // Manuales (056): el producto no registrado se da de alta al cerrar;
+        // si declaró 'inicial' y vendió, la diferencia va como venta con el
+        // precio REAL (el backend lo exige: no hay precio de lista).
+        const parseNum = (s?: string) => {
+            const n = parseFloat((s ?? "").replace(",", "."))
+            return isNaN(n) || n < 0 ? null : n
+        }
+        for (const f of manualesActivos) {
+            const ex = manualesExtras[claveDe(f.item)]
+            const vendidas = vendidasDe(f)
+            const res: Resolucion = vendidas !== null && vendidas > EPSILON ? "venta" : "entrada_no_registrada"
+            const item: ResolucionConteoItem = {
+                producto: f.item.producto,
+                variacion: f.item.variacion,
+                resolucion: res,
+            }
+            const costo = parseNum(ex?.costo)
+            const precio = parseNum(ex?.precio)
+            const real = parseNum(ex?.real)
+            if (costo !== null) item.costo = costo
+            if (res === "venta" && real !== null) item.precio_real = real
+            if (precio !== null) item.precio_venta = precio
             out.push(item)
         }
         return out
@@ -209,12 +289,12 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
             {/* Resumen de estado */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8, fontSize: "0.78rem", fontWeight: 600, color: "var(--text-muted)" }}>
                 <span>✓ {cuadran.length} cuadran</span>
-                {(sinContar.length > 0 || omitidos.length > 0) && <span>— {sinContar.length + omitidos.length} sin contar (se quedan como están)</span>}
+                {(sinContar.length > 0 || omitidos.length > 0 || manualesSinContar.length > 0) && <span>— {sinContar.length + omitidos.length + manualesSinContar.length} sin contar (se quedan como están)</span>}
                 {faltantes.length > 0 && <span style={{ color: "var(--error-text)" }}>− {faltantes.length} faltantes</span>}
                 {sobrantes.length > 0 && <span style={{ color: "var(--success-text)" }}>+ {sobrantes.length} sobrantes</span>}
             </div>
 
-            {cuadran.length === filas.length && faltantes.length === 0 && sobrantes.length === 0 ? (
+            {cuadran.length === snapshot.length && manualesActivos.length === 0 && faltantes.length === 0 && sobrantes.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "30px 16px" }}>
                     <Icon name="CircleCheck" size={44} color="var(--success-main)" />
                     <h3 style={{ margin: "10px 0 6px", fontSize: "1.05rem", fontWeight: 800, color: "var(--text-main)" }}>Todo cuadra</h3>
@@ -252,11 +332,27 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
                                             <p style={{ margin: "2px 0 0", fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)" }}>
                                                 Sistema: {f.vivo} → Contado: {f.contado} · <b style={{ color: "var(--error-text)" }}>faltan {Math.abs(f.delta ?? 0)}</b>
                                             </p>
-                                            {res === "venta" && (
-                                                <p style={{ margin: "2px 0 0", fontSize: "0.68rem", fontWeight: 700, color: "var(--primary-mid)" }}>
-                                                    Se creará una venta retroactiva de {Math.abs(f.delta ?? 0)} × ${precioDe(f).toFixed(2)} (≈ ${(Math.abs(f.delta ?? 0) * precioDe(f)).toFixed(2)})
-                                                </p>
-                                            )}
+                                            {res === "venta" && (() => {
+                                                const uds = Math.abs(f.delta ?? 0)
+                                                const lista = precioDe(f)
+                                                const real = precioRealDe(f)
+                                                const custom = Math.abs(real - lista) > 0.0001
+                                                return (
+                                                    <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
+                                                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                                                            Precio real al que vendió (vacío = lista):
+                                                        </span>
+                                                        <input type="number" min={0} step="0.01" inputMode="decimal"
+                                                            placeholder={`Lista $${lista.toFixed(2)}`}
+                                                            value={preciosReales[claveDe(f.item)] ?? ""}
+                                                            onChange={e => setPreciosReales(prev => ({ ...prev, [claveDe(f.item)]: e.target.value }))}
+                                                            style={{ width: 100, padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-main)", fontSize: "0.72rem", outline: "none" }} />
+                                                        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--primary-mid)" }}>
+                                                            Venta retroactiva: {uds} × ${real.toFixed(2)} = ${(uds * real).toFixed(2)}{custom ? ` (lista $${lista.toFixed(2)})` : ""}
+                                                        </span>
+                                                    </div>
+                                                )
+                                            })()}
                                         </div>
                                         {chips(f, ["merma", "venta", "error_sistema"], { ...ETIQUETA_FALTANTE, entrada_no_registrada: "" })}
                                     </div>
@@ -323,6 +419,55 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
                         </div>
                     )}
 
+                    {/* ── No registrados (manuales, 056) ── */}
+                    {manualesActivos.length > 0 && (
+                        <div style={{ marginBottom: 18 }}>
+                            <h3 style={{ margin: "0 0 8px", fontSize: "0.85rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                No registrados ({manualesActivos.length}) — se darán de alta al cerrar
+                            </h3>
+                            {manualesActivos.map(f => {
+                                const clave = claveDe(f.item)
+                                const ex = manualesExtras[clave] ?? { costo: "", precio: "", real: "" }
+                                const vendidas = vendidasDe(f)
+                                const vendio = vendidas !== null && vendidas > EPSILON
+                                return (
+                                    <div key={f.item.id} style={{ padding: "10px 12px", borderBottom: "1px solid var(--border-light)" }}>
+                                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.82rem", color: "var(--text-main)" }}>
+                                            {f.item.producto}{" "}
+                                            <span style={{ fontSize: "0.62rem", fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-bg)", border: "1px solid var(--border-primary)", borderRadius: 6, padding: "1px 6px" }}>No registrado</span>
+                                        </p>
+                                        <p style={{ margin: "2px 0 0", fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)" }}>
+                                            {vendidas !== null
+                                                ? <>Había {f.item.inicial} → Contado: {f.contado} · {vendio ? <b style={{ color: "var(--primary-mid)" }}>vendió {vendidas}</b> : "sin venta declarada"}</>
+                                                : <>Se dará de alta con {f.contado} uds</>}
+                                        </p>
+                                        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+                                            {vendio && (
+                                                <>
+                                                    <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)" }}>Precio real de la venta *:</span>
+                                                    <input type="number" min={0} step="0.01" inputMode="decimal" placeholder="Requerido"
+                                                        value={ex.real}
+                                                        onChange={e => setManualesExtras(prev => ({ ...prev, [clave]: { ...ex, real: e.target.value } }))}
+                                                        style={{ width: 100, padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-main)", fontSize: "0.72rem", outline: "none" }} />
+                                                </>
+                                            )}
+                                            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)" }}>Costo (opcional):</span>
+                                            <input type="number" min={0} step="0.01" inputMode="decimal" placeholder="Costo"
+                                                value={ex.costo}
+                                                onChange={e => setManualesExtras(prev => ({ ...prev, [clave]: { ...ex, costo: e.target.value } }))}
+                                                style={{ width: 100, padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-main)", fontSize: "0.72rem", outline: "none" }} />
+                                            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)" }}>{vendio ? "Precio a futuro (default: real):" : "Precio (opcional):"}</span>
+                                            <input type="number" min={0} step="0.01" inputMode="decimal" placeholder={vendio ? "Default: real" : "Precio"}
+                                                value={ex.precio}
+                                                onChange={e => setManualesExtras(prev => ({ ...prev, [clave]: { ...ex, precio: e.target.value } }))}
+                                                style={{ width: 100, padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-main)", fontSize: "0.72rem", outline: "none" }} />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+
                     {/* ── Acciones ── */}
                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
                         <button onClick={onVolver} disabled={cerrando} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>
@@ -357,11 +502,14 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
                             {resumenConfirmacion.entradas > 0 && (
                                 <div>• {resumenConfirmacion.entradas} ingresos no registrados: +{resumenConfirmacion.entradasUds} uds al inventario</div>
                             )}
+                            {resumenConfirmacion.manualesAltas > 0 && (
+                                <div>• {resumenConfirmacion.manualesAltas} productos no registrados se darán de alta: +{resumenConfirmacion.manualesAltasUds} uds</div>
+                            )}
                             {resumenConfirmacion.ajustes > 0 && (
                                 <div>• {resumenConfirmacion.ajustes} correcciones de stock</div>
                             )}
-                            {sinContar.length + omitidos.length > 0 && (
-                                <div style={{ color: "var(--text-muted)" }}>• {sinContar.length + omitidos.length} renglones sin contar se quedan como están</div>
+                            {sinContar.length + omitidos.length + manualesSinContar.length > 0 && (
+                                <div style={{ color: "var(--text-muted)" }}>• {sinContar.length + omitidos.length + manualesSinContar.length} renglones sin contar se quedan como están</div>
                             )}
                         </div>
                         <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)" }}>

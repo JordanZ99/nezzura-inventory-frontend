@@ -163,13 +163,36 @@ export function useConteoData() {
         ])
     }
 
-    async function abrir(): Promise<boolean> {
+    /**
+     * Agrega un renglón MANUAL (producto que nunca se registró) al conteo
+     * abierto y refresca la sesión: el renglón llega del servidor como los
+     * demás, así el autosave y el respaldo de recarga lo cubren igual.
+     */
+    async function agregarManual(producto: string, inicial: number | null): Promise<boolean> {
+        const id = conteoIdRef.current
+        if (!id) return false
+        try {
+            const r = await api.agregarRenglonManual(id, { producto, inicial })
+            await invalidarSesion()
+            mostrarMsg(true, r.accion === "actualizado"
+                ? `"${producto}" ya estaba en el conteo — se actualizó su inicial`
+                : `"${producto}" agregado al conteo como no registrado`)
+            return true
+        } catch (e: unknown) {
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al agregar el renglón"}`)
+            return false
+        }
+    }
+
+    async function abrir(alcance?: import("@/types").AlcanceConteo | null): Promise<boolean> {
         if (abriendo || cerrando) return false
         setAbriendo(true)
         try {
-            await api.abrirConteo()
+            await api.abrirConteo(alcance)
             await invalidarSesion()
-            mostrarMsg(true, "Conteo iniciado — cuenta todo lo físico y ciérralo al terminar")
+            mostrarMsg(true, alcance
+                ? "Conteo parcial iniciado — cuenta solo lo del alcance y ciérralo al terminar"
+                : "Conteo iniciado — cuenta todo lo físico y ciérralo al terminar")
             return true
         } catch (e: unknown) {
             mostrarMsg(false, `${e instanceof Error ? e.message : "Error al iniciar el conteo"}`)
@@ -224,6 +247,7 @@ export function useConteoData() {
         capturas,
         marcarContado,
         guardandoCaptura,
+        agregarManual,
         abrir,
         abriendo,
         cerrar,

@@ -5,16 +5,19 @@
 // ==============================================================================
 
 import { conQuery, request } from "./client"
-import type { CapturaConteo, Conteo, ConteoItem, ResolucionConteoItem, ResumenConteo } from "@/types"
+import type { AlcanceConteo, CapturaConteo, Conteo, ConteoItem, ResolucionConteoItem, RenglonManualConteo, ResumenConteo } from "@/types"
 
 export const conteosApi = {
     /** Sesión abierta (con sus renglones) o conteo: null si no hay ninguna. */
     getConteoActivo: () =>
         request<{ ok: boolean; conteo: Conteo | null; items: ConteoItem[] }>("/inventario/conteos/activo"),
 
-    /** Abre una sesión congelando el snapshot del stock actual. */
-    abrirConteo: () =>
-        request<{ ok: boolean; conteo: Conteo; items: ConteoItem[] }>("/inventario/conteos", { method: "POST" }),
+    /** Abre una sesión congelando el snapshot del stock actual. Con alcance = conteo parcial. */
+    abrirConteo: (alcance?: AlcanceConteo | null) =>
+        request<{ ok: boolean; conteo: Conteo; items: ConteoItem[] }>("/inventario/conteos", {
+            method: "POST",
+            body: JSON.stringify({ alcance: alcance ?? null }),
+        }),
 
     /** Autosave: fija el total contado (absoluto) de cada renglón. */
     guardarCapturas: (conteoId: string, items: CapturaConteo[]) =>
@@ -26,6 +29,16 @@ export const conteosApi = {
             method: "PATCH",
             body: JSON.stringify({ items }),
         }),
+
+    /**
+     * Agrega un renglón MANUAL al conteo abierto: producto que nunca se
+     * registró. Con 'inicial', al cerrar la diferencia se declara como venta.
+     * Idempotente si el nombre ya tiene renglón en este conteo.
+     */
+    agregarRenglonManual: (conteoId: string, data: RenglonManualConteo) =>
+        request<{ ok: boolean; accion: "creado" | "actualizado"; producto: string }>(
+            `/inventario/conteos/${conteoId}/items-manual`,
+            { method: "POST", body: JSON.stringify(data) }),
 
     /**
      * Cierra la sesión resolviendo cada diferencia contra el stock VIVO.

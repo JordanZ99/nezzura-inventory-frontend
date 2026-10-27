@@ -27,6 +27,18 @@ export interface ConteoItem {
     /** contado − vivo al cierre: negativo = faltante, positivo = sobrante */
     delta: number | null
     resolucion: ResolucionConteo | null
+    /** 'snapshot' = lo generó abrir_conteo; 'manual' = producto no registrado agregado a mano (056) */
+    origen?: "snapshot" | "manual"
+    /** Solo manual: cuánto había al inicio (para declarar la venta al cerrar) */
+    inicial?: number | null
+}
+
+/** Alta de renglón manual dentro del conteo (producto nunca registrado). */
+export interface RenglonManualConteo {
+    producto: string
+    /** Cuánto había al inicio: si contado < inicial, el cierre declara la venta */
+    inicial?: number | null
+    contado?: number | null
 }
 
 export interface ResumenConteo {
@@ -48,12 +60,21 @@ export interface ResumenConteo {
     gasto_merma_id?: number
 }
 
+/** Alcance de un conteo PARCIAL (057): categorías y/o productos (unión). */
+export interface AlcanceConteo {
+    categorias?: string[]
+    productos?: string[]
+    producto_ids?: number[]
+}
+
 export interface Conteo {
     id: string
     estado: "abierto" | "cerrado"
     abierto_at: string
     cerrado_at: string | null
     resumen: ResumenConteo | null
+    /** null = conteo completo; presente = conteo parcial (057) */
+    alcance?: AlcanceConteo | null
 }
 
 /** Autosave: total contado ABSOLUTO de un renglón (no un incremento). */
@@ -70,4 +91,6 @@ export interface ResolucionConteoItem {
     resolucion?: "merma" | "venta" | "error_sistema" | "entrada_no_registrada"
     costo?: number
     precio_venta?: number
+    /** Solo venta: precio REAL al que se vendió (subasta, descuento). Sin él se usa el precio de lista. */
+    precio_real?: number
 }

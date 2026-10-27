@@ -44,6 +44,18 @@ function ChipResumen({ etiqueta, tono }: { etiqueta: string; tono?: { color: str
     )
 }
 
+/** Texto resumen del alcance parcial (057): "Anillos, Collares + 3 productos elegidos". */
+function textoAlcance(alcance?: Conteo["alcance"]): string | null {
+    if (!alcance) return null
+    const partes: string[] = []
+    if (alcance.categorias?.length) partes.push(alcance.categorias.join(", "))
+    if (alcance.producto_ids?.length) {
+        const n = alcance.producto_ids.length
+        partes.push(`${n} producto${n === 1 ? "" : "s"} elegido${n === 1 ? "" : "s"}`)
+    }
+    return partes.length ? partes.join(" + ") : null
+}
+
 export default function HistorialConteos({ historial, cargando }: Props) {
     const [abiertoId, setAbiertoId] = useState<string | null>(null)
     const [detalle, setDetalle] = useState<{ conteo: Conteo; items: ConteoItem[] } | null>(null)
@@ -92,6 +104,11 @@ export default function HistorialConteos({ historial, cargando }: Props) {
                                 {expandido ? "Ocultar" : "Detalle"} <Icon name={expandido ? "ChevronUp" : "ChevronDown"} size={14} color="var(--primary-dark)" />
                             </button>
                         </div>
+                        {c.alcance && textoAlcance(c.alcance) && (
+                            <div style={{ marginBottom: 8 }}>
+                                <ChipResumen etiqueta={`Parcial: ${textoAlcance(c.alcance)}`} />
+                            </div>
+                        )}
                         {r && (
                             <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                                 <ChipResumen etiqueta={`✓ ${r.cuadrados} cuadraron`} tono={TONO_RESOLUCION.cuadrado} />
