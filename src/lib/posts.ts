@@ -113,6 +113,10 @@ export function construirUrlPreview(opts: {
     cfg: ConfigResuelta
     formato: string
     precio: number
+    /** Rango de precios por lote: si min/max difieren (>0), la tarjeta
+     *  muestra "$min – $max" en vez del precio único. */
+    precioMin?: number
+    precioMax?: number
     sufijo?: string
     foto?: string
     negocio?: string
@@ -130,6 +134,10 @@ export function construirUrlPreview(opts: {
     params.set("mostrar", JSON.stringify(opts.cfg.mostrar))
     params.set("formato", opts.formato)
     params.set("precio", String(opts.precio ?? 0))
+    if (opts.precioMin != null && opts.precioMax != null && opts.precioMax > opts.precioMin && opts.precioMin > 0) {
+        params.set("precio_min", String(opts.precioMin))
+        params.set("precio_max", String(opts.precioMax))
+    }
     if (opts.sufijo) params.set("sufijo", opts.sufijo)
     if (opts.foto) params.set("foto", opts.foto)
     if (opts.negocio) params.set("negocio", opts.negocio)

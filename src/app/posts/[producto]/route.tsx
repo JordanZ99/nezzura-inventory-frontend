@@ -627,6 +627,12 @@ export async function GET(request: Request, { params }: { params: { producto: st
         template === "marco" ? 44 : 66
     )
     const precio = Number(q.get("precio") || 0)
+    // Rango de precios por lote (precio_min < precio_max con stock): la
+    // tarjeta muestra "$min – $max" en vez del precio único. Si no hay rango
+    // (o los params no llegan), se ve exactamente como siempre.
+    const precioMin = Number(q.get("precio_min") || 0)
+    const precioMax = Number(q.get("precio_max") || 0)
+    const hayRango = precioMin > 0 && precioMax > precioMin
     const sufijo = (q.get("sufijo") || "").trim()
     const foto = q.get("foto") || ""
     const negocio = (q.get("negocio") || "").trim()
@@ -665,11 +671,14 @@ export async function GET(request: Request, { params }: { params: { producto: st
     // ── Escala: tamaños de texto proporcionales al canvas ──
     const escala = W / 1080
     const fontNombre = Math.round(64 * escala)      // ~64px en 1080
-    const fontPrecio = Math.round(56 * escala)
+    // Con rango el precio es más largo ("$120 – $160"): baja un escalón para que respire.
+    const fontPrecio = Math.round((hayRango ? 46 : 56) * escala)
     const fontNegocio = Math.round(32 * escala)
 
     const tieneFoto = Boolean(foto && foto !== "No hay foto")
-    const precioTexto = formatearPrecio(precio)
+    const precioTexto = hayRango
+        ? `${formatearPrecio(precioMin)} – ${formatearPrecio(precioMax)}`
+        : formatearPrecio(precio)
     const precioFinal = sufijo ? `${precioTexto} · ${sufijo}` : precioTexto
 
     const ctx: CtxTarjeta = {

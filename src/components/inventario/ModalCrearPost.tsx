@@ -206,6 +206,8 @@ export default function ModalCrearPost({ producto, onClose, onOverrideGuardado }
                 cfg,
                 formato,
                 precio: producto.precio_venta ?? 0,
+                precioMin: producto.precio_min,
+                precioMax: producto.precio_max,
                 sufijo: producto.sufijo_precio,
                 foto: fotoElegida,
                 negocio: configCatalogo?.titulo,

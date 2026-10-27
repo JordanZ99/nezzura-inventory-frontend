@@ -67,6 +67,8 @@ export default function PostsLote() {
                 cfg,
                 formato,
                 precio: p.precio_venta ?? 0,
+                precioMin: p.precio_min,
+                precioMax: p.precio_max,
                 sufijo: p.sufijo_precio,
                 foto: p.imagen && p.imagen !== "No hay foto" ? p.imagen : undefined,
                 negocio: configCatalogo.titulo,

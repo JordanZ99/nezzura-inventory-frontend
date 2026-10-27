@@ -34,6 +34,10 @@ interface ProductoPublico {
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
     // foto?: URL propia de la variación — encabeza la galería al seleccionarla
     variaciones?: { id: number; nombre: string; precio: number; foto?: string; stock?: number }[]
+    // Desglose por PRECIO: lotes con stock a precios distintos (el mismo
+    // producto comprado a distinto costo, ej. plantas). Solo productos SIN
+    // variaciones — con variaciones cada una gobierna su propio precio.
+    precios?: { precio: number; stock: number }[]
 }
 
 interface ConfigCatalogo {
@@ -76,6 +80,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 function resolverImagen(url: string): string {
     if (!url) return ""
     return url.startsWith("http") ? url : `${API_URL}/${url}`
+}
+
+/** "3" para enteros, "2.5" para fracciones (sin ceros de más). */
+function textoStock(n: number): string {
+    return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(3)))
 }
 
 /**
@@ -132,6 +141,17 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
     const precioMinimo = preciosMin.length > 0 ? Math.min(...preciosMin) : producto.precio_venta
     const precioMostrado = variacionActual ? variacionActual.precio : precioMinimo
     const sufijoMostrado = variacionActual ? "" : producto.sufijo_precio
+
+    // ── Rango por lote (mismo producto comprado a precios distintos) ──
+    // Solo aplica SIN variaciones: con variaciones gobierna el "desde $X" de
+    // las presentaciones y el desglose de lotes se omite. Con stock total 0
+    // no hay rango que mostrar (el backend ya no envía precios sin stock).
+    const preciosLote = variaciones.length === 0
+        ? (producto.precios || []).filter(x => (x.stock ?? 0) > 0)
+        : []
+    const hayRangoLotes = new Set(preciosLote.map(x => x.precio)).size > 1
+    const minLote = hayRangoLotes ? Math.min(...preciosLote.map(x => x.precio)) : 0
+    const maxLote = hayRangoLotes ? Math.max(...preciosLote.map(x => x.precio)) : 0
 
     // Galería estilo AliExpress: fotos BASE primero (portada + extras), después
     // las fotos de TODAS las variaciones (deduplicadas, sin "No hay foto").
@@ -684,11 +704,51 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                         fontVariantNumeric: "tabular-nums",
                                         color: tema.primaryDark,
                                     }}>
-                                        {variaciones.length > 0 && !variacionActual && hayPreciosDistintos && (
-                                            <span style={{ fontSize: "0.85rem", fontWeight: 600, opacity: 0.65, marginRight: 4 }}>desde </span>
-                                        )}
-                                        ${precioMostrado.toFixed(2)}
+                                        {hayRangoLotes
+                                            ? <>${minLote.toFixed(2)} – ${maxLote.toFixed(2)}</>
+                                            : (<>
+                                                {variaciones.length > 0 && !variacionActual && hayPreciosDistintos && (
+                                                    <span style={{ fontSize: "0.85rem", fontWeight: 600, opacity: 0.65, marginRight: 4 }}>desde </span>
+                                                )}
+                                                ${precioMostrado.toFixed(2)}
+                                            </>)}
                                     </p>
+                                </div>
+                            )}
+
+                            {/* Disponible por precio: lotes con stock a distintos
+                                precios (mismo producto comprado a distinto costo).
+                                Sin variaciones. Si el tenant oculta el stock,
+                                se muestran solo los precios sin unidades. */}
+                            {config.mostrar_precios && hayRangoLotes && (
+                                <div style={{ marginTop: 12 }}>
+                                    <p style={{
+                                        margin: 0, fontFamily: MONO, fontSize: "0.56rem",
+                                        letterSpacing: "0.25em", textTransform: "uppercase",
+                                        color: `color-mix(in srgb, ${tema.text} 35%, transparent)`,
+                                    }}>
+                                        Disponible por precio
+                                    </p>
+                                    <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                        {preciosLote.slice(0, 5).map(x => (
+                                            <span key={x.precio} style={{
+                                                borderRadius: 999, border: `1px solid ${tema.border}`,
+                                                background: `color-mix(in srgb, ${tema.text} 4%, transparent)`,
+                                                color: tema.textMuted,
+                                                padding: "4px 12px", fontSize: "0.72rem", fontWeight: 700,
+                                            }}>
+                                                ${x.precio.toFixed(2)}{config.mostrar_stock && <> · {textoStock(x.stock)} uds</>}
+                                            </span>
+                                        ))}
+                                        {preciosLote.length > 5 && (
+                                            <span style={{
+                                                alignSelf: "center", fontSize: "0.68rem",
+                                                fontWeight: 600, color: tema.textMuted, opacity: 0.8,
+                                            }}>
+                                                + {preciosLote.length - 5} precios más
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -1031,10 +1091,14 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                         {config.mostrar_precios ? (
                             <span style={{ fontSize: "1.5rem", fontWeight: 800, color: tema.primaryDark, lineHeight: 1 }}>
-                                {variaciones.length > 0 && !variacionActual && hayPreciosDistintos && (
-                                    <span style={{ fontSize: "0.85rem", fontWeight: 700, opacity: 0.7, marginRight: 4 }}>desde </span>
-                                )}
-                                ${precioMostrado.toFixed(2)}
+                                {hayRangoLotes
+                                    ? <>${minLote.toFixed(2)} – ${maxLote.toFixed(2)}</>
+                                    : (<>
+                                        {variaciones.length > 0 && !variacionActual && hayPreciosDistintos && (
+                                            <span style={{ fontSize: "0.85rem", fontWeight: 700, opacity: 0.7, marginRight: 4 }}>desde </span>
+                                        )}
+                                        ${precioMostrado.toFixed(2)}
+                                    </>)}
                                 {sufijoMostrado && (
                                     <span style={{ fontSize: "1rem", fontWeight: 700, opacity: 0.75, marginLeft: 6 }}>
                                         Por {sufijoMostrado}
@@ -1053,6 +1117,30 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                             </span>
                         )}
                     </div>
+
+                    {/* Disponible por precio: lotes con stock a distintos precios
+                        (mismo producto comprado a distinto costo). Sin variaciones. */}
+                    {config.mostrar_precios && hayRangoLotes && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {preciosLote.slice(0, 5).map(x => (
+                                <span key={x.precio} style={{
+                                    borderRadius: 12, background: tema.bg,
+                                    color: tema.textMuted,
+                                    padding: "5px 12px", fontSize: "0.75rem", fontWeight: 700,
+                                }}>
+                                    ${x.precio.toFixed(2)}{config.mostrar_stock && <> · {textoStock(x.stock)} uds</>}
+                                </span>
+                            ))}
+                            {preciosLote.length > 5 && (
+                                <span style={{
+                                    alignSelf: "center", fontSize: "0.7rem",
+                                    fontWeight: 600, color: tema.textMuted,
+                                }}>
+                                    + {preciosLote.length - 5} precios más
+                                </span>
+                            )}
+                        </div>
+                    )}
 
                     {/* Selector de variación (siempre visible si el producto tiene,
                         incluso con precios ocultos — Fase 6) */}
