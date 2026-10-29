@@ -7,6 +7,9 @@
 //   idempotentes (mismo patrón del buscador debounced de useInventarioUI).
 // - Respaldo en localStorage: si la red falla o se recarga la página antes del
 //   flush, las capturas pendientes se recuperan al volver y se envían solas.
+//   Al remontar el hook (volver de otra tab, ej. el POS) el respaldo gana
+//   sobre la caché de react-query: los items cacheados pueden traer
+//   contado=null de la apertura aunque la BD ya tenga las capturas.
 // ==============================================================================
 
 import { useEffect, useRef, useState } from "react"
@@ -130,6 +133,16 @@ export function useConteoData() {
             setCapturas(mezcladas)
             pendientesRef.current = new Set(aEnviar)
             vaciarPendientes()
+        } else if (respaldo) {
+            // Respaldo SIN pendientes: es la copia local más fresca (se escribe
+            // en cada captura y tras cada flush exitoso). La caché de react-query
+            // puede ser VIEJA: al volver de otra tab (ej. el POS) los items aún
+            // traen contado=null de la APERTURA, y el refetch real llega después
+            // — pero este efecto no re-corre (mismo id). Si aquí sembramos del
+            // servidor, el grid aparenta haber borrado todo lo contado. Gana el
+            // respaldo local.
+            setCapturas({ ...delServidor, ...respaldo.capturas })
+            pendientesRef.current = new Set()
         } else {
             setCapturas(delServidor)
             pendientesRef.current = new Set()
