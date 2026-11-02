@@ -39,6 +39,10 @@ export interface PerfilLocal {
     tiktok?: string
     sitio_web?: string
     maps?: string
+    /** Config del catálogo (espejo local de catalogo_gestion): guarda solo
+     *  los campos que el dueño cambió; el resto toma defaults. La relación
+     *  de imagen del POS/inventario vive aquí (relacion_imagen). */
+    catalogo_config?: Record<string, unknown>
 }
 
 export interface CategoriaLocal {
@@ -68,6 +72,9 @@ export interface ProductoLocal {
     costo_servicio?: number
     precio_servicio?: number
     post_override?: unknown | null
+    /** Galería de fotos extra (Plan Plus, local: dataURLs en IndexedDB).
+     *  La principal vive en `imagen`; estas son las del índice 1+. */
+    imagenes_extras?: { id: number; url: string; orden: number }[]
 }
 
 export interface LoteLocal {

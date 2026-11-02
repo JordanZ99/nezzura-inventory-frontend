@@ -3,6 +3,7 @@ import Icon from "@/components/ui/Icon"
 import { TarjetaProducto } from "@/components/productos/TarjetaProducto"
 import type { Producto } from "@/lib/api"
 import { invertirOrden, OPCIONES_ORDEN_PRODUCTO } from "@/lib/ordenamiento"
+import { obtenerModo } from "@/lib/local/modo"
 
 interface Props {
     categoriasExistentes: string[]
@@ -104,7 +105,10 @@ export default function GridEditar({
                                 relacionImagen={relacionImagen}
                                 onClick={() => cargarProductoEdicion(prod)}
                             >
-                                {/* Crear post (Posts Automáticos — Fase 1) */}
+                                {/* Crear post (Posts Automáticos — Fase 1).
+                                    En Modo Local se oculta: la generación de posts
+                                    vive en la nube (Cloudinary/socials). */}
+                                {obtenerModo() !== "local" && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); onCrearPost(prod) }}
                                     title="Genera una tarjeta lista para Instagram/WhatsApp con la foto, el nombre y el precio"
@@ -121,6 +125,7 @@ export default function GridEditar({
                                 >
                                     <Icon name="ImagePlus" size={14} color="#fff" /> Crear post
                                 </button>
+                                )}
                             </TarjetaProducto>
                         )))}
                 </div>

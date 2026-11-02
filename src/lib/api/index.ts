@@ -123,10 +123,21 @@ const productosLocalAdapt = {
     editarMaterial: invLocal.editarMaterial,
     eliminarMaterial: invLocal.eliminarMaterial,
 
+    // Galería de fotos (locales: dataURLs en la fila del producto)
+    getImagenesProducto: invLocal.getImagenesProducto,
+    subirImagenExtra: invLocal.subirImagenExtra,
+    eliminarImagenExtra: invLocal.eliminarImagenExtra,
+    reordenarImagenes: invLocal.reordenarImagenes,
+
     // Fotos (locales: dataURL en IndexedDB)
     subirFoto: invLocal.subirFoto,
     subirFotoVariacion: invLocal.subirFotoVariacion,
     borrarImagen: invLocal.borrarImagen,
+
+    // initDB es un legado del backend (asegurar tablas): en local la base ya
+    // vive en el dispositivo — no-op. El alta de producto lo llama SIEMPRE,
+    // sin esto explotaba con "initDB no disponible" (bug del 2-11-2026).
+    initDB: invLocal.initDB,
 
     // Perfil
     getPerfil: () => invLocal.getPerfil(obtenerLicencia()?.tenant_id || ""),
@@ -273,11 +284,18 @@ const statsLocalAdapt = {
     getVentasProductoStats: statsLocal.getVentasProductoStats,
 }
 
+const catalogoLocalAdapt = {
+    // El catálogo PÚBLICO online no existe en local, pero la config sí se
+    // respeta donde el teléfono la usa: relacion_imagen del POS/Inventario.
+    getConfigCatalogo: invLocal.getConfigCatalogo,
+    actualizarConfigCatalogo: invLocal.actualizarConfigCatalogo,
+}
+
 export const api = {
     ...conModoDoble(productosApi, productosLocalAdapt),
     ...conModoDoble(ventasApi, ventasLocalAdapt),
     ...conModoDoble(gastosApi, gastosLocalAdapt),
-    ...conModoDoble(catalogoApi),
+    ...conModoDoble(catalogoApi, catalogoLocalAdapt),
     ...conModoDoble(turnosApi, turnosLocalAdapt),
     ...conModoDoble(terminalesApi, terminalesLocalAdapt),
     ...conModoDoble(statsApi, statsLocalAdapt),

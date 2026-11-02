@@ -5,6 +5,7 @@ import type { FotoGaleria } from "@/components/ui/GaleriaProducto"
 import type { FormEditProd } from "@/hooks/useInventarioForm"
 import Input from "../Input"
 import SelectorSufijoPrecio from "../SelectorSufijoPrecio"
+import { obtenerModo } from "@/lib/local/modo"
 
 export interface FormEditarInfoProps {
     prodEditar: string
@@ -63,6 +64,9 @@ export default function FormEditarInfo({
                 <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text-muted)" }}>
                     Editando: <strong style={{ color: "var(--text-main)" }}>{prodEditar}</strong>
                 </span>
+                {/* Crear post (Posts Automáticos). En Modo Local se oculta:
+                    la generación de posts vive en la nube. */}
+                {obtenerModo() !== "local" && (
                 <button
                     onClick={onCrearPost}
                     title="Genera una tarjeta lista para Instagram/WhatsApp con la foto, el nombre y el precio"
@@ -90,6 +94,7 @@ export default function FormEditarInfo({
                 >
                     <Icon name="ImagePlus" size={16} color="#fff" /> Crear post
                 </button>
+                )}
             </div>
 
             <Input label="Nombre del producto" value={editProdNombre} onChange={(e) => setEditProdNombre(e.target.value)} />

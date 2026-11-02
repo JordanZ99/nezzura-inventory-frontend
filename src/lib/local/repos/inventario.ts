@@ -24,6 +24,7 @@ import { abrirDB, ahoraISO } from "../db"
 import type {
     Producto, Lote, Variacion, MaterialReceta, NuevoProducto, Restock,
     RespuestaMovimientos, MovimientoInventario, Categoria, ClienteCampos,
+    ImagenProducto, CatalogoConfig,
 } from "@/types"
 import type { ProductoLocal, LoteLocal, PerfilLocal, CategoriaLocal } from "../db"
 
@@ -384,6 +385,7 @@ export async function crearProducto(
         costo_servicio: data.costo_servicio,
         precio_servicio: data.precio_servicio,
         post_override: null,
+        imagenes_extras: [],
     })
 
     // Lote inicial — solo productos CON inventario (servicio/compuesto no llevan)
@@ -920,4 +922,151 @@ export async function guardarPostOverride(
     const d = abrirDB()
     await d.productos.update(producto, { post_override } as Partial<ProductoLocal>)
     return { ok: true, producto, post_override }
+}
+
+// ============================================================================
+// InitDB: en la nube "asegura que las tablas existan" (legado); en local la
+// base ya vive en este dispositivo — no hay nada que hacer. El formulario
+// de alta llama a esto SIEMPRE antes de crear el producto, así que el
+// no-op es lo que desbloquea el "dar de alta" offline.
+// ============================================================================
+export async function initDB(): Promise<{ ok: boolean; mensaje: string }> {
+    abrirDB() // valida licencia y abre la DB por si acaso; nada más
+    return { ok: true, mensaje: "La base ya vive en este dispositivo (Modo Local)." }
+}
+
+// ============================================================================
+// Galería de fotos extra (API del plan Plus, espejo del endpoint
+// /inventario/imagenes): en local son dataURLs en la fila del producto.
+//  - La principal vive en productos.imagen y NUNCA está en la galería.
+//  - Los ids son numéricos (contrato ImagenProducto) y únicos GLOBALES:
+//    eliminarImagenExtra busca en todos los productos por id.
+// ============================================================================
+async function siguienteIdImagenExtra(): Promise<number> {
+    const d = abrirDB()
+    let max = 0
+    for (const p of await d.productos.toArray()) {
+        for (const e of p.imagenes_extras || []) max = Math.max(max, e.id)
+    }
+    return max + 1
+}
+
+export async function getImagenesProducto(producto: string): Promise<ImagenProducto[]> {
+    const d = abrirDB()
+    const p = await d.productos.get(producto)
+    if (!p) return []
+    return (p.imagenes_extras || [])
+        .slice()
+        .sort((a, b) => a.orden - b.orden || a.id - b.id)
+        .map(e => ({ id: e.id, url: e.url, orden: e.orden }))
+}
+
+export async function subirImagenExtra(
+    producto: string,
+    file: File,
+    ordenTarget?: number
+): Promise<{ ok: boolean; url: string; orden: number }> {
+    const d = abrirDB()
+    const p = await d.productos.get(producto)
+    if (!p) throw new Error(`El producto "${producto}" no existe.`)
+    const extras = p.imagenes_extras || []
+    const url = await archivoADataURL(file)
+    const id = await siguienteIdImagenExtra()
+
+    // Con ordenTarget: inserta en esa posición (el backend sube y reordena);
+    // sin target: va al final de la galería.
+    let orden: number
+    if (ordenTarget !== undefined) {
+        orden = ordenTarget
+    } else {
+        orden = extras.length ? Math.max(...extras.map(e => e.orden)) + 1 : 2
+    }
+    const nuevas = extras
+        .map(e => (e.orden >= orden ? { ...e, orden: e.orden + 1 } : e))
+        .concat([{ id, url, orden }])
+        .sort((a, b) => a.orden - b.orden)
+        .map((e, i) => ({ ...e, orden: i + 2 }))   // la principal es orden 1
+    await d.productos.update(producto, { imagenes_extras: nuevas } as Partial<ProductoLocal>)
+    return { ok: true, url, orden }
+}
+
+export async function eliminarImagenExtra(imagenId: number): Promise<{ ok: boolean; id: number }> {
+    const d = abrirDB()
+    const productos = await d.productos.toArray()
+    for (const p of productos) {
+        const extras = p.imagenes_extras || []
+        if (!extras.some(e => e.id === imagenId)) continue
+        const nuevas = extras
+            .filter(e => e.id !== imagenId)
+            .sort((a, b) => a.orden - b.orden)
+            .map((e, i) => ({ ...e, orden: i + 2 }))
+        await d.productos.update(p.producto, { imagenes_extras: nuevas } as Partial<ProductoLocal>)
+        return { ok: true, id: imagenId }
+    }
+    return { ok: true, id: imagenId }
+}
+
+export async function reordenarImagenes(
+    producto: string,
+    ids: number[]
+): Promise<{ ok: boolean; mensaje: string }> {
+    const d = abrirDB()
+    const p = await d.productos.get(producto)
+    if (!p) return { ok: false, mensaje: "Producto no encontrado." }
+    const porId = new Map((p.imagenes_extras || []).map(e => [e.id, e]))
+    const extras = ids
+        .map((id, i) => {
+            const e = porId.get(id)
+            return e ? { ...e, orden: i + 2 } : null
+        })
+        .filter((e): e is NonNullable<typeof e> => e !== null)
+    await d.productos.update(producto, { imagenes_extras: extras } as Partial<ProductoLocal>)
+    return { ok: true, mensaje: "Orden guardado." }
+}
+
+// ============================================================================
+// Config del catálogo (espejo local de catalogo_gestion). El catálogo
+// PÚBLICO no existe en local, pero Inventario/POS leen `relacion_imagen`
+// (4:5 vs 1:1) de esta config — así el ajuste del POS y el guardado en
+// Ajustes siguen funcionando sin nube. Se persiste en perfil.catalogo_config.
+// ============================================================================
+export async function getConfigCatalogo(): Promise<CatalogoConfig> {
+    const d = abrirDB()
+    const p = await asegurarPerfil()
+    const guardado = (p.catalogo_config || {}) as Partial<CatalogoConfig>
+    return {
+        id: 1,
+        slug: "impresion",     // en local solo existe /catalogo/impresion
+        activo: false,         // catálogo público online: solo nube
+        tema: "default",
+        template: "grid-clasico",
+        titulo: p.empresa || "",
+        subtitulo: "",
+        mostrar_precios: true,
+        mostrar_stock: true,
+        mostrar_categorias: true,
+        ocultar_agotados: true,
+        // Campos cambiables con defaults y overlay con lo guardado
+        ...Object.fromEntries(Object.entries(guardado).filter(([, v]) => v !== undefined)),
+        logo: p.logo || "",
+        telefono: p.telefono || undefined,
+        instagram: p.instagram || undefined,
+        facebook: p.facebook || undefined,
+        tiktok: p.tiktok || undefined,
+        maps: p.maps || undefined,
+    } as unknown as CatalogoConfig
+}
+
+/** PATCH parcial de la config: mezcla sobre catalogo_config del perfil. */
+export async function actualizarConfigCatalogo(
+    data: Record<string, unknown>
+): Promise<{ ok: boolean; mensaje: string }> {
+    const d = abrirDB()
+    await asegurarPerfil()
+    const p = await d.perfil.get(PERFIL_FILA_ID)
+    const actual = ((p?.catalogo_config || {}) as Record<string, unknown>) || {}
+    await d.perfil.update(PERFIL_FILA_ID, {
+        catalogo_config: { ...actual, ...data },
+    } as Partial<PerfilLocal>)
+    return { ok: true, mensaje: "Configuración actualizada." }
 }
