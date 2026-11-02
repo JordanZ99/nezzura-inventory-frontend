@@ -13,6 +13,7 @@ import { api, type CatalogoConfig, type Categoria } from "@/lib/api"
 import { useToast } from "@/components/ui/Toast"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTenant } from "@/contexts/TenantContext"
+import { obtenerModo } from "@/lib/local/modo"
 import { inventarioQueryKeys } from "@/lib/inventarioQueries"
 
 /**
@@ -127,6 +128,10 @@ export function useConfigCatalogo(tab: string) {
             }
         }
         if (tab === "catalogo" && !configCargadaRef.current) {
+            if (obtenerModo() === "local") {
+                // Local: el catálogo en línea no existe; la pestaña muestra el imprimible
+                return
+            }
             configCargadaRef.current = true
             loadCatalogo()
         }

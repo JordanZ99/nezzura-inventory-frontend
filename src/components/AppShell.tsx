@@ -13,6 +13,8 @@ import Icon from "@/components/ui/Icon"
 import { supabase } from "@/lib/supabase"
 import { obtenerTemaGestor } from "@/lib/temas"
 import { useTenant } from "@/contexts/TenantContext"
+import { obtenerModo } from "@/lib/local/modo"
+import { salirModoLocal } from "@/lib/local/licencia"
 
 const NAV = [
     { href: "/", icon: "ShoppingCart", label: "Punto de Venta" },
@@ -33,6 +35,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         } catch (e) { }
     }, [])
     const isLoginPage = pathname === "/login"
+    const isAccesoLocal = pathname === "/acceso-local"
     const isCatalogo = pathname.startsWith("/catalogo")
     const { tenant } = useTenant()
 
@@ -40,12 +43,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const empresa = tenant?.empresa || "..."
 
     async function handleLogout() {
+        // ── MODO LOCAL: no hay sesión Supabase; del local se SALE (con
+        // licencia a cuestas: los datos del negocio quedan en el aparato) ──
+        if (obtenerModo() === "local") {
+            salirModoLocal()
+            router.replace("/acceso-local")
+            return
+        }
         await supabase.auth.signOut()
         router.replace("/login")
     }
 
-    // En login y catálogo público renderizamos solo los children (sin sidebar)
-    if (isLoginPage || isCatalogo) {
+    // En login, acceso-local y catálogo público: solo children (sin sidebar)
+    if (isLoginPage || isAccesoLocal || isCatalogo) {
         return <>{children}</>
     }
 

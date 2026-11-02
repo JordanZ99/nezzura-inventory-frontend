@@ -1,5 +1,9 @@
-// Nezzura Digital — Service Worker v2
-const CACHE = "nezzura-v2";
+// Nezzura Digital — Service Worker v3
+// v3: MODO LOCAL — cachear NAVEGACIONES same-origin (que app shell abra
+// offline). Solo peticiones MISMO origen: el backend (FastAPI/Render) y
+// Cloudinary viven en otro origen y NUNCA se cachean (sus respuestas son
+// datos vivos, no páginas). La fuente de verdad offline es IndexedDB.
+const CACHE = "nezzura-v3";
 const STATIC_ASSETS = [
   "/",
   "/logo.png",
@@ -34,10 +38,12 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Estrategia: Network First con fallback a caché
+// Estrategia: Network First con fallback a caché (SOLO same-origin)
 self.addEventListener("fetch", (event) => {
-  // Solo interceptar peticiones GET
+  // Solo interceptar GET...
   if (event.request.method !== "GET") return;
+  // ...del PROPIO origen (nunca API del backend ni CDN de imágenes)
+  if (new URL(event.request.url).origin !== self.location.origin) return;
 
   event.respondWith(
     fetch(event.request)

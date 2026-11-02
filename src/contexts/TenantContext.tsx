@@ -5,18 +5,26 @@
 // También carga (y enruta) la config del negocio vía el backend FastAPI:
 // zona horaria, método de pago por defecto, comisiones y la cartera de
 // clientes + sistema de puntos (migraciones 038/039, doc sistemaPuntos.md).
+//
+// MODO LOCAL: si hay licencia de dispositivo (licencia.ts), el perfil se lee
+// del IndexedDB del aparato — SIN Supabase y SIN red. La configuración se
+// guarda local (repos/inventario.perfil) y todo lo demás funciona igual.
 // ==============================================================================
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { api } from "@/lib/api"
+import { obtenerModo, ponerModo } from "@/lib/local/modo"
+import { obtenerLicencia, estadoLicencia, borrarLicencia } from "@/lib/local/licencia"
+import { abrirDB, type PerfilLocal } from "@/lib/local/db"
+import { sincronizarProgramados } from "@/lib/local/repos/gastos"
 import type { ClienteCampos, ModoPuntos } from "@/types"
 
 interface TenantInfo {
     tenant_id: string
     empresa: string
     logo: string
-    plan: string  // "basico" | "plus" — controla features como galería de imágenes
+    plan: string  // "basico" | "plus" | "local" — local licencia de dispositivo
     zona_horaria: string  // IANA (ej. "America/Cancun") — día contable del negocio
     metodo_pago_default: string  // método con el que el POS preselecciona el cobro
     gasto_comision_automatico: boolean  // registra comisiones de terminal como gasto al cobrar
@@ -108,6 +116,82 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const [tenant, setTenant] = useState<TenantInfo | null>(null)
     const [cargando, setCargando] = useState(true)
 
+    // ── Carga del perfil en MODO LOCAL (offline, desde IndexedDB) ──
+    async function cargarLocal() {
+        try {
+            const lic = obtenerLicencia()
+            const estado = estadoLicencia()
+            if (!lic || estado === "ausente") {
+                // Flag sin licencia válida (caché corrupta): volver a nube.
+                borrarLicencia()
+                ponerModo("nube")
+                setCargando(false)
+                return
+            }
+
+            const d = abrirDB()
+            let p = (await d.perfil.get(1)) as PerfilLocal | undefined
+            if (!p) {
+                // Primera vez en este aparato: perfil inicial desde la licencia
+                p = {
+                    id: 1,
+                    empresa: lic.empresa || "",
+                    logo: lic.logo || "",
+                    zona_horaria: "America/Cancun",
+                    metodo_pago_default: "efectivo",
+                    gasto_comision_automatico: false,
+                    dias_cerrados: [],
+                    clientes_activos: false,
+                    giro: "tienda",
+                    modulos: null,
+                    telefono: "", correo: "", instagram: "", facebook: "",
+                    tiktok: "", sitio_web: "", maps: "",
+                }
+                await d.perfil.put(p)
+            }
+
+            setTenant({
+                tenant_id: lic.tenant_id,
+                empresa: p.empresa || lic.empresa || "",
+                logo: p.logo || lic.logo || "",
+                plan: "local",
+                zona_horaria: p.zona_horaria || "America/Cancun",
+                metodo_pago_default: p.metodo_pago_default || "efectivo",
+                gasto_comision_automatico: p.gasto_comision_automatico ?? false,
+                dias_cerrados: p.dias_cerrados || [],
+                giro: p.giro || "tienda",
+                modulos: p.modulos ?? null,
+                clientes_activos: p.clientes_activos ?? false,
+                cliente_campos: CAMPOS_DEFAULT,
+                puntos_activos: false,
+                puntos_valor_punto: 1,
+                puntos_modo: "por_gasto",
+                puntos_gasto_monto: 10,
+                puntos_gasto_pts: 1,
+                puntos_fijos: null,
+                telefono: p.telefono || "",
+                correo: p.correo || "",
+                instagram: p.instagram || "",
+                facebook: p.facebook || "",
+                tiktok: p.tiktok || "",
+                sitio_web: p.sitio_web || "",
+                maps: p.maps || "",
+            })
+        } catch (e) {
+            console.error("Error cargando perfil local:", e)
+        } finally {
+            setCargando(false)
+        }
+
+        // Mantenimiento del negocio local al arrancar:
+        //  * gastos programados vencidos → gasto 'Pendiente' + avanza la fecha
+        try {
+            await sincronizarProgramados()
+        } catch (e) {
+            console.error("Error sincronizando gastos programados:", e)
+        }
+    }
+
     async function cargar() {
         try {
             const { data: sessionData } = await supabase.auth.getSession()
@@ -169,6 +253,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
 
     useEffect(() => {
+        // Local → perfil desde IndexedDB; nube → Supabase + backend (lo de hoy)
+        if (obtenerModo() === "local") {
+            void cargarLocal()
+            return
+        }
         cargar()
 
         const { data: listener } = supabase.auth.onAuthStateChange((event) => {
@@ -182,6 +271,14 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     const actualizar = useCallback(async (data: Partial<ActualizarTenant>) => {
         if (!tenant?.tenant_id) throw new Error("No hay tenant activo")
         data = { ...data }
+
+        // ── MODO LOCAL: escribir perfil en IndexedDB ──
+        if (obtenerModo() === "local") {
+            const d = abrirDB()
+            await d.perfil.update(1, data as Partial<PerfilLocal>)
+            setTenant(prev => prev ? { ...prev, ...data } as TenantInfo : null)
+            return
+        }
 
         // La config del negocio viaja por el backend (afecta cómo se registran
         // ventas/gastos/cobros con puntos); solo empresa/logo van directo a Supabase.

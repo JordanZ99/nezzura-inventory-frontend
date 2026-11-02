@@ -30,7 +30,13 @@ export default function LoginPage() {
         setResetError(null)
         setResetSent(false)
 
-        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(resetEmail)
+        // El correo de recuperación debe caer EN NUESTRA pantalla /restablecer
+        // (que consume el token y fija la contraseña nueva); sin redirectTo,
+        // Supabase manda al usuario al default del proyecto y el flujo muere
+        // en el login (bug del 2-11-2026: Jared jamás llegó al formulario).
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+            redirectTo: `${window.location.origin}/restablecer`,
+        })
 
         if (resetErr) {
             setResetError(resetErr.message)
@@ -366,6 +372,10 @@ export default function LoginPage() {
                         >
                             Cambiar contraseña
                         </button>
+                        <span style={{ margin: "0 8px", opacity: 0.5 }}>·</span>
+                        <a href="/acceso-local" className="footer-link">
+                            Usar en este dispositivo (sin internet)
+                        </a>
                     </p>
                 </div>
             </BorderGlow>

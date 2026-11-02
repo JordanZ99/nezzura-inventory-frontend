@@ -7,12 +7,15 @@
 
 import { TenantProvider } from "@/contexts/TenantContext"
 import QueryProvider from "@/components/QueryProvider"
+import LicenciaGuard from "@/components/LicenciaGuard"
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
         <QueryProvider>
             <TenantProvider>
-                {children}
+                <LicenciaGuard>
+                    {children}
+                </LicenciaGuard>
             </TenantProvider>
         </QueryProvider>
     )

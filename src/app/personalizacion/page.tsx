@@ -17,6 +17,8 @@ import { CardClientesConfig } from "@/components/personalizacion/CardClientesCon
 import { CardPuntosConfig } from "@/components/personalizacion/CardPuntosConfig"
 import { ConfigCatalogo } from "@/components/personalizacion/ConfigCatalogo"
 import { CardCompartir } from "@/components/personalizacion/CardCompartir"
+import { CardCatalogoImpreso } from "@/components/personalizacion/CardCatalogoImpreso"
+import { obtenerModo } from "@/lib/local/modo"
 
 type Tab = "cuenta" | "negocio" | "catalogo"
 
@@ -61,6 +63,7 @@ const ESTILO_CIRCULO: React.CSSProperties = { width: 34, height: 34, borderRadiu
 
 export default function Personalizacion() {
     const { tenant, cargando: cargandoTenant, actualizar } = useTenant()
+    const modoLocal = obtenerModo() === "local"
 
     // Tab activa + nombre del tema actual (estado de UI del contenedor)
     const [tab, setTab] = useState<Tab>("cuenta")
@@ -245,7 +248,12 @@ export default function Personalizacion() {
 
                 {tab === "catalogo" && (
                     <>
-                        {config.cargandoCatalogo ? (
+                        {modoLocal ? (
+                            // Modo Local: sin catálogo en la nube; acceso directo al imprimible
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
+                                <CardCatalogoImpreso />
+                            </div>
+                        ) : config.cargandoCatalogo ? (
                             <div className="card fade-up" style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
                                 Cargando configuración...
                             </div>

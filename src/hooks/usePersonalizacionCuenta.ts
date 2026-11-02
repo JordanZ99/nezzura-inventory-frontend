@@ -11,6 +11,8 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import { api, descargarDatosJson, descargarDatosXlsx } from "@/lib/api"
+import { obtenerModo } from "@/lib/local/modo"
+import { exportarJson, exportarCsv } from "@/lib/local/repos/copia"
 import { useToast } from "@/components/ui/Toast"
 import { useQueryClient } from "@tanstack/react-query"
 import { inventarioQueryKeys } from "@/lib/inventarioQueries"
@@ -159,12 +161,18 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
     }
 
     // Descarga el respaldo JSON con todos los datos del tenant autenticado
+    // (nube: /export/json; local: dump completo del IndexedDB, restaurable)
     async function handleDescargarJson() {
         if (descargando) return
         setDescargando("json")
         try {
-            await descargarDatosJson()
-            mostrarMsg(true, "✅ Respaldo JSON descargado — guárdalo en un lugar seguro")
+            if (obtenerModo() === "local") {
+                await exportarJson()
+                mostrarMsg(true, "✅ Respaldo Local descargado — guárdalo en un lugar seguro")
+            } else {
+                await descargarDatosJson()
+                mostrarMsg(true, "✅ Respaldo JSON descargado — guárdalo en un lugar seguro")
+            }
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error al descargar el respaldo"}`)
         } finally {
@@ -173,12 +181,18 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
     }
 
     // Descarga la vista Excel (XLSX) de los datos del tenant autenticado
+    // (local: CSV con BOM UTF-8 — se abre en Excel sin dependencias extra)
     async function handleDescargarXlsx() {
         if (descargando) return
         setDescargando("xlsx")
         try {
-            await descargarDatosXlsx()
-            mostrarMsg(true, "✅ Archivo Excel descargado")
+            if (obtenerModo() === "local") {
+                await exportarCsv()
+                mostrarMsg(true, "✅ Archivo CSV descargado — se abre en Excel")
+            } else {
+                await descargarDatosXlsx()
+                mostrarMsg(true, "✅ Archivo Excel descargado")
+            }
         } catch (err: any) {
             mostrarMsg(false, `❌ ${err.message || "Error al descargar el Excel"}`)
         } finally {

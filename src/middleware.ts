@@ -11,12 +11,18 @@
 //      estado real de la sesión tras montar.
 //   2. Backend: dependencies.get_tenant_id valida firma y vigencia del JWT
 //      en cada endpoint (ningún dato se sirve sin token válido).
+//
+// MODO LOCAL: un usuario con licencia de dispositivo NO tiene cookie de
+// Supabase (opera 100% offline). Se identifica con la cookie "nezzura_modo"
+// que licencia.ts escribe al activar. El middleware solo deja pasar por SU
+// EXISTENCIA — los datos viven en el IndexedDB del propio aparato, así que
+// la cookie no abre ningún dato ajeno.
 // ==============================================================================
 
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-const PUBLIC_ROUTES = ["/login", "/catalogo"]
+const PUBLIC_ROUTES = ["/login", "/catalogo", "/acceso-local", "/restablecer"]
 
 // Cookie de sesión de @supabase/ssr: 'sb-<ref>-auth-token'; cuando el valor
 // excede el límite de tamaño se particiona como 'sb-<ref>-auth-token.0', '.1'…
@@ -33,6 +39,12 @@ export function middleware(request: NextRequest) {
     const cookiesSesion = request.cookies
         .getAll()
         .filter(c => RE_COOKIE_SESION.test(c.name))
+
+    // ── MODO LOCAL: sin sesión Supabase pero con licencia de dispositivo ──
+    // (la AppShell/TenantContext del cliente validan la licencia real)
+    if (request.cookies.get("nezzura_modo")?.value === "local") {
+        return NextResponse.next()
+    }
 
     // Sin ninguna cookie de sesión → no hay sesión que refrescar: al login
     if (!cookiesSesion.some(c => c.value.length > 0)) {
