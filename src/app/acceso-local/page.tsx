@@ -112,6 +112,18 @@ export default function AccesoLocalPage() {
                             funcionará completo sin internet, con todos los datos
                             guardados aquí mismo.
                         </p>
+                        <p style={{
+                            margin: "10px 0 0", fontSize: "0.78rem",
+                            color: "rgba(255,255,255,0.65)", fontWeight: 600, lineHeight: 1.5,
+                            background: "rgba(255,255,255,0.12)",
+                            border: "1px solid rgba(255,255,255,0.25)",
+                            borderRadius: 10,
+                            padding: "10px 12px",
+                        }}>
+                            Este teléfono empieza con <strong>inventario nuevo</strong>: lo que
+                            ya tenías en la nube se queda ahí, intacto. Aquí lo cargas tú
+                            desde cero y todo va a vivir en este aparato.
+                        </p>
                     </div>
 
                     <form onSubmit={manejarActivar} style={{ display: "flex", flexDirection: "column", gap: 16 }}>

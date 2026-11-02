@@ -124,6 +124,7 @@ export default function PosClasico() {
                             relacionImagen={relacionImagen}
                             agregarAlCarrito={agregarAlCarrito}
                             onVentaLibre={() => setModalVentaLibre(true)}
+                            catalogoVacio={!cargando && productos.length === 0}
                         />
                     </div>
 

@@ -94,6 +94,8 @@ export function useInventarioData() {
         inv,
         categorias,
         cargandoCats: categoriasQuery.isPending || categoriasQuery.isFetching,
+        // Para decidir si el inventario todavía no existe (vs. sigue cargando)
+        cargandoInv: productosQuery.isPending,
         relacionImagen,
         recargar,
         cargarCategorias,

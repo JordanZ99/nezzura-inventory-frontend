@@ -35,6 +35,7 @@ import * as terminalesLocal from "@/lib/local/repos/terminales"
 import * as turnosLocal from "@/lib/local/repos/turnos"
 import * as mesasLocal from "@/lib/local/repos/mesas"
 import * as clientesLocal from "@/lib/local/repos/clientes"
+import * as conteosLocal from "@/lib/local/repos/conteos"
 import { obtenerModo } from "@/lib/local/modo"
 import { obtenerLicencia } from "@/lib/local/licencia"
 import type {
@@ -255,6 +256,16 @@ const clientesLocalAdapt = {
     getLtv: clientesLocal.getLtv,
 }
 
+const conteosLocalAdapt = {
+    getConteoActivo: conteosLocal.getConteoActivo,
+    abrirConteo: conteosLocal.abrirConteo,
+    guardarCapturas: conteosLocal.guardarCapturas,
+    agregarRenglonManual: conteosLocal.agregarRenglonManual,
+    cerrarConteo: conteosLocal.cerrarConteo,
+    getHistorialConteos: conteosLocal.getHistorialConteos,
+    getConteo: conteosLocal.getConteo,
+}
+
 const statsLocalAdapt = {
     getStatsResumen: statsLocal.getStatsResumen,
     getStatsSerie: statsLocal.getStatsSerie,
@@ -272,7 +283,8 @@ export const api = {
     ...conModoDoble(statsApi, statsLocalAdapt),
     ...conModoDoble(mesasApi, mesasLocalAdapt),
     ...conModoDoble(clientesApi, clientesLocalAdapt),
-    // Fase 3 (conteos programados y catálogo público): siguen pendientes
-    ...conModoDoble(conteosApi),
+    ...conModoDoble(conteosApi, conteosLocalAdapt),
+    // Analítica Inteligente: sin puerto local (exige serie histórica de toda
+    // la vida del negocio); la UI oculta su entrada en modo local.
     ...conModoDoble(analiticaApi),
 }

@@ -20,6 +20,7 @@ import { useEstadisticasCalculos } from "@/hooks/useEstadisticasCalculos"
 import { useEstadisticasUI, type PresetPeriodo } from "@/hooks/useEstadisticasUI"
 import { useAnalisisInteligente } from "@/hooks/useAnalisisInteligente"
 import PanelAnalisisInteligente from "@/components/estadisticas/PanelAnalisisInteligente"
+import { obtenerModo } from "@/lib/local/modo"
 import ReporteHeader from "@/components/estadisticas/ReporteHeader"
 import KpisReporte from "@/components/estadisticas/KpisReporte"
 import ResumenCobros from "@/components/estadisticas/ResumenCobros"
@@ -78,6 +79,10 @@ export default function Estadisticas() {
 
     // Análisis Inteligente (plan Plus): se genera bajo demanda para el
     // período que está elegido arriba, así que va en la tarjeta de controles.
+    // En Modo Local la entrada se OCULTA por completo: el análisis exige la
+    // serie histórica completa del negocio (que vive en la nube) y en local
+    // no existe ese respaldo — mostrar el upsell sería ruido.
+    const esLocal = obtenerModo() === "local"
     const esPlus = tenant?.plan === "plus"
     const analisis = useAnalisisInteligente({ desde: rango.desde, hasta: rango.hasta, todo }, esPlus)
 
@@ -136,7 +141,9 @@ export default function Estadisticas() {
                             )}
                         </div>
                         {/* Botón del Análisis Inteligente: alineado a la derecha con el
-                            período que analiza. Fuera de #report-container a propósito. */}
+                            período que analiza. Fuera de #report-container a propósito.
+                            En Modo Local no se muestra (ver arriba). */}
+                        {!esLocal && (
                         <button
                             onClick={analisis.abierto ? analisis.cerrar : analisis.generar}
                             disabled={analisis.cargando}
@@ -151,6 +158,7 @@ export default function Estadisticas() {
                             <Icon name="Sparkles" size={16} color="var(--primary-mid)" />
                             {analisis.cargando ? "Analizando…" : analisis.abierto ? "Ocultar análisis" : "Análisis Inteligente"}
                         </button>
+                        )}
                     </div>
                 </div>
 

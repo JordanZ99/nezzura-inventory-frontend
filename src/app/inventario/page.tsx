@@ -16,6 +16,7 @@ import ImageCropperModal from "@/components/ui/ImageCropperModal"
 import { compararProductos, filtrarProductos } from "@/lib/ordenamiento"
 import type { Producto, PostOverride } from "@/lib/api"
 import { useTenant } from "@/contexts/TenantContext"
+import { obtenerModo } from "@/lib/local/modo"
 import { useInventarioData } from "@/hooks/useInventarioData"
 import { useInventarioForm } from "@/hooks/useInventarioForm"
 import { useInventarioUI } from "@/hooks/useInventarioUI"
@@ -63,6 +64,7 @@ export default function Inventario() {
         inv,
         categorias,
         cargandoCats,
+        cargandoInv,
         relacionImagen,
         cargarCategorias,
         totalActivos,
@@ -236,6 +238,32 @@ export default function Inventario() {
                 {msg && (
                     <div className="card fade-up" style={{ padding: "12px 16px", marginBottom: 12, borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#f44336"}`, color: msg.ok ? "#2e7d32" : "#b71c1c", fontSize: "0.875rem", fontWeight: 600 }}>
                         {msg.texto}
+                    </div>
+                )}
+
+                {/* Estado vacío guiado (Modo Local): este aparato empieza sin
+                    inventario — nadie migra nada de la nube por diseño, así que
+                    se le dice claro y se le manda al alta de producto. */}
+                {obtenerModo() === "local" && !cargandoInv && inv.length === 0 && (
+                    <div className="card fade-up" style={{ padding: "26px 24px", marginBottom: 16, textAlign: "center", border: "2px dashed var(--border-primary)" }}>
+                        <div style={{
+                            width: 56, height: 56, borderRadius: 16, margin: "0 auto 14px",
+                            background: "var(--gradient-1)", display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                            <Icon name="PackagePlus" size={28} color="#fff" />
+                        </div>
+                        <h3 style={{ margin: "0 0 8px", fontSize: "1.05rem", fontWeight: 800, color: "var(--text-main)" }}>
+                            Este teléfono empieza con inventario nuevo
+                        </h3>
+                        <p style={{ margin: "0 auto 16px", maxWidth: 460, fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: 600, lineHeight: 1.55 }}>
+                            Lo que tenías en la nube se queda en la nube, sin cambios.
+                            En este aparato armás tu inventario desde cero: registra tu
+                            primer producto en la pestaña <b>Nuevo</b> y luego mételo stock
+                            en <b>Restock</b>.
+                        </p>
+                        <button className="btn-primary" onClick={() => setTab("nuevo")}>
+                            <Icon name="ClipboardPlus" size={16} /> Agregar mi primer producto
+                        </button>
                     </div>
                 )}
 

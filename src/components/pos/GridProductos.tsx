@@ -24,6 +24,12 @@ interface Props {
     relacionImagen: string
     agregarAlCarrito: (prod: Producto) => void
     onVentaLibre: () => void
+    /**
+     * El catálogo ENTERO está vacío (no es un filtro sin resultados): se
+     * muestra el estado guiado con salto directo al Inventario en vez del
+     * "no hay productos" genérico.
+     */
+    catalogoVacio?: boolean
 }
 
 export function GridProductos({
@@ -39,6 +45,7 @@ export function GridProductos({
     relacionImagen,
     agregarAlCarrito,
     onVentaLibre,
+    catalogoVacio = false,
 }: Props) {
     return (
         <>
@@ -165,15 +172,38 @@ export function GridProductos({
                         />
                     ))}
                     {productosFiltrados.length === 0 && !cargando && (
-                        <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
-                            <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
-                            <h2 style={{ fontSize: "1.8rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 12px", lineHeight: 1.2, textTransform: "uppercase" }}>
-                                No hay productos
-                            </h2>
-                            <p style={{ fontSize: "1.2rem", color: "var(--text-main)", fontWeight: 600, margin: 0 }}>
-                                Agrega nuevos en <span style={{ color: "var(--primary-mid)", fontWeight: 800 }}>INVENTARIO</span>
-                            </p>
-                        </div>
+                        catalogoVacio ? (
+                            /* ── Estado guiado: no hay NINGÚN producto en este punto de venta
+                                (en Modo Local es el arranque fresco del teléfono) ── */
+                            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "50px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-primary)", marginTop: 20 }}>
+                                <span style={{ fontSize: "3.5rem", display: "block", marginBottom: 12 }}>🛒</span>
+                                <h2 style={{ fontSize: "1.4rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 10px", lineHeight: 1.2 }}>
+                                    Todavía no tienes productos aquí
+                                </h2>
+                                <p style={{ fontSize: "1rem", color: "var(--text-main)", fontWeight: 600, margin: "0 auto 18px", maxWidth: 420, lineHeight: 1.5 }}>
+                                    Agrega tu primer producto en el <b>INVENTARIO</b> y
+                                    aparecerá aquí listito para cobrar.
+                                </p>
+                                <a href="/inventario" style={{
+                                    display: "inline-flex", alignItems: "center", gap: 8,
+                                    padding: "11px 22px", borderRadius: 12,
+                                    background: "var(--primary-mid)", color: "#fff",
+                                    fontWeight: 800, fontSize: "0.9rem", textDecoration: "none",
+                                }}>
+                                    <Icon name="PackagePlus" size={17} color="#fff" /> Ir al Inventario
+                                </a>
+                            </div>
+                        ) : (
+                            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
+                                <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
+                                <h2 style={{ fontSize: "1.8rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 12px", lineHeight: 1.2, textTransform: "uppercase" }}>
+                                    No hay productos
+                                </h2>
+                                <p style={{ fontSize: "1.2rem", color: "var(--text-main)", fontWeight: 600, margin: 0 }}>
+                                    Agrega nuevos en <span style={{ color: "var(--primary-mid)", fontWeight: 800 }}>INVENTARIO</span>
+                                </p>
+                            </div>
+                        )
                     )}
                 </div>
             )}

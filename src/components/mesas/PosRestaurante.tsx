@@ -101,6 +101,7 @@ export default function PosRestaurante() {
                     relacionImagen={datos.relacionImagen}
                     agregarAlCarrito={posCarrito.agregarAlCarrito}
                     onVentaLibre={() => setModalVentaLibre(true)}
+                    catalogoVacio={!datos.cargando && datos.productos.length === 0}
                 />
             </div>
 

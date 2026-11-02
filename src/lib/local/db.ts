@@ -274,6 +274,36 @@ export interface MesaItemLocal {
     creado_en: string
 }
 
+// ── Fase 3: conteos de auditoría (espejo de migraciones 041/056/057) ──
+export interface ConteoLocal {
+    id: string
+    estado: "abierto" | "cerrado"
+    abierto_at: string
+    cerrado_at: string | null
+    resumen: import("@/types").ResumenConteo | null
+    alcance?: import("@/types").AlcanceConteo | null
+}
+
+export interface ConteoItemLocal {
+    id: string
+    conteo_id: string
+    /** En la nube es el id numérico del producto; en local la fila vive por
+     * NOMBRE (d1.productos.producto), así que se guarda referencia mínima. */
+    producto_id: number | null
+    producto: string
+    /** '' = stock base del producto (sin variación) */
+    variacion: string
+    /** Snapshot del stock del sistema al ABRIR el conteo */
+    esperado: number
+    contado: number | null
+    /** Stock vivo al cierre (solo se llena al cerrar) */
+    vivo: number | null
+    delta: number | null
+    resolucion: import("@/types").ResolucionConteo | null
+    origen?: "snapshot" | "manual"
+    inicial?: number | null
+}
+
 export class DBLocal extends Dexie {
     perfil!: Table<PerfilLocal, number>
     categorias!: Table<CategoriaLocal, string>
@@ -297,6 +327,9 @@ export class DBLocal extends Dexie {
     turnos!: Table<TurnoLocal, string>
     mesas!: Table<MesaLocal, string>
     mesa_items!: Table<MesaItemLocal, string>
+    // ── Fase 3: conteos de auditoría ──
+    conteos!: Table<ConteoLocal, string>
+    conteo_items!: Table<ConteoItemLocal, string>
 
     constructor(nombre: string) {
         super(nombre)
@@ -335,6 +368,11 @@ export class DBLocal extends Dexie {
             turnos: "id, estado, abierta_en",
             mesas: "id, orden, estado",
             mesa_items: "id, mesa_id, producto",
+        })
+        // Fase 3: conteos de auditoría (páginas históricas y renglones).
+        this.version(3).stores({
+            conteos: "id, estado, abierto_at",
+            conteo_items: "id, conteo_id, producto",
         })
     }
 }
