@@ -271,21 +271,30 @@ function IconoRedSocial({ red, size = 19, color }: { red: "instagram" | "faceboo
  * - modo 'esquina': chips flotantes en la esquina inferior derecha del
  *   banner (modo imagen) — zona secundaria, no compite con el título central.
  * - modo 'flujo': fila centrada bajo el contenido del header (modo gradiente,
- *   fondo oscuro para contrastar sobre cualquier gradiente del tema).
- * Solo dibuja redes con URL real (heroRedesVisibles ya filtra las vacías);
- * recursos/estilo idénticos al hero: disco + vidrio + hover scale.
+ *   disco teñido con el color del tema, igual patrón que la paginación).
+ * El glifo pinta con el COLOR DEL TEMA (tema.primary = var(--primary-mid),
+ * el mismo acento de la barra de anuncios). Solo dibuja redes con URL real
+ * (heroRedesVisibles ya filtra las vacías); hover scale como el hero.
  */
 function RedesBanner({
-    redes, esMovil, modo,
+    redes, esMovil, modo, accent,
 }: {
     redes: { red: "instagram" | "facebook" | "tiktok" | "whatsapp"; url: string }[]
     esMovil: boolean
     modo: "esquina" | "flujo"
+    accent: string
 }) {
     if (redes.length === 0) return null
     const disco = esMovil ? 28 : 34
-    const baseFondo = modo === "esquina" ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.22)"
-    const hoverFondo = modo === "esquina" ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.36)"
+    // Banner: vidrio neutro sobre la foto (el glifo lleva el color del tema).
+    // Gradiente: disco teñido con el acento — un glifo de tema sobre el disco
+    // oscuro fijo se anonadaría con temas oscuros.
+    const baseFondo = modo === "esquina"
+        ? "rgba(255,255,255,0.14)"
+        : `color-mix(in srgb, ${accent} 15%, transparent)`
+    const hoverFondo = modo === "esquina"
+        ? "rgba(255,255,255,0.28)"
+        : `color-mix(in srgb, ${accent} 30%, transparent)`
     return (
         <div style={{
             ...(modo === "esquina"
@@ -311,7 +320,7 @@ function RedesBanner({
                     onMouseEnter={e => { e.currentTarget.style.background = hoverFondo; e.currentTarget.style.transform = "scale(1.1)" }}
                     onMouseLeave={e => { e.currentTarget.style.background = baseFondo; e.currentTarget.style.transform = "none" }}
                 >
-                    <IconoRedSocial red={r.red} size={esMovil ? 13 : 16} color="#fff" />
+                    <IconoRedSocial red={r.red} size={esMovil ? 13 : 16} color={accent} />
                 </a>
             ))}
         </div>
@@ -1074,7 +1083,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         derecha del banner. Toggle banner_mostrar_redes (null/true = activo);
                         solo redes con URL real llenada en Identidad del Negocio. */}
                     {config.banner_mostrar_redes !== false && (
-                        <RedesBanner redes={heroRedesVisibles} esMovil={esMovil} modo="esquina" />
+                        <RedesBanner redes={heroRedesVisibles} esMovil={esMovil} modo="esquina" accent={tema.primary} />
                     )}
                 </header>
                 )
@@ -1113,7 +1122,7 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         {/* Iconos de redes del negocio (migración 059): al final del
                             header de gradiente. Mismo toggle banner_mostrar_redes. */}
                         {config.banner_mostrar_redes !== false && (
-                            <RedesBanner redes={heroRedesVisibles} esMovil={esMovil} modo="flujo" />
+                            <RedesBanner redes={heroRedesVisibles} esMovil={esMovil} modo="flujo" accent={tema.primary} />
                         )}
                     </header>
             )
