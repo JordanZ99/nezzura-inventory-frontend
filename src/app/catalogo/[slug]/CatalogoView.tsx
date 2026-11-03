@@ -270,11 +270,12 @@ function IconoRedSocial({ red, size = 19, color }: { red: "instagram" | "faceboo
  * Fila de iconos de redes sociales del negocio (migración 059).
  * - modo 'esquina': chips flotantes en la esquina inferior derecha del
  *   banner (modo imagen) — zona secundaria, no compite con el título central.
- * - modo 'flujo': fila centrada bajo el contenido del header (modo gradiente,
- *   disco teñido con el color del tema, igual patrón que la paginación).
- * El glifo pinta con el COLOR DEL TEMA (tema.primary = var(--primary-mid),
- * el mismo acento de la barra de anuncios). Solo dibuja redes con URL real
- * (heroRedesVisibles ya filtra las vacías); hover scale como el hero.
+ * - modo 'flujo': fila centrada bajo el contenido del header (modo gradiente).
+ * ESTILO idéntico a la barra de anuncios: disco sólido en el COLOR DEL TEMA
+ * (accent = var(--primary-mid), el mismo fondo del anuncio) y glifo en el
+ * color de su texto (var(--on-primary)) para contrasear en CUALQUIER tema
+ * (dark/light). Solo dibuja redes con URL real (heroRedesVisibles ya filtra
+ * las vacías); hover scale como el hero.
  */
 function RedesBanner({
     redes, esMovil, modo, accent,
@@ -286,15 +287,10 @@ function RedesBanner({
 }) {
     if (redes.length === 0) return null
     const disco = esMovil ? 28 : 34
-    // Banner: vidrio neutro sobre la foto (el glifo lleva el color del tema).
-    // Gradiente: disco teñido con el acento — un glifo de tema sobre el disco
-    // oscuro fijo se anonadaría con temas oscuros.
-    const baseFondo = modo === "esquina"
-        ? "rgba(255,255,255,0.14)"
-        : `color-mix(in srgb, ${accent} 15%, transparent)`
-    const hoverFondo = modo === "esquina"
-        ? "rgba(255,255,255,0.28)"
-        : `color-mix(in srgb, ${accent} 30%, transparent)`
+    const baseFondo = accent
+    // Hover: el disco se aclara un toque (mezcla con blanco) para dar vida al
+    // acento; el glifo NO cambia — el contraste on-primary queda intacto.
+    const hoverFondo = `color-mix(in srgb, ${accent} 82%, white)`
     return (
         <div style={{
             ...(modo === "esquina"
@@ -320,7 +316,7 @@ function RedesBanner({
                     onMouseEnter={e => { e.currentTarget.style.background = hoverFondo; e.currentTarget.style.transform = "scale(1.1)" }}
                     onMouseLeave={e => { e.currentTarget.style.background = baseFondo; e.currentTarget.style.transform = "none" }}
                 >
-                    <IconoRedSocial red={r.red} size={esMovil ? 13 : 16} color={accent} />
+                    <IconoRedSocial red={r.red} size={esMovil ? 13 : 16} color="var(--on-primary)" />
                 </a>
             ))}
         </div>
