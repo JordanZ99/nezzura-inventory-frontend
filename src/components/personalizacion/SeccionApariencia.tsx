@@ -681,6 +681,29 @@ export function SeccionApariencia({
                                 disabled={campoGuardando === "banner_mostrar_logo"}
                             />
                         </div>
+
+                        {/* Redes sociales sobre el banner (migración 059) */}
+                        <div style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                            padding: "14px 16px", background: "var(--bg-card2)", borderRadius: 12,
+                        }}>
+                            <div>
+                                <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)" }}>Redes sociales sobre el banner</span>
+                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                                    Iconos de Instagram, Facebook, TikTok y WhatsApp del negocio en la esquina del banner (por defecto activo).
+                                </p>
+                                {renderGuardado("banner_mostrar_redes")}
+                            </div>
+                            <Switch
+                                checked={(catalogoConfig?.banner_mostrar_redes ?? true) !== false}
+                                onChange={() => {
+                                    const nuevo = !(catalogoConfig?.banner_mostrar_redes ?? true)
+                                    setCatalogoConfig(prev => prev ? { ...prev, banner_mostrar_redes: nuevo } : prev)
+                                    autoguardar("banner_mostrar_redes", { banner_mostrar_redes: nuevo })
+                                }}
+                                disabled={campoGuardando === "banner_mostrar_redes"}
+                            />
+                        </div>
                     </>
                 )}
             </div>

@@ -73,6 +73,7 @@ interface ConfigCatalogo {
     banner_texto_color?: string
     banner_mostrar_texto?: boolean
     banner_mostrar_logo?: boolean
+    banner_mostrar_redes?: boolean
     anuncio_texto?: string
     // Fondo del catálogo con imagen (migración 045): '' = usa el color del tema
     fondo_url?: string
@@ -262,6 +263,58 @@ function IconoRedSocial({ red, size = 19, color }: { red: "instagram" | "faceboo
         <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
         </svg>
+    )
+}
+
+/**
+ * Fila de iconos de redes sociales del negocio (migración 059).
+ * - modo 'esquina': chips flotantes en la esquina inferior derecha del
+ *   banner (modo imagen) — zona secundaria, no compite con el título central.
+ * - modo 'flujo': fila centrada bajo el contenido del header (modo gradiente,
+ *   fondo oscuro para contrastar sobre cualquier gradiente del tema).
+ * Solo dibuja redes con URL real (heroRedesVisibles ya filtra las vacías);
+ * recursos/estilo idénticos al hero: disco + vidrio + hover scale.
+ */
+function RedesBanner({
+    redes, esMovil, modo,
+}: {
+    redes: { red: "instagram" | "facebook" | "tiktok" | "whatsapp"; url: string }[]
+    esMovil: boolean
+    modo: "esquina" | "flujo"
+}) {
+    if (redes.length === 0) return null
+    const disco = esMovil ? 28 : 34
+    const baseFondo = modo === "esquina" ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.22)"
+    const hoverFondo = modo === "esquina" ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.36)"
+    return (
+        <div style={{
+            ...(modo === "esquina"
+                ? { position: "absolute" as const, right: esMovil ? 12 : 16, bottom: esMovil ? 10 : 14 }
+                : { justifyContent: "center" as const, marginTop: 18 }),
+            display: "flex", gap: esMovil ? 8 : 10, zIndex: 2,
+        }}>
+            {redes.map(r => (
+                <a
+                    key={r.red}
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={r.red}
+                    title={r.red}
+                    style={{
+                        width: disco, height: disco, borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: baseFondo,
+                        backdropFilter: "blur(6px)",
+                        transition: "transform 0.15s, background 0.15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = hoverFondo; e.currentTarget.style.transform = "scale(1.1)" }}
+                    onMouseLeave={e => { e.currentTarget.style.background = baseFondo; e.currentTarget.style.transform = "none" }}
+                >
+                    <IconoRedSocial red={r.red} size={esMovil ? 13 : 16} color="#fff" />
+                </a>
+            ))}
+        </div>
     )
 }
 
@@ -1017,6 +1070,12 @@ export default function CatalogoView({ slug }: { slug: string }) {
                             </p>
                         </div>
                     )}
+                    {/* Iconos de redes del negocio (migración 059): esquina inferior
+                        derecha del banner. Toggle banner_mostrar_redes (null/true = activo);
+                        solo redes con URL real llenada en Identidad del Negocio. */}
+                    {config.banner_mostrar_redes !== false && (
+                        <RedesBanner redes={heroRedesVisibles} esMovil={esMovil} modo="esquina" />
+                    )}
                 </header>
                 )
             // Gradiente: sin canva, sin hero legacy y sin banner → header simple
@@ -1051,6 +1110,11 @@ export default function CatalogoView({ slug }: { slug: string }) {
                         <p style={{ fontSize: "0.75rem", opacity: 0.6, margin: "12px 0 0", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1.5 }}>
                             {totalProductos} productos
                         </p>
+                        {/* Iconos de redes del negocio (migración 059): al final del
+                            header de gradiente. Mismo toggle banner_mostrar_redes. */}
+                        {config.banner_mostrar_redes !== false && (
+                            <RedesBanner redes={heroRedesVisibles} esMovil={esMovil} modo="flujo" />
+                        )}
                     </header>
             )
         })()}

@@ -75,6 +75,8 @@ export interface CatalogoConfig {
     banner_texto_color?: string;
     banner_mostrar_texto?: boolean;
     banner_mostrar_logo?: boolean;
+    /** Iconos de redes sociales del negocio sobre el banner/hero (migración 059): null/true = visibles */
+    banner_mostrar_redes?: boolean;
     anuncio_texto?: string;
     /** Fondo del catálogo con imagen (migración 045): '' = usa el color del tema */
     fondo_url?: string;

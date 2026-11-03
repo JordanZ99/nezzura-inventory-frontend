@@ -26,6 +26,8 @@ export const catalogoApi = {
         banner_texto_color?: string
         banner_mostrar_texto?: boolean
         banner_mostrar_logo?: boolean
+        /** Iconos de redes sobre el banner (migración 059) */
+        banner_mostrar_redes?: boolean
         anuncio_texto?: string
         /** Fondo del catálogo con imagen (migración 045) */
         fondo_url?: string
