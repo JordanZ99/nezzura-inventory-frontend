@@ -10,6 +10,8 @@ export interface ItemCarrito {
     // del producto genérico 'Venta libre' los lleva.
     descripcion?: string;
     costo?: number;
+    // Categoría del tenant elegida en el POS (migración 060); solo venta libre
+    categoria?: string;
 }
 
 export interface Venta {
@@ -31,6 +33,8 @@ export interface Venta {
     // Venta libre (migración 036): texto libre del renglón ("Cereal",
     // "Silla usada"); solo lo traen las ventas del producto genérico.
     descripcion?: string | null;
+    // Categoría del tenant (migración 060); solo venta libre, null = sin categoría
+    categoria?: string | null;
     // Consumo real de materiales de una venta COMPUESTA (solo compuestos)
     consumo?: { material: string; id_lote: string | null; cantidad: number; costo: number }[] | null;
     // Orden (ticket) a la que pertenece el renglón (migración 032)

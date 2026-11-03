@@ -47,6 +47,10 @@ export default function FilaVenta({ v, editando, setEditando, editVal, setEditVa
                 ) : (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                         <Pill color="gray">{v.cantidad}x {v.descripcion || v.producto}</Pill>
+                        {/* Venta libre con categoría (migración 060): chip junto a la descripción */}
+                        {v.categoria && (
+                            <Pill color="primary">{v.categoria}</Pill>
+                        )}
                     </div>
                 )}
             </td>

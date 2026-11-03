@@ -362,8 +362,9 @@ export default function PosRestaurante() {
 
             {modalVentaLibre && (
                 <ModalVentaLibre
-                    onAgregar={(descripcion, precio, costo) => {
-                        posCarrito.agregarVentaLibre(descripcion, precio, costo)
+                    categorias={ui.categorias}
+                    onAgregar={(descripcion, precio, costo, categoria) => {
+                        posCarrito.agregarVentaLibre(descripcion, precio, costo, categoria)
                         setModalVentaLibre(false)
                     }}
                     onCancelar={() => setModalVentaLibre(false)}

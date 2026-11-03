@@ -27,6 +27,7 @@ export function ItemCarrito({
     // que se vendió de verdad vive en item.descripcion. No tiene lote ni variación.
     const esLibre = item.producto === NOMBRE_VENTA_LIBRE
     const nombreMostrar = item.descripcion || item.producto
+    const etiquetaVariacion = item.variacion || (esLibre && item.categoria ? item.categoria : "")
 
     return (
         <div style={esMovil
@@ -39,9 +40,9 @@ export function ItemCarrito({
                     <p style={{ margin: 0, fontWeight: 600, fontSize: esMovil ? "0.9rem" : "0.8rem", color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {nombreMostrar}
                     </p>
-                    {item.variacion && (
+                    {etiquetaVariacion && (
                         <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--primary-dark)", background: "var(--bg-card2)", borderRadius: 6, padding: "1px 6px", alignSelf: esMovil ? "flex-start" : undefined }}>
-                            {item.variacion}
+                            {etiquetaVariacion}
                         </span>
                     )}
                 </div>

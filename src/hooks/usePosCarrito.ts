@@ -277,20 +277,24 @@ export function usePosCarrito({ productos, lotes, terminales, recargar, setCarri
     // capturados al vuelo; costo opcional (0 = ganancia = precio completo).
     // Dos capturas con la MISMA descripción fusionan cantidad; con otra
     // descripción crean una línea independiente (misma mecánica que variaciones).
-    function agregarVentaLibre(descripcion: string, precio: number, costo: number) {
+    function agregarVentaLibre(descripcion: string, precio: number, costo: number, categoria?: string) {
         const desc = descripcion.trim()
+        const cat = (categoria || "").trim()
         const item: ItemCarrito = {
             producto: NOMBRE_VENTA_LIBRE,
             cantidad: 1,
             precio_real: Math.max(0, precio),
             ...(desc ? { descripcion: desc } : {}),
             ...(costo > 0 ? { costo } : {}),
+            ...(cat ? { categoria: cat } : {}),
         }
         const key = keyCarrito(item)
         setCarrito(prev => {
             const idx = prev.findIndex(i => keyCarrito(i) === key)
             if (idx >= 0) {
                 const nuevo = [...prev]
+                // Fusiona cantidad (misma descripción); el renglón ya fusionado
+                // conserva SU categoría (la segunda captura no la cambia).
                 nuevo[idx] = { ...nuevo[idx], cantidad: nuevo[idx].cantidad + 1, precio_real: item.precio_real, costo: item.costo }
                 return nuevo
             }

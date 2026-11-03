@@ -22,6 +22,7 @@ async function filaMesa(m: MesaLocal, items: MesaItemLocal[]): Promise<Mesa> {
             mesa_id: it.mesa_id,
             producto: it.producto,
             descripcion: it.descripcion ?? null,
+            categoria: it.categoria ?? null,
             variacion: it.variacion ?? null,
             cantidad: it.cantidad,
             precio_unitario: it.precio_unitario,
@@ -91,6 +92,7 @@ export async function agregarItems(
         descripcion?: string
         variacion?: string
         costo?: number
+        categoria?: string
         notas?: string
     }[]
 ): Promise<{ ok: boolean; agregados: number }> {
@@ -104,6 +106,7 @@ export async function agregarItems(
                 mesa_id: mesaId,
                 producto: it.producto,
                 descripcion: it.descripcion || null,
+                categoria: it.categoria || null,
                 variacion: it.variacion || null,
                 cantidad: it.cantidad,
                 precio_unitario: it.precio_unitario,

@@ -2,16 +2,19 @@
 // src/components/pos/ModalVentaLibre.tsx
 // Mini-form de la Venta libre (migración 036): se abre desde el tile fijo
 // "＋ Venta libre" del POS. Cobra algo que NO está registrado en inventario:
-// descripción opcional (aparece en el ticket y en el historial), precio
-// requerido y costo opcional (0 = la ganancia del renglón es el precio
-// completo). El renglón entra al carrito como el producto genérico
-// 'Venta libre' — contablemente todo cae en esa misma línea.
+// descripción opcional (aparece en el ticket y en el historial), costo
+// opcional (0 = la ganancia del renglón es el precio completo) y precio
+// requerido. Migración 060: además puede llevar la CATEGORÍA del tenant —
+// contablemente el renglón sigue siendo la línea única 'Venta libre', la
+// categoría solo clasifica la venta (chips en historial y mesa/cocina).
+// El renglón entra al carrito como el producto genérico 'Venta libre'.
 // ==============================================================================
 
 import { useEffect, useRef, useState } from "react"
 
 interface Props {
-    onAgregar: (descripcion: string, precio: number, costo: number) => void
+    categorias?: string[]
+    onAgregar: (descripcion: string, precio: number, costo: number, categoria?: string) => void
     onCancelar: () => void
 }
 
@@ -20,10 +23,11 @@ function aNumero(texto: string): number {
     return isNaN(n) ? 0 : n
 }
 
-export function ModalVentaLibre({ onAgregar, onCancelar }: Props) {
+export function ModalVentaLibre({ categorias = [], onAgregar, onCancelar }: Props) {
     const [descripcion, setDescripcion] = useState("")
     const [precio, setPrecio] = useState("")
     const [costo, setCosto] = useState("")
+    const [categoria, setCategoria] = useState("")
     const [error, setError] = useState("")
     const refDescripcion = useRef<HTMLInputElement>(null)
 
@@ -44,7 +48,7 @@ export function ModalVentaLibre({ onAgregar, onCancelar }: Props) {
             return
         }
         setError("")
-        onAgregar(descripcion, precioNum, aNumero(costo))
+        onAgregar(descripcion, precioNum, aNumero(costo), categoria || undefined)
     }
 
     return (
@@ -89,20 +93,7 @@ export function ModalVentaLibre({ onAgregar, onCancelar }: Props) {
                         />
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                        <div>
-                            <label style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.6, display: "block", marginBottom: 4 }}>
-                                Precio *
-                            </label>
-                            <input
-                                type="text" inputMode="decimal"
-                                value={precio}
-                                onChange={e => setPrecio(e.target.value)}
-                                onKeyDown={e => e.key === "Enter" && agregar()}
-                                placeholder="0.00"
-                                className="input-primary"
-                                style={{ width: "100%", fontSize: "0.9rem", textAlign: "right" }}
-                            />
-                        </div>
+                        {/* Costo a la izquierda (opcional), precio a la derecha (requerido) */}
                         <div>
                             <label style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.6, display: "block", marginBottom: 4 }}>
                                 Costo (opcional)
@@ -117,7 +108,39 @@ export function ModalVentaLibre({ onAgregar, onCancelar }: Props) {
                                 style={{ width: "100%", fontSize: "0.9rem", textAlign: "right" }}
                             />
                         </div>
+                        <div>
+                            <label style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.6, display: "block", marginBottom: 4 }}>
+                                Precio *
+                            </label>
+                            <input
+                                type="text" inputMode="decimal"
+                                value={precio}
+                                onChange={e => setPrecio(e.target.value)}
+                                onKeyDown={e => e.key === "Enter" && agregar()}
+                                placeholder="0.00"
+                                className="input-primary"
+                                style={{ width: "100%", fontSize: "0.9rem", textAlign: "right" }}
+                            />
+                        </div>
                     </div>
+                    {categorias.length > 0 && (
+                        <div>
+                            <label style={{ fontSize: "0.62rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.6, display: "block", marginBottom: 4 }}>
+                                Categoría (opcional)
+                            </label>
+                            <select
+                                value={categoria}
+                                onChange={e => setCategoria(e.target.value)}
+                                className="input-primary"
+                                style={{ width: "100%", fontSize: "0.88rem" }}
+                            >
+                                <option value="">Sin categoría</option>
+                                {categorias.map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     {error && (
                         <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 700, color: "#b71c1c" }}>{error}</p>
                     )}

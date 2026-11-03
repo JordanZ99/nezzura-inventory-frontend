@@ -262,8 +262,9 @@ export default function PosClasico() {
             {/* ── Modal de Venta libre (tile fijo del grid) ── */}
             {modalVentaLibre && (
                 <ModalVentaLibre
-                    onAgregar={(descripcion, precio, costo) => {
-                        agregarVentaLibre(descripcion, precio, costo)
+                    categorias={categorias}
+                    onAgregar={(descripcion, precio, costo, categoria) => {
+                        agregarVentaLibre(descripcion, precio, costo, categoria)
                         setModalVentaLibre(false)
                     }}
                     onCancelar={() => setModalVentaLibre(false)}

@@ -61,7 +61,7 @@ function RenglonCocina({ it }: { it: ItemMesa }) {
                 )}
                 {it.producto === NOMBRE_VENTA_LIBRE && (
                     <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                        (venta libre)
+                        {it.categoria ? `(venta libre · ${it.categoria})` : "(venta libre)"}
                     </p>
                 )}
             </div>

@@ -141,6 +141,7 @@ export interface VentaLocal {
     tipo_producto?: string
     variacion?: string
     descripcion?: string | null
+    categoria?: string | null
     id_lote?: string | null
     consumo?: { material: string; id_lote: string | null; cantidad: number; costo: number }[] | null
 }
@@ -273,6 +274,7 @@ export interface MesaItemLocal {
     mesa_id: string
     producto: string
     descripcion?: string | null
+    categoria?: string | null
     variacion?: string | null
     cantidad: number
     precio_unitario: number

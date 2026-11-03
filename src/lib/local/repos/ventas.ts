@@ -190,6 +190,7 @@ export async function cobrarCarrito(
             tipo_producto: tipo,
             variacion: item.variacion || undefined,
             descripcion: item.descripcion || null,
+            categoria: item.categoria || null,
             id_lote: null,
             consumo,
         })

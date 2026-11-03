@@ -84,6 +84,7 @@ export function useMesas() {
         descripcion?: string
         variacion?: string
         costo?: number
+        categoria?: string
         notas?: string
     }[]) {
         try {
@@ -141,6 +142,7 @@ export function useMesas() {
             ...(it.variacion ? { variacion: it.variacion } : {}),
             ...(it.descripcion ? { descripcion: it.descripcion } : {}),
             ...(it.costo != null ? { costo: Number(it.costo) } : {}),
+            ...(it.categoria ? { categoria: it.categoria } : {}),
         }))
     }
 

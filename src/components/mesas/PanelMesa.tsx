@@ -37,6 +37,7 @@ interface Props {
         descripcion?: string
         variacion?: string
         costo?: number
+        categoria?: string
     }[]) => Promise<void>
     quitarItem: (mesaId: string, itemId: string) => Promise<void>
     pedirCuenta: (mesaId: string) => Promise<void>
@@ -179,7 +180,7 @@ export function PanelMesa({
                                     <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
                                         {Number(it.cantidad)} × ${Number(it.precio_unitario).toFixed(2)}
                                         {it.variacion ? ` · ${it.variacion}` : ""}
-                                        {it.producto === NOMBRE_VENTA_LIBRE ? " · venta libre" : ""}
+                                        {it.producto === NOMBRE_VENTA_LIBRE ? (it.categoria ? ` · ${it.categoria}` : " · venta libre") : ""}
                                     </p>
                                 </div>
                                 <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "var(--primary-dark)" }}>
@@ -234,7 +235,8 @@ export function PanelMesa({
             {/* ── Modal de venta libre hacia la mesa ── */}
             {modalLibre && (
                 <ModalVentaLibre
-                    onAgregar={(descripcion, precio, costo) => {
+                    categorias={categorias}
+                    onAgregar={(descripcion, precio, costo, categoria) => {
                         setModalLibre(false)
                         void agregarItems(mesa.id, [{
                             producto: NOMBRE_VENTA_LIBRE,
@@ -242,6 +244,7 @@ export function PanelMesa({
                             precio_unitario: precio,
                             ...(descripcion.trim() ? { descripcion: descripcion.trim() } : {}),
                             ...(costo > 0 ? { costo } : {}),
+                            ...(categoria && categoria.trim() ? { categoria: categoria.trim() } : {}),
                         }])
                     }}
                     onCancelar={() => setModalLibre(false)}

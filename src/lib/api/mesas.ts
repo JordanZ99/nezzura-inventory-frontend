@@ -28,6 +28,7 @@ export const mesasApi = {
         descripcion?: string
         variacion?: string
         costo?: number
+        categoria?: string
         notas?: string
     }[]) =>
         request<{ ok: boolean; agregados: number }>(`/mesas/${mesaId}/items`, {

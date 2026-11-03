@@ -16,6 +16,8 @@ export interface ItemMesa {
     precio_unitario: number;
     // Solo venta libre; null = el costo lo resuelve PEPS al cobrar
     costo?: number | null;
+    // Categoría del tenant elegida en el POS (migración 060, solo venta libre)
+    categoria?: string | null;
     notas?: string | null;
     creado_en: string;
 }
