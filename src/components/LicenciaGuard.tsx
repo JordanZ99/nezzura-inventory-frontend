@@ -16,7 +16,7 @@
 // ==============================================================================
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { obtenerModo } from "@/lib/local/modo"
 import { estadoLicencia, revalidarLicencia, salirModoLocal } from "@/lib/local/licencia"
 
@@ -24,10 +24,21 @@ type Estado = "cargando" | "ok" | "bloqueado" | "muerto"
 
 export default function LicenciaGuard({ children }: { children: React.ReactNode }) {
     const router = useRouter()
-    const [estado, setEstado] = useState<Estado>("cargando")
+    const pathname = usePathname()
+    // El catálogo público pasa SIEMPRE (migración …): páginas para clientes,
+    // fuera del contrato del Modo Local. El [slug] no está portado a local
+    // (requiere servidor y ya tiene su propio estado de error amigable) y
+    // /catalogo/impresion vive en el IndexedDB del aparato, así que no tiene
+    // sentido bloquearlas por licencia (ni mostrar el flash de arranque).
+    const esCatalogo = pathname?.startsWith("/catalogo") ?? false
+    // Estado inicial perezoso: en modo nube (o en el catálogo) no hay nada
+    // que revalidar — el PRIMER paint ya pasa directo, sin flash de "Reconectando…".
+    const [estado, setEstado] = useState<Estado>(() =>
+        obtenerModo() !== "local" ? "ok" : "cargando"
+    )
 
     async function validar() {
-        if (obtenerModo() !== "local") {
+        if (obtenerModo() !== "local" || esCatalogo) {
             setEstado("ok")
             return
         }
@@ -61,7 +72,7 @@ export default function LicenciaGuard({ children }: { children: React.ReactNode 
         router.replace("/login")
     }
 
-    if (estado === "ok") return <>{children}</>
+    if (estado === "ok" || esCatalogo) return <>{children}</>
 
     return (
         <div style={{
