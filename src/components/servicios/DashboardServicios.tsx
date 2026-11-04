@@ -116,39 +116,6 @@ export default function DashboardServicios() {
                                 })}
                             </div>
 
-                            <div style={{ flex: "1 1 300px", borderRadius: 16, background: "var(--bg-card)", padding: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.05)", minWidth: 0 }}>
-                                <h3 style={{ margin: "0 0 12px", fontSize: "0.8rem", fontWeight: 800, color: "var(--text-main)", letterSpacing: 0.4 }}>
-                                    Deudores
-                                </h3>
-                                {resumen.deudores.length === 0 ? (
-                                    <div style={{ padding: "18px 0", textAlign: "center", color: "var(--text-muted)", fontWeight: 600, fontSize: "0.85rem" }}>
-                                        <Icon name="BadgeCheck" size={30} color="var(--primary-alter)" />
-                                        <p style={{ margin: "8px 0 0" }}>Nadie te debe. Todo al día</p>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                        {resumen.deudores.slice(0, 6).map(d => (
-                                            <div key={d.cliente_id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                                <p style={{ margin: 0, flex: 1, fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                                    {d.nombre}
-                                                </p>
-                                                <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                                                    {d.cobros_pendientes} cobro(s)
-                                                </span>
-                                                <span style={{ fontWeight: 800, fontSize: "0.85rem", color: "#c62828" }}>
-                                                    {fmt(d.saldo)}
-                                                </span>
-                                            </div>
-                                        ))}
-                                        {resumen.deudores.length > 6 && (
-                                            <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)", textAlign: "center" }}>
-                                                +{resumen.deudores.length - 6} más en Cobros
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
                             {/* Próximos pagos (requiere backend con 'proximos' en resumen) */}
                             {resumen.proximos && (
                                 <div style={{ flex: "1 1 300px", borderRadius: 16, background: "var(--bg-card)", padding: 16, boxShadow: "0 2px 10px rgba(0,0,0,0.05)", minWidth: 0 }}>
