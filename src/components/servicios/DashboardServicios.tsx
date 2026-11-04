@@ -86,15 +86,11 @@ export default function DashboardServicios() {
                                 <p style={{ ...kpiValor, color: "var(--primary-alter)" }}>{fmt(resumen.cobrado_periodo)}</p>
                             </div>
                             <div style={kpiStyle}>
-                                <p style={kpiLabel}>Pendiente total</p>
-                                <p style={{ ...kpiValor, color: "#c62828" }}>{fmt(resumen.pendiente_total)}</p>
+                                <p style={kpiLabel}>Clientes con saldo</p>
+                                <p style={{ ...kpiValor, color: "var(--text-main)" }}>{resumen.deudores.length}</p>
                                 <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)" }}>
                                     {resumen.num_pendientes} cobro(s) abierto(s)
                                 </p>
-                            </div>
-                            <div style={kpiStyle}>
-                                <p style={kpiLabel}>Clientes con saldo</p>
-                                <p style={{ ...kpiValor, color: "var(--text-main)" }}>{resumen.deudores.length}</p>
                             </div>
                         </div>
 
