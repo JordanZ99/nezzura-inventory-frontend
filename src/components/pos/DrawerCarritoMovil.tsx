@@ -148,7 +148,7 @@ export function DrawerCarritoMovil({
                             <Icon name={panelCobro ? "ChevronUp" : "Settings"} size={16} />
                         </button>
                         <button onClick={() => setCarritoAbierto(false)}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: "1.2rem", padding: 4 }}>✕</button>
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4, lineHeight: 0, display: "inline-flex" }}><Icon name="X" size={18} /></button>
                     </div>
                 </div>
                 {carrito.length === 0 ? (

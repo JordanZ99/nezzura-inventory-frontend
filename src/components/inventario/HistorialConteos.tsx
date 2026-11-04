@@ -111,7 +111,7 @@ export default function HistorialConteos({ historial, cargando }: Props) {
                         )}
                         {r && (
                             <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                                <ChipResumen etiqueta={`✓ ${r.cuadrados} cuadraron`} tono={TONO_RESOLUCION.cuadrado} />
+                                <ChipResumen etiqueta={`${r.cuadrados} cuadraron`} tono={TONO_RESOLUCION.cuadrado} />
                                 {r.mermas > 0 && <ChipResumen etiqueta={`− ${r.mermas} merma${r.mermas > 1 ? "s" : ""} · $${Number(r.merma_costo).toFixed(2)}`} tono={TONO_RESOLUCION.merma} />}
                                 {r.ventas > 0 && <ChipResumen etiqueta={`${r.ventas} vendido${r.ventas > 1 ? "s" : ""} · $${Number(r.venta_total).toFixed(2)}`} tono={TONO_RESOLUCION.venta} />}
                                 {r.entradas > 0 && <ChipResumen etiqueta={`+ ${r.entradas} ingreso${r.entradas > 1 ? "s" : ""}`} tono={TONO_RESOLUCION.entrada_no_registrada} />}

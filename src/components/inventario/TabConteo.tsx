@@ -69,7 +69,7 @@ export default function TabConteo({ conteo, inv, relacionImagen }: Props) {
         const resumen: ResumenConteo | null = await cerrar(resoluciones, fecha)
         if (!resumen) return
         setModo("captura")
-        const partes: string[] = [`✓ ${resumen.cuadrados} cuadrados`]
+        const partes: string[] = [`${resumen.cuadrados} cuadrados`]
         if (resumen.mermas) partes.push(`${resumen.mermas} mermas por $${Number(resumen.merma_costo).toFixed(2)} (gasto en Egresos)`)
         if (resumen.ventas) partes.push(`${resumen.ventas} ventas por $${Number(resumen.venta_total).toFixed(2)}${resumen.n_ticket ? ` (ticket #${resumen.n_ticket})` : ""}`)
         if (resumen.entradas) partes.push(`${resumen.entradas} ingresos`)

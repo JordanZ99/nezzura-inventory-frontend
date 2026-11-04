@@ -509,7 +509,7 @@ function CanvaSet({
                                             cursor: "pointer", border: "none", boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
                                         }}
                                     >
-                                        ✕
+                                        <Icon name="X" size={12} />
                                     </button>
                                 )}
                             </div>

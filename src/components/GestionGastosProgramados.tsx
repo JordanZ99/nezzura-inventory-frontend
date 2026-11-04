@@ -127,12 +127,12 @@ export default function GestionGastosProgramados() {
         try {
             const res = await api.ejecutarGastoProgramado(id)
             if (res.ok) {
-                mostrarMsg(true, `✅ ${res.mensaje}`)
+                mostrarMsg(true, `${res.mensaje}`)
             } else {
-                mostrarMsg(false, `❌ ${res.mensaje || "Error al ejecutar"}`)
+                mostrarMsg(false, `${res.mensaje || "Error al ejecutar"}`)
             }
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al ejecutar la regla"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al ejecutar la regla"}`)
         } finally {
             setEjecutando(null)
             // Recargar en finally para que se ejecute tanto en éxito como en error.
@@ -154,7 +154,7 @@ export default function GestionGastosProgramados() {
                 frecuencia: form.frecuencia,
                 proxima_fecha: form.proxima_fecha,
             })
-            mostrarMsg(true, `✅ Regla "${form.nombre}" creada correctamente`)
+            mostrarMsg(true, `Regla "${form.nombre}" creada correctamente`)
             setForm(f => ({
                 ...f,
                 nombre: "",
@@ -165,7 +165,7 @@ export default function GestionGastosProgramados() {
             }))
             await recargar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al crear la regla"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al crear la regla"}`)
         } finally {
             setGuardando(false)
         }

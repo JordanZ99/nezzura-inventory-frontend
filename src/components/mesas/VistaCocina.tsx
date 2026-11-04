@@ -119,7 +119,9 @@ export function VistaCocina({ mesas, cargando, actualizando, onActualizar }: Pro
 
             {abiertas.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)" }}>
-                    <span style={{ fontSize: "3.5rem", display: "block", marginBottom: 12 }}>😌</span>
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+                        <Icon name="ChefHat" size={56} color="var(--primary-alter)" />
+                    </div>
                     <h2 style={{ fontSize: "1.4rem", color: "var(--primary-dark)", fontWeight: 800, margin: 0 }}>
                         Todo tranquilo
                     </h2>

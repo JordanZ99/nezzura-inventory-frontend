@@ -66,7 +66,7 @@ export default function VariacionRow({ variacion, disabled, stockVisible = false
                             display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
                         }}
                     >
-                        ✕
+                        <Icon name="X" size={11} />
                     </button>
                 )}
                 <input

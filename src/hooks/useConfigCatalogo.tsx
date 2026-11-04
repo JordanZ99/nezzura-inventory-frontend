@@ -57,7 +57,7 @@ export function useConfigCatalogo(tab: string) {
             }
             return true
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error guardando configuración"}`)
+            mostrarMsg(false, `${err.message || "Error guardando configuración"}`)
             return false
         } finally {
             setCampoGuardando(prev => prev === campo ? null : prev)
@@ -158,7 +158,7 @@ export function useConfigCatalogo(tab: string) {
             }
             mostrarMsg(true, res.mensaje)
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al cambiar visibilidad"}`)
+            mostrarMsg(false, `${err.message || "Error al cambiar visibilidad"}`)
         } finally {
             setCategoriaToggling(null)
         }
@@ -183,7 +183,7 @@ export function useConfigCatalogo(tab: string) {
             }
         } catch (err: any) {
             setCategoriasCatalogo(anterior)
-            mostrarMsg(false, `❌ ${err.message || "Error al reordenar categorías"}`)
+            mostrarMsg(false, `${err.message || "Error al reordenar categorías"}`)
         } finally {
             setReordenandoCats(false)
         }

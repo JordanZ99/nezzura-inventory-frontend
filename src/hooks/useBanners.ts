@@ -103,9 +103,9 @@ export function useBanners({ tenant, catalogoConfig, setCatalogoConfig, ejecutar
                 // Guardado falló: limpiar la imagen recién subida (huérfana)
                 api.borrarImagen(ruta).catch(() => {})
             }
-            mostrarMsg(true, "🖼️ Banner subido y aplicado")
+            mostrarMsg(true, "Banner subido y aplicado")
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al subir banner"}`)
+            mostrarMsg(false, `${err.message || "Error al subir banner"}`)
         } finally {
             setSubiendoBannerMovil(false)
             setSubiendoBanner(false)
@@ -139,10 +139,10 @@ export function useBanners({ tenant, catalogoConfig, setCatalogoConfig, ejecutar
                 api.borrarImagen(ruta).catch(() => {})
                 setCatalogoConfig(prev => prev ? { ...prev, fondo_url: viejaUrl } : prev)
             } else {
-                mostrarMsg(true, "✨ Fondo subido y aplicado")
+                mostrarMsg(true, "Fondo subido y aplicado")
             }
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al subir el fondo"}`)
+            mostrarMsg(false, `${err.message || "Error al subir el fondo"}`)
         } finally {
             setSubiendoFondo(false)
         }

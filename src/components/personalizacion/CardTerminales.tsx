@@ -69,7 +69,7 @@ export function CardTerminales() {
 
     async function guardarNuevo() {
         if (!form.nombre.trim()) {
-            mostrarMsg(false, "❌ El nombre de la terminal es obligatorio")
+            mostrarMsg(false, "El nombre de la terminal es obligatorio")
             return
         }
         setOcupado(true)
@@ -81,11 +81,11 @@ export function CardTerminales() {
                 comision_credito_pct: Number(form.comision_credito_pct) || 0,
                 comision_fija: Number(form.comision_fija) || 0,
             })
-            mostrarMsg(true, `✅ Terminal "${form.nombre.trim()}" agregada`)
+            mostrarMsg(true, `Terminal "${form.nombre.trim()}" agregada`)
             setForm(FORM_VACIO)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         } finally { setOcupado(false) }
     }
 
@@ -99,11 +99,11 @@ export function CardTerminales() {
                 comision_credito_pct: Number(formEdicion.comision_credito_pct) || 0,
                 comision_fija: Number(formEdicion.comision_fija) || 0,
             })
-            mostrarMsg(true, "✅ Terminal actualizada")
+            mostrarMsg(true, "Terminal actualizada")
             setEditandoId(null)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         } finally { setOcupado(false) }
     }
 
@@ -114,7 +114,7 @@ export function CardTerminales() {
             mostrarMsg(true, "Terminal eliminada")
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 

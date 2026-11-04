@@ -43,7 +43,7 @@ export function useMesas() {
             mostrarMsg(true, `Mesa "${nombre}" creada`)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -53,7 +53,7 @@ export function useMesas() {
             mostrarMsg(true, "Mesa actualizada")
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -64,7 +64,7 @@ export function useMesas() {
             if (mesaId === mesaAEliminar) setMesaId(null)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -73,7 +73,7 @@ export function useMesas() {
             await api.reordenarMesas(ordenNuevo)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -91,7 +91,7 @@ export function useMesas() {
             await api.agregarItems(mesaDestino, items)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -100,7 +100,7 @@ export function useMesas() {
             await api.quitarItem(mesaDestino, itemId)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -110,7 +110,7 @@ export function useMesas() {
             mostrarMsg(true, "Cuenta pedida")
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -119,7 +119,7 @@ export function useMesas() {
             await api.regresarAOcupada(mesaDestino)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -129,7 +129,7 @@ export function useMesas() {
             mostrarMsg(true, `Orden cancelada (${r.cancelados} renglón/ones)`)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 

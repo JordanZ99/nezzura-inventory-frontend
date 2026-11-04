@@ -150,7 +150,7 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             }
             mostrarMsg(true, "Modo de precio sugerido actualizado")
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error guardando el modo de precio"}`)
+            mostrarMsg(false, `${err.message || "Error guardando el modo de precio"}`)
             // Revertir al valor persistido
             api.getPerfil()
                 .then(p => setModoPrecio(p.modo_precio_sugerido || "antiguo"))
@@ -168,13 +168,13 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         try {
             if (obtenerModo() === "local") {
                 await exportarJson()
-                mostrarMsg(true, "✅ Respaldo Local descargado — guárdalo en un lugar seguro")
+                mostrarMsg(true, "Respaldo Local descargado — guárdalo en un lugar seguro")
             } else {
                 await descargarDatosJson()
-                mostrarMsg(true, "✅ Respaldo JSON descargado — guárdalo en un lugar seguro")
+                mostrarMsg(true, "Respaldo JSON descargado — guárdalo en un lugar seguro")
             }
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al descargar el respaldo"}`)
+            mostrarMsg(false, `${err.message || "Error al descargar el respaldo"}`)
         } finally {
             setDescargando(null)
         }
@@ -188,13 +188,13 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         try {
             if (obtenerModo() === "local") {
                 await exportarCsv()
-                mostrarMsg(true, "✅ Archivo CSV descargado — se abre en Excel")
+                mostrarMsg(true, "Archivo CSV descargado — se abre en Excel")
             } else {
                 await descargarDatosXlsx()
-                mostrarMsg(true, "✅ Archivo Excel descargado")
+                mostrarMsg(true, "Archivo Excel descargado")
             }
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al descargar el Excel"}`)
+            mostrarMsg(false, `${err.message || "Error al descargar el Excel"}`)
         } finally {
             setDescargando(null)
         }
@@ -212,7 +212,7 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             const url = URL.createObjectURL(file)
             setLogoCrop({ url })
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al abrir el recorte del logo"}`)
+            mostrarMsg(false, `${err.message || "Error al abrir el recorte del logo"}`)
         } finally {
             setSubiendoLogo(false)
             if (inputFileRef.current) inputFileRef.current.value = ""
@@ -231,9 +231,9 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             const { ruta } = await api.subirFoto(nombreClave, blob as File)
 
             setLogoUrl(ruta)
-            mostrarMsg(true, "📷 Logo recortado y subido — Haz clic en Guardar Cambios para aplicarlo en el sistema")
+            mostrarMsg(true, "Logo recortado y subido — Haz clic en Guardar Cambios para aplicarlo en el sistema")
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al subir logo"}`)
+            mostrarMsg(false, `${err.message || "Error al subir logo"}`)
         } finally {
             setSubiendoLogo(false)
         }
@@ -249,7 +249,7 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
     // Guarda empresa, logo y datos de contacto en Supabase
     async function guardarCambios() {
         if (!empresa.trim()) {
-            mostrarMsg(false, "❌ El nombre del negocio no puede estar vacío")
+            mostrarMsg(false, "El nombre del negocio no puede estar vacío")
             return
         }
         try {
@@ -275,9 +275,9 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
             }
             setLogoOriginal(logoNuevo)
 
-            mostrarMsg(true, "✅ Cambios guardados y aplicados correctamente")
+            mostrarMsg(true, "Cambios guardados y aplicados correctamente")
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al guardar cambios"}`)
+            mostrarMsg(false, `${err.message || "Error al guardar cambios"}`)
         } finally {
             setGuardando(false)
         }
@@ -286,15 +286,15 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
     // Guarda la zona horaria del negocio (día contable de ventas/gastos/cortes)
     async function guardarZonaHoraria() {
         if (!zonaHorario.trim()) {
-            mostrarMsg(false, "❌ Selecciona una zona horaria válida")
+            mostrarMsg(false, "Selecciona una zona horaria válida")
             return
         }
         try {
             setGuardandoZona(true)
             await actualizar({ zona_horaria: zonaHorario.trim() })
-            mostrarMsg(true, "✅ Zona horaria del negocio actualizada")
+            mostrarMsg(true, "Zona horaria del negocio actualizada")
         } catch (err: any) {
-            mostrarMsg(false, `❌ ${err.message || "Error al guardar la zona horaria"}`)
+            mostrarMsg(false, `${err.message || "Error al guardar la zona horaria"}`)
         } finally {
             setGuardandoZona(false)
         }
@@ -306,10 +306,10 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         setGastoComision(v)
         try {
             await actualizar({ gasto_comision_automatico: v })
-            mostrarMsg(true, v ? "✅ Comisiones se registrarán como gasto" : "Comisiones solo informativas")
+            mostrarMsg(true, v ? "Comisiones se registrarán como gasto" : "Comisiones solo informativas")
         } catch (err: unknown) {
             setGastoComision(previo)
-            mostrarMsg(false, `❌ ${err instanceof Error ? err.message : "Error"}`)
+            mostrarMsg(false, `${err instanceof Error ? err.message : "Error"}`)
         }
     }
 
@@ -321,10 +321,10 @@ export function usePersonalizacionCuenta({ tenant, actualizar }: UsePersonalizac
         setGuardandoDias(true)
         try {
             await actualizar({ dias_cerrados: nuevos })
-            mostrarMsg(true, nuevos.length ? "✅ Días de descanso actualizados" : "✅ Negocio abierto los 7 días")
+            mostrarMsg(true, nuevos.length ? "Días de descanso actualizados" : "Negocio abierto los 7 días")
         } catch (err: unknown) {
             setDiasCerrados(previo)
-            mostrarMsg(false, `❌ ${err instanceof Error ? err.message : "Error"}`)
+            mostrarMsg(false, `${err instanceof Error ? err.message : "Error"}`)
         } finally {
             setGuardandoDias(false)
         }

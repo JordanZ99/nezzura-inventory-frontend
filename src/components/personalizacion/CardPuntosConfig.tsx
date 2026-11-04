@@ -60,7 +60,7 @@ export function CardPuntosConfig({ cargandoTenant }: Props) {
 
     async function guardar() {
         if (errores.length > 0) {
-            mostrarMsg(false, `❌ ${errores[0]}`)
+            mostrarMsg(false, `${errores[0]}`)
             return
         }
         setGuardando(true)
@@ -73,9 +73,9 @@ export function CardPuntosConfig({ cargandoTenant }: Props) {
                 puntos_gasto_pts: parseInt(gastoPts, 10),
                 puntos_fijos: modo === "fijo" ? parseInt(fijos, 10) : null,
             })
-            mostrarMsg(true, activo ? "✅ Sistema de puntos actualizado" : "Sistema de puntos desactivado")
+            mostrarMsg(true, activo ? "Sistema de puntos actualizado" : "Sistema de puntos desactivado")
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al guardar"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al guardar"}`)
         } finally {
             setGuardando(false)
         }
@@ -157,7 +157,9 @@ export function CardPuntosConfig({ cargandoTenant }: Props) {
             </div>
 
             {errores.length > 0 && (
-                <p style={{ margin: "10px 0 0", fontSize: "0.75rem", fontWeight: 700, color: "#b71c1c" }}>⚠ {errores[0]}</p>
+                <p style={{ margin: "10px 0 0", fontSize: "0.75rem", fontWeight: 700, color: "#b71c1c", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                <Icon name="TriangleAlert" size={14} /> {errores[0]}
+                            </p>
             )}
 
             <button className="btn-primary" onClick={guardar} disabled={guardando || cargandoTenant}

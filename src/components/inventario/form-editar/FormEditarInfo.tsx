@@ -155,7 +155,7 @@ export default function FormEditarInfo({
                                     transition: "all 0.15s",
                                 }}
                             >
-                                {cat} {activa ? "✓" : "+"}
+                                {cat} {activa ? <Icon name="Check" size={11} /> : "+"}
                             </button>
                         )
                     })}

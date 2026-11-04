@@ -180,7 +180,7 @@ export default function TabCRM({ rango, todo }: Props) {
 
     async function guardarCliente() {
         if (faltantesObligatorios.length > 0) {
-            mostrarMsg(false, `❌ Campos obligatorios: ${faltantesObligatorios.join(", ")}`)
+            mostrarMsg(false, `Campos obligatorios: ${faltantesObligatorios.join(", ")}`)
             return
         }
         setGuardando(true)
@@ -196,7 +196,7 @@ export default function TabCRM({ rango, todo }: Props) {
                     cumpleanos: form.cumpleanos,
                     origen: form.origen.trim(),
                 })
-                mostrarMsg(true, "✅ Cliente actualizado")
+                mostrarMsg(true, "Cliente actualizado")
             } else {
                 await api.crearCliente({
                     nombre: form.nombre.trim(),
@@ -207,12 +207,12 @@ export default function TabCRM({ rango, todo }: Props) {
                     cumpleanos: form.cumpleanos || undefined,
                     origen: form.origen.trim() || undefined,
                 })
-                mostrarMsg(true, `✅ Cliente "${form.nombre.trim()}" agregado a la cartera`)
+                mostrarMsg(true, `Cliente "${form.nombre.trim()}" agregado a la cartera`)
             }
             setModalAbierto(false)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al guardar"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al guardar"}`)
         } finally {
             setGuardando(false)
         }
@@ -225,17 +225,17 @@ export default function TabCRM({ rango, todo }: Props) {
             mostrarMsg(true, "Cliente dado de baja")
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
     async function reactivar(c: Cliente) {
         try {
             await api.actualizarCliente(c.id, { activo: true })
-            mostrarMsg(true, "✅ Cliente reactivado")
+            mostrarMsg(true, "Cliente reactivado")
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
         }
     }
 
@@ -257,7 +257,7 @@ export default function TabCRM({ rango, todo }: Props) {
             await api.setEtiquetasCliente(fichaId, nuevoSet)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al etiquetar"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al etiquetar"}`)
         } finally {
             setGuardandoFicha(false)
         }
@@ -276,10 +276,10 @@ export default function TabCRM({ rango, todo }: Props) {
             const vigentes = ficha?.etiquetas.map(e => e.id) ?? []
             await api.setEtiquetasCliente(fichaId, [...vigentes, r.etiqueta.id])
             setNuevaEtiquetaNombre("")
-            mostrarMsg(true, `✅ Etiqueta "${r.etiqueta.nombre}" creada y asignada`)
+            mostrarMsg(true, `Etiqueta "${r.etiqueta.nombre}" creada y asignada`)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al crear etiqueta"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al crear etiqueta"}`)
         } finally {
             setGuardandoEtiqueta(false)
         }
@@ -293,17 +293,17 @@ export default function TabCRM({ rango, todo }: Props) {
     async function registrarInteraccion() {
         if (!fichaId) return
         if (!textoInteraccion.trim()) {
-            mostrarMsg(false, "❌ Escribe qué pasó / qué se acordó")
+            mostrarMsg(false, "Escribe qué pasó / qué se acordó")
             return
         }
         setGuardandoInteraccion(true)
         try {
             await api.addInteraccion(fichaId, tipoInteraccion, textoInteraccion.trim())
             setTextoInteraccion("")
-            mostrarMsg(true, "✅ Interacción registrada")
+            mostrarMsg(true, "Interacción registrada")
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al registrar"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al registrar"}`)
         } finally {
             setGuardandoInteraccion(false)
         }
@@ -335,21 +335,21 @@ export default function TabCRM({ rango, todo }: Props) {
     async function aplicarAjuste() {
         if (!modalPuntosId) return
         if (!puntosNum) {
-            mostrarMsg(false, "❌ Indica cuántos puntos dar o quitar")
+            mostrarMsg(false, "Indica cuántos puntos dar o quitar")
             return
         }
         if (!conceptoInput.trim()) {
-            mostrarMsg(false, "❌ Describe el motivo del ajuste")
+            mostrarMsg(false, "Describe el motivo del ajuste")
             return
         }
         setGuardandoPuntos(true)
         try {
             const r = await api.ajustarPuntos(modalPuntosId, puntosNum, conceptoInput.trim())
-            mostrarMsg(true, `✅ ${r.cliente}: saldo ${r.saldo_anterior} → ${r.saldo_nuevo} pts`)
+            mostrarMsg(true, `${r.cliente}: saldo ${r.saldo_anterior} → ${r.saldo_nuevo} pts`)
             setModalPuntosId(null)
             invalidar()
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error en el ajuste"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error en el ajuste"}`)
         } finally {
             setGuardandoPuntos(false)
         }
@@ -360,15 +360,15 @@ export default function TabCRM({ rango, todo }: Props) {
     async function copiarContactos() {
         const conContacto = clientesFiltrados.filter(c => c.telefono || c.email)
         if (!conContacto.length) {
-            mostrarMsg(false, "❌ La lista filtrada no tiene contactos para copiar")
+            mostrarMsg(false, "La lista filtrada no tiene contactos para copiar")
             return
         }
         const texto = conContacto.map(c => `${c.nombre}\t${c.telefono || c.email}`).join("\n")
         try {
             await navigator.clipboard.writeText(texto)
-            mostrarMsg(true, `📋 ${conContacto.length} contactos copiados — pégalos donde quieras`)
+            mostrarMsg(true, `${conContacto.length} contactos copiados — pégalos donde quieras`)
         } catch {
-            mostrarMsg(false, "❌ El navegador bloqueó el portapapeles")
+            mostrarMsg(false, "El navegador bloqueó el portapapeles")
         }
     }
 
@@ -820,7 +820,7 @@ export default function TabCRM({ rango, todo }: Props) {
                                         )
                                     })}
                                     {etiquetas.length === 0 && (
-                                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Crea la primera etiqueta abajo 👇</span>
+                                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Crea la primera etiqueta abajo</span>
                                     )}
                                 </div>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>

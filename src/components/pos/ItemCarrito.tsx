@@ -9,6 +9,7 @@
 
 import type { PropsItemCarrito } from "./tipos"
 import { NOMBRE_VENTA_LIBRE } from "@/lib/ventaLibre"
+import Icon from "@/components/ui/Icon"
 
 export function ItemCarrito({
     item,
@@ -47,7 +48,7 @@ export function ItemCarrito({
                     )}
                 </div>
                 <button onClick={() => acciones.quitarDelCarrito(key)}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: esMovil ? "var(--text-muted)" : "#ccc", fontSize: esMovil ? undefined : "0.9rem", padding: esMovil ? undefined : 0, lineHeight: esMovil ? undefined : 1 }}>✕</button>
+                    style={{ background: "none", border: "none", cursor: "pointer", color: esMovil ? "var(--text-muted)" : "#ccc", padding: esMovil ? undefined : 0, lineHeight: 0, display: "inline-flex" }}><Icon name="X" size={esMovil ? 18 : 14} /></button>
             </div>
 
             {/* ── Cantidad ± + precio unitario ── */}

@@ -166,7 +166,7 @@ export function GridProductos({
                             relacionImagen={relacionImagen}
                             modoPrecio="catalogo"
                             mostrarTipo
-                            fallback={<span style={{ fontSize: "2rem" }}>🛍️</span>}
+                            fallback={<Icon name="PackagePlus" size={34} color="var(--primary-light)" />}
                             onClick={() => agregarAlCarrito(prod)}
                             onCategoriaClick={cat => setCategoriaSeleccionada(cat)}
                         />
@@ -176,7 +176,9 @@ export function GridProductos({
                             /* ── Estado guiado: no hay NINGÚN producto en este punto de venta
                                 (en Modo Local es el arranque fresco del teléfono) ── */
                             <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "50px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-primary)", marginTop: 20 }}>
-                                <span style={{ fontSize: "3.5rem", display: "block", marginBottom: 12 }}>🛒</span>
+                                <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+                                    <Icon name="Ghost" size={56} color="var(--primary-light)" />
+                                </div>
                                 <h2 style={{ fontSize: "1.4rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 10px", lineHeight: 1.2 }}>
                                     Todavía no tienes productos aquí
                                 </h2>
@@ -195,7 +197,9 @@ export function GridProductos({
                             </div>
                         ) : (
                             <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", background: "var(--bg-card)", borderRadius: 16, border: "2px dashed var(--border-light)", marginTop: 20 }}>
-                                <span style={{ fontSize: "4rem", display: "block", marginBottom: 16 }}>😿</span>
+                                <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+                                    <Icon name="SearchX" size={56} color="var(--primary-mid)" />
+                                </div>
                                 <h2 style={{ fontSize: "1.8rem", color: "var(--primary-dark)", fontWeight: 800, margin: "0 0 12px", lineHeight: 1.2, textTransform: "uppercase" }}>
                                     No hay productos
                                 </h2>

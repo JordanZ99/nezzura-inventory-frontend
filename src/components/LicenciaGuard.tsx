@@ -17,6 +17,7 @@
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import Icon from "@/components/ui/Icon"
 import { obtenerModo } from "@/lib/local/modo"
 import { estadoLicencia, revalidarLicencia, salirModoLocal } from "@/lib/local/licencia"
 
@@ -88,8 +89,8 @@ export default function LicenciaGuard({ children }: { children: React.ReactNode 
                 border: "1.5px solid rgba(255,255,255,0.3)",
                 borderRadius: 24, padding: "36px 28px", color: "#fff",
             }}>
-                <div style={{ fontSize: "2.6rem", marginBottom: 10 }}>
-                    {estado === "muerto" ? "🔒" : "📡"}
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                    <Icon name={estado === "muerto" ? "Lock" : "CloudOff"} size={40} color="#fff" />
                 </div>
                 <h2 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 800 }}>
                     {estado === "muerto"

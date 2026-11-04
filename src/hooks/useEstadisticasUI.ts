@@ -169,7 +169,7 @@ export function useEstadisticasUI(recargar: () => Promise<void>) {
     async function guardarEdicionOrden() {
         if (!ordenEditando || guardando) return
         if (!/^\d{4}-\d{2}-\d{2}$/.test(ordenFecha)) {
-            mostrarMsg(false, "❌ Selecciona una fecha válida")
+            mostrarMsg(false, "Selecciona una fecha válida")
             return
         }
         const data: { fecha?: string; metodo_pago?: string } = { fecha: ordenFecha }

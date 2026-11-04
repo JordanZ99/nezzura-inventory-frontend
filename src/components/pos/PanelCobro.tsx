@@ -369,7 +369,7 @@ export function PanelCobro({
                         </button>
                         <span style={{ fontSize: "0.7rem", fontWeight: 700, color: Math.abs(faltanteMixto) <= 0.01 ? "var(--text-muted)" : (faltanteMixto > 0 ? "#e65100" : "#2e7d32") }}>
                             {Math.abs(faltanteMixto) <= 0.01
-                                ? "Cuadra ✓"
+                            ? "Cuadrado"
                                 : faltanteMixto > 0
                                     ? `Faltan $${faltanteMixto.toFixed(2)}`
                                     : `Sobran $${Math.abs(faltanteMixto).toFixed(2)}`}

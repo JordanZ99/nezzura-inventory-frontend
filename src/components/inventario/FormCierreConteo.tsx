@@ -288,7 +288,9 @@ export default function FormCierreConteo({ items, inv, capturas, onAplicar, cerr
 
             {/* Resumen de estado */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8, fontSize: "0.78rem", fontWeight: 600, color: "var(--text-muted)" }}>
-                <span>✓ {cuadran.length} cuadran</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Icon name="Check" size={13} /> {cuadran.length} cuadran
+                </span>
                 {(sinContar.length > 0 || omitidos.length > 0 || manualesSinContar.length > 0) && <span>— {sinContar.length + omitidos.length + manualesSinContar.length} sin contar (se quedan como están)</span>}
                 {faltantes.length > 0 && <span style={{ color: "var(--error-text)" }}>− {faltantes.length} faltantes</span>}
                 {sobrantes.length > 0 && <span style={{ color: "var(--success-text)" }}>+ {sobrantes.length} sobrantes</span>}

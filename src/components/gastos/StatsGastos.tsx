@@ -69,9 +69,10 @@ export default function StatsGastos({ esMobile, totalPagado, numPagados, pendien
                     <span style={{
                         fontSize: "0.65rem", fontWeight: 700, color: "var(--primary-dark)",
                         background: "rgba(0,0,0,0.08)", borderRadius: 8,
-                        padding: "4px 8px", whiteSpace: "nowrap"
+                        padding: "4px 8px", whiteSpace: "nowrap",
+                        display: "inline-flex", alignItems: "center", gap: 3
                     }}>
-                        ✕ Quitar filtro
+                        <Icon name="X" size={11} /> Quitar filtro
                     </span>
                 )}
             </div>

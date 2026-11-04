@@ -161,7 +161,7 @@ export default function ModalDetalleProducto({ prod, fotosModal, indiceFoto, set
                             backdropFilter: "blur(4px)"
                         }}
                     >
-                        ✕
+                        <Icon name="X" size={16} />
                     </button>
                 </div>
 

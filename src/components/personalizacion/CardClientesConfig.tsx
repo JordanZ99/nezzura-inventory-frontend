@@ -68,9 +68,9 @@ export function CardClientesConfig({ cargandoTenant }: Props) {
                     pin: cfgDeEstado(estados.pin),
                 },
             })
-            mostrarMsg(true, activo ? "✅ Cartera de clientes actualizada" : "Cartera de clientes desactivada")
+            mostrarMsg(true, activo ? "Cartera de clientes actualizada" : "Cartera de clientes desactivada")
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error al guardar"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error al guardar"}`)
         } finally {
             setGuardando(false)
         }

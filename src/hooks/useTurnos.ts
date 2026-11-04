@@ -32,11 +32,11 @@ export function useTurnos() {
     async function abrir(montoApertura: number): Promise<boolean> {
         try {
             await api.abrirTurno(montoApertura)
-            mostrarMsg(true, "✅ Turno abierto")
+            mostrarMsg(true, "Turno abierto")
             invalidar()
             return true
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
             return false
         }
     }
@@ -44,12 +44,12 @@ export function useTurnos() {
     async function cerrar(turnoId: string, efectivoContado: number, notas?: string) {
         try {
             const r = await api.cerrarTurno(turnoId, efectivoContado, notas)
-            const signo = r.diferencia === 0 ? "cuadrado ✓" : r.diferencia > 0 ? `sobrante +$${r.diferencia.toFixed(2)}` : `faltante -$${Math.abs(r.diferencia).toFixed(2)}`
+            const signo = r.diferencia === 0 ? "cuadrado" : r.diferencia > 0 ? `sobrante +$${r.diferencia.toFixed(2)}` : `faltante -$${Math.abs(r.diferencia).toFixed(2)}`
             mostrarMsg(true, `Turno cerrado — esperado $${r.efectivo_esperado.toFixed(2)}, contado $${r.efectivo_contado.toFixed(2)} (${signo})`)
             invalidar()
             return r
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
             return null
         }
     }
@@ -59,15 +59,15 @@ export function useTurnos() {
         try {
             const r = await api.editarTurno(turnoId, data)
             if ("diferencia" in r && r.ok) {
-                const signo = r.diferencia === 0 ? "cuadrado ✓" : r.diferencia > 0 ? `sobrante +$${r.diferencia.toFixed(2)}` : `faltante -$${Math.abs(r.diferencia).toFixed(2)}`
+                const signo = r.diferencia === 0 ? "cuadrado" : r.diferencia > 0 ? `sobrante +$${r.diferencia.toFixed(2)}` : `faltante -$${Math.abs(r.diferencia).toFixed(2)}`
                 mostrarMsg(true, `Arqueo corregido — esperado $${r.efectivo_esperado.toFixed(2)}, contado $${r.efectivo_contado.toFixed(2)} (${signo})`)
             } else {
-                mostrarMsg(true, "✅ Turno actualizado")
+                mostrarMsg(true, "Turno actualizado")
             }
             invalidar()
             return true
         } catch (e: unknown) {
-            mostrarMsg(false, `❌ ${e instanceof Error ? e.message : "Error"}`)
+            mostrarMsg(false, `${e instanceof Error ? e.message : "Error"}`)
             return false
         }
     }

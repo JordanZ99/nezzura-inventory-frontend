@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import type { CSSProperties } from "react"
+import Icon from "@/components/ui/Icon"
 
 /**
  * Selector de sufijo del precio que se muestra en el catálogo público.
@@ -96,11 +97,11 @@ export default function SelectorSufijoPrecio({ value, onChange, fraccionable, on
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {presets.map(p => (
                     <button key={p.valor} onClick={() => togglePreset(p.valor)} style={chipStyle(value === p.valor)}>
-                        {p.valor} {value === p.valor ? "✓" : ""}
+                        {p.valor} {value === p.valor && <Icon name="Check" size={12} />}
                     </button>
                 ))}
                 <button onClick={activarOtro} style={chipStyle(modoOtroVisible)}>
-                    Otro {modoOtroVisible ? "✓" : ""}
+                    Otro {modoOtroVisible && <Icon name="Check" size={12} />}
                 </button>
             </div>
             {modoOtroVisible && (
