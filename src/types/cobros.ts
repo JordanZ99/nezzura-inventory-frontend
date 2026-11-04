@@ -76,6 +76,17 @@ export interface DeudorCobros {
     cobros_pendientes: number
 }
 
+/** Próximo pago por vencer (card del dashboard; el backend ordena y trunca a 6). */
+export interface ProximoCobro {
+    cliente_id: string
+    cliente_nombre: string
+    concepto: string
+    saldo: number
+    vencimiento: string | null  // 'YYYY-MM-DD'
+    vencido: boolean            // siempre false: los vencidos viven en el aging
+    dias_vencido: number
+}
+
 /** KPIs del dashboard financiero (GET /cobros/resumen). */
 export interface ResumenCobros {
     periodo: string          // 'YYYY-MM'
@@ -84,4 +95,6 @@ export interface ResumenCobros {
     cobrado_periodo: number
     aging: AgingCobros
     deudores: DeudorCobros[]
+    /** Opcional: solo lo expone el backend ya actualizado (resumen >= 2026-11). */
+    proximos?: ProximoCobro[]
 }
