@@ -17,6 +17,10 @@ import { useTenant } from "@/contexts/TenantContext"
 export const PRESETS_GIRO: Record<string, string[]> = {
     tienda: [],
     restaurante: ["mesas", "cocina"],
+    // Giros de servicios (migración 059): el home YA NO es un POS de productos
+    // sino el dashboard financiero; el módulo 'cobros' habilita /cobros
+    // (mensualidades por cuota + trabajos extra con abonos).
+    servicios: ["cobros"],
 }
 
 // Giros ofrecidos al crear un tenant (para el selector de alta futura).

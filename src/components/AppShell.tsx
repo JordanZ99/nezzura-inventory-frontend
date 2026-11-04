@@ -13,6 +13,7 @@ import Icon from "@/components/ui/Icon"
 import { supabase } from "@/lib/supabase"
 import { obtenerTemaGestor } from "@/lib/temas"
 import { useTenant } from "@/contexts/TenantContext"
+import { useModulo } from "@/hooks/useModulo"
 import { obtenerModo } from "@/lib/local/modo"
 import { salirModoLocal } from "@/lib/local/licencia"
 
@@ -23,6 +24,9 @@ const NAV = [
     { href: "/gastos", icon: "DollarSign", label: "Gastos" },
     { href: "/personalizacion", icon: "UserRoundPen", label: "Ajustes" }
 ]
+
+/** Cobros solo existe en el giro 'servicios' (módulo 'cobros', mig 061). */
+const NAV_COBROS = { href: "/cobros", icon: "Wallet", label: "Cobros" }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -38,6 +42,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const isAccesoLocal = pathname === "/acceso-local"
     const isCatalogo = pathname.startsWith("/catalogo")
     const { tenant } = useTenant()
+    const esServicios = useModulo("cobros")
+
+    // Nav según giro: 'Cobros' se inserta solo en servicios. El POS se
+    // re-etiqueta como Panel ya que el home de este giro no vende productos.
+    const nav = esServicios
+        ? [
+              { ...NAV[0], icon: "Wallet", label: "Panel" },
+              ...NAV.slice(1, 4),
+              NAV_COBROS,
+              NAV[4],
+          ]
+        : NAV
 
     const logoSrc = tenant?.logo || "/logo.png"
     const empresa = tenant?.empresa || "..."
@@ -62,6 +78,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     function isActive(href: string): boolean {
         if (href === "/gastos") {
             return pathname === "/gastos" || pathname.startsWith("/gastos/")
+        }
+        if (href === "/cobros") {
+            return pathname === "/cobros" || pathname.startsWith("/cobros/")
         }
         return pathname === href
     }
@@ -148,7 +167,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     gap: 2,
                     padding: "0 12px",
                 }}>
-                    {NAV.map(item => (
+                    {nav.map(item => (
                         <Link key={item.href} href={item.href}
                             style={{
                                 display: "flex",
@@ -241,7 +260,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 zIndex: 200,
                 boxShadow: "0 -4px 20px rgba(47, 24, 194, 0.08)",
             }}>
-                {NAV.map(item => {
+                {nav.map(item => {
                     const active = isActive(item.href)
                     return (
                         <Link key={item.href} href={item.href} style={{

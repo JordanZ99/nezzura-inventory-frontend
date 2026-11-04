@@ -29,7 +29,7 @@ interface TenantInfo {
     metodo_pago_default: string  // método con el que el POS preselecciona el cobro
     gasto_comision_automatico: boolean  // registra comisiones de terminal como gasto al cobrar
     dias_cerrados: string[]  // días de la semana en que el negocio NO abre (migración 051)
-    giro: string  // 'tienda' | 'restaurante' — preset de módulos del negocio (migración 035)
+    giro: string  // 'tienda' | 'restaurante' | 'servicios' — preset de módulos del negocio (migs 035/061)
     modulos: Record<string, boolean> | null  // override de módulos; null = preset del giro
     // ── Cartera de clientes (migración 038) ──
     clientes_activos: boolean
