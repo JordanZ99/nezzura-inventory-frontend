@@ -148,10 +148,14 @@ export default function TabCRM({ rango, todo }: Props) {
     const [editandoNombre, setEditandoNombre] = useState("")
     const [form, setForm] = useState<FormCliente>(FORM_VACIO)
     const [guardando, setGuardando] = useState(false)
+    // true tras el primer intento de guardado fallido: los bordes rojos y la
+    // línea "Falta: ..." solo aparecen cuando el usuario ya lo intentó.
+    const [intentoGuardar, setIntentoGuardar] = useState(false)
 
     function abrirNuevo() {
         setEditandoId(null)
         setForm(FORM_VACIO)
+        setIntentoGuardar(false)
         setModalAbierto(true)
     }
     function abrirEdicion(c: Cliente) {
@@ -166,6 +170,7 @@ export default function TabCRM({ rango, todo }: Props) {
             cumpleanos: c.cumpleanos || "",
             origen: c.origen || "",
         })
+        setIntentoGuardar(false)
         setModalAbierto(true)
     }
 
@@ -178,11 +183,16 @@ export default function TabCRM({ rango, todo }: Props) {
         return f
     }, [form, campos, editandoId])
 
+    /** ¿El campo falta (y ya se intentó guardar)? — para resaltarlo en rojo. */
+    const falta = (campo: string) => intentoGuardar && faltantesObligatorios.includes(campo)
+
     async function guardarCliente() {
         if (faltantesObligatorios.length > 0) {
+            setIntentoGuardar(true)
             mostrarMsg(false, `Campos obligatorios: ${faltantesObligatorios.join(", ")}`)
             return
         }
+        setIntentoGuardar(false)
         setGuardando(true)
         try {
             if (editandoId) {
@@ -701,23 +711,23 @@ export default function TabCRM({ rango, todo }: Props) {
                     <p style={{ margin: "0 0 16px", fontSize: "0.78rem", color: "var(--text-muted)" }}>
                         {editandoId ? `Actualiza los datos de ${editandoNombre}.` : "El nombre es obligatorio; los demás campos según cómo configuraste Mi Negocio."}
                     </p>
-                    <Campo label="Nombre" requerido>
-                        <input style={inputTabla} value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Ej. María López" autoFocus />
+                    <Campo label="Nombre" requerido error={falta("nombre") ? "Campo obligatorio" : undefined}>
+                        <input style={falta("nombre") ? inputError : inputTabla} value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Ej. María López" autoFocus />
                     </Campo>
                     {campos.email.activo && (
-                        <Campo label="Correo" requerido={campos.email.requerido}>
-                            <input style={inputTabla} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="cliente@correo.com" type="email" />
+                        <Campo label="Correo" requerido={campos.email.requerido} error={falta("correo") ? "Campo obligatorio" : undefined}>
+                            <input style={falta("correo") ? inputError : inputTabla} value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="cliente@correo.com" type="email" />
                         </Campo>
                     )}
                     {campos.telefono.activo && (
-                        <Campo label="Número" requerido={campos.telefono.requerido}>
-                            <input style={inputTabla} value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="998 123 4567" type="tel" />
+                        <Campo label="Número" requerido={campos.telefono.requerido} error={falta("número") ? "Campo obligatorio" : undefined}>
+                            <input style={falta("número") ? inputError : inputTabla} value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} placeholder="998 123 4567" type="tel" />
                         </Campo>
                     )}
                     {campos.pin.activo && (
-                        <Campo label="Contraseña" requerido={campos.pin.requerido}>
+                        <Campo label="Contraseña" requerido={campos.pin.requerido} error={falta("contraseña") ? "Campo obligatorio" : undefined}>
                             <input
-                                style={inputTabla} value={form.pin} onChange={e => setForm({ ...form, pin: e.target.value })}
+                                style={falta("contraseña") ? inputError : inputTabla} value={form.pin} onChange={e => setForm({ ...form, pin: e.target.value })}
                                 placeholder={editandoId ? "Déjalo vacío para conservar la actual" : "Contraseña de identificación en el POS"} type="password"
                             />
                         </Campo>
@@ -741,6 +751,11 @@ export default function TabCRM({ rango, todo }: Props) {
                     <Campo label="Notas" requerido={false}>
                         <input style={inputTabla} value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} placeholder="Familia, preferencias…" />
                     </Campo>
+                    {intentoGuardar && faltantesObligatorios.length > 0 && (
+                        <p style={{ margin: "0 0 4px", fontSize: "0.78rem", fontWeight: 700, color: "#c62828", display: "flex", alignItems: "center", gap: 6 }}>
+                            <Icon name="TriangleAlert" size={14} /> Falta: {faltantesObligatorios.join(", ")}
+                        </p>
+                    )}
                     <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
                         <button className="btn-ghost" style={btnPlano} onClick={() => setModalAbierto(false)}>Cancelar</button>
                         <button className="btn-primary" style={{ ...btnPlano, border: "none" }} onClick={guardarCliente} disabled={guardando}>
@@ -1059,13 +1074,18 @@ function Badge({ icon, texto, color }: { icon: string; texto: string; color: str
     )
 }
 
-function Campo({ label, requerido, children }: { label: string; requerido: boolean; children: React.ReactNode }) {
+function Campo({ label, requerido, error, children }: { label: string; requerido: boolean; error?: string; children: React.ReactNode }) {
     return (
         <div style={{ marginBottom: 12 }}>
             <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 4 }}>
                 {label}{requerido && <span style={{ color: "#b71c1c" }}> *</span>}
             </span>
             {children}
+            {error && (
+                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#c62828", display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                    <Icon name="TriangleAlert" size={11} /> {error}
+                </span>
+            )}
         </div>
     )
 }
@@ -1105,6 +1125,13 @@ const inputTabla = {
     outline: "none",
     fontWeight: 600,
 } as const
+
+/** Variante con borde rojo para resaltar un campo obligatorio faltante. */
+const inputError = {
+    ...inputTabla,
+    border: "1px solid #f44336",
+    background: "rgba(244,67,54,0.06)",
+}
 
 const btnPlano = {
     padding: "9px 18px", borderRadius: 10, fontWeight: 700, fontSize: "0.8rem",

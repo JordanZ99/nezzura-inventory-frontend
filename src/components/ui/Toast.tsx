@@ -40,22 +40,36 @@ export function useToast(): ToastContextValue {
     return ctx
 }
 
-/** Banner de mensaje con el mismo estilo que usaba personalizacion en línea. */
+/**
+ * Toast flotante (pill fija en la parte superior de la pantalla).
+ * Antes era un banner inline: quedaba DETRÁS de los overlays de modales
+ * (zIndex 9999) y los toasts de validación eran invisibles con el modal
+ * abierto. Esta pill vive en zIndex 10000, por encima de cualquier overlay.
+ */
 export function ToastBanner() {
     const { msg } = useToast()
     if (!msg) return null
     return (
-        <div style={{
-            padding: "10px 14px",
-            marginBottom: 16,
-            borderRadius: 10,
-            fontSize: "0.82rem",
-            fontWeight: 700,
-            background: msg.ok ? "rgba(76,175,80,0.1)" : "rgba(244,67,54,0.1)",
-            color: msg.ok ? "#2e7d32" : "#c62828",
-            borderLeft: `4px solid ${msg.ok ? "#4caf50" : "#f44336"}`,
-        }}>
-            {msg.texto}
-        </div>
+        <>
+            <style>{`@keyframes toast-pill-in { from { opacity: 0; transform: translateX(-50%) translateY(-14px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }`}</style>
+            <div style={{
+                position: "fixed",
+                top: 12,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 10000,
+                maxWidth: "min(92vw, 480px)",
+                padding: "10px 18px",
+                borderRadius: 999,
+                fontSize: "0.82rem",
+                fontWeight: 700,
+                background: msg.ok ? "rgba(46,125,50,0.94)" : "rgba(198,40,40,0.94)",
+                color: "#fff",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.28)",
+                animation: "toast-pill-in 0.18s ease-out",
+            }}>
+                {msg.texto}
+            </div>
+        </>
     )
 }
