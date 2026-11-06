@@ -24,6 +24,7 @@ export const productosApi = {
         limit?: number
         offset?: number
         tipo?: string
+        origen?: string
         producto?: string
         desde?: string
         hasta?: string
@@ -32,6 +33,7 @@ export const productosApi = {
             limit: params?.limit,
             offset: params?.offset,
             tipo: params?.tipo,
+            origen: params?.origen || undefined,
             producto: params?.producto,
             desde: params?.desde,
             hasta: params?.hasta,
