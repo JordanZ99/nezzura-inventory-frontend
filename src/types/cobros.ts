@@ -61,6 +61,11 @@ export interface CuotaCliente {
     dia_cobro: number // 1..28 (solo mensual; 1 en las demás)
     frecuencia: FrecuenciaCuota
     dia_semana: number | null // 0=Lunes..6=Domingo (solo semanal)
+    /** Cuenta finita (064): total a cubrir; NULL = cuota infinita. */
+    monto_meta: number | null
+    /** Derivados del backend (064). */
+    programado_meta: number // SUM de cobros generados a la cuenta
+    abonado_meta: number    // SUM de dinero realmente recibido
     activo: boolean
     notas: string | null
     creado_en?: string

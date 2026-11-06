@@ -34,6 +34,8 @@ export interface CuotaPayload {
     dia_cobro: number
     /** Solo semanal: 0=Lunes..6=Domingo. */
     dia_semana: number | null
+    /** Cuenta finita (064): total a cubrir; null/ausente = infinita. */
+    monto_meta?: number | null
     notas?: string
 }
 
@@ -44,6 +46,8 @@ export interface CuotaEditarPayload {
     frecuencia?: FrecuenciaCuota
     dia_cobro?: number
     dia_semana?: number | null
+    /** None = sin cambio; 0 = quitar la meta (vuelve infinita); >0 = fijar. */
+    monto_meta?: number
     activo?: boolean
     notas?: string
 }

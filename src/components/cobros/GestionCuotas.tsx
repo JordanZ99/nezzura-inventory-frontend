@@ -28,12 +28,13 @@ interface FormCuota {
     frecuencia: FrecuenciaCuota
     dia_cobro: string
     dia_semana: string
+    monto_meta: string
     notas: string
 }
 
 const FORM_VACIO: FormCuota = {
     cliente_id: "", concepto: "", monto: "",
-    frecuencia: "mensual", dia_cobro: "1", dia_semana: "0", notas: "",
+    frecuencia: "mensual", dia_cobro: "1", dia_semana: "0", monto_meta: "", notas: "",
 }
 
 /** Texto corto de la recurrencia (misma lógica visual que el backend). */
@@ -72,6 +73,7 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
             frecuencia: cuota.frecuencia || "mensual",
             dia_cobro: String(cuota.dia_cobro || 1),
             dia_semana: String(cuota.dia_semana ?? 0),
+            monto_meta: cuota.monto_meta != null ? String(cuota.monto_meta) : "",
             notas: cuota.notas || "",
         })
     }
@@ -86,6 +88,14 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
         // dia_cobro/dia_semana según frecuencia (el backend valida el par).
         const dia_cobro = frecuencia === "mensual" ? (Number(form.dia_cobro) || 1) : 1
         const dia_semana = frecuencia === "semanal" ? Number(form.dia_semana) || 0 : null
+        // Meta total (cuenta finita, 064): vacío = sin meta. En edición, el
+        // campo limpiado manda 0 (el backend la quita); lleno manda el valor.
+        const metaTexto = form.monto_meta.trim()
+        const monto_meta = metaTexto ? Number(metaTexto) : (editandoId ? 0 : undefined)
+        if (metaTexto && !(Number(metaTexto) > 0)) {
+            mostrarMsg(false, "La meta total debe ser mayor a 0 (o déjala vacía)")
+            return
+        }
         const payload = {
             cliente_id: form.cliente_id,
             concepto: form.concepto.trim(),
@@ -93,6 +103,7 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
             frecuencia,
             dia_cobro,
             dia_semana,
+            monto_meta,
             notas: form.notas.trim() || undefined,
         }
         try {
@@ -195,6 +206,15 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
                     </p>
                 )}
 
+                <label style={estilosLabel}>Meta total de la cuenta (opcional)</label>
+                <input type="number" min="0" step="0.01" value={form.monto_meta}
+                    onChange={e => setForm({ ...form, monto_meta: e.target.value })}
+                    placeholder={form.frecuencia === "semanal" ? "Ej. 7000 — deja de generar al cubrirse" : "Ej. 7000 — sin límite si va vacío"}
+                    style={estilosInput} />
+                <p style={{ margin: "4px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                    Con meta, el generador deja de emitir al alcanzar el total y el último cobro sale ajustado al restante.
+                </p>
+
                 <label style={estilosLabel}>Notas (opcional)</label>
                 <input value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })}
                     placeholder="Detalle del acuerdo" style={estilosInput} />
@@ -237,6 +257,30 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
                                         <p style={{ margin: "3px 0 0", fontSize: "0.76rem", color: "var(--text-muted)", fontWeight: 600 }}>
                                             {cuota.concepto} · {textoRecurrencia(cuota.frecuencia, cuota)}
                                         </p>
+                                        {cuota.monto_meta != null && Number(cuota.monto_meta) > 0 && (
+                                            <div style={{ marginTop: 6 }}>
+                                                <div style={{ height: 5, borderRadius: 4, background: "var(--bg-card2)", overflow: "hidden" }}>
+                                                    <div style={{
+                                                        height: "100%",
+                                                        width: `${Math.min(100, Math.max(0, (Number(cuota.abonado_meta) / Number(cuota.monto_meta)) * 100))}%`,
+                                                        background: Number(cuota.abonado_meta) >= Number(cuota.monto_meta) ? "#2e7d32" : "var(--primary-mid)",
+                                                        borderRadius: 4,
+                                                    }} />
+                                                </div>
+                                                <p style={{ margin: "4px 0 0", fontSize: "0.7rem", fontWeight: 700 }}>
+                                                    {Number(cuota.abonado_meta) >= Number(cuota.monto_meta) ? (
+                                                        <span style={{ color: "#2e7d32" }}>Liquidada: {fmt(Number(cuota.abonado_meta))} de {fmt(Number(cuota.monto_meta))}</span>
+                                                    ) : (
+                                                        <span style={{ color: "var(--text-muted)" }}>
+                                                            Abonado {fmt(Number(cuota.abonado_meta))} de {fmt(Number(cuota.monto_meta))}
+                                                            {Number(cuota.programado_meta) >= Number(cuota.monto_meta)
+                                                                ? " · plan ya emitido completo"
+                                                                : ""}
+                                                        </span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                     <p style={{ margin: 0, fontWeight: 800, color: "var(--text-main)" }}>
                                         {fmt(cuota.monto)}{cuota.frecuencia === "semanal" ? "/semana" : cuota.frecuencia === "quincenal" ? "/quincena" : "/mes"}

@@ -95,6 +95,7 @@ const ETIQUETAS_CAMPO: Record<string, string> = {
     concepto: "Concepto", monto: "Monto", vencimiento: "Vencimiento",
     programa: "Plan de pagos", dia_cobro: "Día de cobro", cliente: "Cliente",
     frecuencia: "Frecuencia", dia_semana: "Día de la semana",
+    monto_meta: "Meta total", programado_meta: "Programado", abonado_meta: "Abonado",
     puntos: "Puntos", stock_inicial: "Stock inicial",
     asignadas: "Etiquetas asignadas", desasignadas: "Etiquetas quitadas",
     saldo_despues: "Saldo después", estado_despues: "Estado después",
