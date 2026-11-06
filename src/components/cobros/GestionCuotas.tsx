@@ -11,7 +11,7 @@ import { useState } from "react"
 import { useQueries } from "@tanstack/react-query"
 import Icon from "@/components/ui/Icon"
 import { api } from "@/lib/api"
-import { useAccionesCobros, useCuotas, periodoActual } from "@/hooks/useCobros"
+import { useAccionesCobros, useCuotas } from "@/hooks/useCobros"
 import type { CuotaCliente, FrecuenciaCuota } from "@/types"
 
 interface ClienteOption { id: string; nombre: string }
@@ -50,15 +50,12 @@ function textoRecurrencia(frecuencia: string | undefined, cuota: { dia_cobro: nu
 export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean, texto: string) => void }) {
     const { cuotas, cargando } = useCuotas(false)
     const { clientesQuery } = useClientesOptions()
-    const { crearCuota, actualizarCuota, eliminarCuota, generar } = useAccionesCobros()
+    const { crearCuota, actualizarCuota, eliminarCuota } = useAccionesCobros()
 
     const [form, setForm] = useState<FormCuota>(FORM_VACIO)
     const [editandoId, setEditandoId] = useState<string | null>(null)
     const [guardando, setGuardando] = useState(false)
     const [confirmandoEliminar, setConfirmandoEliminar] = useState<CuotaCliente | null>(null)
-    // Mig 065: checkbox del modal de borrado — eliminar los cobros pendientes
-    // (sin abonos) que la cuota ya generó; los abonados se conservan siempre.
-    const [borrarPendientes, setBorrarPendientes] = useState(false)
 
     const clientes: ClienteOption[] = clientesQuery.data ?? []
 
@@ -116,16 +113,7 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
                 mostrarMsg(true, "Cuota actualizada")
             } else {
                 await crearCuota(payload)
-                // Mig 065: al crearla corre el generador de una vez — la deuda
-                // ya nace en Cobros sin depender de recargar ni del dashboard.
-                try {
-                    const r = await generar(periodoActual())
-                    mostrarMsg(true, r.creados > 0
-                        ? `Cuota creada — ${r.creados} cobro(s) ya generados`
-                        : "Cuota creada — sin cobros por generar todavía")
-                } catch {
-                    mostrarMsg(true, `Cuota creada — usa "Generar mes" para emitir sus cobros`)
-                }
+                mostrarMsg(true, "Cuota creada — genera el mes para emitir sus cobros")
             }
             setForm(FORM_VACIO)
             setEditandoId(null)
@@ -147,13 +135,12 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
     async function eliminar() {
         if (!confirmandoEliminar) return
         try {
-            const r = await eliminarCuota({ id: confirmandoEliminar.id, borrarPendientes })
+            const r = await eliminarCuota(confirmandoEliminar.id)
             mostrarMsg(true, r.mensaje || "Cuota eliminada")
         } catch (e) {
             mostrarMsg(false, e instanceof Error ? e.message : "Error al eliminar la cuota")
         } finally {
             setConfirmandoEliminar(null)
-            setBorrarPendientes(false)
         }
     }
 
@@ -340,28 +327,9 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
                             ¿Eliminar la cuota de {confirmandoEliminar.cliente_nombre}?
                         </h3>
                         <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-main)" }}>
-                            Los cobros con abonos se conservan (quedan huérfanos pero sigue su
-                            historial y saldo). Las siguientes generaciones ya no la emitirán.
-                            {Number(confirmandoEliminar.cobros_pendientes) > 0 && (
-                                <> Tiene <strong>{Number(confirmandoEliminar.cobros_pendientes)}</strong> cobro(s)
-                                    pendientes sin abonos.</>
-                            )}
+                            Los cobros ya generados se conservan (quedan huérfanos pero sigue su historial y saldo).
+                            Las siguientes generaciones ya no la emitirán.
                         </p>
-                        {Number(confirmandoEliminar.cobros_pendientes) > 0 && (
-                            <label style={{
-                                display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer",
-                                fontSize: "0.82rem", fontWeight: 600, color: "var(--text-main)",
-                                padding: "10px 12px", borderRadius: 10, background: "rgba(229,57,53,0.06)",
-                            }}>
-                                <input type="checkbox" checked={borrarPendientes}
-                                    onChange={e => setBorrarPendientes(e.target.checked)}
-                                    style={{ marginTop: 2, accentColor: "#e53935" }} />
-                                <span>
-                                    Eliminar también sus {Number(confirmandoEliminar.cobros_pendientes)} cobro(s)
-                                    pendientes sin abonos (borrado definitivo — los ya abonados quedan siempre)
-                                </span>
-                            </label>
-                        )}
                         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                             <button onClick={() => setConfirmandoEliminar(null)}
                                 style={{

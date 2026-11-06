@@ -118,8 +118,7 @@ export function useAccionesCobros() {
     })
 
     const eliminarCuota = useMutation({
-        mutationFn: ({ id, borrarPendientes }: { id: string; borrarPendientes?: boolean }) =>
-            cobrosApi.eliminarCuota(id, borrarPendientes),
+        mutationFn: (id: string) => cobrosApi.eliminarCuota(id),
         onSuccess: () => refrescar(),
     })
 

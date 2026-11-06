@@ -103,9 +103,6 @@ export const cobrosApi = {
     actualizarCuota: (id: string, data: CuotaEditarPayload) =>
         request<{ ok: boolean; cuota: CuotaCliente }>(`/cobros/cuotas/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 
-    eliminarCuota: (id: string, borrarPendientes = false) =>
-        request<{ ok: boolean; cobros_borrados?: number; mensaje: string }>(
-            conQuery(`/cobros/cuotas/${id}`, { borrar_pendientes: borrarPendientes || undefined }),
-            { method: "DELETE" }
-        ),
+    eliminarCuota: (id: string) =>
+        request<{ ok: boolean; mensaje: string }>(`/cobros/cuotas/${id}`, { method: "DELETE" }),
 }

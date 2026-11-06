@@ -6,7 +6,7 @@
 // lista con abonos, y modales de alta/edición (extra) + registrar pago.
 // ==============================================================================
 
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { useQueries } from "@tanstack/react-query"
 import PageHeader from "@/components/ui/PageHeader"
 import ModalConfirmacion from "@/components/ui/ModalConfirmacion"
@@ -16,7 +16,7 @@ import StatsCobros from "@/components/cobros/StatsCobros"
 import ListaCobros from "@/components/cobros/ListaCobros"
 import GestionCuotas from "@/components/cobros/GestionCuotas"
 import { api } from "@/lib/api"
-import { periodoActual, useAccionesCobros, useCobrosLista, useCuotas, useResumenCobros } from "@/hooks/useCobros"
+import { periodoActual, useAccionesCobros, useCobrosLista, useResumenCobros } from "@/hooks/useCobros"
 import type { Cobro, EntradaPrograma } from "@/types"
 
 interface ClienteOption { id: string; nombre: string }
@@ -59,23 +59,6 @@ export default function Cobros() {
     const clientes: ClienteOption[] = clientesQuery.data ?? []
 
     const acciones = useAccionesCobros()
-
-    // Mig 065: al entrar a la tab corre el generador del mes (idempotente, el
-    // mismo POST del dashboard) — las cuotas nuevas nacen sin que nadie pulse
-    // nada. El toast solo suena si realmente creó cobros. El ref evita
-    // duplicar la llamada con el remount de React StrictMode.
-    const autoGeneroHecho = useRef(false)
-    useEffect(() => {
-        if (autoGeneroHecho.current) return
-        autoGeneroHecho.current = true
-        acciones.generar(periodoActual())
-            .then(r => { if (r.creados > 0) mostrarMsg(true, `Se generaron ${r.creados} cobro(s) del mes`) })
-            .catch(() => {})
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    // Cuotas activas para el estado vacío inteligente (banner de la mig 065).
-    const { cuotas: cuotasActivas } = useCuotas(true)
 
     // ── Modal: cobro extra (alta/edición) ──
     const [modoExtra, setModoExtra] = useState<ModoExtra>(null)
@@ -296,29 +279,6 @@ export default function Cobros() {
                             filtroPendientes={soloPendientes}
                             onToggleFiltroPendientes={alternarFiltroPendientes}
                         />
-
-                        {/* Red de seguridad (mig 065): hay cuotas activas pero
-                            la lista del periodo quedó vacía — guía a generar. */}
-                        {!cargandoLista && cobros.length === 0 && cuotasActivas.length > 0 && (
-                            <div style={{
-                                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
-                                padding: "12px 16px", marginBottom: 14, borderRadius: 14,
-                                background: "rgba(249,168,37,0.1)", border: "1px solid rgba(249,168,37,0.35)",
-                            }}>
-                                <Icon name="Info" size={18} color="#b45309" />
-                                <p style={{ margin: 0, flex: "1 1 260px", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-main)" }}>
-                                    Tienes {cuotasActivas.length} cuota(s) activa(s) sin cobros para {periodo || "este periodo"} —
-                                    emítelos con un clic (idempotente, no duplica nada).
-                                </p>
-                                <button onClick={generarMes}
-                                    style={{
-                                        padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer",
-                                        background: "var(--primary-mid)", color: "#fff", fontSize: "0.78rem", fontWeight: 800,
-                                    }}>
-                                    Generar mes
-                                </button>
-                            </div>
-                        )}
 
                         <ListaCobros
                             cobros={cobros}

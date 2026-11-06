@@ -66,9 +66,6 @@ export interface CuotaCliente {
     /** Derivados del backend (064). */
     programado_meta: number // SUM de cobros generados a la cuenta
     abonado_meta: number    // SUM de dinero realmente recibido
-    /** Mig 065: cobros generados de esta cuota todavía SIN abonos (los que el
-     *  modal de borrado puede eliminar junto con la cuota). */
-    cobros_pendientes: number
     activo: boolean
     notas: string | null
     creado_en?: string

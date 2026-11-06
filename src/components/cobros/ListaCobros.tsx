@@ -22,19 +22,6 @@ interface Props {
 const fmt = (n: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(n || 0)
 
-// Mig 065: fecha de vencimiento VISIBLE en cada fila ('vence dom 8 nov' /
-// 'venció dom 1 nov') — con cobros recurrentes (varias filas iguales del
-// mismo cliente) la fecha es lo que las distingue a simple vista.
-const DIAS_CORTOS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"]
-const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
-
-function textoVencimiento(iso: string | null): string {
-    if (!iso) return ""
-    const fecha = new Date(`${iso.slice(0, 10)}T12:00:00`)
-    if (isNaN(fecha.getTime())) return iso.slice(0, 10)
-    return `${DIAS_CORTOS[fecha.getDay()]} ${fecha.getDate()} ${MESES_CORTOS[fecha.getMonth()]}`
-}
-
 const ESTILO_ESTADO: Record<Cobro["estado"], { texto: string; bg: string; color: string }> = {
     pagado: { texto: "Pagado", bg: "rgba(76,175,80,0.12)", color: "#2e7d32" },
     parcial: { texto: "Parcial", bg: "rgba(249,168,37,0.15)", color: "#b45309" },
@@ -106,16 +93,6 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                                     }}>
                                         {cobro.origen === "cuota" ? `Cuota ${cobro.periodo}` : "Extra"}
                                     </span>
-                                    {cobro.vencimiento && (
-                                        <span style={{
-                                            marginLeft: 6, padding: "1px 8px", borderRadius: 20, fontWeight: 700,
-                                            background: cobro.vencido ? "rgba(229,57,53,0.1)" : "var(--bg-card2)",
-                                            color: cobro.vencido ? "#b71c1c" : "var(--text-main)",
-                                            fontSize: "0.65rem",
-                                        }} title={cobro.vencimiento.slice(0, 10)}>
-                                            {cobro.vencido ? `venció ${textoVencimiento(cobro.vencimiento)}` : `vence ${textoVencimiento(cobro.vencimiento)}`}
-                                        </span>
-                                    )}
                                     {cobro.origen === "extra" && (
                                         <button onClick={() => onEditarExtra(cobro)}
                                             style={{ marginLeft: 6, border: "none", background: "none", cursor: "pointer", color: "var(--primary-mid)", padding: 0 }}>
@@ -153,13 +130,6 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                             )}
 
                             <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-                                <button onClick={() => onEliminar(cobro)} title="Eliminar cobro (capturas mal hechas / huérfanos)"
-                                    style={{
-                                        border: "none", borderRadius: 10, padding: "8px 10px", cursor: "pointer",
-                                        background: "rgba(229,57,53,0.1)", color: "#b71c1c",
-                                    }}>
-                                    <Icon name="Trash2" size={16} />
-                                </button>
                                 <button onClick={() => setExpandido(abierto ? null : cobro.id)} title="Abonos"
                                     style={{
                                         border: "none", borderRadius: 10, padding: "8px 10px", cursor: "pointer",
