@@ -209,16 +209,16 @@ export default function Cobros() {
             />
 
             <div style={{ padding: "0 16px", marginTop: -60, position: "relative", zIndex: 1 }}>
-                {/* Tabs */}
-                <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                {/* Tabs (patrón TabsGastos: card blanca flotante sobre el hero) */}
+                <div className="card" style={{ display: "flex", padding: 6, gap: 4, marginBottom: 20 }}>
                     {([["cobros", "Cobros"], ["cuotas", "Cuotas mensuales"]] as const).map(([clave, etiqueta]) => (
                         <button key={clave} onClick={() => setTab(clave)}
                             style={{
-                                padding: "10px 18px", borderRadius: 12, border: "none", cursor: "pointer",
-                                background: tab === clave ? "var(--primary-mid)" : "var(--bg-card)",
-                                color: tab === clave ? "#fff" : "var(--text-main)",
-                                fontSize: "0.8rem", fontWeight: 800,
-                                boxShadow: tab === clave ? "0 4px 14px rgba(0,0,0,0.15)" : "0 2px 10px rgba(0,0,0,0.05)",
+                                flex: 1, minWidth: 80,
+                                padding: "10px 16px", borderRadius: 10, border: "none", cursor: "pointer",
+                                background: tab === clave ? "var(--primary-mid)" : "transparent",
+                                color: tab === clave ? "#fff" : "var(--text-muted)",
+                                fontSize: "0.85rem", fontWeight: 700, transition: "all 0.2s",
                             }}>
                             {etiqueta}
                         </button>
