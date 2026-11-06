@@ -448,7 +448,7 @@
   /* Superficies secundarias (filas, interiores, hovers) */
 
   /* Bordes y Divisores */
-  --border-light: hsl(30, 33%, 59%);
+  --border-light: hsl(61, 100%, 85%);
   /* Para inputs y botones ghost */
   --border-primary: hsla(90, 87%, 85%, 0.803);
   /* Para separadores temáticos */
@@ -456,7 +456,7 @@
   /* Tipografía */
   --text-main: hsl(140, 30%, 22%);
   /* Verde bosque casi negro */
-  --text-muted: hsl(120, 8%, 52%);
+  --text-muted: hsl(120, 15%, 43%);
   --text-white: hsl(0, 0%, 100%);
 
   /* --- EFECTOS & SOMBRAS --- */
@@ -871,8 +871,9 @@ body {
 /* Chrome, Safari, Edge, Opera */
 /* Placeholders de inputs/textareas: siguen al tema activo en vez del gris
    fijo que Tailwind preflight impone (gray-400 #9ca3af). */
-input::placeholder, textarea::placeholder {
-    color: color-mix(in srgb, var(--text-main) 60%, transparent);
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--text-main) 60%, transparent);
 }
 
 input::-webkit-outer-spin-button,
