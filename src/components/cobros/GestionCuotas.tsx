@@ -1,9 +1,10 @@
 "use client"
 // ==============================================================================
 // src/components/cobros/GestionCuotas.tsx
-// Tab "Cuotas" de Cobros: las suscripciones mensuales (a quién, cuánto, qué
-// día del mes vence). NO guarda dinero: solo define qué genera el botón
-// "Generar mes". Formulario inline de alta/edición, toggle de activa.
+// Tab "Cuotas" de Cobros: suscripciones recurrentes (mig 063): MENSUAL
+// (vence el día 1..28 del mes), SEMANAL (cada día de la semana elegido) y
+// QUINCENAL (fijo: día 1 y 15). NO guarda dinero: solo define qué genera el
+// botón "Generar mes". Formulario inline de alta/edición, toggle de activa.
 // ==============================================================================
 
 import { useState } from "react"
@@ -11,22 +12,39 @@ import { useQueries } from "@tanstack/react-query"
 import Icon from "@/components/ui/Icon"
 import { api } from "@/lib/api"
 import { useAccionesCobros, useCuotas } from "@/hooks/useCobros"
-import type { CuotaCliente } from "@/types"
+import type { CuotaCliente, FrecuenciaCuota } from "@/types"
 
 interface ClienteOption { id: string; nombre: string }
 
 const fmt = (n: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(n || 0)
 
+const DIAS_NOMBRES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
 interface FormCuota {
     cliente_id: string
     concepto: string
     monto: string
+    frecuencia: FrecuenciaCuota
     dia_cobro: string
+    dia_semana: string
     notas: string
 }
 
-const FORM_VACIO: FormCuota = { cliente_id: "", concepto: "", monto: "", dia_cobro: "1", notas: "" }
+const FORM_VACIO: FormCuota = {
+    cliente_id: "", concepto: "", monto: "",
+    frecuencia: "mensual", dia_cobro: "1", dia_semana: "0", notas: "",
+}
+
+/** Texto corto de la recurrencia (misma lógica visual que el backend). */
+function textoRecurrencia(frecuencia: string | undefined, cuota: { dia_cobro: number; dia_semana: number | null }): string {
+    if (frecuencia === "semanal") {
+        const ds = cuota.dia_semana ?? 0
+        return `cada ${DIAS_NOMBRES[ds] ?? "Lunes"}`
+    }
+    if (frecuencia === "quincenal") return "los días 1 y 15 de cada mes"
+    return `vence el día ${cuota.dia_cobro} de cada mes`
+}
 
 export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean, texto: string) => void }) {
     const { cuotas, cargando } = useCuotas(false)
@@ -51,7 +69,9 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
             cliente_id: cuota.cliente_id,
             concepto: cuota.concepto,
             monto: String(cuota.monto),
-            dia_cobro: String(cuota.dia_cobro),
+            frecuencia: cuota.frecuencia || "mensual",
+            dia_cobro: String(cuota.dia_cobro || 1),
+            dia_semana: String(cuota.dia_semana ?? 0),
             notas: cuota.notas || "",
         })
     }
@@ -62,11 +82,17 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
             mostrarMsg(false, "Cliente, concepto y monto mayor a 0 son obligatorios")
             return
         }
+        const frecuencia = form.frecuencia
+        // dia_cobro/dia_semana según frecuencia (el backend valida el par).
+        const dia_cobro = frecuencia === "mensual" ? (Number(form.dia_cobro) || 1) : 1
+        const dia_semana = frecuencia === "semanal" ? Number(form.dia_semana) || 0 : null
         const payload = {
             cliente_id: form.cliente_id,
             concepto: form.concepto.trim(),
             monto,
-            dia_cobro: Number(form.dia_cobro) || 1,
+            frecuencia,
+            dia_cobro,
+            dia_semana,
             notas: form.notas.trim() || undefined,
         }
         try {
@@ -76,7 +102,7 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
                 mostrarMsg(true, "Cuota actualizada")
             } else {
                 await crearCuota(payload)
-                mostrarMsg(true, "Cuota creada — genera el mes para emitir el cobro")
+                mostrarMsg(true, "Cuota creada — genera el mes para emitir sus cobros")
             }
             setForm(FORM_VACIO)
             setEditandoId(null)
@@ -113,7 +139,7 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
             <div style={{ flex: "1 1 300px", maxWidth: 400, minWidth: 0, borderRadius: 16, background: "var(--bg-card)", padding: 18, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                     <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 800, color: "var(--text-main)" }}>
-                        {editandoId ? "Editar cuota" : "Nueva cuota mensual"}
+                        {editandoId ? "Editar cuota" : "Nueva cuota"}
                     </h3>
                     {editandoId && (
                         <button onClick={iniciarAlta} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--primary-mid)", fontWeight: 700, fontSize: "0.75rem" }}>
@@ -132,18 +158,42 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
                 <input value={form.concepto} onChange={e => setForm({ ...form, concepto: e.target.value })}
                     placeholder="Contabilidad mensual" style={estilosInput} />
 
-                <div style={{ display: "flex", gap: 12 }}>
-                    <div style={{ flex: 1 }}>
-                        <label style={estilosLabel}>Monto mensual</label>
-                        <input type="number" min="0" step="0.01" value={form.monto}
-                            onChange={e => setForm({ ...form, monto: e.target.value })} placeholder="0.00" style={estilosInput} />
-                    </div>
-                    <div style={{ width: 110 }}>
+                <label style={estilosLabel}>Frecuencia</label>
+                <select
+                    value={form.frecuencia}
+                    onChange={e => setForm({ ...form, frecuencia: e.target.value as FrecuenciaCuota })}
+                    style={estilosInput}
+                >
+                    <option value="mensual">Mensual</option>
+                    <option value="semanal">Semanal</option>
+                    <option value="quincenal">Quincenal (día 1 y 15)</option>
+                </select>
+
+                <label style={estilosLabel}>{form.frecuencia === "mensual" ? "Monto mensual" : "Monto por cobro"}</label>
+                <input type="number" min="0" step="0.01" value={form.monto}
+                    onChange={e => setForm({ ...form, monto: e.target.value })} placeholder="0.00" style={estilosInput} />
+
+                {form.frecuencia === "mensual" && (
+                    <>
                         <label style={estilosLabel}>Día de cobro</label>
                         <input type="number" min="1" max="28" value={form.dia_cobro}
                             onChange={e => setForm({ ...form, dia_cobro: e.target.value })} style={estilosInput} />
-                    </div>
-                </div>
+                    </>
+                )}
+                {form.frecuencia === "semanal" && (
+                    <>
+                        <label style={estilosLabel}>Día de la semana</label>
+                        <select value={form.dia_semana}
+                            onChange={e => setForm({ ...form, dia_semana: e.target.value })} style={estilosInput}>
+                            {DIAS_NOMBRES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                        </select>
+                    </>
+                )}
+                {form.frecuencia === "quincenal" && (
+                    <p style={{ margin: "4px 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                        Se generan 2 cobros cada mes: el día 1 y el día 15.
+                    </p>
+                )}
 
                 <label style={estilosLabel}>Notas (opcional)</label>
                 <input value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })}
@@ -169,7 +219,7 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
                         background: "var(--bg-card)", color: "var(--text-muted)", fontWeight: 600, fontSize: "0.9rem",
                     }}>
                         <Icon name="CalendarClock" size={32} color="var(--primary-light)" />
-                        <p style={{ margin: "10px 0 0" }}>Aún no tienes cuotas mensuales. Crea la primera y cada mes se genera su cobro con un clic.</p>
+                        <p style={{ margin: "10px 0 0" }}>Aún no tienes cuotas. Crea la primera (mensual, semanal o quincenal) y con "Generar mes" se emiten sus cobros.</p>
                     </div>
                 ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -185,11 +235,11 @@ export default function GestionCuotas({ mostrarMsg }: { mostrarMsg: (ok: boolean
                                             {cuota.cliente_nombre}
                                         </p>
                                         <p style={{ margin: "3px 0 0", fontSize: "0.76rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                                            {cuota.concepto} · vence el día {cuota.dia_cobro} de cada mes
+                                            {cuota.concepto} · {textoRecurrencia(cuota.frecuencia, cuota)}
                                         </p>
                                     </div>
                                     <p style={{ margin: 0, fontWeight: 800, color: "var(--text-main)" }}>
-                                        {fmt(cuota.monto)}/mes
+                                        {fmt(cuota.monto)}{cuota.frecuencia === "semanal" ? "/semana" : cuota.frecuencia === "quincenal" ? "/quincena" : "/mes"}
                                     </p>
                                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                         <button onClick={() => alternar(cuota)} title={cuota.activo ? "Desactivar" : "Activar"}

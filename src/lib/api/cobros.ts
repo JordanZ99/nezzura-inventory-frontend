@@ -5,7 +5,7 @@
 // ==============================================================================
 
 import { request, conQuery } from "./client"
-import type { Cobro, CuotaCliente, EntradaPrograma, ResumenCobros } from "@/types"
+import type { Cobro, CuotaCliente, EntradaPrograma, ResumenCobros, FrecuenciaCuota } from "@/types"
 
 export interface CobroExtraPayload {
     cliente_id: string
@@ -29,7 +29,11 @@ export interface CuotaPayload {
     cliente_id: string
     concepto: string
     monto: number
+    frecuencia: FrecuenciaCuota
+    /** Solo mensual: día del mes (1..28). */
     dia_cobro: number
+    /** Solo semanal: 0=Lunes..6=Domingo. */
+    dia_semana: number | null
     notas?: string
 }
 
@@ -37,7 +41,9 @@ export interface CuotaEditarPayload {
     cliente_id?: string
     concepto?: string
     monto?: number
+    frecuencia?: FrecuenciaCuota
     dia_cobro?: number
+    dia_semana?: number | null
     activo?: boolean
     notas?: string
 }

@@ -46,7 +46,11 @@ export interface Cobro {
     creado_en: string
 }
 
-/** La suscripción mensual (no guarda dinero; genera cobros por periodo). */
+/** Frecuencia de la suscripción (mig 063). Semanal: cada 'dia_semana'
+ *  del mes. Quincenal: día 1 y día 15 fijos. */
+export type FrecuenciaCuota = "mensual" | "semanal" | "quincenal"
+
+/** La suscripción recurrente (no guarda dinero; genera cobros por periodo). */
 export interface CuotaCliente {
     id: string
     tenant_id?: string
@@ -54,7 +58,9 @@ export interface CuotaCliente {
     cliente_nombre: string
     concepto: string
     monto: number
-    dia_cobro: number // 1..28
+    dia_cobro: number // 1..28 (solo mensual; 1 en las demás)
+    frecuencia: FrecuenciaCuota
+    dia_semana: number | null // 0=Lunes..6=Domingo (solo semanal)
     activo: boolean
     notas: string | null
     creado_en?: string
