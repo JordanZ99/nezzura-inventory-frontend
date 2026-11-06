@@ -153,6 +153,13 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                             )}
 
                             <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                                <button onClick={() => onEliminar(cobro)} title="Eliminar cobro (capturas mal hechas / huérfanos)"
+                                    style={{
+                                        border: "none", borderRadius: 10, padding: "8px 10px", cursor: "pointer",
+                                        background: "rgba(229,57,53,0.1)", color: "#b71c1c",
+                                    }}>
+                                    <Icon name="Trash2" size={16} />
+                                </button>
                                 <button onClick={() => setExpandido(abierto ? null : cobro.id)} title="Abonos"
                                     style={{
                                         border: "none", borderRadius: 10, padding: "8px 10px", cursor: "pointer",
