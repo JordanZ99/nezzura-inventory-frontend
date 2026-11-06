@@ -442,7 +442,7 @@
   /* Texto/iconos sobre superficies de marca (botones, gradientes) */
   --bg-app: hsl(74, 59%, 90%);
   /* Fondo crema verdoso */
-  --bg-card: hsl(94, 73%, 81%);
+  --bg-card: hsl(94, 36%, 83%);
   /* Tarjeta principal */
   --bg-card2: hsl(64, 100%, 94%);
   /* Superficies secundarias (filas, interiores, hovers) */
