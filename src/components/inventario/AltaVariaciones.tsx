@@ -2,14 +2,15 @@ import { useState } from "react"
 import Icon from "@/components/ui/Icon"
 
 /**
- * Alta de variaciones (crear producto): lista simple de nombre + precio.
- * Se persisten en la MISMA transacción que el producto (crear_producto_completo).
+ * Alta de variaciones (crear producto): lista simple de nombre + tamaño (cm)
+ * + precio. Se persisten en la MISMA transacción que el producto
+ * (crear_producto_completo).
  */
 export default function AltaVariaciones({ lista, tipoStock = false, disabled = false, onAgregar, onQuitar, datosBase }: {
-    lista: { nombre: string; precio: number; stock_inicial?: number; costo?: number }[]
+    lista: { nombre: string; precio: number; stock_inicial?: number; costo?: number; tamano_cm?: number }[]
     tipoStock?: boolean  // si el producto es tipo 'stock', muestra stock inicial + costo por variación
     disabled?: boolean
-    onAgregar: (nombre: string, precio: number, stockInicial?: number, costo?: number) => void
+    onAgregar: (nombre: string, precio: number, stockInicial?: number, costo?: number, tamanoCm?: number) => void
     onQuitar: (i: number) => void
     // Datos del producto base (para el botón "Añadir producto base"): se
     // pre-cargan en los inputs para que el usuario confirme y presione Añadir.
@@ -17,6 +18,8 @@ export default function AltaVariaciones({ lista, tipoStock = false, disabled = f
 }) {
     const [nombre, setNombre] = useState("")
     const [precio, setPrecio] = useState("")
+    // Tamaño (cm) de la variación (066): opcional, pill "X cm" en el catálogo.
+    const [tamano, setTamano] = useState("")
     // Stock inicial con default 1: cada variación de stock crea su propio lote.
     // El usuario puede poner 0 si la quiere agotada desde el inicio.
     const [stockInicial, setStockInicial] = useState("1")
@@ -30,8 +33,9 @@ export default function AltaVariaciones({ lista, tipoStock = false, disabled = f
             Number(precio),
             stockInicial === "" ? undefined : Number(stockInicial),
             costo === "" ? undefined : Number(costo),
+            tamano === "" || Number(tamano) <= 0 ? undefined : Number(tamano),
         )
-        setNombre(""); setPrecio(""); setStockInicial("1"); setCosto("")
+        setNombre(""); setPrecio(""); setTamano(""); setStockInicial("1"); setCosto("")
     }
 
     // "Añadir producto base": solo con tipo stock y cuando ya hay al menos una
@@ -101,6 +105,18 @@ export default function AltaVariaciones({ lista, tipoStock = false, disabled = f
                     </div>
                 )}
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <input
+                        className="input-primary"
+                        style={{ width: 76 }}
+                        type="number" min="0" step="0.01"
+                        placeholder="cm"
+                        title="Tamaño de esta variación en cm (se muestra como pill en el catálogo)"
+                        value={tamano}
+                        disabled={disabled}
+                        onChange={e => setTamano(e.target.value)}
+                    />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>$</span>
                     <input
                         className="input-primary"
@@ -160,6 +176,9 @@ export default function AltaVariaciones({ lista, tipoStock = false, disabled = f
                     {lista.map((v, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card2)", borderRadius: 10, padding: "6px 10px" }}>
                             <span style={{ flex: 1, fontWeight: 700, fontSize: "0.8rem", color: "var(--text-main)" }}>{v.nombre}</span>
+                            {typeof v.tamano_cm === "number" && v.tamano_cm > 0 && (
+                                <span style={{ fontWeight: 700, fontSize: "0.7rem", color: "var(--text-muted)" }}>{v.tamano_cm} cm</span>
+                            )}
                             {tipoStock && typeof v.stock_inicial === "number" && v.stock_inicial > 0 && (
                                 <span style={{ fontWeight: 700, fontSize: "0.72rem", color: "#2e7d32" }}>{v.stock_inicial} uds</span>
                             )}

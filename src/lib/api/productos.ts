@@ -111,16 +111,21 @@ export const productosApi = {
         precio: number,
         foto?: string,
         stockInicial?: number,
-        costo?: number
+        costo?: number,
+        tamanoCm?: number
     ) =>
         request<{ ok: boolean; variacion: Variacion }>("/inventario/variaciones", {
             method: "POST",
-            body: JSON.stringify({ producto, nombre, precio, foto: foto ?? "", stock_inicial: stockInicial, costo }),
+            body: JSON.stringify({ producto, nombre, precio, foto: foto ?? "", stock_inicial: stockInicial, costo, tamano_cm: tamanoCm ?? null }),
         }),
-    editarVariacion: (id: number, nombre: string, precio: number, foto?: string) =>
+    editarVariacion: (id: number, nombre: string, precio: number, foto?: string, tamanoCm?: number) =>
         request<{ ok: boolean; variacion: Variacion }>(`/inventario/variaciones/${id}`, {
             method: "PATCH",
-            body: JSON.stringify(foto !== undefined ? { nombre, precio, foto } : { nombre, precio }),
+            body: JSON.stringify(
+                foto !== undefined || tamanoCm !== undefined
+                    ? { nombre, precio, ...(foto !== undefined ? { foto } : {}), ...(tamanoCm !== undefined ? { tamano_cm: tamanoCm } : {}) }
+                    : { nombre, precio }
+            ),
         }),
     eliminarVariacion: (id: number, confirmar = false) =>
         request<

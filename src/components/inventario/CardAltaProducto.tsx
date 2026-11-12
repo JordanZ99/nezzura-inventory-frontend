@@ -264,7 +264,7 @@ export default function CardAltaProducto({
                         stock: form.stock === "" ? "" : String(form.stock),
                         costo: form.costo === "" ? "" : String(form.costo),
                     }}
-                    onAgregar={(nombre, precio, stockInicial, costo) => setNuevasVariaciones(prev => [...prev, { nombre, precio, stock_inicial: stockInicial, costo }])}
+                    onAgregar={(nombre, precio, stockInicial, costo, tamanoCm) => setNuevasVariaciones(prev => [...prev, { nombre, precio, stock_inicial: stockInicial, costo, tamano_cm: tamanoCm }])}
                     onQuitar={(i) => setNuevasVariaciones(prev => prev.filter((_, idx) => idx !== i))}
                 />
             )}

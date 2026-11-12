@@ -107,6 +107,7 @@ export default function Inventario() {
         editVariaciones,
         nuevaVarNombre, setNuevaVarNombre,
         nuevaVarPrecio, setNuevaVarPrecio,
+        nuevaVarTamano, setNuevaVarTamano,
         nuevaVarStock, setNuevaVarStock,
         guardandoVar,
         cropVariacion,
@@ -433,6 +434,8 @@ export default function Inventario() {
                         setNuevaVarNombre={setNuevaVarNombre}
                         nuevaVarPrecio={nuevaVarPrecio}
                         setNuevaVarPrecio={setNuevaVarPrecio}
+                        nuevaVarTamano={nuevaVarTamano}
+                        setNuevaVarTamano={setNuevaVarTamano}
                         nuevaVarStock={nuevaVarStock}
                         setNuevaVarStock={setNuevaVarStock}
                         agregarVariacion={agregarVariacion}

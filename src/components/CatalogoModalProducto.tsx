@@ -33,7 +33,8 @@ interface ProductoPublico {
     tipo_producto?: string
     // Variaciones: presentaciones con su PROPIO precio (ej. Sencilla/Doble, S/M/L)
     // foto?: URL propia de la variación — encabeza la galería al seleccionarla
-    variaciones?: { id: number; nombre: string; precio: number; foto?: string; stock?: number }[]
+    // tamano_cm: tamaño propio de la variación (066) — pill "X cm" en el selector
+    variaciones?: { id: number; nombre: string; precio: number; foto?: string; tamano_cm?: number | null; stock?: number }[]
     // Desglose por PRECIO: lotes con stock a precios distintos (el mismo
     // producto comprado a distinto costo, ej. plantas). Solo productos SIN
     // variaciones — con variaciones cada una gobierna su propio precio.
@@ -636,6 +637,9 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                     {variaciones.map(v => {
                                         const activa = v.nombre === variacionSel
                                         const agotada = stockPorVar && (v.stock ?? 0) <= 0
+                                        // Tamaño propio (066): pill "X cm" junto al nombre,
+                                        // salvo que el nombre ya lo mencione (ej. "30 cm").
+                                        const muestraTamano = v.tamano_cm != null && !/cm/i.test(v.nombre)
                                         return (
                                             <button
                                                 key={v.id}
@@ -656,6 +660,11 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                                 }}
                                             >
                                                 {v.nombre}
+                                                {muestraTamano && (
+                                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: "0.66rem", fontWeight: 600, opacity: 0.8 }}>
+                                                        <Icon name="Ruler" size={11} /> {Number(v.tamano_cm)} cm
+                                                    </span>
+                                                )}
                                                 {stockPorVar && !agotada && (
                                                     <span style={{ fontSize: "0.66rem", fontWeight: 600, opacity: 0.75 }}>{v.stock} uds</span>
                                                 )}
@@ -1149,6 +1158,9 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                             {variaciones.map(v => {
                                 const activa = v.nombre === variacionSel
                                 const agotada = stockPorVar && (v.stock ?? 0) <= 0
+                                // Tamaño propio (066): pill "X cm" junto al nombre,
+                                // salvo que el nombre ya lo mencione (ej. "30 cm").
+                                const muestraTamano = v.tamano_cm != null && !/cm/i.test(v.nombre)
                                 return (
                                     <button
                                         key={v.id}
@@ -1169,6 +1181,11 @@ export default function CatalogoModalProducto({ producto, config, tema, onClose,
                                         }}
                                     >
                                         {v.nombre}
+                                        {muestraTamano && (
+                                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: "0.66rem", fontWeight: 600, opacity: 0.8 }}>
+                                                <Icon name="Ruler" size={11} /> {Number(v.tamano_cm)} cm
+                                            </span>
+                                        )}
                                         {stockPorVar && !agotada && (
                                             <span style={{ fontSize: "0.66rem", fontWeight: 600, opacity: 0.75 }}>{v.stock} uds</span>
                                         )}

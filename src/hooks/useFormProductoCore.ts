@@ -104,7 +104,7 @@ interface UseFormProductoCoreArgs {
     setRestock: React.Dispatch<React.SetStateAction<FormRestock>>
     // Desde useFormVariaciones
     editVariaciones: Variacion[]
-    pendientesVarRef: React.MutableRefObject<Record<number, { nombre: string; precio: number }>>
+    pendientesVarRef: React.MutableRefObject<Record<number, { nombre: string; precio: number; tamano_cm?: number }>>
     resetEstadoVariaciones: (prod: Producto) => void
     // Desde useFormRecetas
     resetEstadoRecetas: (prod: Producto) => void
@@ -428,7 +428,7 @@ export function useFormProductoCore({
             for (const v of editVariaciones) {
                 const pend = pendientes[v.id]
                 if (!pend) continue
-                const res = await api.editarVariacion(v.id, pend.nombre.trim(), pend.precio)
+                const res = await api.editarVariacion(v.id, pend.nombre.trim(), pend.precio, undefined, pend.tamano_cm)
                 if (!res.ok) {
                     throw new Error((res as { mensaje?: string }).mensaje ?? `No se pudo guardar la variación '${pend.nombre}'`)
                 }

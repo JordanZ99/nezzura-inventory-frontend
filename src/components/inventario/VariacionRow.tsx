@@ -3,9 +3,9 @@ import Icon from "@/components/ui/Icon"
 import type { Variacion } from "@/lib/api"
 
 /**
- * Fila editable de una variación: nombre + precio propios. Los cambios se
- * registran y se persisten con el botón global "Guardar Cambios" (guardado
- * unificado; ya no hay botón de guardado individual por fila).
+ * Fila editable de una variación: nombre + precio + tamaño (cm) propios. Los
+ * cambios se registran y se persisten con el botón global "Guardar Cambios"
+ * (guardado unificado; ya no hay botón de guardado individual por fila).
  */
 export default function VariacionRow({ variacion, disabled, stockVisible = false, onCambiar, onEliminar, onCambiarFoto, onQuitarFoto, onAjustarStock }: {
     variacion: Variacion
@@ -13,8 +13,8 @@ export default function VariacionRow({ variacion, disabled, stockVisible = false
     // Fase 6: muestra el stock propio de la variación (solo si el producto
     // maneja stock por variación) y permite ajustarlo desde aquí
     stockVisible?: boolean
-    // Registra cambios pendientes de nombre/precio (se guardan con "Guardar Cambios")
-    onCambiar: (id: number, nombre: string, precio: number) => void
+    // Registra cambios pendientes de nombre/precio/tamaño (se guardan con "Guardar Cambios")
+    onCambiar: (id: number, nombre: string, precio: number, tamanoCm?: number) => void
     onEliminar: () => void
     onCambiarFoto: (file: File) => void
     onQuitarFoto: () => void
@@ -23,17 +23,22 @@ export default function VariacionRow({ variacion, disabled, stockVisible = false
 }) {
     const [nombre, setNombre] = useState(variacion.nombre)
     const [precio, setPrecio] = useState(variacion.precio.toString())
+    // Tamaño en cm (066): pill "X cm" en el catálogo. Vacío = sin tamaño.
+    const [tamano, setTamano] = useState(variacion.tamano_cm != null ? String(variacion.tamano_cm) : "")
     const inputFotoRef = useRef<HTMLInputElement>(null)
 
     // Al cambiar de producto (o recargar), sincronizar con la variación recibida
     useEffect(() => {
         setNombre(variacion.nombre)
         setPrecio(variacion.precio.toString())
+        setTamano(variacion.tamano_cm != null ? String(variacion.tamano_cm) : "")
     }, [variacion])
 
     const tieneFoto = !!variacion.foto && variacion.foto !== "No hay foto"
     // Cambios locales pendientes de persistir con "Guardar Cambios"
-    const pendiente = nombre !== variacion.nombre || Number(precio === "" ? 0 : precio) !== variacion.precio
+    const pendiente = nombre !== variacion.nombre
+        || Number(precio === "" ? 0 : precio) !== variacion.precio
+        || (tamano === "" ? null : Number(tamano)) !== (variacion.tamano_cm ?? null)
 
     return (
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -85,8 +90,24 @@ export default function VariacionRow({ variacion, disabled, stockVisible = false
                 style={{ flex: 1, minWidth: 120 }}
                 value={nombre}
                 placeholder="Nombre"
-                onChange={e => { setNombre(e.target.value); onCambiar(variacion.id, e.target.value, Number(precio === "" ? 0 : precio)) }}
+                onChange={e => { setNombre(e.target.value); onCambiar(variacion.id, e.target.value, Number(precio === "" ? 0 : precio), tamano === "" ? undefined : Number(tamano)) }}
             />
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <input
+                    className="input-primary"
+                    style={{ width: 76 }}
+                    type="number" min="0" step="0.01"
+                    value={tamano}
+                    placeholder="cm"
+                    title="Tamaño de esta variación en cm (se muestra como pill en el catálogo)"
+                    onChange={e => {
+                        const v = e.target.value
+                        setTamano(v)
+                        onCambiar(variacion.id, nombre, Number(precio === "" ? 0 : precio), v === "" || Number(v) <= 0 ? undefined : Number(v))
+                    }}
+                />
+                <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)" }}>cm</span>
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)" }}>$</span>
                 <input
@@ -95,7 +116,7 @@ export default function VariacionRow({ variacion, disabled, stockVisible = false
                     type="number" min="0" step="0.01"
                     value={precio}
                     placeholder="0.00"
-                    onChange={e => { setPrecio(e.target.value); onCambiar(variacion.id, nombre, Number(e.target.value === "" ? 0 : e.target.value)) }}
+                    onChange={e => { setPrecio(e.target.value); onCambiar(variacion.id, nombre, Number(e.target.value === "" ? 0 : e.target.value), tamano === "" || Number(tamano) <= 0 ? undefined : Number(tamano)) }}
                 />
             </div>
             {stockVisible && (

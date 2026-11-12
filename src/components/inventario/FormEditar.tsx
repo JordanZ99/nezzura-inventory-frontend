@@ -23,7 +23,7 @@ export interface FormEditarProps {
     guardarProducto: () => Promise<void>
     editVariaciones: Variacion[]
     guardandoVar: boolean
-    registrarCambioVariacion: (id: number, nombre: string, precio: number) => void
+    registrarCambioVariacion: (id: number, nombre: string, precio: number, tamanoCm?: number) => void
     eliminarVariacionItem: (id: number) => Promise<void>
     solicitarFotoVariacion: (v: Variacion, file: File) => void
     quitarFotoVariacionItem: (v: Variacion) => Promise<void>
@@ -32,6 +32,8 @@ export interface FormEditarProps {
     setNuevaVarNombre: Dispatch<SetStateAction<string>>
     nuevaVarPrecio: number | string
     setNuevaVarPrecio: Dispatch<SetStateAction<number | string>>
+    nuevaVarTamano: number | string
+    setNuevaVarTamano: Dispatch<SetStateAction<number | string>>
     nuevaVarStock: string
     setNuevaVarStock: Dispatch<SetStateAction<string>>
     agregarVariacion: () => Promise<void>
@@ -87,6 +89,8 @@ export default function FormEditar({
     setNuevaVarNombre,
     nuevaVarPrecio,
     setNuevaVarPrecio,
+    nuevaVarTamano,
+    setNuevaVarTamano,
     nuevaVarStock,
     setNuevaVarStock,
     agregarVariacion,
@@ -150,6 +154,8 @@ export default function FormEditar({
                 setNuevaVarNombre={setNuevaVarNombre}
                 nuevaVarPrecio={nuevaVarPrecio}
                 setNuevaVarPrecio={setNuevaVarPrecio}
+                nuevaVarTamano={nuevaVarTamano}
+                setNuevaVarTamano={setNuevaVarTamano}
                 nuevaVarStock={nuevaVarStock}
                 setNuevaVarStock={setNuevaVarStock}
                 agregarVariacion={agregarVariacion}

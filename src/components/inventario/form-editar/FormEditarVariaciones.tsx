@@ -17,6 +17,8 @@ export interface FormEditarVariacionesProps {
     setNuevaVarNombre: Dispatch<SetStateAction<string>>
     nuevaVarPrecio: number | string
     setNuevaVarPrecio: Dispatch<SetStateAction<number | string>>
+    nuevaVarTamano: number | string
+    setNuevaVarTamano: Dispatch<SetStateAction<number | string>>
     nuevaVarStock: string
     setNuevaVarStock: Dispatch<SetStateAction<string>>
     agregarVariacion: () => Promise<void>
@@ -36,6 +38,8 @@ export default function FormEditarVariaciones({
     setNuevaVarNombre,
     nuevaVarPrecio,
     setNuevaVarPrecio,
+    nuevaVarTamano,
+    setNuevaVarTamano,
     nuevaVarStock,
     setNuevaVarStock,
     agregarVariacion,
@@ -157,6 +161,33 @@ export default function FormEditarVariaciones({
                         placeholder="0.00"
                         value={nuevaVarPrecio}
                         onChange={(e) => setNuevaVarPrecio(e.target.value === "" ? "" : Number(e.target.value))}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") agregarVariacion()
+                        }}
+                    />
+                </div>
+
+                <div style={{ width: 90, display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label
+                        style={{
+                            fontSize: "0.68rem",
+                            fontWeight: 700,
+                            color: "var(--text-muted)",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.8,
+                        }}
+                    >
+                        Tamaño cm
+                    </label>
+                    <input
+                        className="input-primary"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Opcional"
+                        title="Tamaño de esta variación en cm (se muestra como pill en el catálogo)"
+                        value={nuevaVarTamano}
+                        onChange={(e) => setNuevaVarTamano(e.target.value === "" ? "" : Number(e.target.value))}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") agregarVariacion()
                         }}

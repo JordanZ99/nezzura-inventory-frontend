@@ -171,6 +171,7 @@ export async function getInventario(): Promise<Producto[]> {
                 nombre: v.nombre,
                 precio: v.precio,
                 foto: v.foto || "",
+                tamano_cm: v.tamano_cm ?? null,
                 stock: redondear(lotes.filter(l => l.variacion_id === v.id).reduce((s, l) => s + l.stock_lote, 0)),
             }))
         }
@@ -407,6 +408,7 @@ export async function crearProducto(
                 nombre: v.nombre,
                 precio: v.precio,
                 foto: "",
+                tamano_cm: v.tamano_cm ?? null,
             })) as unknown as number
             if (v.stock_inicial && v.stock_inicial > 0) {
                 const vars = await d.variaciones.where("producto").equals(data.producto).toArray()
@@ -607,8 +609,8 @@ export async function reordenarCategorias(
 // ============================================================================
 // Variaciones
 // ============================================================================
-function filaVariacion(v: { id: number; nombre: string; precio: number; foto?: string; stock?: number }): Variacion {
-    return { id: v.id, nombre: v.nombre, precio: v.precio, foto: v.foto || "", stock: v.stock }
+function filaVariacion(v: { id: number; nombre: string; precio: number; foto?: string; tamano_cm?: number | null; stock?: number }): Variacion {
+    return { id: v.id, nombre: v.nombre, precio: v.precio, foto: v.foto || "", tamano_cm: v.tamano_cm ?? null, stock: v.stock }
 }
 
 export async function getVariaciones(producto: string): Promise<Variacion[]> {
@@ -623,7 +625,8 @@ export async function crearVariacion(
     precio: number,
     foto?: string,
     stockInicial?: number,
-    costo?: number
+    costo?: number,
+    tamanoCm?: number
 ): Promise<{ ok: boolean; variacion: Variacion }> {
     const d = abrirDB()
     const id = (await d.variaciones.add({
@@ -631,6 +634,7 @@ export async function crearVariacion(
         nombre,
         precio,
         foto: foto || "",
+        tamano_cm: tamanoCm ?? null,
     })) as unknown as number
     let stock = 0
     if (stockInicial && stockInicial > 0) {
@@ -643,19 +647,25 @@ export async function crearVariacion(
         })
         stock = stockInicial
     }
-    return { ok: true, variacion: filaVariacion({ id, nombre, precio, foto, stock }) }
+    return { ok: true, variacion: filaVariacion({ id, nombre, precio, foto, tamano_cm: tamanoCm ?? null, stock }) }
 }
 
 export async function editarVariacion(
     id: number,
     nombre: string,
     precio: number,
-    foto?: string
+    foto?: string,
+    tamanoCm?: number
 ): Promise<{ ok: boolean; variacion: Variacion }> {
     const d = abrirDB()
-    await d.variaciones.update(id, { nombre, precio, ...(foto !== undefined ? { foto } : {}) })
+    await d.variaciones.update(id, {
+        nombre, precio,
+        ...(foto !== undefined ? { foto } : {}),
+        ...(tamanoCm !== undefined ? { tamano_cm: tamanoCm } : {}),
+    })
     const stock = await stockDeVariacion(id)
-    return { ok: true, variacion: filaVariacion({ id, nombre, precio, foto, stock }) }
+    const actual = await d.variaciones.get(id)
+    return { ok: true, variacion: filaVariacion({ id, nombre, precio, foto, tamano_cm: actual?.tamano_cm ?? null, stock }) }
 }
 
 export type RespEliminarVariacion =

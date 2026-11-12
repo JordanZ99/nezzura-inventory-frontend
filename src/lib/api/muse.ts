@@ -12,7 +12,7 @@ import { request } from "./client"
 export interface ClaveMcp {
     id: number
     nombre: string
-    /** Prefijo identificador (ej. "goy_mcp_1a2b…"); la clave completa no se guarda */
+    /** Prefijo identificador (ej. "nezzura_mcp_1a2b…"); la clave completa no se guarda */
     key_prefix: string
     creada_en: string
     ultimo_uso_en: string | null

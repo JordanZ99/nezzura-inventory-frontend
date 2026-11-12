@@ -96,6 +96,7 @@ export interface VariacionLocal {
     nombre: string
     precio: number
     foto?: string
+    tamano_cm?: number | null   // Tamaño propio (066): pill "X cm" en el catálogo
 }
 
 export interface RecetaLocal {

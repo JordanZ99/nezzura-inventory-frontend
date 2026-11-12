@@ -110,6 +110,7 @@ export function useInventarioForm({
         editVariaciones: variaciones.editVariaciones,
         nuevaVarNombre: variaciones.nuevaVarNombre, setNuevaVarNombre: variaciones.setNuevaVarNombre,
         nuevaVarPrecio: variaciones.nuevaVarPrecio, setNuevaVarPrecio: variaciones.setNuevaVarPrecio,
+        nuevaVarTamano: variaciones.nuevaVarTamano, setNuevaVarTamano: variaciones.setNuevaVarTamano,
         nuevaVarStock: variaciones.nuevaVarStock, setNuevaVarStock: variaciones.setNuevaVarStock,
         guardandoVar: variaciones.guardandoVar,
         cropVariacion: variaciones.cropVariacion,

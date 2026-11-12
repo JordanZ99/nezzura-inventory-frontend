@@ -17,7 +17,7 @@ import type { Tab } from "@/hooks/useInventarioForm"
 // Variaciones pendientes del ALTA (se guardan en la misma transacción que el
 // producto, vía crear_producto_completo). Vive aquí por dominio y el hook
 // principal la re-exporta para mantener compatibilidad con la UI.
-export type NuevaVariacionAlta = { nombre: string; precio: number; stock_inicial?: number; costo?: number }
+export type NuevaVariacionAlta = { nombre: string; precio: number; stock_inicial?: number; costo?: number; tamano_cm?: number }
 
 interface UseFormVariacionesArgs {
     inv: Producto[]
@@ -45,6 +45,8 @@ export function useFormVariaciones({
     const [editVariaciones, setEditVariaciones] = useState<Variacion[]>([])
     const [nuevaVarNombre, setNuevaVarNombre] = useState("")
     const [nuevaVarPrecio, setNuevaVarPrecio] = useState("" as number | string)
+    // Tamaño (cm) de la nueva variación (066): opcional, pill "X cm" en catálogo.
+    const [nuevaVarTamano, setNuevaVarTamano] = useState("" as number | string)
     // Stock inicial de la nueva variación en edición (crea su lote, como el ALTA)
     const [nuevaVarStock, setNuevaVarStock] = useState("1")
     const [guardandoVar, setGuardandoVar] = useState(false)
@@ -52,17 +54,17 @@ export function useFormVariaciones({
     // cropper que usan las fotos de producto (con el ratio global 1:1 / 4:5).
     const [cropVariacion, setCropVariacion] = useState<{ variacionId: number; url: string; file: File } | null>(null)
 
-    // Guardado unificado de variaciones: cambios pendientes (nombre/precio) que
-    // se persisten con el botón global "Guardar Cambios". Es un ref compartido:
-    // el hook principal (orquestador) lo expone a la página y useFormProductoCore
-    // lo lee/limpia al guardar el producto o al cargar otro.
-    const pendientesVarRef = useRef<Record<number, { nombre: string; precio: number }>>({})
+    // Guardado unificado de variaciones: cambios pendientes (nombre/precio/
+    // tamaño) que se persisten con el botón global "Guardar Cambios". Es un ref
+    // compartido: el hook principal (orquestador) lo expone a la página y
+    // useFormProductoCore lo lee/limpia al guardar el producto o al cargar otro.
+    const pendientesVarRef = useRef<Record<number, { nombre: string; precio: number; tamano_cm?: number }>>({})
 
     // ── Guardado unificado de variaciones ──
-    // Registra cambios pendientes (nombre/precio) de una fila; se persisten
-    // todos juntos al presionar "Guardar Cambios".
-    function registrarCambioVariacion(id: number, nombre: string, precio: number) {
-        pendientesVarRef.current[id] = { nombre, precio }
+    // Registra cambios pendientes (nombre/precio/tamaño) de una fila; se
+    // persisten todos juntos al presionar "Guardar Cambios".
+    function registrarCambioVariacion(id: number, nombre: string, precio: number, tamanoCm?: number) {
+        pendientesVarRef.current[id] = { nombre, precio, tamano_cm: tamanoCm }
     }
 
     // ── Ajustar stock de una variación ──
@@ -97,12 +99,13 @@ export function useFormVariaciones({
                 Number(nuevaVarPrecio === "" ? 0 : nuevaVarPrecio),
                 undefined,
                 nuevaVarStock === "" ? undefined : Number(nuevaVarStock),
-                Number(prodCosto ?? 0)
+                Number(prodCosto ?? 0),
+                nuevaVarTamano === "" || Number(nuevaVarTamano) <= 0 ? undefined : Number(nuevaVarTamano)
             )
             if (res.ok) {
                 setEditVariaciones(prev => [...prev, res.variacion])
                 void recargar()
-                setNuevaVarNombre(""); setNuevaVarPrecio(""); setNuevaVarStock("1")
+                setNuevaVarNombre(""); setNuevaVarPrecio(""); setNuevaVarTamano(""); setNuevaVarStock("1")
                 mostrarMsg(true, `Variación '${res.variacion.nombre}' agregada${(res.variacion.stock ?? 0) > 0 ? ` con ${res.variacion.stock} uds de stock` : ""}`)
             } else {
                 mostrarMsg(false, (res as { mensaje?: string }).mensaje ?? "Error al agregar la variación")
@@ -220,7 +223,7 @@ export function useFormVariaciones({
      *  Lo invoca useFormProductoCore dentro de cargarProductoEdicion. */
     function resetEstadoVariaciones(prod: Producto) {
         setEditVariaciones(prod.variaciones ?? [])
-        setNuevaVarNombre(""); setNuevaVarPrecio(""); setNuevaVarStock("1")
+        setNuevaVarNombre(""); setNuevaVarPrecio(""); setNuevaVarTamano(""); setNuevaVarStock("1")
     }
 
     return {
@@ -228,6 +231,7 @@ export function useFormVariaciones({
         editVariaciones, setEditVariaciones,
         nuevaVarNombre, setNuevaVarNombre,
         nuevaVarPrecio, setNuevaVarPrecio,
+        nuevaVarTamano, setNuevaVarTamano,
         nuevaVarStock, setNuevaVarStock,
         guardandoVar,
         cropVariacion,

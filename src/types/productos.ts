@@ -50,6 +50,9 @@ export interface Variacion {
     // Foto propia de la variación (URL de Cloudinary) — el catálogo la muestra
     // al seleccionar esta presentación (ej. la foto de la Hamburguesa Doble).
     foto?: string;
+    // Tamaño propio de la variación en cm (066): pill "X cm" en el catálogo
+    // cuando un mismo producto se vende en varios tamaños (ej. peluches).
+    tamano_cm?: number | null;
     // Stock EXCLUSIVO de esta variación (suma de sus lotes).
     stock?: number;
 }
@@ -102,7 +105,7 @@ export interface NuevoProducto {
     costo_servicio?: number;
     precio_servicio?: number;
     visible_en_catalogo?: boolean;
-    variaciones?: { nombre: string; precio: number; stock_inicial?: number; costo?: number }[];
+    variaciones?: { nombre: string; precio: number; stock_inicial?: number; costo?: number; tamano_cm?: number }[];
     recetas?: { material: string; cantidad: number }[];
 }
 
