@@ -25,6 +25,7 @@ import { mesasApi } from "./mesas"
 import { clientesApi } from "./clientes"
 import { conteosApi } from "./conteos"
 import { analiticaApi } from "./analitica"
+import { museApi } from "./muse"
 import { ApiError } from "./client"
 
 import * as invLocal from "@/lib/local/repos/inventario"
@@ -54,6 +55,7 @@ export * from "./mesas"
 export * from "./clientes"
 export * from "./conteos"
 export * from "./analitica"
+export * from "./muse"
 
 /** Llamado en modo local a una función aún no portada → error explicado. */
 function pendienteEnLocal(nombre: string): () => Promise<never> {
@@ -305,4 +307,7 @@ export const api = {
     // Analítica Inteligente: sin puerto local (exige serie histórica de toda
     // la vida del negocio); la UI oculta su entrada en modo local.
     ...conModoDoble(analiticaApi),
+    // Conector IA (MCP): solo existe en la nube — en Modo Local responde con
+    // el error explicado de pendienteEnLocal.
+    ...conModoDoble(museApi),
 }

@@ -15,6 +15,7 @@ import { CardMiNegocio } from "@/components/personalizacion/CardMiNegocio"
 import { CardTerminales } from "@/components/personalizacion/CardTerminales"
 import { CardClientesConfig } from "@/components/personalizacion/CardClientesConfig"
 import { CardPuntosConfig } from "@/components/personalizacion/CardPuntosConfig"
+import { CardConectarMuse } from "@/components/personalizacion/CardConectarMuse"
 import { ConfigCatalogo } from "@/components/personalizacion/ConfigCatalogo"
 import { CardCompartir } from "@/components/personalizacion/CardCompartir"
 import { CardCatalogoImpreso } from "@/components/personalizacion/CardCatalogoImpreso"
@@ -243,6 +244,9 @@ export default function Personalizacion() {
                         <CardClientesConfig cargandoTenant={cargandoTenant} />
                         <CardPuntosConfig cargandoTenant={cargandoTenant} />
                         <CardTerminales />
+                        {/* Conector IA (servidor MCP): claves de solo lectura del catálogo.
+                            Solo en la nube: el servidor MCP vive en el backend. */}
+                        {!modoLocal && <CardConectarMuse />}
                     </div>
                 )}
 
