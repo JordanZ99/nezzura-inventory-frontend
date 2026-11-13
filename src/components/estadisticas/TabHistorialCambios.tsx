@@ -35,12 +35,16 @@ const ETIQUETAS_DOMINIO: Record<DominioActividad, string> = {
     producto: "Producto",
     cliente: "Cliente",
     cobro: "Cobro",
+    venta: "Venta",
+    gasto: "Gasto",
 }
 
 const COLOR_DOMINIO: Record<DominioActividad, string> = {
     producto: "#7c3aed",
     cliente: "#0369a1",
     cobro: "#047857",
+    venta: "#b45309",
+    gasto: "#be123c",
 }
 
 const ETIQUETAS_ACCION: Record<AccionActividad, string> = {
@@ -97,6 +101,7 @@ const ETIQUETAS_CAMPO: Record<string, string> = {
     frecuencia: "Frecuencia", dia_semana: "Día de la semana",
     monto_meta: "Meta total", programado_meta: "Programado", abonado_meta: "Abonado",
     puntos: "Puntos", stock_inicial: "Stock inicial",
+    cantidad: "Cantidad", precio_real: "Precio real",
     asignadas: "Etiquetas asignadas", desasignadas: "Etiquetas quitadas",
     saldo_despues: "Saldo después", estado_despues: "Estado después",
     quitar: "Abono quitado", omitidos: "Ya existían", metodo: "Método",

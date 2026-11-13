@@ -158,6 +158,24 @@ export function CardConectarMuse() {
         }
     }
 
+    async function cambiarVerCostos(c: ClaveMcp, ver: boolean) {
+        setOcupado(true)
+        try {
+            await api.editarClave(c.id, { ver_costos: ver })
+            mostrarMsg(
+                true,
+                ver
+                    ? "El agente de esta clave ahora ve costos internos y márgenes"
+                    : "El agente de esta clave ya no ve costos internos",
+            )
+            invalidar()
+        } catch (e: unknown) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error")
+        } finally {
+            setOcupado(false)
+        }
+    }
+
     async function cambiarNivelDeClave(claveId: number, destino: 1 | 2 | 3) {
         setOcupado(true)
         try {
@@ -347,6 +365,25 @@ export function CardConectarMuse() {
                                             Guardar
                                         </button>
                                     </form>
+
+                                    {/* Permiso de costos: dato sensible, decisión por clave */}
+                                    <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", marginTop: 2 }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={c.ver_costos}
+                                            disabled={ocupado}
+                                            onChange={e => cambiarVerCostos(c, e.target.checked)}
+                                            style={{ marginTop: 2, accentColor: "var(--primary-alter)" }}
+                                        />
+                                        <span>
+                                            <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--text-main)", display: "block" }}>
+                                                El agente puede ver costos internos
+                                            </span>
+                                            <span style={{ fontSize: "0.64rem", fontWeight: 600, color: "var(--text-muted)", display: "block", lineHeight: 1.4 }}>
+                                                Le muestra el costo promedio y el margen de cada producto/venta. Actívalo solo en una clave de tu máxima confianza — el agente nunca lo pone en publicaciones (datos_para_publicar jamás lo incluye).
+                                            </span>
+                                        </span>
+                                    </label>
                                 </div>
                             )}
                         </div>

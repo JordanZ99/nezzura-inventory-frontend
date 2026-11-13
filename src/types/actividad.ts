@@ -6,14 +6,18 @@
 // vive en el ledger 040 (MovimientoInventario, types/productos.ts).
 // ==============================================================================
 
-/** Sección de la app donde nació el evento (badges de color en la UI). */
-export type DominioActividad = "producto" | "cliente" | "cobro"
+/** Sección de la app donde nació el evento (badges de color en la UI).
+ *  068 agrega 'venta' y 'gasto': las ediciones de ventas y gastos también
+ *  quedan en el Historial (las haga el dueño o el agente IA). */
+export type DominioActividad = "producto" | "cliente" | "cobro" | "venta" | "gasto"
 
 /** Qué se tocó dentro del dominio. */
 export type EntidadActividad =
     | "producto" | "variacion"      // dominio producto
     | "cliente" | "etiqueta" | "interaccion" | "puntos"  // dominio cliente
     | "cobro" | "abono" | "cuota"   // dominio cobro
+    | "venta"                       // dominio venta (068)
+    | "gasto"                       // dominio gasto (068)
 
 /**
  * Qué pasó. La migración 062 garantiza estos valores por CHECK:
