@@ -184,6 +184,7 @@ export function CardConectarMuse() {
                 limite_llamadas: parsear(llamadas),
                 limite_escrituras: parsear(escrituras),
             })
+            setLimitesAbiertos(null)  // cierre visible del editor = guardado
             mostrarMsg(true, "Límites actualizados")
             invalidar()
         } catch (e: unknown) {
