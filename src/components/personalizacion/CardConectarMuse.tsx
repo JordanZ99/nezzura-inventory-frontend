@@ -13,6 +13,7 @@
 // ==============================================================================
 
 import { useState } from "react"
+import { createPortal } from "react-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Icon from "@/components/ui/Icon"
 import { api, BASE_URL, type ClaveMcp, NIVELES_CLAVE } from "@/lib/api"
@@ -288,8 +289,11 @@ export function CardConectarMuse() {
                 <Icon name="KeyRound" size={15} /> Generar clave
             </button>
 
-            {/* ── Modal: advertencia al subir a un nivel superior ── */}
-            {modalNivel !== null && (
+            {/* ── Modal: advertencia al subir a un nivel superior ──
+                Va por createPortal a document.body: position:fixed se ancla
+                al viewport SIEMPRE (un ancestro con transform — la animación
+                fade-up del card — convertiría el fixed en relativo al card). */}
+            {modalNivel !== null && createPortal(
                 <div style={{
                     position: "fixed", inset: 0, zIndex: 9999,
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -347,7 +351,8 @@ export function CardConectarMuse() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     )
