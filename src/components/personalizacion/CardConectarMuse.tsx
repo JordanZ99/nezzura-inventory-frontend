@@ -100,6 +100,9 @@ export function CardConectarMuse() {
 
     const [nombre, setNombre] = useState("")
     const [nivelSeleccionado, setNivelSeleccionado] = useState<1 | 2 | 3>(1)
+    // Modal de advertencia: al elegir un nivel SUPERIOR al actual se pide
+    // confirmación con la lista de permisos nuevos que adquirirá el agente.
+    const [modalNivel, setModalNivel] = useState<1 | 2 | 3 | null>(null)
     const [ocupado, setOcupado] = useState(false)
     // Clave recién creada (se muestra una sola vez junto con su prompt)
     const [claveNueva, setClaveNueva] = useState<string | null>(null)
@@ -255,7 +258,7 @@ export function CardConectarMuse() {
                         <button
                             key={n}
                             type="button"
-                            onClick={() => setNivelSeleccionado(n)}
+                            onClick={() => (n > nivelSeleccionado ? setModalNivel(n) : setNivelSeleccionado(n))}
                             style={{
                                 textAlign: "left", cursor: "pointer", padding: "10px 12px", borderRadius: 10,
                                 border: elegido ? "2px solid var(--primary-mid)" : "1px solid var(--border-primary)",
@@ -268,11 +271,6 @@ export function CardConectarMuse() {
                             <p style={{ margin: "2px 0 0", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
                                 {info.descripcion}
                             </p>
-                            {elegido && (
-                                <p style={{ margin: "4px 0 0", fontSize: "0.68rem", color: "#b71c1c", fontWeight: 700 }}>
-                                    ⚠ {info.advertencia}
-                                </p>
-                            )}
                         </button>
                     )
                 })}
@@ -289,6 +287,68 @@ export function CardConectarMuse() {
             <button onClick={generar} disabled={ocupado} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Icon name="KeyRound" size={15} /> Generar clave
             </button>
+
+            {/* ── Modal: advertencia al subir a un nivel superior ── */}
+            {modalNivel !== null && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 9999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 24,
+                }}>
+                    <div className="card" style={{
+                        maxWidth: 460, width: "100%", padding: 26,
+                        display: "flex", flexDirection: "column", gap: 14,
+                        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+                        border: "1px solid var(--border-light)",
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{
+                                width: 44, height: 44, borderRadius: 12, background: "#fff3e0",
+                                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                            }}>
+                                <Icon name="ShieldAlert" size={24} color="#e65100" />
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                                Nivel {modalNivel} · {NIVELES_CLAVE[modalNivel].nombre}
+                            </h3>
+                        </div>
+                        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 600 }}>
+                            Con esta clave el agente IA además podrá:
+                        </p>
+                        <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+                            {((nivelSeleccionado < 2 && modalNivel >= 2)
+                                ? NIVELES_CLAVE[2].permisosNuevos : []
+                            ).concat(NIVELES_CLAVE[modalNivel].permisosNuevos).map((p, i) => (
+                                <li key={i} style={{ fontSize: "0.78rem", color: "var(--text-main)", lineHeight: 1.4 }}>
+                                    {p}
+                                </li>
+                            ))}
+                        </ul>
+                        <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                            {NIVELES_CLAVE[modalNivel].advertencia}
+                        </p>
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                            <button
+                                onClick={() => setModalNivel(null)}
+                                style={{
+                                    padding: "10px 20px", borderRadius: 10,
+                                    border: "1px solid var(--border-primary)", background: "var(--bg-card2)",
+                                    color: "var(--text-main)", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer",
+                                }}
+                            >
+                                Rechazar
+                            </button>
+                            <button
+                                onClick={() => { setNivelSeleccionado(modalNivel); setModalNivel(null) }}
+                                className="btn-primary"
+                                style={{ padding: "10px 20px", borderRadius: 10, border: "none", display: "flex", alignItems: "center", gap: 8 }}
+                            >
+                                <Icon name="Check" size={16} /> Aceptar y dar estos permisos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

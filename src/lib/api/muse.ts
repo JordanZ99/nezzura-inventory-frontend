@@ -25,22 +25,39 @@ export interface ClaveMcp {
     revocada_en: string | null
 }
 
-/** Nombre y advertencia de cada nivel, para el card y la lista de claves. */
-export const NIVELES_CLAVE: Record<number, { nombre: string; descripcion: string; advertencia: string }> = {
+/** Nombre, descripción y PERMISOS NUEVOS de cada nivel (los que gana el
+ *  agente al subir a ese nivel). La lista alimenta el modal de advertencia
+ *  que se muestra al elegir un nivel superior al ya seleccionado. */
+export const NIVELES_CLAVE: Record<number, {
+    nombre: string
+    descripcion: string
+    advertencia: string
+    permisosNuevos: string[]
+}> = {
     1: {
         nombre: "Lectura básica",
         descripcion: "El agente puede leer tu catálogo para publicar: productos, precios de venta, stock, descripciones y fotos.",
         advertencia: "No ve costos internos ni datos financieros. Ideal para publicar en Marketplace.",
+        permisosNuevos: [],
     },
     2: {
         nombre: "Lectura avanzada",
         descripcion: "Además del catálogo, puede leer el análisis de tu negocio: ganancias, gastos, cobros pendientes y consejos calculados con tus datos reales.",
         advertencia: "Ve métricas financieras de tu negocio (nunca costos unitarios por producto). Solo se la des a un agente de tu confianza. Requiere plan Plus.",
+        permisosNuevos: [
+            "Ver métricas del negocio: ingresos, ganancia bruta, margen, gastos y utilidad",
+            "Ver hallazgos con consejos calculados: stock en riesgo, dinero dormido, cobros pendientes, márgenes bajos",
+            "Todo basado en datos reales de tu gestor (nunca inventados) · requiere plan Plus",
+        ],
     },
     3: {
         nombre: "Escritura básica",
         descripcion: "Además de todo lo anterior, puede crear productos nuevos en tu inventario: los propone, tú los revisas y confirma cada alta.",
         advertencia: "Puede CREAR productos en tu inventario. Cada alta queda registrada en el Historial como hecha por el agente IA, y puedes revocar la clave al instante.",
+        permisosNuevos: [
+            "Proponer productos nuevos (borradores que se revisan antes de crear nada)",
+            "Crear productos en tu inventario al confirmar: cada alta te la pregunta en el chat y queda en el Historial como hecha por el agente IA",
+        ],
     },
 }
 
