@@ -16,7 +16,7 @@ import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Icon from "@/components/ui/Icon"
 import ModalConfirmacion from "@/components/ui/ModalConfirmacion"
-import { api, BASE_URL, type ClaveMcp, NIVELES_CLAVE } from "@/lib/api"
+import { api, BASE_URL, type ClaveMcp, NIVELES_CLAVE, DEFAULTS_LIMITES } from "@/lib/api"
 import { useTenant } from "@/contexts/TenantContext"
 import { useToast } from "@/components/ui/Toast"
 
@@ -101,9 +101,15 @@ export function CardConectarMuse() {
 
     const [nombre, setNombre] = useState("")
     const [nivelSeleccionado, setNivelSeleccionado] = useState<1 | 2 | 3>(1)
-    // Modal de advertencia: al elegir un nivel SUPERIOR al actual se pide
-    // confirmación con la lista de permisos nuevos que adquirirá el agente.
-    const [modalNivel, setModalNivel] = useState<1 | 2 | 3 | null>(null)
+    // Modal de advertencia al subir de nivel: sirve para la clave NUEVA
+    // (claveId null) y para cambiar el nivel de una clave EXISTENTE.
+    const [modalSubida, setModalSubida] = useState<
+        { claveId: number | null; base: 1 | 2 | 3; destino: 1 | 2 | 3 } | null
+    >(null)
+    // Modal de confirmación para eliminar una clave definitivamente.
+    const [modalEliminar, setModalEliminar] = useState<{ id: number; nombre: string } | null>(null)
+    // Sección avanzada de límites abierta por clave (id de la clave).
+    const [limitesAbiertos, setLimitesAbiertos] = useState<number | null>(null)
     const [ocupado, setOcupado] = useState(false)
     // Clave recién creada (se muestra una sola vez junto con su prompt)
     const [claveNueva, setClaveNueva] = useState<string | null>(null)
@@ -137,14 +143,53 @@ export function CardConectarMuse() {
         }
     }
 
-    async function revocar(c: ClaveMcp) {
-        if (!confirm(`¿Revocar la clave "${c.nombre}"? El agente que la usa quedará desconectado de inmediato.`)) return
+    async function eliminar(c: ClaveMcp) {
+        if (!modalEliminar) return
+        setOcupado(true)
         try {
-            await api.revocarClave(c.id)
-            mostrarMsg(true, `Clave "${c.nombre}" revocada`)
+            await api.eliminarClave(c.id)
+            mostrarMsg(true, `Clave "${c.nombre}" eliminada: el agente queda desconectado`)
+            setModalEliminar(null)
             invalidar()
         } catch (e: unknown) {
             mostrarMsg(false, e instanceof Error ? e.message : "Error")
+        } finally {
+            setOcupado(false)
+        }
+    }
+
+    async function cambiarNivelDeClave(claveId: number, destino: 1 | 2 | 3) {
+        setOcupado(true)
+        try {
+            await api.editarClave(claveId, { nivel: destino })
+            mostrarMsg(true, `Nivel cambiado a ${destino}: el agente no necesita reconectarse`)
+            setModalSubida(null)
+            invalidar()
+        } catch (e: unknown) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error")
+        } finally {
+            setOcupado(false)
+        }
+    }
+
+    async function guardarLimites(c: ClaveMcp, llamadas: HTMLInputElement, escrituras: HTMLInputElement) {
+        // Vacío = volver al default del nivel (el backend interpreta 0 así).
+        const parsear = (input: HTMLInputElement) => {
+            const v = input.value.trim()
+            return v === "" ? 0 : Math.max(0, parseInt(v, 10) || 0)
+        }
+        setOcupado(true)
+        try {
+            await api.editarClave(c.id, {
+                limite_llamadas: parsear(llamadas),
+                limite_escrituras: parsear(escrituras),
+            })
+            mostrarMsg(true, "Límites actualizados")
+            invalidar()
+        } catch (e: unknown) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error")
+        } finally {
+            setOcupado(false)
         }
     }
 
@@ -198,7 +243,7 @@ export function CardConectarMuse() {
                         </button>
                     </div>
                     <p style={{ margin: "8px 0 0", fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                        Por seguridad la clave no se vuelve a mostrar. Si la pierdes, revoca y genera otra.
+                        Por seguridad la clave no se vuelve a mostrar. Si la pierdes, elimínala y genera otra.
                     </p>
                 </div>
             )}
@@ -211,18 +256,17 @@ export function CardConectarMuse() {
                     </p>
                 )}
                 {claves.map(c => {
-                    const activa = !c.revocada_en
                     const nivelInfo = NIVELES_CLAVE[c.nivel] ?? NIVELES_CLAVE[1]
+                    const defaults = DEFAULTS_LIMITES[c.nivel] ?? DEFAULTS_LIMITES[1]
                     return (
-                        <div key={c.id} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", opacity: activa ? 1 : 0.6 }}>
+                        <div key={c.id} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-primary)", background: "var(--bg-card2)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                                 <div style={{ minWidth: 0 }}>
-                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "0.85rem", color: activa ? "var(--text-main)" : "var(--text-muted)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                        {c.nombre}{!activa && " (revocada)"}
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "0.85rem", color: "var(--text-main)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                        {c.nombre}
                                         <span style={{
                                             fontSize: "0.6rem", fontWeight: 800, padding: "1px 7px", borderRadius: 20,
-                                            background: activa ? "var(--primary-mid)" : "var(--border-primary)",
-                                            color: activa ? "white" : "var(--text-muted)",
+                                            background: "var(--primary-mid)", color: "white",
                                         }}>
                                             Nivel {c.nivel} · {nivelInfo.nombre}
                                         </span>
@@ -231,17 +275,79 @@ export function CardConectarMuse() {
                                         {c.key_prefix}
                                     </p>
                                     <p style={{ margin: "2px 0 0", fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                                        {activa
-                                            ? `${c.llamadas_hoy} llamadas hoy${c.nivel >= 3 ? ` · ${c.escrituras_hoy} escrituras` : ""} · último uso ${formatearFecha(c.ultimo_uso_en)}`
-                                            : `revocada el ${formatearFecha(c.revocada_en)}`}
+                                        {c.llamadas_hoy} llamadas hoy{c.nivel >= 3 ? ` · ${c.escrituras_hoy} escrituras` : ""} · último uso {formatearFecha(c.ultimo_uso_en)}
                                     </p>
                                 </div>
-                                {activa && (
-                                    <button onClick={() => revocar(c)} title="Revocar (desconecta a la IA)" style={botonIcono}>
+                                <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                                    <button
+                                        onClick={() => setLimitesAbiertos(limitesAbiertos === c.id ? null : c.id)}
+                                        title="Límites avanzados"
+                                        style={botonIcono}
+                                    >
+                                        <Icon name="Settings2" size={15} color="var(--text-muted)" />
+                                    </button>
+                                    <button onClick={() => setModalEliminar({ id: c.id, nombre: c.nombre })} title="Eliminar (desconecta a la IA)" style={botonIcono}>
                                         <Icon name="Trash2" size={15} color="#b71c1c" />
                                     </button>
-                                )}
+                                </div>
                             </div>
+
+                            {/* Selector de nivel de la clave existente */}
+                            <div style={{ display: "flex", gap: 4, marginTop: 8, flexWrap: "wrap" }}>
+                                {([1, 2, 3] as const).map(n => (
+                                    <button
+                                        key={n}
+                                        type="button"
+                                        onClick={() => n !== c.nivel && (n > c.nivel
+                                            ? setModalSubida({ claveId: c.id, base: c.nivel as 1 | 2 | 3, destino: n })
+                                            : cambiarNivelDeClave(c.id, n))}
+                                        style={{
+                                            fontSize: "0.64rem", fontWeight: 800, cursor: "pointer",
+                                            padding: "3px 10px", borderRadius: 20,
+                                            border: c.nivel === n ? "none" : "1px solid var(--border-primary)",
+                                            background: c.nivel === n ? "var(--primary-mid)" : "var(--bg-card)",
+                                            color: c.nivel === n ? "white" : "var(--text-muted)",
+                                        }}
+                                    >
+                                        Nivel {n}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Límites avanzados (colapsable) */}
+                            {limitesAbiertos === c.id && (
+                                <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, background: "var(--bg-card)", display: "flex", flexDirection: "column", gap: 6 }}>
+                                    <p style={{ margin: 0, fontSize: "0.66rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                                        Límites por día de ESTA clave (vacío = default del nivel:
+                                        {` ${defaults.llamadas} llamadas / ${defaults.escrituras} escrituras`})
+                                    </p>
+                                    <form
+                                        onSubmit={e => {
+                                            e.preventDefault()
+                                            const form = e.currentTarget
+                                            guardarLimites(
+                                                c,
+                                                form.elements.namedItem("lim-lam") as HTMLInputElement,
+                                                form.elements.namedItem("lim-esc") as HTMLInputElement,
+                                            )
+                                        }}
+                                        style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+                                    >
+                                        <input name="lim-lam" type="number" min={0}
+                                            defaultValue={c.limite_llamadas_diarias ?? ""}
+                                            placeholder={`Llamadas (${defaults.llamadas})`}
+                                            style={{ ...inputStyle, width: 130, fontWeight: 500 }} />
+                                        <input name="lim-esc" type="number" min={0}
+                                            defaultValue={c.limite_escrituras_diarias ?? ""}
+                                            placeholder={`Escrituras (${defaults.escrituras})`}
+                                            style={{ ...inputStyle, width: 130, fontWeight: 500 }} />
+                                        <button type="submit" disabled={ocupado} className="btn-primary"
+                                            style={{ padding: "6px 12px", fontSize: "0.7rem" }}>
+                                            Guardar
+                                        </button>
+                                    </form>
+                                </div>
+                            )}
                         </div>
                     )
                 })}
@@ -259,7 +365,9 @@ export function CardConectarMuse() {
                         <button
                             key={n}
                             type="button"
-                            onClick={() => (n > nivelSeleccionado ? setModalNivel(n) : setNivelSeleccionado(n))}
+                            onClick={() => (n > nivelSeleccionado
+                                ? setModalSubida({ claveId: null, base: nivelSeleccionado, destino: n })
+                                : setNivelSeleccionado(n))}
                             style={{
                                 textAlign: "left", cursor: "pointer", padding: "10px 12px", borderRadius: 10,
                                 border: elegido ? "2px solid var(--primary-mid)" : "1px solid var(--border-primary)",
@@ -290,33 +398,60 @@ export function CardConectarMuse() {
             </button>
 
             {/* ── Modal: advertencia al subir a un nivel superior ──
-                Usa el modal compartido (portal al viewport, ESC, scroll lock).
-                Si se salta de nivel (ej. 1 → 3), la lista ACUMULA los permisos
-                de los niveles intermedios. */}
-            {modalNivel !== null && (
+                Sirve para la clave NUEVA (claveId null) y para cambiar el nivel
+                de una EXISTENTE (el agente no se reconecta: el hash no cambia).
+                Si se salta de nivel, la lista ACUMULA los permisos intermedios. */}
+            {modalSubida !== null && (
                 <ModalConfirmacion
                     icon="ShieldAlert"
                     iconBg="#fff3e0"
                     iconColor="#e65100"
-                    titulo={`Nivel ${modalNivel} · ${NIVELES_CLAVE[modalNivel].nombre}`}
-                    mensaje="Con esta clave el agente IA además podrá:"
+                    titulo={`Nivel ${modalSubida.destino} · ${NIVELES_CLAVE[modalSubida.destino].nombre}`}
+                    mensaje={
+                        modalSubida.claveId
+                            ? `La clave "${claves.find(c => c.id === modalSubida.claveId)?.nombre ?? ""}" no cambia: el agente seguirá conectado con más permisos:`
+                            : "Con esta clave el agente IA además podrá:"
+                    }
                     contenido={
                         <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
-                            {((nivelSeleccionado < 2 && modalNivel >= 2)
+                            {((modalSubida.base < 2 && modalSubida.destino >= 2)
                                 ? NIVELES_CLAVE[2].permisosNuevos : []
-                            ).concat(NIVELES_CLAVE[modalNivel].permisosNuevos).map((p, i) => (
+                            ).concat(NIVELES_CLAVE[modalSubida.destino].permisosNuevos).map((p, i) => (
                                 <li key={i} style={{ fontSize: "0.78rem", color: "var(--text-main)", lineHeight: 1.4 }}>
                                     {p}
                                 </li>
                             ))}
                         </ul>
                     }
-                    aviso={NIVELES_CLAVE[modalNivel].advertencia}
+                    aviso={NIVELES_CLAVE[modalSubida.destino].advertencia}
                     btnConfirmar="Aceptar y dar estos permisos"
                     btnCancelar="Rechazar"
                     btnColor="#e65100"
-                    onCancelar={() => setModalNivel(null)}
-                    onConfirmar={() => { setNivelSeleccionado(modalNivel); setModalNivel(null) }}
+                    onCancelar={() => setModalSubida(null)}
+                    onConfirmar={() => {
+                        if (modalSubida.claveId) {
+                            cambiarNivelDeClave(modalSubida.claveId, modalSubida.destino)
+                        } else {
+                            setNivelSeleccionado(modalSubida.destino)
+                            setModalSubida(null)
+                        }
+                    }}
+                />
+            )}
+
+            {/* ── Modal: eliminar una clave definitivamente ── */}
+            {modalEliminar !== null && (
+                <ModalConfirmacion
+                    icon="Trash2"
+                    iconBg="#ffebee"
+                    iconColor="#b71c1c"
+                    titulo={`¿Eliminar la clave "${modalEliminar.nombre}"?`}
+                    mensaje="El agente que la usa queda desconectado al instante y la clave desaparece de esta lista."
+                    aviso="Lo que el agente ya creó queda en el Historial con su atribución. Para reconectar necesitarás generar otra clave y pegar su prompt de nuevo en el chat."
+                    btnConfirmar="Eliminar definitivamente"
+                    btnColor="#b71c1c"
+                    onCancelar={() => setModalEliminar(null)}
+                    onConfirmar={() => eliminar(claves.find(c => c.id === modalEliminar.id) as ClaveMcp)}
                 />
             )}
         </div>

@@ -21,8 +21,9 @@ export interface ClaveMcp {
     llamadas_hoy: number
     dia_uso: string | null
     escrituras_hoy: number
-    /** null = activa · fecha = revocada */
-    revocada_en: string | null
+    /** Override por clave (null = default del nivel) */
+    limite_llamadas_diarias: number | null
+    limite_escrituras_diarias: number | null
 }
 
 /** Nombre, descripción y PERMISOS NUEVOS de cada nivel (los que gana el
@@ -61,6 +62,13 @@ export const NIVELES_CLAVE: Record<number, {
     },
 }
 
+/** Límites por defecto según nivel (espejo de database/mcp_claves.py). */
+export const DEFAULTS_LIMITES: Record<number, { llamadas: number; escrituras: number }> = {
+    1: { llamadas: 300, escrituras: 1000 },
+    2: { llamadas: 100, escrituras: 1000 },
+    3: { llamadas: 50, escrituras: 1000 },
+}
+
 export const museApi = {
     getClaves: () => request<{ claves: ClaveMcp[] }>("/mcp-conexion/claves"),
 
@@ -71,7 +79,20 @@ export const museApi = {
             body: JSON.stringify({ nombre: nombre?.trim() || null, nivel }),
         }),
 
-    /** Soft-delete: el agente queda desconectado en el próximo request. */
-    revocarClave: (id: number) =>
+    /** Edita nivel y/o límites de una clave ACTIVA sin tocar su hash:
+     *  el agente no se reconecta. nivel undefined = no cambiar. */
+    editarClave: (id: number, datos: {
+        nivel?: number
+        limite_llamadas?: number | null
+        limite_escrituras?: number | null
+    }) =>
+        request<{ ok: boolean; cambiado: string[] }>(`/mcp-conexion/claves/${id}`, {
+            method: "PATCH",
+            body: JSON.stringify(datos),
+        }),
+
+    /** ELIMINA la clave definitivamente: desconecta al agente al instante
+     *  y la fila desaparece de la lista. El Historial no se toca. */
+    eliminarClave: (id: number) =>
         request<{ ok: boolean }>(`/mcp-conexion/claves/${id}`, { method: "DELETE" }),
 }
