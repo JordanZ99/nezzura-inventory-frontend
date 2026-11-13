@@ -13,9 +13,9 @@
 // ==============================================================================
 
 import { useState } from "react"
-import { createPortal } from "react-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Icon from "@/components/ui/Icon"
+import ModalConfirmacion from "@/components/ui/ModalConfirmacion"
 import { api, BASE_URL, type ClaveMcp, NIVELES_CLAVE } from "@/lib/api"
 import { useTenant } from "@/contexts/TenantContext"
 import { useToast } from "@/components/ui/Toast"
@@ -290,35 +290,17 @@ export function CardConectarMuse() {
             </button>
 
             {/* ── Modal: advertencia al subir a un nivel superior ──
-                Va por createPortal a document.body: position:fixed se ancla
-                al viewport SIEMPRE (un ancestro con transform — la animación
-                fade-up del card — convertiría el fixed en relativo al card). */}
-            {modalNivel !== null && createPortal(
-                <div style={{
-                    position: "fixed", inset: 0, zIndex: 9999,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 24,
-                }}>
-                    <div className="card" style={{
-                        maxWidth: 460, width: "100%", padding: 26,
-                        display: "flex", flexDirection: "column", gap: 14,
-                        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-                        border: "1px solid var(--border-light)",
-                    }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <div style={{
-                                width: 44, height: 44, borderRadius: 12, background: "#fff3e0",
-                                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                            }}>
-                                <Icon name="ShieldAlert" size={24} color="#e65100" />
-                            </div>
-                            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
-                                Nivel {modalNivel} · {NIVELES_CLAVE[modalNivel].nombre}
-                            </h3>
-                        </div>
-                        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-main)", fontWeight: 600 }}>
-                            Con esta clave el agente IA además podrá:
-                        </p>
+                Usa el modal compartido (portal al viewport, ESC, scroll lock).
+                Si se salta de nivel (ej. 1 → 3), la lista ACUMULA los permisos
+                de los niveles intermedios. */}
+            {modalNivel !== null && (
+                <ModalConfirmacion
+                    icon="ShieldAlert"
+                    iconBg="#fff3e0"
+                    iconColor="#e65100"
+                    titulo={`Nivel ${modalNivel} · ${NIVELES_CLAVE[modalNivel].nombre}`}
+                    mensaje="Con esta clave el agente IA además podrá:"
+                    contenido={
                         <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
                             {((nivelSeleccionado < 2 && modalNivel >= 2)
                                 ? NIVELES_CLAVE[2].permisosNuevos : []
@@ -328,31 +310,14 @@ export function CardConectarMuse() {
                                 </li>
                             ))}
                         </ul>
-                        <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                            {NIVELES_CLAVE[modalNivel].advertencia}
-                        </p>
-                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
-                            <button
-                                onClick={() => setModalNivel(null)}
-                                style={{
-                                    padding: "10px 20px", borderRadius: 10,
-                                    border: "1px solid var(--border-primary)", background: "var(--bg-card2)",
-                                    color: "var(--text-main)", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer",
-                                }}
-                            >
-                                Rechazar
-                            </button>
-                            <button
-                                onClick={() => { setNivelSeleccionado(modalNivel); setModalNivel(null) }}
-                                className="btn-primary"
-                                style={{ padding: "10px 20px", borderRadius: 10, border: "none", display: "flex", alignItems: "center", gap: 8 }}
-                            >
-                                <Icon name="Check" size={16} /> Aceptar y dar estos permisos
-                            </button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
+                    }
+                    aviso={NIVELES_CLAVE[modalNivel].advertencia}
+                    btnConfirmar="Aceptar y dar estos permisos"
+                    btnCancelar="Rechazar"
+                    btnColor="#e65100"
+                    onCancelar={() => setModalNivel(null)}
+                    onConfirmar={() => { setNivelSeleccionado(modalNivel); setModalNivel(null) }}
+                />
             )}
         </div>
     )
