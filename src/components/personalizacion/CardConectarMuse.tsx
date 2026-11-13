@@ -15,7 +15,7 @@
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Icon from "@/components/ui/Icon"
-import { api, BASE_URL, type ClaveMcp } from "@/lib/api"
+import { api, BASE_URL, type ClaveMcp, NIVELES_CLAVE } from "@/lib/api"
 import { useTenant } from "@/contexts/TenantContext"
 import { useToast } from "@/components/ui/Toast"
 
@@ -35,18 +35,30 @@ const botonIcono = { background: "none", border: "none", cursor: "pointer", padd
 
 /** Prompt que se pega en el chat del agente (Muse) para crear el custom
  *  connector. Lleva la clave embebida: solo se puede armar en el momento
- *  de crearla, porque después ya no se puede recuperar. */
-function promptConector(clave: string): string {
-    return [
+ *  de crearla, porque después ya no se puede recuperar. Varía según el
+ *  nivel de permiso de la clave. */
+function promptConector(clave: string, nivel: number): string {
+    const lineas = [
         "Crea un custom connector para mi servidor MCP con estos datos:",
         "",
         `- URL: ${BASE_URL}/mcp`,
         "- Transporte: streamable HTTP",
         `- Autenticación: header "X-API-Key" con el valor: ${clave}`,
         "",
-        "Es un conector de SOLO LECTURA del catálogo de mi negocio (productos físicos, precios de venta, descripciones, tamaños, stock y fotos; sin costos internos).",
+        "Conector del inventario de mi negocio (productos físicos, precios de venta, descripciones, tamaños, stock y fotos; sin costos internos).",
         "Cuando te pida publicar un producto en Marketplace o redes sociales, usa estos tools para obtener los datos (busca el producto y usa datos_para_publicar) en lugar de pedírmelos a mí.",
-    ].join("\n")
+    ]
+    if (nivel >= 2) {
+        lineas.push(
+            "Además, cuando te pregunte cómo va mi negocio (ganancias, gastos, stock en riesgo, cobros pendientes), usa resumen_negocio y hallazgos_inteligentes: son cálculos reales de mi gestor, así que NUNCA inventes cifras.",
+        )
+    }
+    if (nivel >= 3) {
+        lineas.push(
+            "También puedo pedirte crear productos nuevos: SIEMPRE usa primero proponer_producto (valida y guarda el borrador) y después confirmar_producto con el borrador_id que devuelva. Si un dato falta o es inválido, proponer_producto te dirá exactamente qué corregir.",
+        )
+    }
+    return lineas.join("\n")
 }
 
 function formatearFecha(iso: string | null): string {
@@ -87,9 +99,11 @@ export function CardConectarMuse() {
     const queryClient = useQueryClient()
 
     const [nombre, setNombre] = useState("")
+    const [nivelSeleccionado, setNivelSeleccionado] = useState<1 | 2 | 3>(1)
     const [ocupado, setOcupado] = useState(false)
     // Clave recién creada (se muestra una sola vez junto con su prompt)
     const [claveNueva, setClaveNueva] = useState<string | null>(null)
+    const [nivelNueva, setNivelNueva] = useState<1 | 2 | 3>(1)
     const [copiado, setCopiado] = useState<"clave" | "prompt" | null>(null)
 
     const clavesQuery = useQuery({
@@ -106,8 +120,9 @@ export function CardConectarMuse() {
     async function generar() {
         setOcupado(true)
         try {
-            const r = await api.crearClave(nombre || undefined)
+            const r = await api.crearClave(nombre || undefined, nivelSeleccionado)
             setClaveNueva(r.clave)
+            setNivelNueva(nivelSeleccionado)
             setNombre("")
             invalidar()
             mostrarMsg(true, "Clave creada. Cópiala ahora: no se volverá a mostrar.")
@@ -130,7 +145,7 @@ export function CardConectarMuse() {
     }
 
     async function copiarYavisar(que: "clave" | "prompt") {
-        const texto = que === "clave" ? claveNueva : promptConector(claveNueva || "")
+        const texto = que === "clave" ? claveNueva : promptConector(claveNueva || "", nivelNueva)
         if (!texto) return
         const ok = await copiar(texto)
         if (ok) {
@@ -149,7 +164,8 @@ export function CardConectarMuse() {
             <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 16px" }}>
                 Conecta un agente IA (como <strong>Muse</strong>) para que lea tu catálogo: precios de venta, stock,
                 descripciones y fotos. Así puedes decirle “publica en Marketplace el producto X” y él saca los datos solo.
-                <strong> Nunca ve tus costos</strong> y no puede modificar nada (solo lectura).
+                <strong> Nunca ve tus costos unitarios.</strong> Elige el nivel de permiso al crear cada clave:
+                análisis del negocio y creación de productos son opcionales y se activan por clave.
             </p>
 
             {/* ── Clave recién creada: se muestra UNA sola vez ── */}
@@ -171,7 +187,7 @@ export function CardConectarMuse() {
                     </p>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                         <pre style={{ flex: 1, margin: 0, fontSize: "0.66rem", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "monospace", background: "var(--bg-card)", padding: "8px 10px", borderRadius: 6, maxHeight: 150, overflow: "auto" }}>
-                            {promptConector(claveNueva)}
+                            {promptConector(claveNueva, nivelNueva)}
                         </pre>
                         <button onClick={() => copiarYavisar("prompt")} title="Copiar prompt completo" style={botonIcono}>
                             <Icon name={copiado === "prompt" ? "Check" : "Copy"} size={16} color="var(--primary-dark)" />
@@ -192,19 +208,27 @@ export function CardConectarMuse() {
                 )}
                 {claves.map(c => {
                     const activa = !c.revocada_en
+                    const nivelInfo = NIVELES_CLAVE[c.nivel] ?? NIVELES_CLAVE[1]
                     return (
                         <div key={c.id} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-primary)", background: "var(--bg-card2)", opacity: activa ? 1 : 0.6 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                                 <div style={{ minWidth: 0 }}>
-                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "0.85rem", color: activa ? "var(--text-main)" : "var(--text-muted)" }}>
+                                    <p style={{ margin: 0, fontWeight: 800, fontSize: "0.85rem", color: activa ? "var(--text-main)" : "var(--text-muted)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                         {c.nombre}{!activa && " (revocada)"}
+                                        <span style={{
+                                            fontSize: "0.6rem", fontWeight: 800, padding: "1px 7px", borderRadius: 20,
+                                            background: activa ? "var(--primary-mid)" : "var(--border-primary)",
+                                            color: activa ? "white" : "var(--text-muted)",
+                                        }}>
+                                            Nivel {c.nivel} · {nivelInfo.nombre}
+                                        </span>
                                     </p>
                                     <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600, fontFamily: "monospace" }}>
                                         {c.key_prefix}
                                     </p>
                                     <p style={{ margin: "2px 0 0", fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 600 }}>
                                         {activa
-                                            ? `${c.llamadas_hoy} llamadas hoy · último uso ${formatearFecha(c.ultimo_uso_en)}`
+                                            ? `${c.llamadas_hoy} llamadas hoy${c.nivel >= 3 ? ` · ${c.escrituras_hoy} escrituras` : ""} · último uso ${formatearFecha(c.ultimo_uso_en)}`
                                             : `revocada el ${formatearFecha(c.revocada_en)}`}
                                     </p>
                                 </div>
@@ -219,10 +243,40 @@ export function CardConectarMuse() {
                 })}
             </div>
 
-            {/* ── Alta de clave ── */}
+            {/* ── Alta de clave: nivel + nombre ── */}
             <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-                Conectar un agente
+                Conectar un agente — elige su nivel de permiso
             </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                {([1, 2, 3] as const).map(n => {
+                    const info = NIVELES_CLAVE[n]
+                    const elegido = nivelSeleccionado === n
+                    return (
+                        <button
+                            key={n}
+                            type="button"
+                            onClick={() => setNivelSeleccionado(n)}
+                            style={{
+                                textAlign: "left", cursor: "pointer", padding: "10px 12px", borderRadius: 10,
+                                border: elegido ? "2px solid var(--primary-mid)" : "1px solid var(--border-primary)",
+                                background: elegido ? "var(--bg-card2)" : "var(--bg-card)",
+                            }}
+                        >
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "0.8rem", color: elegido ? "var(--primary-dark)" : "var(--text-main)" }}>
+                                Nivel {n} · {info.nombre}
+                            </p>
+                            <p style={{ margin: "2px 0 0", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                {info.descripcion}
+                            </p>
+                            {elegido && (
+                                <p style={{ margin: "4px 0 0", fontSize: "0.68rem", color: "#b71c1c", fontWeight: 700 }}>
+                                    ⚠ {info.advertencia}
+                                </p>
+                            )}
+                        </button>
+                    )
+                })}
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
                 <input
                     placeholder="Nombre (ej. Muse de mi celular)"
