@@ -225,8 +225,8 @@ export default function Almacenamiento() {
                                     </div>
                                     {(Number(desglose.datos || 0) > 0 || Number(desglose.historial || 0) > 0) && (
                                         <p style={{ margin: "10px 0 0", fontSize: "0.7rem", color: "var(--text-label, #777)" }}>
-                                            Tus datos e historial ({fmtPeso(Number(desglose.datos || 0) + Number(desglose.historial || 0))}) son aparte:
-                                            no ocupan tu espacio de imágenes.
+                                            Tu espacio total cuenta imágenes + datos + historial
+                                            ({fmtPeso(Number(desglose.datos || 0) + Number(desglose.historial || 0))} de datos e historial).
                                         </p>
                                     )}
                                 </>
