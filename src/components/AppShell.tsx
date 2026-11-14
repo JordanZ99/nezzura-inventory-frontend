@@ -194,12 +194,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     ))}
                 </nav>
 
-                {/* Medidor de almacenamiento (cuota por plan, migración 071) */}
-                <StorageMeter />
+                {/* Medidor de almacenamiento (cuota por plan, migración 071):
+                    anclado al fondo junto al footer, con aire respecto al menú */}
+                <div style={{ marginTop: "auto", paddingTop: 20 }}>
+                    <StorageMeter />
+                </div>
 
                 {/* Footer con logout */}
                 <div style={{
-                    marginTop: "auto",
+                    marginTop: 8,
                     padding: "16px 12px",
                     display: "flex",
                     flexDirection: "column",
