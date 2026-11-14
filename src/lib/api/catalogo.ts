@@ -1,4 +1,5 @@
 import { request, BASE_URL, ApiError } from "./client"
+import { invalidarUsoAlmacenamiento } from "@/lib/query-client"
 import { obtenerLicencia } from "@/lib/local/licencia"
 import type { CatalogoConfig, PostConfig } from "@/types"
 
@@ -123,5 +124,6 @@ export async function publicarFotoCatalogo(nombre: string, foto: Blob): Promise<
         const detalle = typeof cuerpo?.detail === "string" ? cuerpo.detail : undefined
         throw new ApiError(detalle || `Error subiendo la foto (${res.status}).`, { status: res.status })
     }
+    invalidarUsoAlmacenamiento()  // el peso del tenant acaba de cambiar
     return res.json() as Promise<{ ok: boolean; ruta: string }>
 }

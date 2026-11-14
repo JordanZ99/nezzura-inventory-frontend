@@ -167,3 +167,15 @@ export async function descargarDatosXlsx(): Promise<void> {
         `nezzura-respaldo-${new Date().toISOString().slice(0, 10)}.xlsx`
     )
 }
+
+/**
+ * Respaldo COMPLETO (migración 071, Fase B): ZIP con los datos (JSON) y
+ * todas las fotos del tenant. Es la "descarga tu copia de seguridad" del
+ * flujo de límite de almacenamiento.
+ */
+export async function descargarRespaldoCompleto(): Promise<void> {
+    await descargarArchivo(
+        "/export/respaldo",
+        `nezzura-respaldo-completo-${new Date().toISOString().slice(0, 10)}.zip`
+    )
+}

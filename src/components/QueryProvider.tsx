@@ -1,26 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { useEffect } from "react"
+import { QueryClientProvider } from "@tanstack/react-query"
 import { supabase } from "@/lib/supabase"
+import { queryClient } from "@/lib/query-client"
 
 export default function QueryProvider({ children }: { children: React.ReactNode }) {
-    const [queryClient] = useState(() => new QueryClient({
-        defaultOptions: {
-            queries: {
-                // El inventario se mantiene fresco durante la navegación sin
-                // repetir la misma consulta al volver a una ruta.
-                staleTime: 2 * 60 * 1000,
-                gcTime: 15 * 60 * 1000,
-                refetchOnWindowFocus: false,
-                // Las queries de inventario ya hacen un unico reintento
-                // controlado despues de initDB; evita duplicar peticiones a
-                // Render si el backend responde con error.
-                retry: 0,
-            },
-        },
-    }))
-
     // La caché vive en el navegador. Se limpia al cambiar de sesión para que
     // nunca quede visible información del tenant anterior.
     useEffect(() => {
@@ -31,7 +16,7 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
         })
 
         return () => listener.subscription.unsubscribe()
-    }, [queryClient])
+    }, [])
 
     return (
         <QueryClientProvider client={queryClient}>

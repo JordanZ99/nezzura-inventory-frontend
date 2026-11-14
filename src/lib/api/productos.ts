@@ -1,4 +1,5 @@
 import { BASE_URL, getAuthHeaders, request, conQuery } from "./client"
+import { invalidarUsoAlmacenamiento } from "@/lib/query-client"
 import type {
     Producto,
     Lote,
@@ -151,6 +152,7 @@ export const productosApi = {
             }
             throw new Error(detail)
         }
+        invalidarUsoAlmacenamiento()  // el peso del tenant acaba de cambiar
         return res.json()
     },
 
@@ -190,6 +192,7 @@ export const productosApi = {
             }
             throw new Error(detail)
         }
+        invalidarUsoAlmacenamiento()  // el peso del tenant acaba de cambiar
         return res.json()
     },
 

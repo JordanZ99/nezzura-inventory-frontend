@@ -16,6 +16,7 @@ import { useTenant } from "@/contexts/TenantContext"
 import { useModulo } from "@/hooks/useModulo"
 import { obtenerModo } from "@/lib/local/modo"
 import { salirModoLocal } from "@/lib/local/licencia"
+import StorageMeter from "@/components/ui/StorageMeter"
 
 const NAV = [
     { href: "/", icon: "ShoppingCart", label: "Punto de Venta" },
@@ -193,6 +194,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     ))}
                 </nav>
 
+                {/* Medidor de almacenamiento (cuota por plan, migración 071) */}
+                <StorageMeter />
+
                 {/* Footer con logout */}
                 <div style={{
                     marginTop: "auto",
@@ -248,6 +252,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             }}>
                 {children}
             </main>
+
+            {/* Alerta de almacenamiento en móvil: solo aparece al cruzar 80%
+                del plan o excederlo (cuota por plan, migración 071) */}
+            <div className="md:hidden">
+                <StorageMeter modo="alerta" />
+            </div>
 
             {/* ── Bottom Navigation móvil ── */}
             <nav className="flex md:hidden" style={{
