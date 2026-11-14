@@ -276,7 +276,7 @@ export default function Almacenamiento() {
                                 }}
                             >
                                 <Icon name="TrendingUp" size={16} />
-                                Mejorar a Plus ({fmtPeso(10 * GB)})
+                                Mejorar a Plus ({fmtPeso(5 * GB)})
                             </a>
                         )}
                     </div>
