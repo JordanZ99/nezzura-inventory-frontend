@@ -35,12 +35,9 @@ const POR_PAGINA = 100
 const MAX_POR_LOTE = 50
 
 const ETIQUETAS_DESGLOSE: Record<string, string> = {
-    principal: "Fotos de producto",
-    galeria: "Galerías (Plus)",
-    variaciones: "Variaciones",
-    branding: "Logo y banners",
-    catalogo: "Catálogo publicado",
-    sin_referencia: "Sin usar (huérfanas)",
+    imagenes: "Imágenes",
+    datos: "Datos",
+    historial: "Historial",
 }
 
 function colorEstado(porcentaje: number, excedido: boolean): string {
@@ -202,20 +199,37 @@ export default function Almacenamiento() {
                                 </p>
                             )}
 
-                            {/* ── Desglose por categoría (texto, sin fotos) ── */}
+                            {/* ── Desglose en 3 categorías (texto, sin fotos) ── */}
                             {Object.keys(desglose).length > 0 && (
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
-                                    {Object.entries(desglose).map(([clave, bytes]) => (
-                                        <span key={clave} style={{
-                                            fontSize: "0.72rem", fontWeight: 700,
-                                            color: "var(--text-main, #333)",
-                                            background: "rgba(0,0,0,0.05)",
-                                            padding: "6px 10px", borderRadius: 10,
-                                        }}>
-                                            {ETIQUETAS_DESGLOSE[clave] ?? clave}: {fmtPeso(Number(bytes))}
-                                        </span>
-                                    ))}
-                                </div>
+                                <>
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+                                        {Object.entries(desglose).map(([clave, bytes]) => {
+                                            // "sin uso" vive DENTRO del chip de Imágenes
+                                            if (clave === "sin_uso") return null
+                                            return (
+                                                <span key={clave} style={{
+                                                    fontSize: "0.72rem", fontWeight: 700,
+                                                    color: "var(--text-main, #333)",
+                                                    background: "rgba(0,0,0,0.05)",
+                                                    padding: "6px 10px", borderRadius: 10,
+                                                }}>
+                                                    {ETIQUETAS_DESGLOSE[clave] ?? clave}: {fmtPeso(Number(bytes))}
+                                                    {clave === "imagenes" && Number(desglose.sin_uso || 0) > 0 && (
+                                                        <span style={{ opacity: 0.65, fontWeight: 600 }}>
+                                                            {" "}· {fmtPeso(Number(desglose.sin_uso))} sin uso
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            )
+                                        })}
+                                    </div>
+                                    {(Number(desglose.datos || 0) > 0 || Number(desglose.historial || 0) > 0) && (
+                                        <p style={{ margin: "10px 0 0", fontSize: "0.7rem", color: "var(--text-label, #777)" }}>
+                                            Tus datos e historial ({fmtPeso(Number(desglose.datos || 0) + Number(desglose.historial || 0))}) son aparte:
+                                            no ocupan tu espacio de imágenes.
+                                        </p>
+                                    )}
+                                </>
                             )}
                         </>
                     )}
