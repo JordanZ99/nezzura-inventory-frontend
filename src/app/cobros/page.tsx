@@ -74,6 +74,8 @@ export default function Cobros() {
 
     // ── Modal: eliminar cobro ──
     const [confirmandoEliminar, setConfirmandoEliminar] = useState<Cobro | null>(null)
+    // ── Modal: eliminar cuenta completa (los N cobros de una misma cuota) ──
+    const [confirmandoEliminarCuenta, setConfirmandoEliminarCuenta] = useState<Cobro[] | null>(null)
 
     function abrirNuevoExtra() {
         setExtraEditando(null)
@@ -190,6 +192,29 @@ export default function Cobros() {
         }
     }
 
+    async function eliminarCuentaCompleta() {
+        if (!confirmandoEliminarCuenta) return
+        // Política: se eliminan los cobros SIN abonos (deudas programadas); los
+        // que ya tienen dinero entrado se conservan para no perder el historial.
+        const sinAbonos = confirmandoEliminarCuenta.filter(c => c.pagos.length === 0)
+        const conDinero = confirmandoEliminarCuenta.length - sinAbonos.length
+        try {
+            for (const c of sinAbonos) {
+                await acciones.eliminarCobro(c.id)
+            }
+            mostrarMsg(
+                true,
+                conDinero > 0
+                    ? `Cuenta limpiada: ${sinAbonos.length} cobro(s) eliminado(s); ${conDinero} con abonos se conservan`
+                    : `Cuenta eliminada (${sinAbonos.length} cobro(s))`,
+            )
+        } catch (e) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error al eliminar la cuenta")
+        } finally {
+            setConfirmandoEliminarCuenta(null)
+        }
+    }
+
     function alternarFiltroPendientes() {
         setSoloPendientes(v => !v)
     }
@@ -287,6 +312,7 @@ export default function Cobros() {
                             onRegistrarPago={abrirPago}
                             onEditarExtra={abrirEditarExtra}
                             onEliminar={setConfirmandoEliminar}
+                            onEliminarGrupo={setConfirmandoEliminarCuenta}
                         />
                     </>
                 )}
@@ -474,6 +500,21 @@ export default function Cobros() {
                     btnColor="#e53935"
                     onCancelar={() => setConfirmandoEliminar(null)}
                     onConfirmar={eliminarCobro}
+                />
+            )}
+
+            {/* ── Modal: eliminar cuenta completa (los N cobros de una cuota/venta) ── */}
+            {confirmandoEliminarCuenta && (
+                <ModalConfirmacion
+                    icon="Trash2"
+                    iconBg="rgba(229,57,53,0.12)"
+                    iconColor="#b71c1c"
+                    titulo={`¿Eliminar la cuenta de ${confirmandoEliminarCuenta[0].cliente_nombre}?`}
+                    mensaje={`Se eliminarán los ${confirmandoEliminarCuenta.length} cobro(s) programados de "${confirmandoEliminarCuenta[0].concepto}". Los que ya tengan abonos registrados se conservan para no perder el dinero.`}
+                    btnConfirmar="Eliminar cuenta"
+                    btnColor="#e53935"
+                    onCancelar={() => setConfirmandoEliminarCuenta(null)}
+                    onConfirmar={eliminarCuentaCompleta}
                 />
             )}
         </div>

@@ -19,6 +19,8 @@ interface Props {
     onRegistrarPago: (cobro: Cobro) => void
     onEditarExtra: (cobro: Cobro) => void
     onEliminar: (cobro: Cobro) => void
+    /** Eliminar TODA la cuenta (los N cobros de la misma cuota/venta). */
+    onEliminarGrupo: (cobros: Cobro[]) => void
 }
 
 const fmt = (n: number) =>
@@ -39,7 +41,7 @@ function fechaCorta(v: string | null): string {
     return `${d} ${mes}`
 }
 
-export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEditarExtra, onEliminar }: Props) {
+export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEditarExtra, onEliminar, onEliminarGrupo }: Props) {
     const { quitarAbono } = useAccionesCobros()
     const [expandido, setExpandido] = useState<string | null>(null)
     const [quitarIndice, setQuitarIndice] = useState<{ id: string; indice: number } | null>(null)
@@ -153,6 +155,10 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                                             Abonar
                                         </button>
                                     )}
+                                    <button onClick={() => onEliminar(cobro)} title="Eliminar cobro"
+                                        style={estiloBtnPeligro}>
+                                        <Icon name="Trash2" size={15} />
+                                    </button>
                                 </div>
                             </div>
 
@@ -207,6 +213,10 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                                     style={estiloBtnIcono}>
                                     <Icon name={abiertos ? "ChevronUp" : "ChevronDown"} size={16} />
                                 </button>
+                                <button onClick={() => onEliminarGrupo(grupo)} title="Eliminar cuenta completa"
+                                    style={estiloBtnPeligro}>
+                                    <Icon name="Trash2" size={15} />
+                                </button>
                             </div>
                         </div>
 
@@ -247,6 +257,10 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                                                         Abonar
                                                     </button>
                                                 )}
+                                                <button onClick={() => onEliminar(cobro)} title="Eliminar este cobro"
+                                                    style={{ ...estiloBtnPeligro, padding: "6px 8px" }}>
+                                                    <Icon name="Trash2" size={13} />
+                                                </button>
                                             </div>
                                         </div>
                                     )
@@ -395,6 +409,11 @@ const estiloVencido: React.CSSProperties = {
 const estiloBtnIcono: React.CSSProperties = {
     border: "none", borderRadius: 10, padding: "8px 10px", cursor: "pointer",
     background: "var(--bg-card2)", color: "var(--text-main)",
+}
+
+const estiloBtnPeligro: React.CSSProperties = {
+    border: "none", borderRadius: 10, padding: "8px 10px", cursor: "pointer",
+    background: "rgba(229,57,53,0.1)", color: "#b71c1c",
 }
 
 const estiloBtnAbonar: React.CSSProperties = {
