@@ -11,7 +11,7 @@
 import { useCallback } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useTenant } from "@/contexts/TenantContext"
-import { cobrosApi, type AbonoPayload, type CobroEditarPayload, type CobroExtraPayload, type CuotaEditarPayload, type CuotaPayload } from "@/lib/api/cobros"
+import { cobrosApi, type AbonoEditarPayload, type AbonoPayload, type CobroEditarPayload, type CobroExtraPayload, type CuotaEditarPayload, type CuotaPayload } from "@/lib/api/cobros"
 import type { Cobro, CuotaCliente, ResumenCobros } from "@/types"
 
 /** Clave base de todas las queries del dominio (invalidación por bloque). */
@@ -102,6 +102,12 @@ export function useAccionesCobros() {
         onSuccess: () => refrescar(),
     })
 
+    const editarAbono = useMutation({
+        mutationFn: ({ id, indice, data }: { id: string; indice: number; data: AbonoEditarPayload }) =>
+            cobrosApi.editarAbono(id, indice, data),
+        onSuccess: () => refrescar(),
+    })
+
     const quitarAbono = useMutation({
         mutationFn: ({ id, indice }: { id: string; indice: number }) => cobrosApi.quitarAbono(id, indice),
         onSuccess: () => refrescar(),
@@ -128,6 +134,7 @@ export function useAccionesCobros() {
         actualizarCobro: actualizarCobro.mutateAsync,
         eliminarCobro: eliminarCobro.mutateAsync,
         abonar: abonar.mutateAsync,
+        editarAbono: editarAbono.mutateAsync,
         quitarAbono: quitarAbono.mutateAsync,
         crearCuota: crearCuota.mutateAsync,
         actualizarCuota: actualizarCuota.mutateAsync,

@@ -16,9 +16,11 @@ import StatsCobros from "@/components/cobros/StatsCobros"
 import ListaCobros from "@/components/cobros/ListaCobros"
 import GestionCuotas from "@/components/cobros/GestionCuotas"
 import GestionPlanes from "@/components/cobros/GestionPlanes"
+import { useTenant } from "@/contexts/TenantContext"
+import { abrirWhatsApp, textoRecibo } from "@/lib/whatsapp"
 import { api } from "@/lib/api"
 import { periodoActual, useAccionesCobros, useCobrosLista, useResumenCobros } from "@/hooks/useCobros"
-import type { Cobro, EntradaPrograma } from "@/types"
+import type { Cobro, EntradaPrograma, PagoCobro, RepartoAbono } from "@/types"
 
 interface ClienteOption { id: string; nombre: string }
 
@@ -44,6 +46,7 @@ const hoyISO = () => new Date().toISOString().slice(0, 10)
 
 export default function Cobros() {
     const { mostrarMsg } = useToast()
+    const { tenant } = useTenant()
     const [tab, setTab] = useState<Tab>("cobros")
     const [periodo, setPeriodo] = useState(periodoActual())
     const [soloPendientes, setSoloPendientes] = useState(false)
@@ -67,10 +70,19 @@ export default function Cobros() {
     const [formExtra, setFormExtra] = useState<FormExtra>(FORM_EXTRA_VACIO(hoyISO()))
     const [guardandoExtra, setGuardandoExtra] = useState(false)
 
-    // ── Modal: registrar abono ──
+    // ── Modal: registrar abono (o editarlo, mig 081) ──
     const [pagoPara, setPagoPara] = useState<Cobro | null>(null)
+    const [modoAbono, setModoAbono] = useState<"nuevo" | "editar">("nuevo")
+    const [abonoEditando, setAbonoEditando] = useState<{ cobro: Cobro; indice: number } | null>(null)
     const [formPago, setFormPago] = useState<FormPago>({ monto: "", metodo: "transferencia", fecha: hoyISO() })
     const [guardandoPago, setGuardandoPago] = useState(false)
+    // Recibo tras abonar (A.3): confirmación + envío por WhatsApp opcional.
+    const [recibo, setRecibo] = useState<{
+        nombre: string; telefono: string | null; concepto: string
+        monto: number; fecha: string; saldoRestante: number; reparto: RepartoAbono[]
+    } | null>(null)
+    // Mini-modal de WhatsApp con el texto editable (tú decides si se manda).
+    const [whatsappPara, setWhatsappPara] = useState<{ telefono: string | null; texto: string } | null>(null)
 
     // ── Modal: eliminar cobro ──
     const [confirmandoEliminar, setConfirmandoEliminar] = useState<Cobro | null>(null)
@@ -138,7 +150,48 @@ export default function Cobros() {
 
     function abrirPago(cobro: Cobro) {
         setPagoPara(cobro)
+        setModoAbono("nuevo")
+        setAbonoEditando(null)
         setFormPago({ monto: String(cobro.saldo), metodo: "transferencia", fecha: hoyISO() })
+    }
+
+    /** Mig 081: corregir un abono ya registrado (✏️). */
+    function abrirEditarAbono(cobro: Cobro, indice: number) {
+        const abono = cobro.pagos[indice]
+        if (!abono) return
+        setAbonoEditando({ cobro, indice })
+        setModoAbono("editar")
+        setPagoPara(cobro)
+        setFormPago({ monto: String(abono.monto), metodo: abono.metodo || "efectivo", fecha: abono.fecha || hoyISO() })
+    }
+
+    /** Mig 081: abrir el mini-modal de WhatsApp con el texto ya redactado. */
+    function abrirReciboWhatsApp(cobro: Cobro, abono: PagoCobro) {
+        const saldoRestante = Math.max(cobro.saldo, 0)
+        const texto = textoRecibo(
+            { nombre: cobro.cliente_nombre, empresa: tenant?.empresa },
+            cobro.concepto, abono.monto, abono.fecha, saldoRestante,
+        )
+        setWhatsappPara({ telefono: cobro.cliente_telefono ?? null, texto })
+    }
+
+    /** Vista previa del reparto en cascada (mig 081) — el backend es la verdad. */
+    function vistaPreviaReparto(cuentaCobros: Cobro[], monto: number) {
+        const pendientes = [...cuentaCobros]
+            .sort((a, b) => (a.vencimiento || "").localeCompare(b.vencimiento || ""))
+            .filter(c => c.estado !== "pagado")
+        let resto = monto
+        const lineas: { fecha: string; monto: number; sobrepago?: boolean }[] = []
+        for (const c of pendientes) {
+            if (resto <= 0) break
+            const a = Math.min(resto, c.saldo)
+            lineas.push({ fecha: c.vencimiento?.slice(0, 10) ?? "—", monto: a })
+            resto -= a
+        }
+        if (resto > 0 && pendientes.length) {
+            lineas.push({ fecha: pendientes[pendientes.length - 1].vencimiento?.slice(0, 10) ?? "—", monto: resto, sobrepago: true })
+        }
+        return lineas
     }
 
     async function guardarPago() {
@@ -150,15 +203,46 @@ export default function Cobros() {
         }
         try {
             setGuardandoPago(true)
-            await acciones.abonar({
+            if (modoAbono === "editar" && abonoEditando) {
+                await acciones.editarAbono({
+                    id: abonoEditando.cobro.id,
+                    indice: abonoEditando.indice,
+                    data: {
+                        monto,
+                        metodo: formPago.metodo as "efectivo" | "transferencia" | "tarjeta" | "otro" | null,
+                        fecha: formPago.fecha,
+                    },
+                })
+                mostrarMsg(true, "Abono actualizado")
+                setPagoPara(null)
+                setAbonoEditando(null)
+                return
+            }
+            // Mig 081: en cobros de cuenta, el excedente se reparte en cascada.
+            const r = await acciones.abonar({
                 id: pagoPara.id,
                 data: {
                     monto,
                     metodo: formPago.metodo as "efectivo" | "transferencia" | "tarjeta" | "otro" | null,
                     fecha: formPago.fecha || undefined,
+                    cascada: Boolean(pagoPara.cuota_id),
                 },
             })
-            mostrarMsg(true, monto >= pagoPara.saldo ? "Cobro liquidado" : "Abono registrado")
+            const reparto = r.reparto ?? []
+            if (reparto.length > 1) {
+                mostrarMsg(true, `Abono registrado: cubrió ${reparto.length} cobro(s) de la cuenta`)
+            } else {
+                mostrarMsg(true, monto >= pagoPara.saldo ? "Cobro liquidado" : "Abono registrado")
+            }
+            setRecibo({
+                nombre: pagoPara.cliente_nombre,
+                telefono: pagoPara.cliente_telefono ?? null,
+                concepto: pagoPara.concepto,
+                monto,
+                fecha: formPago.fecha || hoyISO(),
+                saldoRestante: r.cuenta_saldo ?? r.saldo,
+                reparto,
+            })
             setPagoPara(null)
         } catch (e) {
             mostrarMsg(false, e instanceof Error ? e.message : "Error al registrar el abono")
@@ -313,6 +397,8 @@ export default function Cobros() {
                             onEditarExtra={abrirEditarExtra}
                             onEliminar={setConfirmandoEliminar}
                             onEliminarGrupo={setConfirmandoEliminarCuenta}
+                            onEditarAbono={abrirEditarAbono}
+                            onEnviarRecibo={abrirReciboWhatsApp}
                         />
                     </>
                 )}
@@ -432,19 +518,42 @@ export default function Cobros() {
                 </div>
             )}
 
-            {/* ── Modal: registrar abono ── */}
+            {/* ── Modal: registrar abono (o editarlo) ── */}
             {pagoPara && (
                 <div style={{
                     position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center",
                     background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 20,
                 }}>
-                    <div className="card" style={{ maxWidth: 400, width: "100%", padding: 24, display: "flex", flexDirection: "column", border: "1px solid var(--border-light)" }}>
+                    <div className="card" style={{ maxWidth: 420, width: "100%", padding: 24, display: "flex", flexDirection: "column", border: "1px solid var(--border-light)" }}>
                         <h3 style={{ margin: "0 0 4px", fontSize: "1.02rem", fontWeight: 800, color: "var(--text-main)" }}>
-                            Abonar a {pagoPara.cliente_nombre}
+                            {modoAbono === "editar" ? "Editar abono" : `Abonar a ${pagoPara.cliente_nombre}`}
                         </h3>
                         <p style={{ margin: "0 0 12px", fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                            {pagoPara.concepto} · saldo {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(pagoPara.saldo)}
+                            {pagoPara.concepto}
+                            {modoAbono === "editar"
+                                ? ` · abono de ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(abonoEditando?.cobro.pagos[abonoEditando.indice]?.monto ?? 0)}`
+                                : ` · saldo ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(pagoPara.saldo)}`}
                         </p>
+
+                        {/* Vista previa del reparto en cascada (solo cuentas, al registrar) */}
+                        {modoAbono === "nuevo" && pagoPara.cuota_id && Number(formPago.monto) > pagoPara.saldo && (
+                            <div style={{
+                                borderRadius: 10, border: "1px solid rgba(249,168,37,0.4)", background: "rgba(249,168,37,0.08)",
+                                padding: "8px 12px", marginBottom: 10,
+                            }}>
+                                <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 800, color: "#b45309" }}>
+                                    Pago mayor al saldo: se repartirá así
+                                </p>
+                                <p style={{ margin: "2px 0 0", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-main)" }}>
+                                    {vistaPreviaReparto(
+                                        cobros.filter(c => c.cuota_id === pagoPara.cuota_id),
+                                        Number(formPago.monto),
+                                    ).map(l =>
+                                        `${l.fecha.slice(8, 10)} nov ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(l.monto)}${l.sobrepago ? " (de más)" : ""}`
+                                    ).join(" · ")}
+                                </p>
+                            </div>
+                        )}
 
                         <label style={estLabel}>Monto del abono</label>
                         <input type="number" min="0" step="0.01" value={formPago.monto}
@@ -468,7 +577,7 @@ export default function Cobros() {
                         </div>
 
                         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
-                            <button onClick={() => setPagoPara(null)}
+                            <button onClick={() => { setPagoPara(null); setAbonoEditando(null) }}
                                 style={{
                                     padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border-primary)",
                                     background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, cursor: "pointer",
@@ -481,7 +590,106 @@ export default function Cobros() {
                                     background: "var(--primary-alter)", color: "#fff", fontWeight: 800,
                                     cursor: guardandoPago ? "wait" : "pointer",
                                 }}>
-                                {guardandoPago ? "Registrando..." : "Registrar abono"}
+                                {guardandoPago ? "Guardando..." : modoAbono === "editar" ? "Guardar cambios" : "Registrar abono"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal: recibo tras abonar (A.3) ── */}
+            {recibo && !whatsappPara && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 20,
+                }}>
+                    <div className="card" style={{ maxWidth: 420, width: "100%", padding: 24, display: "flex", flexDirection: "column", gap: 12, border: "1px solid var(--border-light)" }}>
+                        <h3 style={{ margin: 0, fontSize: "1.02rem", fontWeight: 800, color: "var(--text-main)" }}>
+                            Abono registrado ✓
+                        </h3>
+                        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-main)" }}>
+                            {recibo.nombre} · {recibo.concepto}
+                        </p>
+                        <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                            Abono {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(recibo.monto)}
+                            {" · "}Saldo restante de la cuenta: <b style={{ color: "var(--text-main)" }}>
+                                {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(recibo.saldoRestante)}
+                            </b>
+                        </p>
+                        {recibo.reparto.length > 1 && (
+                            <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                Cubrió {recibo.reparto.length} cobro(s): {recibo.reparto.map(x => `${x.vencimiento?.slice(8, 10)} nov ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(x.monto)}`).join(" · ")}
+                            </p>
+                        )}
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
+                            <button onClick={() => setRecibo(null)}
+                                style={{
+                                    padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                                    background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, cursor: "pointer",
+                                }}>
+                                Cerrar
+                            </button>
+                            {recibo.telefono && (
+                                <button
+                                    onClick={() => setWhatsappPara({
+                                        telefono: recibo.telefono,
+                                        texto: textoRecibo(
+                                            { nombre: recibo.nombre, empresa: tenant?.empresa },
+                                            recibo.concepto, recibo.monto, recibo.fecha, recibo.saldoRestante,
+                                        ),
+                                    })}
+                                    style={{
+                                        padding: "10px 18px", borderRadius: 10, border: "none",
+                                        background: "#128C7E", color: "#fff", fontWeight: 800, cursor: "pointer",
+                                        display: "inline-flex", alignItems: "center", gap: 8,
+                                    }}>
+                                    <Icon name="MessageCircle" size={16} />
+                                    Enviar recibo por WhatsApp
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Mini-modal: WhatsApp con texto editable (tú decides si se manda) ── */}
+            {whatsappPara && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 20,
+                }}>
+                    <div className="card" style={{ maxWidth: 420, width: "100%", padding: 24, display: "flex", flexDirection: "column", gap: 12, border: "1px solid var(--border-light)" }}>
+                        <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
+                            Mensaje por WhatsApp
+                        </h3>
+                        <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                            Revísalo y edítalo como quieras; se abre con el texto listo para {whatsappPara.telefono}.
+                        </p>
+                        <textarea value={whatsappPara.texto}
+                            onChange={e => setWhatsappPara({ ...whatsappPara, texto: e.target.value })}
+                            rows={6}
+                            style={{ ...estInput, resize: "vertical", lineHeight: 1.5 }} />
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                            <button onClick={() => setWhatsappPara(null)}
+                                style={{
+                                    padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                                    background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, cursor: "pointer",
+                                }}>
+                                Cancelar
+                            </button>
+                            <button onClick={() => {
+                                const ok = abrirWhatsApp(whatsappPara.telefono, whatsappPara.texto)
+                                if (!ok) mostrarMsg(false, "Este cliente no tiene un teléfono válido guardado")
+                                setWhatsappPara(null)
+                                setRecibo(null)
+                            }}
+                                style={{
+                                    padding: "10px 18px", borderRadius: 10, border: "none",
+                                    background: "#128C7E", color: "#fff", fontWeight: 800, cursor: "pointer",
+                                    display: "inline-flex", alignItems: "center", gap: 8,
+                                }}>
+                                <Icon name="MessageCircle" size={16} />
+                                Abrir WhatsApp
                             </button>
                         </div>
                     </div>

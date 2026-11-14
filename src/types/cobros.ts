@@ -23,11 +23,23 @@ export interface EntradaPrograma {
 export type EstadoCobro = "pendiente" | "parcial" | "pagado"
 export type OrigenCobro = "cuota" | "extra"
 
+/** Porción de un abono en cascada (mig 081): a qué cobro fue a parar cada parte. */
+export interface RepartoAbono {
+    cobro_id: string
+    vencimiento: string | null
+    monto: number
+    /** true si el sobrante final se asignó a un cobro ya cubierto (pagó de más). */
+    sobrepago?: boolean
+}
+
 /** Una deuda concreta: la cuota de un mes o un trabajo puntual. */
 export interface Cobro {
     id: string
     cliente_id: string
     cliente_nombre: string
+    /** Contacto del cliente para recibos/recordatorios (mig 081). */
+    cliente_telefono?: string | null
+    cliente_email?: string | null
     cuota_id: string | null
     origen: OrigenCobro
     concepto: string

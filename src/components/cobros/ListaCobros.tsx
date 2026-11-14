@@ -11,7 +11,7 @@
 import { useState } from "react"
 import Icon from "@/components/ui/Icon"
 import { useAccionesCobros } from "@/hooks/useCobros"
-import type { Cobro } from "@/types"
+import type { Cobro, PagoCobro } from "@/types"
 
 interface Props {
     cobros: Cobro[]
@@ -21,6 +21,10 @@ interface Props {
     onEliminar: (cobro: Cobro) => void
     /** Eliminar TODA la cuenta (los N cobros de la misma cuota/venta). */
     onEliminarGrupo: (cobros: Cobro[]) => void
+    /** Mig 081: corregir un abono en su posición (✏️). */
+    onEditarAbono: (cobro: Cobro, indice: number) => void
+    /** Mig 081: reenviar el recibo de un abono por WhatsApp (💬). */
+    onEnviarRecibo: (cobro: Cobro, abono: PagoCobro) => void
 }
 
 const fmt = (n: number) =>
@@ -41,7 +45,7 @@ function fechaCorta(v: string | null): string {
     return `${d} ${mes}`
 }
 
-export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEditarExtra, onEliminar, onEliminarGrupo }: Props) {
+export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEditarExtra, onEliminar, onEliminarGrupo, onEditarAbono, onEnviarRecibo }: Props) {
     const { quitarAbono } = useAccionesCobros()
     const [expandido, setExpandido] = useState<string | null>(null)
     const [quitarIndice, setQuitarIndice] = useState<{ id: string; indice: number } | null>(null)
@@ -163,7 +167,10 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                             </div>
 
                             {/* Abonos desplegados */}
-                            {abierto && <DetalleCobro cobro={cobro} onQuitar={setQuitarIndice} />}
+                            {abierto && (
+                                <DetalleCobro cobro={cobro} onQuitar={setQuitarIndice}
+                                    onEditarAbono={onEditarAbono} onEnviarRecibo={onEnviarRecibo} />
+                            )}
                         </div>
                     )
                 }
@@ -209,6 +216,12 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                             </span>
 
                             <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                                {!todoPagado && (
+                                    <button onClick={() => onRegistrarPago(pendientes[0])} title="Abonar a la cuenta (se reparte si pagas de más)"
+                                        style={estiloBtnAbonar}>
+                                        Abonar
+                                    </button>
+                                )}
                                 <button onClick={() => setExpandido(abiertos ? null : item.clave)} title="Ver cobros"
                                     style={estiloBtnIcono}>
                                     <Icon name={abiertos ? "ChevronUp" : "ChevronDown"} size={16} />
@@ -268,7 +281,8 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                                 {/* Abonos del cobro expandido dentro del grupo */}
                                 {grupo.filter(c => expandido === c.id).map(cobro => (
                                     <div key={`detalle-${cobro.id}`} style={{ padding: "8px 0 4px 46px" }}>
-                                        <DetalleCobro cobro={cobro} onQuitar={setQuitarIndice} compacto />
+                                        <DetalleCobro cobro={cobro} onQuitar={setQuitarIndice} compacto
+                                            onEditarAbono={onEditarAbono} onEnviarRecibo={onEnviarRecibo} />
                                     </div>
                                 ))}
                             </div>
@@ -313,11 +327,14 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
     )
 }
 
-/** Detalle desplegable de UN cobro: plan de pagos, notas y abonos. */
-function DetalleCobro({ cobro, onQuitar, compacto = false }: {
+/** Detalle desplegable de UN cobro: plan de pagos, notas y abonos con
+ * acciones (✏️ editar / 🗑️ quitar / 💬 recibo por WhatsApp). */
+function DetalleCobro({ cobro, onQuitar, compacto = false, onEditarAbono, onEnviarRecibo }: {
     cobro: Cobro
     onQuitar: (v: { id: string; indice: number } | null) => void
     compacto?: boolean
+    onEditarAbono?: (cobro: Cobro, indice: number) => void
+    onEnviarRecibo?: (cobro: Cobro, abono: PagoCobro) => void
 }) {
     return (
         <div style={compacto ? { marginTop: 0 } : { marginTop: 12, borderTop: "1px dashed var(--border-primary)", paddingTop: 10 }}>
@@ -338,7 +355,7 @@ function DetalleCobro({ cobro, onQuitar, compacto = false }: {
             ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {cobro.pagos.map((abono, indice) => (
-                        <div key={indice} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div key={indice} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <Icon name="Check" size={14} color="var(--primary-alter)" />
                             <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-main)" }}>
                                 {fmt(abono.monto)}
@@ -346,11 +363,25 @@ function DetalleCobro({ cobro, onQuitar, compacto = false }: {
                             <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
                                 {abono.fecha}{abono.metodo ? ` · ${abono.metodo}` : ""}
                             </span>
-                            <button onClick={() => onQuitar({ id: cobro.id, indice })}
-                                title="Quitar abono (corrección)"
-                                style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}>
-                                <Icon name="Trash2" size={13} />
-                            </button>
+                            <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+                                {onEnviarRecibo && cobro.cliente_telefono && (
+                                    <button onClick={() => onEnviarRecibo(cobro, abono)} title="Enviar recibo por WhatsApp"
+                                        style={{ border: "none", background: "none", cursor: "pointer", color: "#128C7E", padding: 0 }}>
+                                        <Icon name="MessageCircle" size={14} />
+                                    </button>
+                                )}
+                                {onEditarAbono && (
+                                    <button onClick={() => onEditarAbono(cobro, indice)} title="Editar abono (monto/fecha/método)"
+                                        style={{ border: "none", background: "none", cursor: "pointer", color: "var(--primary-mid)", padding: 0 }}>
+                                        <Icon name="Pencil" size={13} />
+                                    </button>
+                                )}
+                                <button onClick={() => onQuitar({ id: cobro.id, indice })}
+                                    title="Quitar abono (corrección)"
+                                    style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}>
+                                    <Icon name="Trash2" size={13} />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>

@@ -5,7 +5,7 @@
 // ==============================================================================
 
 import { request, conQuery } from "./client"
-import type { Cobro, CuotaCliente, EntradaPrograma, ResumenCobros, FrecuenciaCuota, TipoCuota } from "@/types"
+import type { Cobro, CuotaCliente, EntradaPrograma, ResumenCobros, FrecuenciaCuota, TipoCuota, EstadoCobro, PagoCobro, RepartoAbono } from "@/types"
 
 export interface CobroExtraPayload {
     cliente_id: string
@@ -66,6 +66,28 @@ export interface AbonoPayload {
     monto: number
     metodo?: "efectivo" | "transferencia" | "tarjeta" | "otro" | null
     fecha?: string                 // ISO; ausente = hoy (backend)
+    /** Mig 081: el excedente se reparte a los siguientes cobros pendientes
+     *  de la misma cuenta (orden por vencimiento). */
+    cascada?: boolean
+}
+
+export interface AbonoEditarPayload {
+    monto: number
+    metodo?: "efectivo" | "transferencia" | "tarjeta" | "otro" | null
+    fecha?: string
+}
+
+export interface RespuestaAbono {
+    ok: boolean
+    pagos: Cobro["pagos"]
+    pagado: number
+    saldo: number
+    estado: EstadoCobro
+    /** Mig 081: a qué cobros se repartió el pago. */
+    reparto?: RepartoAbono[]
+    /** Mig 081: saldo consolidado de la cuenta (cuando el cobro es de cuota). */
+    cuenta_saldo?: number
+    abono?: PagoCobro
 }
 
 export const cobrosApi = {
@@ -96,8 +118,14 @@ export const cobrosApi = {
 
     // ── Abonos (dinero entrante; el saldo lo recalcula el backend) ──
     abonar: (id: string, data: AbonoPayload) =>
-        request<{ ok: boolean; saldo: number; estado: string }>(`/cobros/${id}/pagos`, {
+        request<RespuestaAbono>(`/cobros/${id}/pagos`, {
             method: "POST", body: JSON.stringify(data),
+        }),
+
+    // Mig 081: corrección de un abono EN SU POSICIÓN del ledger.
+    editarAbono: (id: string, indice: number, data: AbonoEditarPayload) =>
+        request<RespuestaAbono>(`/cobros/${id}/pagos/${indice}`, {
+            method: "PATCH", body: JSON.stringify(data),
         }),
 
     quitarAbono: (id: string, indice: number) =>
