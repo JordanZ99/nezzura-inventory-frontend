@@ -14,6 +14,8 @@ export interface UsoAlmacenamiento {
     porcentaje: number
     quedan_bytes: number
     excedido: boolean
+    /** Peso activo por categoría (texto): {principal, galeria, variaciones…} */
+    desglose: Record<string, number>
 }
 
 export const almacenamientoApi = {
