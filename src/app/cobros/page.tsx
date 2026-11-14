@@ -15,13 +15,14 @@ import { ToastBanner, useToast } from "@/components/ui/Toast"
 import StatsCobros from "@/components/cobros/StatsCobros"
 import ListaCobros from "@/components/cobros/ListaCobros"
 import GestionCuotas from "@/components/cobros/GestionCuotas"
+import GestionPlanes from "@/components/cobros/GestionPlanes"
 import { api } from "@/lib/api"
 import { periodoActual, useAccionesCobros, useCobrosLista, useResumenCobros } from "@/hooks/useCobros"
 import type { Cobro, EntradaPrograma } from "@/types"
 
 interface ClienteOption { id: string; nombre: string }
 
-type Tab = "cobros" | "cuotas"
+type Tab = "cobros" | "cuotas" | "planes"
 type ModoExtra = "nuevo" | "editar" | null
 
 interface FormExtra {
@@ -211,7 +212,7 @@ export default function Cobros() {
             <div style={{ padding: "0 16px", marginTop: -60, position: "relative", zIndex: 1 }}>
                 {/* Tabs (patrón TabsGastos: card blanca flotante sobre el hero) */}
                 <div className="card" style={{ display: "flex", padding: 6, gap: 4, marginBottom: 20 }}>
-                    {([["cobros", "Cobros"], ["cuotas", "Cuotas mensuales"]] as const).map(([clave, etiqueta]) => (
+                    {([["cobros", "Cobros"], ["cuotas", "Cuotas y ventas"], ["planes", "Mis cuentas"]] as const).map(([clave, etiqueta]) => (
                         <button key={clave} onClick={() => setTab(clave)}
                             style={{
                                 flex: 1, minWidth: 80,
@@ -269,7 +270,7 @@ export default function Cobros() {
                                     background: "var(--primary-mid)", color: "#fff",
                                     fontSize: "0.78rem", fontWeight: 800,
                                 }}>
-                                + Trabajo extra
+                                + Cobro puntual
                             </button>
                         </div>
 
@@ -293,6 +294,10 @@ export default function Cobros() {
                 {tab === "cuotas" && (
                     <GestionCuotas mostrarMsg={mostrarMsg} />
                 )}
+
+                {tab === "planes" && (
+                    <GestionPlanes mostrarMsg={mostrarMsg} clientes={clientes} />
+                )}
             </div>
 
             {/* ── Modal: cobro extra (alta/edición) ── */}
@@ -306,7 +311,7 @@ export default function Cobros() {
                         border: "1px solid var(--border-light)", maxHeight: "90vh", overflowY: "auto",
                     }}>
                         <h3 style={{ margin: "0 0 14px", fontSize: "1.05rem", fontWeight: 800, color: "var(--text-main)" }}>
-                            {modoExtra === "editar" ? "Editar trabajo extra" : "Nuevo trabajo extra"}
+                            {modoExtra === "editar" ? "Editar cobro puntual" : "Nuevo cobro puntual"}
                         </h3>
 
                         <label style={estLabel}>Cliente</label>

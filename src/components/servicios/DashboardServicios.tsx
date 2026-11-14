@@ -7,11 +7,11 @@
 // El detalle (abonos, altas, cuotas) vive en /cobros.
 // ==============================================================================
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/ui/Icon"
 import PageHeader from "@/components/ui/PageHeader"
-import { periodoActual, useAccionesCobros, useResumenCobros } from "@/hooks/useCobros"
+import { periodoActual, useAccionesCobros, useCobrosLista, useCuotas, useResumenCobros } from "@/hooks/useCobros"
 import { useTenant } from "@/contexts/TenantContext"
 
 const fmt = (n: number) =>
@@ -36,18 +36,30 @@ export default function DashboardServicios() {
     const { tenant } = useTenant()
     const { resumen, cargando } = useResumenCobros() // mes en curso
     const acciones = useAccionesCobros()
-    const [generarIntentado, setGenerarIntentado] = useState(false)
+    const [generando, setGenerando] = useState(false)
+    const [msgGenerar, setMsgGenerar] = useState<string | null>(null)
 
-    // Auto-emite el mes en curso al abrir el panel: la cuota recién creada
-    // se convierte en cobro sin paso manual ("Generar mes" solo queda en
-    // /cobros para regenerar periodos pasados). Idempotente en el backend
-    // (omite lo ya existente); en fallo de red NO bloquea el dashboard.
-    useEffect(() => {
-        if (!tenant?.tenant_id || generarIntentado) return
-        setGenerarIntentado(true)
-        acciones.generar(periodoActual()).catch(() => {})
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tenant?.tenant_id])
+    // Aviso explícito (sin efectos sorpresa): si hay cuotas activas y el mes en
+    // curso todavía no tiene NINGÚN cobro generado, se ofrece el botón.
+    // NUNCA se genera solo: si borraste cobros a mano, ellos se quedan borrados.
+    const periodo = periodoActual()
+    const { cuotas: cuotasActivas } = useCuotas(true)
+    const { cobros: cobrosDelMes, cargando: cargandoCobros } = useCobrosLista({ periodo })
+    const ofrecerGenerar = !cargandoCobros
+        && cuotasActivas.length > 0
+        && cobrosDelMes.length === 0
+
+    async function generarMes() {
+        try {
+            setGenerando(true)
+            const r = await acciones.generar(periodo)
+            setMsgGenerar(r.mensaje || "Generación lista")
+        } catch {
+            setMsgGenerar("No se pudo generar (revisa tu conexión)")
+        } finally {
+            setGenerando(false)
+        }
+    }
 
     const totalVencido = resumen
         ? (resumen.aging.d30 + resumen.aging.d60 + resumen.aging.d90 + resumen.aging.mas90)
@@ -93,6 +105,32 @@ export default function DashboardServicios() {
                                 </p>
                             </div>
                         </div>
+
+                        {/* Aviso de generación pendiente (botón explícito, nunca automático) */}
+                        {ofrecerGenerar && !cargando && (
+                            <div style={{
+                                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                                borderRadius: 14, border: "1px solid rgba(249,168,37,0.4)",
+                                background: "rgba(249,168,37,0.08)", padding: "12px 16px", marginBottom: 16,
+                            }}>
+                                <Icon name="CalendarClock" size={20} color="#b45309" />
+                                <p style={{ margin: 0, flex: 1, minWidth: 200, fontSize: "0.8rem", fontWeight: 700, color: "var(--text-main)" }}>
+                                    Tienes {cuotasActivas.length} cuota(s) activa(s) y el {periodo} aún no tiene cobros generados.
+                                </p>
+                                <button onClick={generarMes} disabled={generando}
+                                    style={{
+                                        padding: "9px 16px", borderRadius: 10, border: "none", cursor: generando ? "wait" : "pointer",
+                                        background: "var(--primary-mid)", color: "#fff", fontSize: "0.78rem", fontWeight: 800,
+                                    }}>
+                                    {generando ? "Generando..." : "Generar mes"}
+                                </button>
+                                {msgGenerar && (
+                                    <p style={{ margin: 0, width: "100%", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                                        {msgGenerar}
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         {/* Aging + deudores */}
                         <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -163,9 +201,13 @@ export default function DashboardServicios() {
 
                         {/* Accesos rápidos */}
                         <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
-                            <Link href="/cobros" style={linkStyle}>
-                                <Icon name="Wallet" size={18} color="#fff" />
-                                Ir a Cobros
+                            <Link href="/ordenes" style={linkStyle}>
+                                <Icon name="Wrench" size={18} color="#fff" />
+                                Ir a Órdenes
+                            </Link>
+                            <Link href="/cobros" style={{ ...linkStyle, background: "var(--bg-card)", color: "var(--text-main)" }}>
+                                <Icon name="Wallet" size={18} color="var(--primary-mid)" />
+                                Cobros
                             </Link>
                             <Link href="/estadisticas" style={{ ...linkStyle, background: "var(--bg-card)", color: "var(--text-main)" }}>
                                 <Icon name="Users" size={18} color="var(--primary-mid)" />

@@ -50,7 +50,11 @@ export interface Cobro {
  *  del mes. Quincenal: día 1 y día 15 fijos. */
 export type FrecuenciaCuota = "mensual" | "semanal" | "quincenal"
 
-/** La suscripción recurrente (no guarda dinero; genera cobros por periodo). */
+/** Cuota recurrente ('cuota') o VENTA A PLAZOS ('venta', mig 076): el
+ *  concepto es el artículo, monto_meta = precio total y costo → ganancia. */
+export type TipoCuota = "cuota" | "venta"
+
+/** La suscripción recurrente o venta a plazos (genera cobros por periodo). */
 export interface CuotaCliente {
     id: string
     tenant_id?: string
@@ -61,8 +65,14 @@ export interface CuotaCliente {
     dia_cobro: number // 1..28 (solo mensual; 1 en las demás)
     frecuencia: FrecuenciaCuota
     dia_semana: number | null // 0=Lunes..6=Domingo (solo semanal)
-    /** Cuenta finita (064): total a cubrir; NULL = cuota infinita. */
+    /** Cuenta finita (064): total a cubrir; NULL = cuota infinita.
+     *  En venta (076) es el PRECIO TOTAL y es obligatorio. */
     monto_meta: number | null
+    /** Mig 076: tipo y costo de la venta a plazos. */
+    tipo: TipoCuota
+    costo: number | null
+    /** Derivado (076): monto_meta - costo (solo venta con costo). */
+    ganancia: number | null
     /** Derivados del backend (064). */
     programado_meta: number // SUM de cobros generados a la cuenta
     abonado_meta: number    // SUM de dinero realmente recibido
@@ -108,4 +118,22 @@ export interface ResumenCobros {
     deudores: DeudorCobros[]
     /** Opcional: solo lo expone el backend ya actualizado (resumen >= 2026-11). */
     proximos?: ProximoCobro[]
+}
+
+// ── Mis cuentas (mig 075): registro MANUAL de planes del gestor por cliente ──
+
+/** Estado del COBRO de un plan otorgado (no del plan en sí). */
+export type EstadoCobroPlan = "cobrando" | "gratis" | "pausado"
+
+/** Una anotación del cuaderno: "Le di el Plan Plus a Alejandra, de momento gratis". */
+export interface PlanCliente {
+    id: string
+    cliente_id: string
+    cliente_nombre: string
+    plan: string                 // texto libre: 'local', 'plus', 'básico'...
+    estado_cobro: EstadoCobroPlan
+    monto_acordado: number | null // informativo; NULL = sin monto
+    otorgado: string | null      // 'YYYY-MM-DD'
+    notas: string | null
+    creado_en: string
 }

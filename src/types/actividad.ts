@@ -8,8 +8,9 @@
 
 /** Sección de la app donde nació el evento (badges de color en la UI).
  *  068 agrega 'venta' y 'gasto': las ediciones de ventas y gastos también
- *  quedan en el Historial (las haga el dueño o el agente IA). */
-export type DominioActividad = "producto" | "cliente" | "cobro" | "venta" | "gasto"
+ *  quedan en el Historial (las haga el dueño o el agente IA).
+ *  075 agrega 'plan' (Mis cuentas) y 'orden' (órdenes de servicio). */
+export type DominioActividad = "producto" | "cliente" | "cobro" | "venta" | "gasto" | "plan" | "orden"
 
 /** Qué se tocó dentro del dominio. */
 export type EntidadActividad =
@@ -18,6 +19,8 @@ export type EntidadActividad =
     | "cobro" | "abono" | "cuota"   // dominio cobro
     | "venta"                       // dominio venta (068)
     | "gasto"                       // dominio gasto (068)
+    | "plan_cliente"                // dominio plan (075, Mis cuentas)
+    | "orden_servicio"              // dominio orden (077)
 
 /**
  * Qué pasó. La migración 062 garantiza estos valores por CHECK:

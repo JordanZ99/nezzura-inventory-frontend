@@ -5,7 +5,7 @@
 // ==============================================================================
 
 import { request, conQuery } from "./client"
-import type { Cobro, CuotaCliente, EntradaPrograma, ResumenCobros, FrecuenciaCuota } from "@/types"
+import type { Cobro, CuotaCliente, EntradaPrograma, ResumenCobros, FrecuenciaCuota, TipoCuota } from "@/types"
 
 export interface CobroExtraPayload {
     cliente_id: string
@@ -34,8 +34,13 @@ export interface CuotaPayload {
     dia_cobro: number
     /** Solo semanal: 0=Lunes..6=Domingo. */
     dia_semana: number | null
-    /** Cuenta finita (064): total a cubrir; null/ausente = infinita. */
+    /** Cuenta finita (064): total a cubrir; null/ausente = infinita.
+     *  En venta (076) es el PRECIO TOTAL y es OBLIGATORIA. */
     monto_meta?: number | null
+    /** Mig 076: 'cuota' (suscripción) o 'venta' (venta a plazos). */
+    tipo?: TipoCuota
+    /** Solo venta: lo que te costó (informativo → ganancia). */
+    costo?: number | null
     notas?: string
 }
 
@@ -46,8 +51,13 @@ export interface CuotaEditarPayload {
     frecuencia?: FrecuenciaCuota
     dia_cobro?: number
     dia_semana?: number | null
-    /** None = sin cambio; 0 = quitar la meta (vuelve infinita); >0 = fijar. */
+    /** None = sin cambio; 0 = quitar la meta (vuelve infinita); >0 = fijar.
+     *  Una venta exige meta >0. */
     monto_meta?: number
+    /** Mig 076: undefined = sin cambio. */
+    tipo?: TipoCuota
+    /** None = sin cambio; 0 = quitar el costo; >0 = fijarlo. */
+    costo?: number
     activo?: boolean
     notas?: string
 }

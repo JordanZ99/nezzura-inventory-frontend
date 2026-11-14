@@ -26,8 +26,9 @@ const NAV = [
     { href: "/personalizacion", icon: "UserRoundPen", label: "Ajustes" }
 ]
 
-/** Cobros solo existe en el giro 'servicios' (módulo 'cobros', mig 061). */
+/** Cobros y Órdenes solo existen en el giro 'servicios' (migs 061/077). */
 const NAV_COBROS = { href: "/cobros", icon: "Wallet", label: "Cobros" }
+const NAV_ORDENES = { href: "/ordenes", icon: "Wrench", label: "Órdenes" }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -45,12 +46,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const { tenant } = useTenant()
     const esServicios = useModulo("cobros")
 
-    // Nav según giro: 'Cobros' se inserta solo en servicios. El POS se
-    // re-etiqueta como Panel ya que el home de este giro no vende productos.
+    // Nav según giro: 'Cobros' y 'Órdenes' se insertan solo en servicios. El
+    // POS se re-etiqueta como Panel ya que el home de este giro no vende productos.
     const nav = esServicios
         ? [
               { ...NAV[0], icon: "Wallet", label: "Panel" },
               ...NAV.slice(1, 4),
+              NAV_ORDENES,
               NAV_COBROS,
               NAV[4],
           ]
@@ -82,6 +84,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
         if (href === "/cobros") {
             return pathname === "/cobros" || pathname.startsWith("/cobros/")
+        }
+        if (href === "/ordenes") {
+            return pathname === "/ordenes" || pathname.startsWith("/ordenes/")
         }
         return pathname === href
     }

@@ -37,6 +37,8 @@ const ETIQUETAS_DOMINIO: Record<DominioActividad, string> = {
     cobro: "Cobro",
     venta: "Venta",
     gasto: "Gasto",
+    plan: "Mi cuenta",
+    orden: "Orden",
 }
 
 const COLOR_DOMINIO: Record<DominioActividad, string> = {
@@ -45,6 +47,8 @@ const COLOR_DOMINIO: Record<DominioActividad, string> = {
     cobro: "#047857",
     venta: "#b45309",
     gasto: "#be123c",
+    plan: "#0e7490",
+    orden: "#9333ea",
 }
 
 const ETIQUETAS_ACCION: Record<AccionActividad, string> = {
