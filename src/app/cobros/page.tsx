@@ -84,6 +84,65 @@ export default function Cobros() {
     // Mini-modal de WhatsApp con el texto editable (tú decides si se manda).
     const [whatsappPara, setWhatsappPara] = useState<{ telefono: string | null; texto: string } | null>(null)
 
+    // ── Config de intereses moratorios (mig 079) ──
+    const [configMora, setConfigMora] = useState(false)
+    const [formMora, setFormMora] = useState({ activo: false, tasa: "4", gracia: "0" })
+    const [cargandoMora, setCargandoMora] = useState(false)
+    const [guardandoMora, setGuardandoMora] = useState(false)
+
+    async function abrirConfigMora() {
+        try {
+            setCargandoMora(true)
+            const perfil = await api.getPerfil()
+            const m = perfil.moratorios
+            setFormMora({ activo: Boolean(m?.activo), tasa: String(m?.tasa_mensual ?? 4), gracia: String(m?.dias_gracia ?? 0) })
+        } catch {
+            setFormMora({ activo: false, tasa: "4", gracia: "0" })
+        } finally {
+            setCargandoMora(false)
+            setConfigMora(true)
+        }
+    }
+
+    async function guardarConfigMora() {
+        const tasa = Number(formMora.tasa)
+        const gracia = Number(formMora.gracia)
+        if (formMora.activo && !(tasa > 0 && tasa <= 100)) {
+            mostrarMsg(false, "La tasa mensual debe ser mayor a 0 y menor a 100")
+            return
+        }
+        if (formMora.activo && !(gracia >= 0 && gracia <= 60)) {
+            mostrarMsg(false, "Los días de gracia deben ser entre 0 y 60")
+            return
+        }
+        try {
+            setGuardandoMora(true)
+            await api.actualizarPerfilNegocio({
+                moratorios: formMora.activo
+                    ? { activo: true, tasa_mensual: tasa, dias_gracia: Math.round(gracia) }
+                    : { activo: false },
+            })
+            mostrarMsg(true, formMora.activo
+                ? `Moratorios activados: ${tasa}% mensual${gracia > 0 ? `, ${gracia} día(s) de gracia` : ""}`
+                : "Moratorios desactivados")
+            setConfigMora(false)
+        } catch (e) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error al guardar la configuración")
+        } finally {
+            setGuardandoMora(false)
+        }
+    }
+
+    /** Mig 079: materializar los moratorios derivados de un cobro vencido. */
+    async function cargarMoraDe(cobro: Cobro) {
+        try {
+            const r = await acciones.cargarMoratorios(cobro.id)
+            mostrarMsg(true, `Moratorios cargados: ${new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(r.cargado)} (aparecen como cobro aparte)`)
+        } catch (e) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error al cargar los moratorios")
+        }
+    }
+
     // ── Modal: eliminar cobro ──
     const [confirmandoEliminar, setConfirmandoEliminar] = useState<Cobro | null>(null)
     // ── Modal: eliminar cuenta completa (los N cobros de una misma cuota) ──
@@ -365,6 +424,15 @@ export default function Cobros() {
                                 Todos
                             </button>
                             <div style={{ flex: 1 }} />
+                            <button onClick={abrirConfigMora} title="Intereses moratorios"
+                                style={{
+                                    padding: "9px 12px", borderRadius: 10, border: "none", cursor: "pointer",
+                                    background: "var(--bg-card2)", color: "var(--text-main)",
+                                    display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.78rem", fontWeight: 800,
+                                }}>
+                                <Icon name="Percent" size={15} />
+                                Moratorios
+                            </button>
                             <button onClick={generarMes}
                                 style={{
                                     padding: "9px 14px", borderRadius: 10, border: "none", cursor: "pointer",
@@ -399,6 +467,7 @@ export default function Cobros() {
                             onEliminarGrupo={setConfirmandoEliminarCuenta}
                             onEditarAbono={abrirEditarAbono}
                             onEnviarRecibo={abrirReciboWhatsApp}
+                            onCargarMoratorios={cargarMoraDe}
                         />
                     </>
                 )}
@@ -690,6 +759,61 @@ export default function Cobros() {
                                 }}>
                                 <Icon name="MessageCircle" size={16} />
                                 Abrir WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Modal: config de intereses moratorios (mig 079) ── */}
+            {configMora && (
+                <div style={{
+                    position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 20,
+                }}>
+                    <div className="card" style={{ maxWidth: 420, width: "100%", padding: 24, display: "flex", flexDirection: "column", gap: 10, border: "1px solid var(--border-light)" }}>
+                        <h3 style={{ margin: 0, fontSize: "1.02rem", fontWeight: 800, color: "var(--text-main)" }}>
+                            Intereses moratorios
+                        </h3>
+                        <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                            Interés simple diario sobre el saldo VENCIDO de cada cobro. Se muestra aparte y solo se cobra cuando tú lo cargas. Aviso: la tasa debe estar pactada con el cliente (sin pacto, la ley da 6% anual tras requerimiento).
+                        </p>
+                        {cargandoMora ? (
+                            <p style={{ margin: "10px 0", textAlign: "center", color: "var(--text-muted)", fontWeight: 600 }}>Cargando...</p>
+                        ) : (
+                            <>
+                                <label style={{ ...estLabel, marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                                    <input type="checkbox" checked={formMora.activo}
+                                        onChange={e => setFormMora({ ...formMora, activo: e.target.checked })} />
+                                    Activar intereses moratorios
+                                </label>
+                                {formMora.activo && (
+                                    <>
+                                        <label style={estLabel}>Tasa mensual (%)</label>
+                                        <input type="number" min="0.01" max="100" step="0.01" value={formMora.tasa}
+                                            onChange={e => setFormMora({ ...formMora, tasa: e.target.value })} style={estInput} />
+                                        <label style={estLabel}>Días de gracia (0 = desde el primer día vencido)</label>
+                                        <input type="number" min="0" max="60" value={formMora.gracia}
+                                            onChange={e => setFormMora({ ...formMora, gracia: e.target.value })} style={estInput} />
+                                    </>
+                                )}
+                            </>
+                        )}
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
+                            <button onClick={() => setConfigMora(false)}
+                                style={{
+                                    padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                                    background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, cursor: "pointer",
+                                }}>
+                                Cancelar
+                            </button>
+                            <button onClick={guardarConfigMora} disabled={guardandoMora || cargandoMora}
+                                style={{
+                                    padding: "10px 18px", borderRadius: 10, border: "none",
+                                    background: "var(--primary-mid)", color: "#fff", fontWeight: 800,
+                                    cursor: guardandoMora ? "wait" : "pointer",
+                                }}>
+                                {guardandoMora ? "Guardando..." : "Guardar"}
                             </button>
                         </div>
                     </div>

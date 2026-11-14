@@ -122,6 +122,10 @@ export const cobrosApi = {
             method: "POST", body: JSON.stringify(data),
         }),
 
+    // Mig 079: materializa el interés moratorio derivado en un cobro extra.
+    cargarMoratorios: (id: string) =>
+        request<{ ok: boolean; cargado: number; cobro: Cobro }>(`/cobros/${id}/moratorios`, { method: "POST" }),
+
     // Mig 081: corrección de un abono EN SU POSICIÓN del ledger.
     editarAbono: (id: string, indice: number, data: AbonoEditarPayload) =>
         request<RespuestaAbono>(`/cobros/${id}/pagos/${indice}`, {

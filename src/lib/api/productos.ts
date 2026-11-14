@@ -215,6 +215,8 @@ export const productosApi = {
             puntos_gasto_monto: number
             puntos_gasto_pts: number
             puntos_fijos: number | null
+            // Intereses moratorios (mig 079, giro servicios): NULL = desactivados.
+            moratorios: { activo: boolean; tasa_mensual: number; dias_gracia: number } | null
         }>("/inventario/me"),
     // PATCH genérico de la config del perfil (zona, clientes, puntos...).
     actualizarPerfilNegocio: (data: Record<string, unknown>) =>

@@ -25,6 +25,8 @@ interface Props {
     onEditarAbono: (cobro: Cobro, indice: number) => void
     /** Mig 081: reenviar el recibo de un abono por WhatsApp (💬). */
     onEnviarRecibo: (cobro: Cobro, abono: PagoCobro) => void
+    /** Mig 079: materializar los moratorios derivados de un cobro. */
+    onCargarMoratorios: (cobro: Cobro) => void
 }
 
 const fmt = (n: number) =>
@@ -45,7 +47,7 @@ function fechaCorta(v: string | null): string {
     return `${d} ${mes}`
 }
 
-export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEditarExtra, onEliminar, onEliminarGrupo, onEditarAbono, onEnviarRecibo }: Props) {
+export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEditarExtra, onEliminar, onEliminarGrupo, onEditarAbono, onEnviarRecibo, onCargarMoratorios }: Props) {
     const { quitarAbono } = useAccionesCobros()
     const [expandido, setExpandido] = useState<string | null>(null)
     const [quitarIndice, setQuitarIndice] = useState<{ id: string; indice: number } | null>(null)
@@ -169,7 +171,8 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                             {/* Abonos desplegados */}
                             {abierto && (
                                 <DetalleCobro cobro={cobro} onQuitar={setQuitarIndice}
-                                    onEditarAbono={onEditarAbono} onEnviarRecibo={onEnviarRecibo} />
+                                    onEditarAbono={onEditarAbono} onEnviarRecibo={onEnviarRecibo}
+                                    onCargarMoratorios={onCargarMoratorios} />
                             )}
                         </div>
                     )
@@ -282,7 +285,8 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                                 {grupo.filter(c => expandido === c.id).map(cobro => (
                                     <div key={`detalle-${cobro.id}`} style={{ padding: "8px 0 4px 46px" }}>
                                         <DetalleCobro cobro={cobro} onQuitar={setQuitarIndice} compacto
-                                            onEditarAbono={onEditarAbono} onEnviarRecibo={onEnviarRecibo} />
+                                            onEditarAbono={onEditarAbono} onEnviarRecibo={onEnviarRecibo}
+                                            onCargarMoratorios={onCargarMoratorios} />
                                     </div>
                                 ))}
                             </div>
@@ -329,15 +333,37 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
 
 /** Detalle desplegable de UN cobro: plan de pagos, notas y abonos con
  * acciones (✏️ editar / 🗑️ quitar / 💬 recibo por WhatsApp). */
-function DetalleCobro({ cobro, onQuitar, compacto = false, onEditarAbono, onEnviarRecibo }: {
+function DetalleCobro({ cobro, onQuitar, compacto = false, onEditarAbono, onEnviarRecibo, onCargarMoratorios }: {
     cobro: Cobro
     onQuitar: (v: { id: string; indice: number } | null) => void
     compacto?: boolean
     onEditarAbono?: (cobro: Cobro, indice: number) => void
     onEnviarRecibo?: (cobro: Cobro, abono: PagoCobro) => void
+    onCargarMoratorios?: (cobro: Cobro) => void
 }) {
+    const mora = cobro.moratorios ?? 0
     return (
         <div style={compacto ? { marginTop: 0 } : { marginTop: 12, borderTop: "1px dashed var(--border-primary)", paddingTop: 10 }}>
+            {mora > 0 && cobro.vencido && (
+                <div style={{
+                    display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                    marginBottom: 8, padding: "6px 10px", borderRadius: 10,
+                    background: "rgba(229,57,53,0.07)", border: "1px solid rgba(229,57,53,0.25)",
+                }}>
+                    <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "#c62828" }}>
+                        Moratorios al día: {fmt(mora)} → Total {fmt(cobro.total_con_moratorios ?? cobro.saldo)}
+                    </p>
+                    {onCargarMoratorios && (
+                        <button onClick={() => onCargarMoratorios(cobro)}
+                            style={{
+                                marginLeft: "auto", padding: "5px 12px", borderRadius: 8, border: "none",
+                                background: "#c62828", color: "#fff", fontSize: "0.68rem", fontWeight: 800, cursor: "pointer",
+                            }}>
+                            Cargar moratorios
+                        </button>
+                    )}
+                </div>
+            )}
             {cobro.programa.length > 0 && (
                 <p style={{ margin: "0 0 8px", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-label)" }}>
                     Plan de pagos: {cobro.programa.map(p => `${p.etiqueta} ${fmt(p.monto)} (${p.fecha})`).join(" · ")}

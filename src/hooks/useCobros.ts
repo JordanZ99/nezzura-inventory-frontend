@@ -108,6 +108,11 @@ export function useAccionesCobros() {
         onSuccess: () => refrescar(),
     })
 
+    const cargarMoratorios = useMutation({
+        mutationFn: (id: string) => cobrosApi.cargarMoratorios(id),
+        onSuccess: () => refrescar(),
+    })
+
     const quitarAbono = useMutation({
         mutationFn: ({ id, indice }: { id: string; indice: number }) => cobrosApi.quitarAbono(id, indice),
         onSuccess: () => refrescar(),
@@ -135,6 +140,7 @@ export function useAccionesCobros() {
         eliminarCobro: eliminarCobro.mutateAsync,
         abonar: abonar.mutateAsync,
         editarAbono: editarAbono.mutateAsync,
+        cargarMoratorios: cargarMoratorios.mutateAsync,
         quitarAbono: quitarAbono.mutateAsync,
         crearCuota: crearCuota.mutateAsync,
         actualizarCuota: actualizarCuota.mutateAsync,

@@ -55,6 +55,11 @@ export interface Cobro {
     estado: EstadoCobro
     vencido: boolean
     dias_vencido: number
+    /** Moratorios (mig 079): SIEMPRE derivados, nunca almacenados.
+     *  total_con_moratorios = saldo + moratorios. */
+    interes_cargado?: number
+    moratorios?: number
+    total_con_moratorios?: number
     creado_en: string
 }
 
@@ -106,6 +111,8 @@ export interface DeudorCobros {
     cliente_id: string
     nombre: string
     saldo: number
+    /** Mig 079: moratorios derivados del deudor (si la política está activa). */
+    moratorios?: number
     cobros_pendientes: number
 }
 
@@ -125,6 +132,8 @@ export interface ResumenCobros {
     periodo: string          // 'YYYY-MM'
     pendiente_total: number
     num_pendientes: number
+    /** Mig 079: suma de moratorios derivados (cuando la política está activa). */
+    moratorios_total?: number
     cobrado_periodo: number
     aging: AgingCobros
     deudores: DeudorCobros[]

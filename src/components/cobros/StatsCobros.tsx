@@ -67,6 +67,25 @@ export default function StatsCobros({ resumen, cargando, filtroPendientes, onTog
                         {resumen.deudores.length} cliente(s) con saldo
                     </p>
                 </div>
+
+                {/* Moratorios (mig 079): solo cuando hay interés derivado */}
+                {(resumen.moratorios_total ?? 0) > 0 && (
+                    <div style={{
+                        borderRadius: 16, padding: "16px 18px",
+                        background: "rgba(229,57,53,0.06)", boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                        border: "1px solid rgba(229,57,53,0.25)",
+                    }}>
+                        <p style={{ margin: 0, fontSize: "0.68rem", fontWeight: 700, letterSpacing: 1, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                            Moratorios
+                        </p>
+                        <p style={{ margin: "6px 0 2px", fontSize: "1.35rem", fontWeight: 800, color: "#c62828" }}>
+                            {fmt(resumen.moratorios_total ?? 0)}
+                        </p>
+                        <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)" }}>
+                            Intereses por cargar
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Aging del saldo vencido */}
