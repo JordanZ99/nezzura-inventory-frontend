@@ -30,7 +30,7 @@ export interface DefTabla {
     idx: string[]
 }
 
-export const VERSION_ESQUEMA = 2
+export const VERSION_ESQUEMA = 3
 
 /** Campos numéricos: se guardan con afinidad REAL para que ORDER BY ordene
  * por magnitud y no lexicográficamente ("9" vs "10"). */
@@ -65,6 +65,9 @@ export const DEFS: Record<string, DefTabla> = {
     conteo_items: { nombre: "conteo_items", camposClave: ["id"], autoinc: false, idx: ["conteo_id", "producto"] },
     // ── Publish de catálogo online (v2) ──
     catalogo_publicado: { nombre: "catalogo_publicado", camposClave: ["clave"], autoinc: false, idx: ["orden"] },
+    // ── Sincronización del modo híbrido (v3) ──
+    sync_espejo: { nombre: "sync_espejo", camposClave: ["uid"], autoinc: false, idx: ["tabla"] },
+    sync_estado: { nombre: "sync_estado", camposClave: ["id"], autoinc: false, idx: [] },
 }
 
 /** Codifica un valor de campo indexado al dominio de SQLite (misma función

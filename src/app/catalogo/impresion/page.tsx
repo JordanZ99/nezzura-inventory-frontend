@@ -19,6 +19,7 @@ import Link from "next/link"
 import Icon from "@/components/ui/Icon"
 import { obtenerModo } from "@/lib/local/modo"
 import { obtenerLicencia } from "@/lib/local/licencia"
+import { obtenerTenantIdHibrido } from "@/lib/local/hibrido"
 import { getCargaCatalogo, type CargaCatalogo } from "@/lib/local/repos/catalogo"
 import { formatearPrecio } from "@/lib/posts"
 
@@ -87,7 +88,7 @@ export default function CatalogoImpresion() {
     const [ocultarAgotados, setOcultarAgotados] = useState(false)
 
     useEffect(() => {
-        if (obtenerModo() !== "local" || !obtenerLicencia()) {
+        if (obtenerModo() !== "local" || (!obtenerLicencia() && !obtenerTenantIdHibrido())) {
             setEstado("no-local")
             return
         }

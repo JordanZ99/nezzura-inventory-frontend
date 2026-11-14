@@ -39,6 +39,7 @@ import * as clientesLocal from "@/lib/local/repos/clientes"
 import * as conteosLocal from "@/lib/local/repos/conteos"
 import { obtenerModo } from "@/lib/local/modo"
 import { obtenerLicencia } from "@/lib/local/licencia"
+import { obtenerTenantIdHibrido } from "@/lib/local/hibrido"
 import type {
     RespuestaOrdenesPaginadas, RangoFechas,
 } from "@/types"
@@ -142,7 +143,7 @@ const productosLocalAdapt = {
     initDB: invLocal.initDB,
 
     // Perfil
-    getPerfil: () => invLocal.getPerfil(obtenerLicencia()?.tenant_id || ""),
+    getPerfil: () => invLocal.getPerfil(obtenerLicencia()?.tenant_id || obtenerTenantIdHibrido() || ""),
     actualizarPerfilNegocio: (data: Record<string, unknown>) => invLocal.actualizarPerfil(data),
     actualizarModoPrecioSugerido: (modo: string) => invLocal.actualizarModoPrecioSugerido(modo),
     actualizarZonaHoraria: (zona: string) => invLocal.actualizarPerfil({ zona_horaria: zona }),

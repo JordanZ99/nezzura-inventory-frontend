@@ -16,6 +16,7 @@
 import Dexie, { type Table } from "dexie"
 import { Capacitor } from "@capacitor/core"
 import { obtenerLicencia } from "./licencia"
+import { obtenerTenantIdHibrido } from "./hibrido"
 import { DBSQLite } from "./sqlite/tablas"
 
 // ── Filas tal cual se persisten (camelCase, como entrega el HTTP) ──
@@ -315,6 +316,31 @@ export interface CatalogoPublicadoLocal {
     publicado_en?: string
 }
 
+// ── Sincronización del modo offline híbrido (v5 / SQLite v3) ──
+export interface SyncEspejoLocal {
+    /** namespace::tabla::clave_local (estable entre sincronías) */
+    uid: string
+    tabla: string
+    clave_local: string
+    /** Hash del contenido mapeado tal como SE SUBIÓ/BAJÓ por última vez */
+    hash: string
+    /** La fila mapeada en forma de nube (para diff de ediciones) */
+    data: Record<string, unknown>
+    /** ISO de la última sincronía en que se confirmó */
+    sincronizado_en: string
+}
+
+export interface SyncEstadoLocal {
+    id: 1  // fila única
+    /** Cursor de bajada (server ts ISO de la última /sync/bajar) */
+    cursor_descarga: string | null
+    /** Última clave local de VENTAS subida (append-only por id numérico) */
+    ventas_hasta: number
+    /** Última clave local de GASTOS subida */
+    gastos_hasta: number
+    ultima_sync: string
+}
+
 export interface ConteoItemLocal {
     id: string
     conteo_id: string
@@ -363,6 +389,9 @@ export class DBLocal extends Dexie {
     conteo_items!: Table<ConteoItemLocal, string>
     // ── Publish de catálogo online (delta) ──
     catalogo_publicado!: Table<CatalogoPublicadoLocal, string>
+    // ── Sincronización del modo híbrido ──
+    sync_espejo!: Table<SyncEspejoLocal, string>
+    sync_estado!: Table<SyncEstadoLocal, number>
 
     constructor(nombre: string) {
         super(nombre)
@@ -414,6 +443,14 @@ export class DBLocal extends Dexie {
         this.version(4).stores({
             catalogo_publicado: "clave, orden",
         })
+        // Sincronización del modo híbrido: espejo de lo ya confirmado en la
+        // nube (hash por fila) + estado (cursor de bajada y cursors de
+        // subida append-only). El extractor compara hashes; ninguna tabla de
+        // negocio cambia su esquema por la sync.
+        this.version(5).stores({
+            sync_espejo: "uid, tabla",
+            sync_estado: "id",
+        })
     }
 }
 
@@ -433,30 +470,35 @@ let _dbNombre: string | null = null
  *     ÚNICO punto donde los dos motores se cruzan: los repos no cambian.
  */
 export function abrirDB(): DBLocal {
+    // DUAL AUTH (híbrido): licencia de dispositivo (plan local, legado) O
+    // tenant_id guardado por el modo offline híbrido (sesión Supabase).
+    // La DB es la misma convención nezzura_local_<tenant_id> en ambos casos.
     const lic = obtenerLicencia()
-    if (!lic) throw new Error("Sin licencia de dispositivo: no hay DB local que abrir.")
-    if (_db && _dbNombre === lic.tenant_id) return _db
+    const tenantId = lic?.tenant_id ?? obtenerTenantIdHibrido()
+    if (!tenantId) throw new Error("Sin licencia ni sesión: no hay DB local que abrir.")
+    if (_db && _dbNombre === tenantId) return _db
     if (_db) _db.close()
     if (Capacitor.isNativePlatform()) {
         // DBSQLite expone la misma superficie que usa DBLocal (verificado en
         // la auditoría de repos); el cast es el contrato de la frontera.
-        _db = DBSQLite.abrir(`nezzura_local_${lic.tenant_id}`) as unknown as DBLocal
+        _db = DBSQLite.abrir(`nezzura_local_${tenantId}`) as unknown as DBLocal
     } else {
-        _db = new DBLocal(`nezzura_local_${lic.tenant_id}`)
+        _db = new DBLocal(`nezzura_local_${tenantId}`)
     }
-    _dbNombre = lic.tenant_id
+    _dbNombre = tenantId
     return _db
 }
 
 export async function borrarDBLocal(): Promise<void> {
     const lic = obtenerLicencia()
-    if (!lic) return
+    const tenantId = lic?.tenant_id ?? obtenerTenantIdHibrido()
+    if (!tenantId) return
     if (_db) { _db.close(); _db = null; _dbNombre = null }
     if (Capacitor.isNativePlatform()) {
-        await DBSQLite.abrir(`nezzura_local_${lic.tenant_id}`).destruir()
+        await DBSQLite.abrir(`nezzura_local_${tenantId}`).destruir()
         return
     }
-    await Dexie.delete(`nezzura_local_${lic.tenant_id}`)
+    await Dexie.delete(`nezzura_local_${tenantId}`)
 }
 
 /** Marca de tiempo local ISO (YYYY-MM-DDTHH:MM) — las consultas comparan por día. */

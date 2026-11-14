@@ -8,6 +8,33 @@ corra en dos mundos:
 | **Web / PWA** (Vercel) | Dexie → IndexedDB (como siempre) | `next build` | Comportamiento 100% intacto |
 | **App nativa** (Android primero) | **SQLite de archivo** en el sandbox del dispositivo | `npm run build:nativo` + `npx cap sync android` | Sobrevive a "borrar datos del navegador", transacciones atómicas, listo para SQLCipher |
 
+## Modo Offline HÍBRIDO (planes básico/plus) — el reemplazo del plan local
+
+El plan local puro (licencia de dispositivo, datos SOLO en el teléfono) está
+**retirado de la venta**; su código queda dormido. Su sucesor es el **modo
+offline híbrido**: cualquier tenant con sesión Supabase activa "Modo Offline"
+(Personalización → Mi Negocio) y la app opera contra la DB local del
+dispositivo; al reconectar sincroniza:
+
+- **SUBIR** (`POST /sync/subir`, backend `database/sync.py`): delta por
+  hash contra el espejo local (`sync_espejo`). Ventas/gastos append-only
+  idempotentes por `client_uid`; el stock NUNCA viaja como valor — la nube
+  repite `descontar_stock_peps` con el `id_lote` que PEPS local asignó
+  (lote en negativo = alerta, no error). Ediciones de producto/lote: LWW
+  por llegada con auditoría en `sync_log`.
+- **BAJAR** (`GET /sync/bajar?desde=cursor`): productos/categorías/
+  variaciones/lotes/config con `updated_at > cursor` (migración 070 puso
+  la columna + triggers). Las filas con cambios locales pendientes no se
+  sobrescriben.
+- **Cliente**: `lib/local/repos/sync.ts` (extractor + aplicadores) y
+  `lib/local/hibrido.ts` (tenant_id/plan guardados en localStorage; la DB
+  es la MISMA `nezzura_local_<tenant_id>` del viejo plan local).
+- **UI**: `CardModoOffline` (activar / estado / sincronizar / volver a nube).
+- Pendientes documentados del MVP: renombrar producto offline (la llave
+  local es el nombre), anulaciones de órdenes ya sincronizadas, edición de
+  variaciones offline, sync de turnos/clientes/mesas/contajes, baja de
+  productos por la sync (tombstones).
+
 ## Cómo funciona
 
 1. **Build nativo** (`scripts/build-mobile.mjs`): aparta temporalmente las

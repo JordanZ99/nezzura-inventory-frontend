@@ -16,6 +16,9 @@ import { supabase } from "@/lib/supabase"
 import { api } from "@/lib/api"
 import { obtenerModo, ponerModo } from "@/lib/local/modo"
 import { obtenerLicencia, estadoLicencia, borrarLicencia } from "@/lib/local/licencia"
+import {
+    obtenerTenantIdHibrido, obtenerEmpresaHibrida, obtenerPlanHibrido,
+} from "@/lib/local/hibrido"
 import { abrirDB, type PerfilLocal } from "@/lib/local/db"
 import { sincronizarProgramados } from "@/lib/local/repos/gastos"
 import type { ClienteCampos, ModoPuntos } from "@/types"
@@ -121,7 +124,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         try {
             const lic = obtenerLicencia()
             const estado = estadoLicencia()
+            const tenantHibrido = obtenerTenantIdHibrido()
             if (!lic || estado === "ausente") {
+                if (tenantHibrido) {
+                    // ── Modo OFFLINE HÍBRIDO (básico/plus con sesión) ──
+                    // Sin licencia de dispositivo: el tenant_id y el plan
+                    // se guardaron al activar (hibrido.ts) y viven en
+                    // localStorage. La DB local es la MISMA convención
+                    // nezzura_local_<tenant_id> del viejo plan local, así
+                    // que datos de local→híbrido sobreviven.
+                    await cargarHibrido(tenantHibrido)
+                    return
+                }
                 // Flag sin licencia válida (caché corrupta): volver a nube.
                 borrarLicencia()
                 ponerModo("nube")
@@ -190,6 +204,56 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
             console.error("Error sincronizando gastos programados:", e)
         }
+    }
+
+    async function cargarHibrido(tenantId: string) {
+        const d = abrirDB()
+        let p = (await d.perfil.get(1)) as PerfilLocal | undefined
+        if (!p) {
+            p = {
+                id: 1,
+                empresa: obtenerEmpresaHibrida(),
+                logo: "",
+                zona_horaria: "America/Cancun",
+                metodo_pago_default: "efectivo",
+                gasto_comision_automatico: false,
+                dias_cerrados: [],
+                clientes_activos: false,
+                giro: "tienda",
+                modulos: null,
+                telefono: "", correo: "", instagram: "", facebook: "",
+                tiktok: "", sitio_web: "", maps: "",
+            }
+            await d.perfil.put(p)
+        }
+        setTenant({
+            tenant_id: tenantId,
+            empresa: p.empresa || obtenerEmpresaHibrida(),
+            logo: p.logo || "",
+            plan: obtenerPlanHibrido(),
+            zona_horaria: p.zona_horaria || "America/Cancun",
+            metodo_pago_default: p.metodo_pago_default || "efectivo",
+            gasto_comision_automatico: p.gasto_comision_automatico ?? false,
+            dias_cerrados: p.dias_cerrados || [],
+            giro: p.giro || "tienda",
+            modulos: p.modulos ?? null,
+            clientes_activos: p.clientes_activos ?? false,
+            cliente_campos: CAMPOS_DEFAULT,
+            puntos_activos: false,
+            puntos_valor_punto: 1,
+            puntos_modo: "por_gasto",
+            puntos_gasto_monto: 10,
+            puntos_gasto_pts: 1,
+            puntos_fijos: null,
+            telefono: p.telefono || "",
+            correo: p.correo || "",
+            instagram: p.instagram || "",
+            facebook: p.facebook || "",
+            tiktok: p.tiktok || "",
+            sitio_web: p.sitio_web || "",
+            maps: p.maps || "",
+        })
+        setCargando(false)
     }
 
     async function cargar() {

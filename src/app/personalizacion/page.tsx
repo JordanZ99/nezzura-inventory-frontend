@@ -16,6 +16,7 @@ import { CardTerminales } from "@/components/personalizacion/CardTerminales"
 import { CardClientesConfig } from "@/components/personalizacion/CardClientesConfig"
 import { CardPuntosConfig } from "@/components/personalizacion/CardPuntosConfig"
 import { CardConectarMuse } from "@/components/personalizacion/CardConectarMuse"
+import { CardModoOffline } from "@/components/personalizacion/CardModoOffline"
 import { ConfigCatalogo } from "@/components/personalizacion/ConfigCatalogo"
 import { CardCompartir } from "@/components/personalizacion/CardCompartir"
 import { CardCatalogoImpreso } from "@/components/personalizacion/CardCatalogoImpreso"
@@ -245,6 +246,10 @@ export default function Personalizacion() {
                         <CardClientesConfig cargandoTenant={cargandoTenant} />
                         <CardPuntosConfig cargandoTenant={cargandoTenant} />
                         <CardTerminales />
+                        {/* Modo Offline (híbrido): básico/plus trabajan sin internet
+                            y sincronizan al reconectar. También muestra su estado
+                            cuando la app YA corre en modo híbrido. */}
+                        <CardModoOffline />
                         {/* Conector IA (servidor MCP): claves de solo lectura del catálogo.
                             Solo en la nube: el servidor MCP vive en el backend. */}
                         {!modoLocal && <CardConectarMuse />}

@@ -20,6 +20,7 @@ import { usePathname, useRouter } from "next/navigation"
 import Icon from "@/components/ui/Icon"
 import { obtenerModo } from "@/lib/local/modo"
 import { estadoLicencia, revalidarLicencia, salirModoLocal } from "@/lib/local/licencia"
+import { obtenerTenantIdHibrido, salirModoOffline } from "@/lib/local/hibrido"
 
 type Estado = "cargando" | "ok" | "bloqueado" | "muerto"
 
@@ -40,6 +41,13 @@ export default function LicenciaGuard({ children }: { children: React.ReactNode 
 
     async function validar() {
         if (obtenerModo() !== "local" || esCatalogo) {
+            setEstado("ok")
+            return
+        }
+        // Modo OFFLINE HÍBRIDO (básico/plus): la autenticación es la sesión
+        // Supabase, no hay licencia que revalidar — pasa directo. La sync
+        // corre cuando hay conexión (CardModoOffline/repos/sync.ts).
+        if (obtenerTenantIdHibrido()) {
             setEstado("ok")
             return
         }
@@ -69,7 +77,8 @@ export default function LicenciaGuard({ children }: { children: React.ReactNode 
     }, [])
 
     function abandonar() {
-        salirModoLocal()
+        if (obtenerTenantIdHibrido()) salirModoOffline()
+        else salirModoLocal()
         router.replace("/login")
     }
 
