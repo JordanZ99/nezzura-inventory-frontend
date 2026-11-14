@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nezzura</string>
+    <string name="title_activity_main">Nezzura</string>
+    <string name="package_name">digital.nezzura.gestor</string>
+    <string name="custom_url_scheme">digital.nezzura.gestor</string>
+</resources>

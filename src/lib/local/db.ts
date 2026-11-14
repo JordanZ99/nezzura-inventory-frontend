@@ -14,7 +14,9 @@
 // ==============================================================================
 
 import Dexie, { type Table } from "dexie"
+import { Capacitor } from "@capacitor/core"
 import { obtenerLicencia } from "./licencia"
+import { DBSQLite } from "./sqlite/tablas"
 
 // ── Filas tal cual se persisten (camelCase, como entrega el HTTP) ──
 export interface PerfilLocal {
@@ -294,6 +296,25 @@ export interface ConteoLocal {
     alcance?: import("@/types").AlcanceConteo | null
 }
 
+// ── Publish de catálogo online (snapshot del delta, clave = fila) ──
+export interface CatalogoPublicadoLocal {
+    /** '__config__' | 'producto||variacion' (variación '' = base) */
+    clave: string
+    /** Hash determinista del contenido público (sin la URL de foto): si no
+     * cambia, la fila no se sube de nuevo (publish delta). */
+    hash: string
+    /** Hash de la FOTO (aparte): si no cambió se reutiliza la URL de
+     * Cloudinary ya conocida sin re-subir la imagen. */
+    foto_hash?: string
+    /** Payload público de la fila (data=null ⇒ pendiente de BORRAR en nube) */
+    data: Record<string, unknown> | null
+    orden: number
+    /** Slug devuelto por el backend al publicar (link "Ver catálogo") */
+    slug?: string
+    /** ISO local del último publish confirmado de esta fila */
+    publicado_en?: string
+}
+
 export interface ConteoItemLocal {
     id: string
     conteo_id: string
@@ -340,6 +361,8 @@ export class DBLocal extends Dexie {
     // ── Fase 3: conteos de auditoría ──
     conteos!: Table<ConteoLocal, string>
     conteo_items!: Table<ConteoItemLocal, string>
+    // ── Publish de catálogo online (delta) ──
+    catalogo_publicado!: Table<CatalogoPublicadoLocal, string>
 
     constructor(nombre: string) {
         super(nombre)
@@ -384,6 +407,13 @@ export class DBLocal extends Dexie {
             conteos: "id, estado, abierto_at",
             conteo_items: "id, conteo_id, producto",
         })
+        // Publish de catálogo online: snapshot local del delta (la clave ES
+        // la fila: '__config__' o 'producto||variacion'). Solo guardamos lo
+        // que publicamos (y su hash), para calcular el siguiente delta sin
+        // depender de la nube (funciona offline siempre).
+        this.version(4).stores({
+            catalogo_publicado: "clave, orden",
+        })
     }
 }
 
@@ -393,13 +423,27 @@ let _dbNombre: string | null = null
 /**
  * Abre (y cachea) la DB del tenant activo. Lanza si no hay licencia:
  * el guard de licencia corre ANTES que cualquier render que toque datos.
+ *
+ * DUAL MOTOR (invisible para los repos):
+ *   * Web/PWA → Dexie/IndexedDB como siempre (comportamiento intacto).
+ *   * App nativa (Capacitor/Android) → shim SQLite (sqlite/tablas.ts):
+ *     archivo real en el sandbox del dispositivo, sobrevive a "borrar datos
+ *     del navegador", transacciones atómicas BEGIN/COMMIT y listo para
+ *     SQLCipher + backup cifrado (Fase 2). El cast en la frontera es el
+ *     ÚNICO punto donde los dos motores se cruzan: los repos no cambian.
  */
 export function abrirDB(): DBLocal {
     const lic = obtenerLicencia()
     if (!lic) throw new Error("Sin licencia de dispositivo: no hay DB local que abrir.")
     if (_db && _dbNombre === lic.tenant_id) return _db
     if (_db) _db.close()
-    _db = new DBLocal(`nezzura_local_${lic.tenant_id}`)
+    if (Capacitor.isNativePlatform()) {
+        // DBSQLite expone la misma superficie que usa DBLocal (verificado en
+        // la auditoría de repos); el cast es el contrato de la frontera.
+        _db = DBSQLite.abrir(`nezzura_local_${lic.tenant_id}`) as unknown as DBLocal
+    } else {
+        _db = new DBLocal(`nezzura_local_${lic.tenant_id}`)
+    }
     _dbNombre = lic.tenant_id
     return _db
 }
@@ -408,6 +452,10 @@ export async function borrarDBLocal(): Promise<void> {
     const lic = obtenerLicencia()
     if (!lic) return
     if (_db) { _db.close(); _db = null; _dbNombre = null }
+    if (Capacitor.isNativePlatform()) {
+        await DBSQLite.abrir(`nezzura_local_${lic.tenant_id}`).destruir()
+        return
+    }
     await Dexie.delete(`nezzura_local_${lic.tenant_id}`)
 }
 

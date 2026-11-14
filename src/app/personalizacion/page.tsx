@@ -19,6 +19,7 @@ import { CardConectarMuse } from "@/components/personalizacion/CardConectarMuse"
 import { ConfigCatalogo } from "@/components/personalizacion/ConfigCatalogo"
 import { CardCompartir } from "@/components/personalizacion/CardCompartir"
 import { CardCatalogoImpreso } from "@/components/personalizacion/CardCatalogoImpreso"
+import { CardPublicarCatalogo } from "@/components/personalizacion/CardPublicarCatalogo"
 import { obtenerModo } from "@/lib/local/modo"
 
 type Tab = "cuenta" | "negocio" | "catalogo"
@@ -254,8 +255,10 @@ export default function Personalizacion() {
                     <>
                         {modoLocal ? (
                             // Modo Local: sin catálogo en la nube; acceso directo al imprimible
+                            // y el GANCHO del plan local: publicar el catálogo online (delta).
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
                                 <CardCatalogoImpreso />
+                                <CardPublicarCatalogo />
                             </div>
                         ) : config.cargandoCatalogo ? (
                             <div className="card fade-up" style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>

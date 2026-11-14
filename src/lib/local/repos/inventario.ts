@@ -21,19 +21,19 @@
 // ==============================================================================
 
 import { abrirDB, ahoraISO } from "../db"
+import { Capacitor } from "@capacitor/core"
 import type {
     Producto, Lote, Variacion, MaterialReceta, NuevoProducto, Restock,
     RespuestaMovimientos, MovimientoInventario, Categoria, ClienteCampos,
     ImagenProducto, CatalogoConfig,
 } from "@/types"
 import type { ProductoLocal, LoteLocal, PerfilLocal, CategoriaLocal } from "../db"
+import { redondear } from "./utilidades"
+import { DBSQLite } from "../sqlite/tablas"
 
 // ============================================================================
 // Utilidades
 // ============================================================================
-function redondear(n: number): number {
-    return Math.round(n * 100) / 100
-}
 
 function idNuevo(prefix: string): string {
     return `${prefix}-${crypto.randomUUID().slice(0, 13)}`
@@ -939,9 +939,16 @@ export async function guardarPostOverride(
 // base ya vive en este dispositivo — no hay nada que hacer. El formulario
 // de alta llama a esto SIEMPRE antes de crear el producto, así que el
 // no-op es lo que desbloquea el "dar de alta" offline.
+//
+// NUEVO (build nativo): aprovechamos la llamada para PRE-CALENTAR el motor
+// SQLite (abrir conexión + validar esquema con PRAGMA user_version). Los
+// errores del motor salen en el arranque, no en la primera venta del día.
 // ============================================================================
 export async function initDB(): Promise<{ ok: boolean; mensaje: string }> {
-    abrirDB() // valida licencia y abre la DB por si acaso; nada más
+    const d = abrirDB() // valida licencia y abre la DB por si acaso; nada más
+    if (Capacitor.isNativePlatform()) {
+        await (d as unknown as DBSQLite).precalentar()
+    }
     return { ok: true, mensaje: "La base ya vive en este dispositivo (Modo Local)." }
 }
 

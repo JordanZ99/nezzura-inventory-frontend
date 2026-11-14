@@ -7,10 +7,7 @@
 import { abrirDB, ahoraISO } from "../db"
 import type { Gasto, GastoProgramado, RangoFechas } from "@/types"
 import type { GastoLocal, GastoProgramadoLocal } from "../db"
-
-function redondear(n: number): number {
-    return Math.round(n * 100) / 100
-}
+import { redondear } from "./utilidades"
 
 function filaGasto(g: GastoLocal, id: number): Gasto {
     return {

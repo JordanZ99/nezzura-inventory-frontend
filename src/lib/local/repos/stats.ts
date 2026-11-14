@@ -8,10 +8,7 @@
 import { abrirDB, ahoraISO } from "../db"
 import type { ResumenStats, FilaSerie, StatsProducto, Venta, RangoFechas } from "@/types"
 import type { VentaLocal, GastoLocal, OrdenLocal } from "../db"
-
-function redondear(n: number): number {
-    return Math.round(n * 100) / 100
-}
+import { redondear, filaVenta } from "./utilidades"
 
 /** Sin rango → mes contable actual (como resolver_rango_q del backend). */
 export function resolverRango(rango?: RangoFechas & { todo?: boolean }): {
@@ -220,26 +217,6 @@ export async function getStatsProductos(
 // ============================================================================
 // Renglones de UN producto (GET /stats/ventas-producto → modal de detalle)
 // ============================================================================
-function filaVenta(v: VentaLocal, id: number): Venta {
-    return {
-        id,
-        n_ticket: v.n_ticket,
-        fecha: v.fecha,
-        producto: v.producto,
-        cantidad: v.cantidad,
-        precio_lista: v.precio_lista,
-        precio_real: v.precio_real,
-        costo_unitario: v.costo_unitario,
-        total_venta: v.total_venta,
-        ganancia_bruta: v.ganancia_bruta,
-        estado: v.estado,
-        tipo_producto: v.tipo_producto,
-        variacion: v.variacion || undefined,
-        descripcion: v.descripcion || undefined,
-        consumo: v.consumo || undefined,
-        orden_id: v.orden_id,
-    }
-}
 
 export async function getVentasProductoStats(
     producto: string,

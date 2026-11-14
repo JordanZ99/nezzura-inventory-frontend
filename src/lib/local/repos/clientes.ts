@@ -15,10 +15,7 @@ import type {
     MovimientoPuntos, Segmento, TipoInteraccion, TopCliente,
 } from "@/types"
 import type { ClienteLocal, EtiquetaLocal, InteraccionLocal, MovimientoPuntosLocal } from "../db"
-
-function redondear(n: number): number {
-    return Math.round(n * 100) / 100
-}
+import { redondear } from "./utilidades"
 
 async function hashPin(pin: string): Promise<string> {
     const bytes = new TextEncoder().encode(pin)

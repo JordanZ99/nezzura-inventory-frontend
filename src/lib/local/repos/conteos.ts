@@ -30,17 +30,10 @@ import type {
 } from "@/types"
 import type { ConteoLocal, ConteoItemLocal, LoteLocal } from "../db"
 import { registrarMovimiento } from "./inventario"
+import { redondear, redondear3 } from "./utilidades"
 
 // Dos décimas de kilo no cuentan como "diferencia" (igual que el backend).
 const EPS = 0.001
-
-function redondear3(n: number): number {
-    return Math.round(n * 1000) / 1000
-}
-
-function round2(n: number): number {
-    return Math.round(n * 100) / 100
-}
 
 // ============================================================================
 // Utilidades de composición del snapshot / stock vivo
@@ -453,11 +446,11 @@ export async function cerrarConteo(
         // ── Renglón MANUAL (producto que nunca se registró) ──
         if ((it.origen || "snapshot") === "manual") {
             const pedida = pedidas.get(key) || ({} as ResolucionConteoItem)
-            const costoM = pedida.costo != null ? round2(pedida.costo) : 0
+            const costoM = pedida.costo != null ? redondear(pedida.costo) : 0
             if (costoM < 0) {
                 throw new Error(`"${it.producto}": el costo no puede ser negativo`)
             }
-            const precioRealM = pedida.precio_real != null ? round2(pedida.precio_real) : null
+            const precioRealM = pedida.precio_real != null ? redondear(pedida.precio_real) : null
             const inicialM = it.inicial ?? null
             const vendidas = inicialM === null ? null : redondear3(inicialM - contado)
 
@@ -496,8 +489,8 @@ export async function cerrarConteo(
                     precio_lista: precioRealM,
                     precio_real: precioRealM,
                     costo_unitario: costoM,
-                    total_venta: round2(precioRealM * vendidas),
-                    ganancia_bruta: round2((precioRealM - costoM) * vendidas),
+                    total_venta: redondear(precioRealM * vendidas),
+                    ganancia_bruta: redondear((precioRealM - costoM) * vendidas),
                     id_lote: null,
                     variacion: "",
                     descripcion: "Venta declarada en conteo (producto no registrado)",
@@ -509,7 +502,7 @@ export async function cerrarConteo(
             if (contado > EPS) {
                 // Sin precio declarado, el lote hereda el precio real de la
                 // venta (mejor default que 0: el producto acaba de nacer).
-                const precioLote = pedida.precio_venta != null ? round2(pedida.precio_venta) : precioRealM
+                const precioLote = pedida.precio_venta != null ? redondear(pedida.precio_venta) : precioRealM
                 const idLote = `LT-${crypto.randomUUID().slice(0, 13)}`
                 const lote: LoteLocal = {
                     id_lote: idLote,
@@ -593,16 +586,16 @@ export async function cerrarConteo(
             }
             const chunks = await consumirStockPeps(it.producto, it.variacion, cantidad)
             for (const ch of chunks) {
-                const precio = precioDeclarado != null ? round2(precioDeclarado) : round2(ch.precio_lista)
+                const precio = precioDeclarado != null ? redondear(precioDeclarado) : redondear(ch.precio_lista)
                 ventasAGuardar.push({
                     fecha: fechaVenta || ahoraTexto,
                     producto: it.producto,
                     cantidad: ch.cantidad,
-                    precio_lista: round2(ch.precio_lista),
+                    precio_lista: redondear(ch.precio_lista),
                     precio_real: precio,
-                    costo_unitario: round2(ch.costo_unitario),
-                    total_venta: round2(precio * ch.cantidad),
-                    ganancia_bruta: round2((precio - ch.costo_unitario) * ch.cantidad),
+                    costo_unitario: redondear(ch.costo_unitario),
+                    total_venta: redondear(precio * ch.cantidad),
+                    ganancia_bruta: redondear((precio - ch.costo_unitario) * ch.cantidad),
                     id_lote: ch.id_lote,
                     variacion: it.variacion,
                     descripcion: "Venta declarada en conteo de auditoría",
@@ -656,8 +649,8 @@ export async function cerrarConteo(
     // Mismo formato de cobro que el POS: folio consecutivo, pago en efectivo
     // ("el dinero llegó a la mano") y fecha de la venta declarada.
     if (ventasAGuardar.length > 0) {
-        const total = round2(ventasAGuardar.reduce((s, v) => s + v.total_venta, 0))
-        const ganancia = round2(ventasAGuardar.reduce((s, v) => s + v.ganancia_bruta, 0))
+        const total = redondear(ventasAGuardar.reduce((s, v) => s + v.total_venta, 0))
+        const ganancia = redondear(ventasAGuardar.reduce((s, v) => s + v.ganancia_bruta, 0))
         const cantidadItems = redondear3(ventasAGuardar.reduce((s, v) => s + v.cantidad, 0))
         const ticketsExistentes = await d.ordenes.orderBy("n_ticket").last()
         const nTicket = (ticketsExistentes?.n_ticket || 0) + 1
@@ -693,9 +686,9 @@ export async function cerrarConteo(
                 fecha: v.fecha,
                 producto: v.producto,
                 cantidad: v.cantidad,
-                precio_lista: round2(v.precio_lista),
-                precio_real: round2(v.precio_real),
-                costo_unitario: round2(v.costo_unitario),
+                precio_lista: redondear(v.precio_lista),
+                precio_real: redondear(v.precio_real),
+                costo_unitario: redondear(v.costo_unitario),
                 total_venta: v.total_venta,
                 ganancia_bruta: v.ganancia_bruta,
                 estado: "Activo",
@@ -723,7 +716,7 @@ export async function cerrarConteo(
     }
 
     // ── Gasto automático de merma: la pérdida figura en Egresos ──
-    resumen.merma_costo = round2(resumen.merma_costo)
+    resumen.merma_costo = redondear(resumen.merma_costo)
     if (resumen.merma_costo > 0) {
         let categoria = (await d.gastos_categorias.toArray()).find(c => c.nombre === "Merma")
         if (!categoria) {
@@ -772,8 +765,8 @@ async function crearLoteEntrada(
             && (variacionId == null ? !l.variacion_id : l.variacion_id === variacionId))
         .toArray())
         .sort((a, b) => b.fecha_entrada.localeCompare(a.fecha_entrada))[0]
-    const costo = pedida.costo != null ? round2(pedida.costo) : (ultimo?.costo ?? 0)
-    const precio = pedida.precio_venta != null ? round2(pedida.precio_venta) : (ultimo?.precio_venta ?? 0)
+    const costo = pedida.costo != null ? redondear(pedida.costo) : (ultimo?.costo ?? 0)
+    const precio = pedida.precio_venta != null ? redondear(pedida.precio_venta) : (ultimo?.precio_venta ?? 0)
     const idLote = `LT-${crypto.randomUUID().slice(0, 13)}`
     await d.lotes.add({
         id_lote: idLote,

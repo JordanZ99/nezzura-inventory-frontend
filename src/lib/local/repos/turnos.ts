@@ -7,10 +7,7 @@
 import { abrirDB, ahoraISO } from "../db"
 import type { Turno } from "@/types"
 import type { TurnoLocal } from "../db"
-
-function redondear(n: number): number {
-    return Math.round(n * 100) / 100
-}
+import { redondear } from "./utilidades"
 
 /** KPIs del turno contados en vivo (ordenes activas con turno_id). */
 export async function calcularArqueo(turnoId: string): Promise<{

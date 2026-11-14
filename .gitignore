@@ -10,6 +10,12 @@
 /.next/
 /out/
 
+# capacitor / build nativo
+/.native-stash/
+/android/app/build/
+/android/.gradle/
+/android/app/src/main/assets/public/
+
 # production
 /build
 

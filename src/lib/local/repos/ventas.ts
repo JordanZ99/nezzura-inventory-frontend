@@ -16,10 +16,7 @@ import { abrirDB, ahoraISO } from "../db"
 import type { ItemCarrito, Orden, RangoFechas, Venta } from "@/types"
 import type { LoteLocal, VentaLocal, OrdenLocal, MesaLocal } from "../db"
 import { registrarMovimiento } from "./inventario"
-
-function redondear(n: number): number {
-    return Math.round(n * 100) / 100
-}
+import { redondear, filaVenta } from "./utilidades"
 
 /** Convierte "ISO local" del ledger/ventas al formato fecha texto. */
 function hoyTexto(): string {
@@ -280,26 +277,6 @@ export async function cobrarCarrito(
 // ============================================================================
 // Consultas
 // ============================================================================
-function filaVenta(v: VentaLocal, id: number): Venta {
-    return {
-        id,
-        n_ticket: v.n_ticket,
-        fecha: v.fecha,
-        producto: v.producto,
-        cantidad: v.cantidad,
-        precio_lista: v.precio_lista,
-        precio_real: v.precio_real,
-        costo_unitario: v.costo_unitario,
-        total_venta: v.total_venta,
-        ganancia_bruta: v.ganancia_bruta,
-        estado: v.estado,
-        tipo_producto: v.tipo_producto,
-        variacion: v.variacion || undefined,
-        descripcion: v.descripcion || undefined,
-        consumo: v.consumo || undefined,
-        orden_id: v.orden_id,
-    }
-}
 
 export async function getVentas(rango?: RangoFechas): Promise<Venta[]> {
     const d = abrirDB()
