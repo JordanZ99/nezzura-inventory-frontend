@@ -248,19 +248,23 @@ export default function Almacenamiento() {
                             <Icon name="Download" size={16} />
                             {descargando ? "Preparando respaldo…" : "Descargar respaldo completo"}
                         </button>
-                        <a
-                            href="/personalizacion"
-                            style={{
-                                display: "flex", alignItems: "center", gap: 8,
-                                padding: "10px 14px", borderRadius: 12,
-                                textDecoration: "none",
-                                border: "1.5px solid var(--border-primary, rgba(0,0,0,0.12))",
-                                fontSize: "0.8rem", fontWeight: 700, color: "var(--primary-icons, #555)",
-                            }}
-                        >
-                            <Icon name="TrendingUp" size={16} />
-                            Mejorar a Plus ({fmtPeso(10 * GB)})
-                        </a>
+                        {/* El upgrade solo tiene sentido en básico: en Plus ya
+                            están en el plan tope (evita el botón confuso) */}
+                        {uso && uso.plan !== "plus" && (
+                            <a
+                                href="/personalizacion"
+                                style={{
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    padding: "10px 14px", borderRadius: 12,
+                                    textDecoration: "none",
+                                    border: "1.5px solid var(--border-primary, rgba(0,0,0,0.12))",
+                                    fontSize: "0.8rem", fontWeight: 700, color: "var(--primary-icons, #555)",
+                                }}
+                            >
+                                <Icon name="TrendingUp" size={16} />
+                                Mejorar a Plus ({fmtPeso(10 * GB)})
+                            </a>
+                        )}
                     </div>
                 </div>
 
