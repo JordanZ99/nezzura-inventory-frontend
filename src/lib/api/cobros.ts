@@ -21,6 +21,8 @@ export interface CobroEditarPayload {
     monto?: number
     /** undefined = sin cambio; "" = quitar la fecha; "YYYY-MM-DD" = fijar. */
     vencimiento?: string | ""
+    /** Promesa de pago (mig 080): misma semántica que vencimiento. */
+    promesa_fecha?: string | ""
     programa?: EntradaPrograma[]
     notas?: string
 }

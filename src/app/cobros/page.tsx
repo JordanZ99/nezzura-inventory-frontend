@@ -16,8 +16,9 @@ import StatsCobros from "@/components/cobros/StatsCobros"
 import ListaCobros from "@/components/cobros/ListaCobros"
 import GestionCuotas from "@/components/cobros/GestionCuotas"
 import GestionPlanes from "@/components/cobros/GestionPlanes"
+import ModalWhatsApp from "@/components/cobros/ModalWhatsApp"
 import { useTenant } from "@/contexts/TenantContext"
-import { abrirWhatsApp, textoRecibo } from "@/lib/whatsapp"
+import { abrirWhatsApp, textoRecordatorio, textoRecibo } from "@/lib/whatsapp"
 import { api } from "@/lib/api"
 import { periodoActual, useAccionesCobros, useCobrosLista, useResumenCobros } from "@/hooks/useCobros"
 import type { Cobro, EntradaPrograma, PagoCobro, RepartoAbono } from "@/types"
@@ -50,6 +51,8 @@ export default function Cobros() {
     const [tab, setTab] = useState<Tab>("cobros")
     const [periodo, setPeriodo] = useState(periodoActual())
     const [soloPendientes, setSoloPendientes] = useState(false)
+    // Filtro "Hoy" (mig 080): los pendientes con vencimiento a la fecha o antes.
+    const [soloHoy, setSoloHoy] = useState(false)
 
     const { resumen, cargando: cargandoResumen } = useResumenCobros()
 
@@ -58,6 +61,11 @@ export default function Cobros() {
         periodo: periodo || undefined,
         solo_pendientes: soloPendientes,
     })
+    // Filtro "Hoy" (mig 080): pendientes con vencimiento a la fecha o antes.
+    const hoyISOStr = hoyISO()
+    const cobrosVisibles = soloHoy
+        ? cobros.filter(c => c.estado !== "pagado" && (c.vencimiento || "").slice(0, 10) <= hoyISOStr)
+        : cobros
 
     const { clientesQuery } = useClientesOptions()
     const clientes: ClienteOption[] = clientesQuery.data ?? []
@@ -69,6 +77,46 @@ export default function Cobros() {
     const [extraEditando, setExtraEditando] = useState<Cobro | null>(null)
     const [formExtra, setFormExtra] = useState<FormExtra>(FORM_EXTRA_VACIO(hoyISO()))
     const [guardandoExtra, setGuardandoExtra] = useState(false)
+
+    // ── Promesa de pago (mig 080) ──
+    const [promesaPara, setPromesaPara] = useState<Cobro | null>(null)
+    const [formPromesa, setFormPromesa] = useState(hoyISO())
+
+    function abrirPromesa(cobro: Cobro) {
+        setPromesaPara(cobro)
+        setFormPromesa(cobro.promesa_fecha?.slice(0, 10) || hoyISO())
+    }
+
+    async function guardarPromesa() {
+        if (!promesaPara) return
+        try {
+            await acciones.actualizarCobro({
+                id: promesaPara.id,
+                data: { promesa_fecha: formPromesa || "" },
+            })
+            mostrarMsg(true, formPromesa
+                ? "Promesa de pago registrada — los recordatorios se pausan hasta esa fecha"
+                : "Promesa quitada")
+            setPromesaPara(null)
+        } catch (e) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error al registrar la promesa")
+        }
+    }
+
+    /** Mig 080: recordatorio por WhatsApp (texto editable antes de enviar). */
+    function abrirRecordatorio(cobro: Cobro) {
+        const venc = cobro.vencimiento?.slice(0, 10) || null
+        const tipo = cobro.vencido ? "vencido" : "vence_hoy"
+        const texto = textoRecordatorio(tipo, {
+            nombre: cobro.cliente_nombre, empresa: tenant?.empresa,
+        }, cobro.concepto, cobro.saldo, {
+            diasVencido: cobro.dias_vencido,
+            fecha: venc,
+            saldo: cobro.saldo,
+            moratorios: cobro.moratorios ?? 0,
+        })
+        setWhatsappPara({ telefono: cobro.cliente_telefono ?? null, texto })
+    }
 
     // ── Modal: registrar abono (o editarlo, mig 081) ──
     const [pagoPara, setPagoPara] = useState<Cobro | null>(null)
@@ -458,8 +506,25 @@ export default function Cobros() {
                             onToggleFiltroPendientes={alternarFiltroPendientes}
                         />
 
+                        {/* Filtro "Hoy" (mig 080): agenda del día — vencidos y el que vence hoy */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                            <button onClick={() => setSoloHoy(v => !v)} style={{
+                                padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: "0.75rem", fontWeight: 800,
+                                border: soloHoy ? "none" : "1px solid var(--border-primary)",
+                                background: soloHoy ? "var(--primary-mid)" : "var(--bg-card)",
+                                color: soloHoy ? "#fff" : "var(--text-main)",
+                            }}>
+                                Hoy
+                            </button>
+                            {soloHoy && (
+                                <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                                    Pendientes vencidos o que vencen hoy
+                                </span>
+                            )}
+                        </div>
+
                         <ListaCobros
-                            cobros={cobros}
+                            cobros={cobrosVisibles}
                             cargando={cargandoLista}
                             onRegistrarPago={abrirPago}
                             onEditarExtra={abrirEditarExtra}
@@ -468,6 +533,8 @@ export default function Cobros() {
                             onEditarAbono={abrirEditarAbono}
                             onEnviarRecibo={abrirReciboWhatsApp}
                             onCargarMoratorios={cargarMoraDe}
+                            onRecordatorio={abrirRecordatorio}
+                            onPromesa={abrirPromesa}
                         />
                     </>
                 )}
@@ -723,42 +790,54 @@ export default function Cobros() {
 
             {/* ── Mini-modal: WhatsApp con texto editable (tú decides si se manda) ── */}
             {whatsappPara && (
+                <ModalWhatsApp
+                    telefono={whatsappPara.telefono}
+                    texto={whatsappPara.texto}
+                    onClose={() => { setWhatsappPara(null); setRecibo(null) }}
+                />
+            )}
+
+            {/* ── Modal: promesa de pago (mig 080) ── */}
+            {promesaPara && (
                 <div style={{
                     position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center",
                     background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", padding: 20,
                 }}>
-                    <div className="card" style={{ maxWidth: 420, width: "100%", padding: 24, display: "flex", flexDirection: "column", gap: 12, border: "1px solid var(--border-light)" }}>
-                        <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 800, color: "var(--text-main)" }}>
-                            Mensaje por WhatsApp
+                    <div className="card" style={{ maxWidth: 400, width: "100%", padding: 24, display: "flex", flexDirection: "column", gap: 12, border: "1px solid var(--border-light)" }}>
+                        <h3 style={{ margin: 0, fontSize: "1.02rem", fontWeight: 800, color: "var(--text-main)" }}>
+                            Promesa de pago
                         </h3>
-                        <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                            Revísalo y edítalo como quieras; se abre con el texto listo para {whatsappPara.telefono}.
+                        <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                            {promesaPara.cliente_nombre} · {promesaPara.concepto} — mientras la promesa esté vigente, los recordatorios automáticos se pausan.
                         </p>
-                        <textarea value={whatsappPara.texto}
-                            onChange={e => setWhatsappPara({ ...whatsappPara, texto: e.target.value })}
-                            rows={6}
-                            style={{ ...estInput, resize: "vertical", lineHeight: 1.5 }} />
-                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                            <button onClick={() => setWhatsappPara(null)}
+                        <div>
+                            <label style={estLabel}>Fecha comprometida</label>
+                            <input type="date" value={formPromesa}
+                                onChange={e => setFormPromesa(e.target.value)} style={estInput} />
+                        </div>
+                        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
+                            <button onClick={() => setPromesaPara(null)}
                                 style={{
                                     padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border-primary)",
                                     background: "var(--bg-card2)", color: "var(--text-main)", fontWeight: 700, cursor: "pointer",
                                 }}>
                                 Cancelar
                             </button>
-                            <button onClick={() => {
-                                const ok = abrirWhatsApp(whatsappPara.telefono, whatsappPara.texto)
-                                if (!ok) mostrarMsg(false, "Este cliente no tiene un teléfono válido guardado")
-                                setWhatsappPara(null)
-                                setRecibo(null)
-                            }}
+                            {promesaPara.promesa_fecha && (
+                                <button onClick={() => { setFormPromesa(""); guardarPromesa() }}
+                                    style={{
+                                        padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border-primary)",
+                                        background: "var(--bg-card2)", color: "#c62828", fontWeight: 800, cursor: "pointer",
+                                    }}>
+                                    Quitar promesa
+                                </button>
+                            )}
+                            <button onClick={guardarPromesa}
                                 style={{
                                     padding: "10px 18px", borderRadius: 10, border: "none",
-                                    background: "#128C7E", color: "#fff", fontWeight: 800, cursor: "pointer",
-                                    display: "inline-flex", alignItems: "center", gap: 8,
+                                    background: "var(--primary-alter)", color: "#fff", fontWeight: 800, cursor: "pointer",
                                 }}>
-                                <Icon name="MessageCircle" size={16} />
-                                Abrir WhatsApp
+                                Guardar
                             </button>
                         </div>
                     </div>

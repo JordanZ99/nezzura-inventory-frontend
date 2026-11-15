@@ -27,6 +27,10 @@ interface Props {
     onEnviarRecibo: (cobro: Cobro, abono: PagoCobro) => void
     /** Mig 079: materializar los moratorios derivados de un cobro. */
     onCargarMoratorios: (cobro: Cobro) => void
+    /** Mig 080: enviar recordatorio por WhatsApp (cobro vencido o de hoy). */
+    onRecordatorio: (cobro: Cobro) => void
+    /** Mig 080: registrar/quitar la promesa de pago del cobro. */
+    onPromesa: (cobro: Cobro) => void
 }
 
 const fmt = (n: number) =>
@@ -47,11 +51,38 @@ function fechaCorta(v: string | null): string {
     return `${d} ${mes}`
 }
 
-export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEditarExtra, onEliminar, onEliminarGrupo, onEditarAbono, onEnviarRecibo, onCargarMoratorios }: Props) {
+export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEditarExtra, onEliminar, onEliminarGrupo, onEditarAbono, onEnviarRecibo, onCargarMoratorios, onRecordatorio, onPromesa }: Props) {
     const { quitarAbono } = useAccionesCobros()
     const [expandido, setExpandido] = useState<string | null>(null)
     const [quitarIndice, setQuitarIndice] = useState<{ id: string; indice: number } | null>(null)
     const [quitando, setQuitando] = useState(false)
+    const hoy = new Date().toISOString().slice(0, 10)
+
+    /** Chip de promesa (mig 080): verde vigente, roja incumplida. */
+    function chipPromesa(cobro: Cobro) {
+        const p = cobro.promesa_fecha
+        if (!p || cobro.estado === "pagado") return null
+        if (p > hoy) {
+            return (
+                <span style={{
+                    padding: "3px 10px", borderRadius: 20,
+                    background: "rgba(46,125,50,0.12)", color: "#2e7d32",
+                    fontSize: "0.63rem", fontWeight: 800,
+                }}>
+                    Prometió {p.slice(8, 10)} {["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][Number(p.slice(5, 7)) - 1]}
+                </span>
+            )
+        }
+        return (
+            <span style={{
+                padding: "3px 10px", borderRadius: 20,
+                background: "rgba(198,40,40,0.12)", color: "#c62828",
+                fontSize: "0.63rem", fontWeight: 800,
+            }}>
+                Promesa incumplida
+            </span>
+        )
+    }
 
     if (cargando) {
         return (
@@ -147,11 +178,19 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
 
                                 <span style={estiloBadge(est)}>{est.texto}</span>
 
+                                {chipPromesa(cobro)}
+
                                 {cobro.vencido && (
                                     <span style={estiloVencido}>{cobro.dias_vencido} día(s) vencido</span>
                                 )}
 
                                 <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                                    {(cobro.vencido || cobro.vencimiento?.slice(0, 10) === hoy) && (
+                                        <button onClick={() => onRecordatorio(cobro)} title="Recordatorio por WhatsApp"
+                                            style={{ ...estiloBtnIcono, color: "#128C7E" }}>
+                                            <Icon name="MessageCircle" size={16} />
+                                        </button>
+                                    )}
                                     <button onClick={() => setExpandido(abierto ? null : cobro.id)} title="Abonos"
                                         style={estiloBtnIcono}>
                                         <Icon name={abierto ? "ChevronUp" : "ChevronDown"} size={16} />
@@ -172,7 +211,8 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                             {abierto && (
                                 <DetalleCobro cobro={cobro} onQuitar={setQuitarIndice}
                                     onEditarAbono={onEditarAbono} onEnviarRecibo={onEnviarRecibo}
-                                    onCargarMoratorios={onCargarMoratorios} />
+                    onCargarMoratorios={onCargarMoratorios}
+                    onPromesa={onPromesa} />
                             )}
                         </div>
                     )
@@ -258,11 +298,18 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                                             }}>
                                                 {est.texto}
                                             </span>
+                                            {chipPromesa(cobro)}
                                             <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)" }}>
                                                 {fmt(cobro.pagado)} de {fmt(cobro.monto)}
                                                 {cobro.vencido ? ` · ${cobro.dias_vencido} día(s) vencido` : ""}
                                             </span>
                                             <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                                                {(cobro.vencido || cobro.vencimiento?.slice(0, 10) === hoy) && (
+                                                    <button onClick={() => onRecordatorio(cobro)} title="Recordatorio por WhatsApp"
+                                                        style={{ ...estiloBtnIcono, padding: "6px 8px", color: "#128C7E" }}>
+                                                        <Icon name="MessageCircle" size={13} />
+                                                    </button>
+                                                )}
                                                 <button onClick={() => setExpandido(cobro.id)} title="Abonos de este cobro"
                                                     style={{ ...estiloBtnIcono, padding: "6px 8px" }}>
                                                     <Icon name={expandido === cobro.id ? "ChevronUp" : "ChevronDown"} size={13} />
@@ -286,7 +333,8 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
                                     <div key={`detalle-${cobro.id}`} style={{ padding: "8px 0 4px 46px" }}>
                                         <DetalleCobro cobro={cobro} onQuitar={setQuitarIndice} compacto
                                             onEditarAbono={onEditarAbono} onEnviarRecibo={onEnviarRecibo}
-                                            onCargarMoratorios={onCargarMoratorios} />
+                                            onCargarMoratorios={onCargarMoratorios}
+                                            onPromesa={onPromesa} />
                                     </div>
                                 ))}
                             </div>
@@ -333,13 +381,14 @@ export default function ListaCobros({ cobros, cargando, onRegistrarPago, onEdita
 
 /** Detalle desplegable de UN cobro: plan de pagos, notas y abonos con
  * acciones (✏️ editar / 🗑️ quitar / 💬 recibo por WhatsApp). */
-function DetalleCobro({ cobro, onQuitar, compacto = false, onEditarAbono, onEnviarRecibo, onCargarMoratorios }: {
+function DetalleCobro({ cobro, onQuitar, compacto = false, onEditarAbono, onEnviarRecibo, onCargarMoratorios, onPromesa }: {
     cobro: Cobro
     onQuitar: (v: { id: string; indice: number } | null) => void
     compacto?: boolean
     onEditarAbono?: (cobro: Cobro, indice: number) => void
     onEnviarRecibo?: (cobro: Cobro, abono: PagoCobro) => void
     onCargarMoratorios?: (cobro: Cobro) => void
+    onPromesa?: (cobro: Cobro) => void
 }) {
     const mora = cobro.moratorios ?? 0
     return (
@@ -373,6 +422,17 @@ function DetalleCobro({ cobro, onQuitar, compacto = false, onEditarAbono, onEnvi
                 <p style={{ margin: "0 0 8px", fontSize: "0.75rem", color: "var(--text-muted)" }}>
                     {cobro.notas}
                 </p>
+            )}
+            {cobro.estado !== "pagado" && onPromesa && (
+                <div style={{ marginBottom: 8 }}>
+                    <button onClick={() => onPromesa(cobro)}
+                        style={{
+                            padding: "6px 14px", borderRadius: 10, border: "none", cursor: "pointer",
+                            background: "var(--bg-card2)", color: "var(--text-main)", fontSize: "0.7rem", fontWeight: 800,
+                        }}>
+                        {cobro.promesa_fecha ? "Cambiar/quitar promesa de pago" : "Promesa de pago"}
+                    </button>
+                </div>
             )}
             {cobro.pagos.length === 0 ? (
                 <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>

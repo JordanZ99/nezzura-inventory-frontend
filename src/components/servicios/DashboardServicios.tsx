@@ -11,8 +11,10 @@ import { useState } from "react"
 import Link from "next/link"
 import Icon from "@/components/ui/Icon"
 import PageHeader from "@/components/ui/PageHeader"
+import { useToast } from "@/components/ui/Toast"
 import { periodoActual, useAccionesCobros, useCobrosLista, useCuotas, useResumenCobros } from "@/hooks/useCobros"
 import { useTenant } from "@/contexts/TenantContext"
+import { abrirWhatsApp, textoRecordatorio } from "@/lib/whatsapp"
 
 const fmt = (n: number) =>
     new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 }).format(n || 0)
@@ -34,6 +36,7 @@ const AGING: { clave: keyof NonNullable<NonNullable<ReturnType<typeof useResumen
 
 export default function DashboardServicios() {
     const { tenant } = useTenant()
+    const { mostrarMsg } = useToast()
     const { resumen, cargando } = useResumenCobros() // mes en curso
     const acciones = useAccionesCobros()
     const [generando, setGenerando] = useState(false)
@@ -48,6 +51,14 @@ export default function DashboardServicios() {
     const ofrecerGenerar = !cargandoCobros
         && cuotasActivas.length > 0
         && cobrosDelMes.length === 0
+
+    // ── Agenda del día (mig 080): pendientes vencidos o que vencen HOY, de
+    // cualquier periodo (por eso se lista la cartera completa sin periodo). ──
+    const { cobros: cartera, cargando: cargandoCartera } = useCobrosLista({ solo_pendientes: true })
+    const hoy = new Date().toISOString().slice(0, 10)
+    const agendaHoy = (cartera || [])
+        .filter(c => (c.vencimiento || "").slice(0, 10) <= hoy)
+        .sort((a, b) => (a.vencimiento || "").localeCompare(b.vencimiento || ""))
 
     async function generarMes() {
         try {
@@ -105,6 +116,85 @@ export default function DashboardServicios() {
                                 </p>
                             </div>
                         </div>
+
+                        {/* ── Agenda del día (mig 080): a quién cobrar hoy ── */}
+                        {!cargandoCartera && agendaHoy.length > 0 && (
+                            <div style={{
+                                borderRadius: 16, background: "var(--bg-card)", padding: 16,
+                                boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                                border: "1px solid rgba(229,57,53,0.25)", marginBottom: 16,
+                            }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                                    <Icon name="AlarmClock" size={18} color="#c62828" />
+                                    <h3 style={{ margin: 0, fontSize: "0.8rem", fontWeight: 800, color: "var(--text-main)", letterSpacing: 0.4 }}>
+                                        A quién cobrar hoy
+                                    </h3>
+                                    <span style={{
+                                        padding: "2px 10px", borderRadius: 20, background: "rgba(229,57,53,0.1)",
+                                        color: "#c62828", fontSize: "0.65rem", fontWeight: 800,
+                                    }}>
+                                        {agendaHoy.length}
+                                    </span>
+                                    <Link href="/cobros"
+                                        style={{ marginLeft: "auto", fontSize: "0.72rem", fontWeight: 800, color: "var(--primary-mid)", textDecoration: "none" }}>
+                                        Ver todo →
+                                    </Link>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                    {agendaHoy.slice(0, 8).map(c => {
+                                        const venc = c.vencimiento?.slice(0, 10) || null
+                                        const esHoy = venc === hoy
+                                        return (
+                                            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                <span style={{
+                                                    minWidth: 56, padding: "4px 8px", borderRadius: 8,
+                                                    background: esHoy ? "rgba(249,168,37,0.15)" : "rgba(229,57,53,0.1)",
+                                                    color: esHoy ? "#b45309" : "#c62828",
+                                                    fontWeight: 800, fontSize: "0.7rem", textAlign: "center", whiteSpace: "nowrap",
+                                                }}>
+                                                    {esHoy ? "HOY" : `${c.dias_vencido}d`}
+                                                </span>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                        {c.cliente_nombre}
+                                                    </p>
+                                                    <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                        {c.concepto}
+                                                        {c.promesa_fecha ? " · prometió pagar" : ""}
+                                                    </p>
+                                                </div>
+                                                <span style={{ fontWeight: 800, fontSize: "0.85rem", color: "var(--text-main)", whiteSpace: "nowrap" }}>
+                                                    {fmt(c.saldo)}
+                                                </span>
+                                                <button
+                                                    title="Recordatorio por WhatsApp"
+                                                    onClick={() => {
+                                                        const texto = textoRecordatorio(
+                                                            c.vencido ? "vencido" : "vence_hoy",
+                                                            { nombre: c.cliente_nombre, empresa: tenant?.empresa },
+                                                            c.concepto, c.saldo,
+                                                            { diasVencido: c.dias_vencido, fecha: venc, moratorios: c.moratorios ?? 0 },
+                                                        )
+                                                        const ok = abrirWhatsApp(c.cliente_telefono, texto)
+                                                        if (!ok) mostrarMsg(false, `${c.cliente_nombre} no tiene teléfono válido guardado`)
+                                                    }}
+                                                    style={{
+                                                        border: "none", background: "none", cursor: "pointer",
+                                                        color: "#128C7E", padding: 4, display: "inline-flex",
+                                                    }}>
+                                                    <Icon name="MessageCircle" size={16} />
+                                                </button>
+                                            </div>
+                                        )
+                                    })}
+                                    {agendaHoy.length > 8 && (
+                                        <p style={{ margin: 0, fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                                            Y {agendaHoy.length - 8} más (ver en Cobros)
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Aviso de generación pendiente (botón explícito, nunca automático) */}
                         {ofrecerGenerar && !cargando && (

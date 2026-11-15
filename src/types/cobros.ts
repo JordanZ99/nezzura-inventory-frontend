@@ -60,6 +60,8 @@ export interface Cobro {
     interes_cargado?: number
     moratorios?: number
     total_con_moratorios?: number
+    /** Promesa de pago (mig 080): 'me dijo que paga el viernes'. */
+    promesa_fecha?: string | null
     creado_en: string
 }
 
