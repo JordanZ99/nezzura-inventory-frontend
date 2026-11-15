@@ -55,14 +55,24 @@ function detalleATexto(detalle: unknown): string | undefined {
 
 export async function request<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
     const authHeaders = await getAuthHeaders()
-    const res = await fetch(`${BASE_URL}${path}`, {
-        ...options,
-        headers: {
-            "Content-Type": "application/json",
-            ...authHeaders,
-            ...options.headers,
-        },
-    })
+    let res: Response
+    try {
+        res = await fetch(`${BASE_URL}${path}`, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...authHeaders,
+                ...options.headers,
+            },
+        })
+    } catch (e) {
+        // "Failed to fetch" del navegador (servidor caído, reinicio de deploy,
+        // sin internet): mensaje claro en vez del crudo TypeError.
+        throw new ApiError(
+            "No se pudo conectar con el servidor — espera unos segundos e intenta de nuevo",
+            { status: 0 },
+        )
+    }
     if (!res.ok) {
         let errStr = "Error en la petición"
         let codigo: string | undefined
@@ -132,7 +142,12 @@ function nombreArchivoDescarga(header: string | null, fallback: string): string 
  */
 async function descargarArchivo(path: string, fallback: string): Promise<void> {
     const authHeaders = await getAuthHeaders()
-    const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders })
+    let res: Response
+    try {
+        res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders })
+    } catch {
+        throw new Error("No se pudo conectar con el servidor — espera unos segundos e intenta de nuevo")
+    }
     if (!res.ok) {
         let detail = "Error al descargar"
         try {
