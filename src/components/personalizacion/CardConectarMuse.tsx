@@ -2,21 +2,24 @@
 // src/components/personalizacion/CardConectarMuse.tsx
 // Tarjeta "Conectar mi IA" (tab Mi Negocio): gestión de las claves API del
 // servidor MCP — el conector que permite a un agente IA (como Muse de Meta)
-// leer el catálogo del negocio: productos, precios de venta, stock,
-// descripciones y fotos. Nunca costos.
+// trabajar con el negocio según los ROLES que el dueño activa (toggles):
+// publicar en redes, analizar el negocio, cuidar las fotos o crear/editar
+// productos. El agente ve la UNIÓN de las tools de sus roles — nunca costos
+// salvo el permiso explícito 'ver costos'.
 //
 // Flujo:
-//   1. Generar clave (se muestra UNA sola vez — el backend solo guarda su hash)
+//   1. Activar los roles del agente y generar la clave (se muestra UNA sola
+//      vez — el backend solo guarda su hash)
 //   2. Copiar el prompt e insertarlo en un chat del agente: crea el custom
 //      connector con la URL del /mcp y la clave
-//   3. Revocar desconecta el agente al instante
+//   3. Cambiar roles o revocar afecta al agente al instante (sin reconexión)
 // ==============================================================================
 
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Icon from "@/components/ui/Icon"
 import ModalConfirmacion from "@/components/ui/ModalConfirmacion"
-import { api, BASE_URL, type ClaveMcp, NIVELES_CLAVE, DEFAULTS_LIMITES } from "@/lib/api"
+import { api, BASE_URL, type ClaveMcp, ROLES_CLAVE, ROLES_ORDEN, DEFAULTS_LIMITES } from "@/lib/api"
 import { useTenant } from "@/contexts/TenantContext"
 import { useToast } from "@/components/ui/Toast"
 
@@ -36,9 +39,10 @@ const botonIcono = { background: "none", border: "none", cursor: "pointer", padd
 
 /** Prompt que se pega en el chat del agente (Muse) para crear el custom
  *  connector. Lleva la clave embebida: solo se puede armar en el momento
- *  de crearla, porque después ya no se puede recuperar. Varía según el
- *  nivel de permiso de la clave. */
-function promptConector(clave: string, nivel: number): string {
+ *  de crearla, porque después ya no se puede recuperar. El brief varía según
+ *  los ROLES activos de la clave. */
+function promptConector(clave: string, roles: string[]): string {
+    const set = new Set(roles)
     const lineas = [
         "Crea un custom connector para mi servidor MCP con estos datos:",
         "",
@@ -46,20 +50,38 @@ function promptConector(clave: string, nivel: number): string {
         "- Transporte: streamable HTTP",
         `- Autenticación: header "X-API-Key" con el valor: ${clave}`,
         "",
-        "Conector del inventario de mi negocio (productos físicos, precios de venta, descripciones, tamaños, stock y fotos; sin costos internos).",
-        "Cuando te pida publicar un producto en Marketplace o redes sociales, usa estos tools para obtener los datos (busca el producto y usa datos_para_publicar) en lugar de pedírmelos a mí.",
     ]
-    if (nivel >= 2) {
+    if (set.has("publicador")) {
         lineas.push(
-            "Además, cuando te pregunte cómo va mi negocio (ganancias, gastos, stock en riesgo, cobros pendientes), usa resumen_negocio y hallazgos_inteligentes: son cálculos reales de mi gestor, así que NUNCA inventes cifras.",
+            "Conector del inventario de mi negocio (productos físicos, precios de venta, descripciones, tamaños, stock y fotos; sin costos internos).",
+            "Cuando te pida publicar un producto en Marketplace o redes sociales, busca el producto y usa datos_para_publicar para obtener los datos en lugar de pedírmelos a mí.",
         )
     }
-    if (nivel >= 3) {
+    if (set.has("analista")) {
         lineas.push(
-            "También puedo pedirte crear productos nuevos: SIEMPRE usa primero proponer_producto (valida y guarda el borrador) y después confirmar_producto con el borrador_id que devuelva. Si un dato falta o es inválido, proponer_producto te dirá exactamente qué corregir.",
+            "Cuando te pregunte cómo va mi negocio (ganancias, gastos, stock en riesgo, cobros pendientes), usa resumen_negocio y hallazgos_inteligentes: son cálculos reales de mi gestor, así que NUNCA inventes cifras.",
         )
+    }
+    if (set.has("disenador")) {
+        lineas.push(
+            "También cuido las fotos del catálogo: antes de generar o pegar una imagen, consulta config_catalogo para conocer la proporción (1:1 o 4:5) y el fondo del catálogo. Usa adjuntar_imagen para ponerla (el gestor la reduce de peso y la encaja), eliminar_imagen para quitar la que se ve mal y reordenar_imagenes para decidir cuál va primero.",
+        )
+    }
+    if (set.has("inventario")) {
+        lineas.push(
+            "Puedo pedirte crear productos nuevos: SIEMPRE usa primero proponer_producto (valida y guarda el borrador) y después confirmar_producto con el borrador_id que devuelva. Si un dato falta o es inválido, proponer_producto te dirá exactamente qué corregir.",
+        )
+    }
+    if (!set.has("publicador")) {
+        lineas.push("Conector del inventario de mi negocio: productos físicos, precios de venta, stock y fotos.")
     }
     return lineas.join("\n")
+}
+
+/** Nombres legibles de los roles de una clave (badge de la lista). */
+function nombresDeRoles(roles: string[] | null): string {
+    const ids = roles?.filter(r => ROLES_CLAVE[r]) ?? [...ROLES_ORDEN]
+    return ids.map(r => ROLES_CLAVE[r].nombre).join(" + ") || "Publicador"
 }
 
 function formatearFecha(iso: string | null): string {
@@ -100,12 +122,11 @@ export function CardConectarMuse() {
     const queryClient = useQueryClient()
 
     const [nombre, setNombre] = useState("")
-    const [nivelSeleccionado, setNivelSeleccionado] = useState<1 | 2 | 3>(1)
-    // Modal de advertencia al subir de nivel: sirve para la clave NUEVA
-    // (claveId null) y para cambiar el nivel de una clave EXISTENTE.
-    const [modalSubida, setModalSubida] = useState<
-        { claveId: number | null; base: 1 | 2 | 3; destino: 1 | 2 | 3 } | null
-    >(null)
+    // ROLES del agente nuevo: todos OFF por defecto (mínimo 1 para generar).
+    const [rolesNueva, setRolesNueva] = useState<string[]>([])
+    // Modal de advertencia al activar un rol de ESCRITURA: sirve para la
+    // clave NUEVA (claveId null) y para cambiar los roles de una EXISTENTE.
+    const [modalRol, setModalRol] = useState<{ claveId: number | null; rol: string } | null>(null)
     // Modal de confirmación para eliminar una clave definitivamente.
     const [modalEliminar, setModalEliminar] = useState<{ id: number; nombre: string } | null>(null)
     // Sección avanzada de límites abierta por clave (id de la clave).
@@ -113,7 +134,7 @@ export function CardConectarMuse() {
     const [ocupado, setOcupado] = useState(false)
     // Clave recién creada (se muestra una sola vez junto con su prompt)
     const [claveNueva, setClaveNueva] = useState<string | null>(null)
-    const [nivelNueva, setNivelNueva] = useState<1 | 2 | 3>(1)
+    const [rolesNuevaCreada, setRolesNuevaCreada] = useState<string[]>([])
     const [copiado, setCopiado] = useState<"clave" | "prompt" | null>(null)
 
     const clavesQuery = useQuery({
@@ -127,12 +148,26 @@ export function CardConectarMuse() {
         queryClient.invalidateQueries({ queryKey: ["muse-claves", tenantId ?? "sin-tenant"] })
     }
 
+    function alternarRolNueva(rol: string) {
+        const activo = rolesNueva.includes(rol)
+        if (activo) {
+            setRolesNueva(prev => prev.filter(r => r !== rol))
+            return
+        }
+        if (ROLES_CLAVE[rol]?.escritura) {
+            setModalRol({ claveId: null, rol })
+            return
+        }
+        setRolesNueva(prev => [...prev, rol])
+    }
+
     async function generar() {
         setOcupado(true)
         try {
-            const r = await api.crearClave(nombre || undefined, nivelSeleccionado)
+            const r = await api.crearClave(nombre || undefined, rolesNueva)
             setClaveNueva(r.clave)
-            setNivelNueva(nivelSeleccionado)
+            setRolesNuevaCreada(rolesNueva)
+            setRolesNueva([])
             setNombre("")
             invalidar()
             mostrarMsg(true, "Clave creada. Cópiala ahora: no se volverá a mostrar.")
@@ -176,12 +211,24 @@ export function CardConectarMuse() {
         }
     }
 
-    async function cambiarNivelDeClave(claveId: number, destino: 1 | 2 | 3) {
+    /** Activar/desactivar un rol de una clave EXISTENTE. El agente no se
+     *  reconecta: tools/list se ajusta en el próximo request. */
+    async function alternarRolDeClave(c: ClaveMcp, rol: string) {
+        const actuales = c.roles ?? [...ROLES_ORDEN]  // legacy pre-081 = todas
+        const activo = actuales.includes(rol)
+        if (!activo && ROLES_CLAVE[rol]?.escritura) {
+            setModalRol({ claveId: c.id, rol })
+            return
+        }
+        const nuevos = activo ? actuales.filter(r => r !== rol) : [...actuales, rol]
+        if (nuevos.length === 0) {
+            mostrarMsg(false, "La clave necesita al menos un rol activo")
+            return
+        }
         setOcupado(true)
         try {
-            await api.editarClave(claveId, { nivel: destino })
-            mostrarMsg(true, `Nivel cambiado a ${destino}: el agente no necesita reconectarse`)
-            setModalSubida(null)
+            await api.editarClave(c.id, { roles: nuevos })
+            mostrarMsg(true, `Roles actualizados: el agente no necesita reconectarse`)
             invalidar()
         } catch (e: unknown) {
             mostrarMsg(false, e instanceof Error ? e.message : "Error")
@@ -190,8 +237,20 @@ export function CardConectarMuse() {
         }
     }
 
+    async function confirmarModalRol() {
+        if (!modalRol) return
+        const { claveId, rol } = modalRol
+        setModalRol(null)
+        if (claveId === null) {
+            setRolesNueva(prev => (prev.includes(rol) ? prev : [...prev, rol]))
+            return
+        }
+        const c = claves.find(k => k.id === claveId)
+        if (c) await alternarRolDeClave(c, rol)
+    }
+
     async function guardarLimites(c: ClaveMcp, llamadas: HTMLInputElement, escrituras: HTMLInputElement) {
-        // Vacío = volver al default del nivel (el backend interpreta 0 así).
+        // Vacío = volver al default del nivel derivado (el backend interpreta 0 así).
         const parsear = (input: HTMLInputElement) => {
             const v = input.value.trim()
             return v === "" ? 0 : Math.max(0, parseInt(v, 10) || 0)
@@ -213,7 +272,7 @@ export function CardConectarMuse() {
     }
 
     async function copiarYavisar(que: "clave" | "prompt") {
-        const texto = que === "clave" ? claveNueva : promptConector(claveNueva || "", nivelNueva)
+        const texto = que === "clave" ? claveNueva : promptConector(claveNueva || "", rolesNuevaCreada)
         if (!texto) return
         const ok = await copiar(texto)
         if (ok) {
@@ -230,10 +289,10 @@ export function CardConectarMuse() {
                 <Icon name="Bot" size={20} color="var(--primary-dark)" /> Conectar mi IA
             </h2>
             <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 16px" }}>
-                Conecta un agente IA (como <strong>Muse</strong>) para que lea tu catálogo: precios de venta, stock,
-                descripciones y fotos. Así puedes decirle “publica en Marketplace el producto X” y él saca los datos solo.
-                <strong> Nunca ve tus costos unitarios.</strong> Elige el nivel de permiso al crear cada clave:
-                análisis del negocio y creación de productos son opcionales y se activan por clave.
+                Conecta un agente IA (como <strong>Muse</strong>) y elige QUÉ TRABAJO hace activando sus roles:
+                publicar en redes, analizar el negocio, cuidar las fotos o crear productos. El agente solo ve las
+                herramientas de los roles activos. <strong>Nunca ve tus costos unitarios</strong> salvo el permiso
+                explícito 'ver costos'. Puedes crear una clave por agente/rol.
             </p>
 
             {/* ── Clave recién creada: se muestra UNA sola vez ── */}
@@ -254,8 +313,8 @@ export function CardConectarMuse() {
                         Pega esto en un chat de tu IA para conectarla
                     </p>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                        <pre style={{ flex: 1, margin: 0, fontSize: "0.66rem", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "monospace", background: "var(--bg-card)", padding: "8px 10px", borderRadius: 6, maxHeight: 150, overflow: "auto" }}>
-                            {promptConector(claveNueva, nivelNueva)}
+                        <pre style={{ flex: 1, margin: 0, fontSize: "0.66rem", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "monospace", background: "var(--bg-card)", padding: "8px 10px", borderRadius: 6, maxHeight: 170, overflow: "auto" }}>
+                            {promptConector(claveNueva, rolesNuevaCreada)}
                         </pre>
                         <button onClick={() => copiarYavisar("prompt")} title="Copiar prompt completo" style={botonIcono}>
                             <Icon name={copiado === "prompt" ? "Check" : "Copy"} size={16} color="var(--primary-dark)" />
@@ -271,11 +330,12 @@ export function CardConectarMuse() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                 {claves.length === 0 && (
                     <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                        Sin agentes conectados. Genera una clave para conectar el primero.
+                        Sin agentes conectados. Activa los roles y genera una clave para conectar el primero.
                     </p>
                 )}
                 {claves.map(c => {
-                    const nivelInfo = NIVELES_CLAVE[c.nivel] ?? NIVELES_CLAVE[1]
+                    const activos = c.roles ?? [...ROLES_ORDEN]
+                    const escritura = activos.some(r => ROLES_CLAVE[r]?.escritura)
                     const defaults = DEFAULTS_LIMITES[c.nivel] ?? DEFAULTS_LIMITES[1]
                     return (
                         <div key={c.id} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-primary)", background: "var(--bg-card2)" }}>
@@ -285,16 +345,16 @@ export function CardConectarMuse() {
                                         {c.nombre}
                                         <span style={{
                                             fontSize: "0.6rem", fontWeight: 800, padding: "1px 7px", borderRadius: 20,
-                                            background: "var(--primary-mid)", color: "white",
+                                            background: escritura ? "var(--primary-alter)" : "var(--primary-mid)", color: "white",
                                         }}>
-                                            Nivel {c.nivel} · {nivelInfo.nombre}
+                                            {nombresDeRoles(c.roles)}
                                         </span>
                                     </p>
                                     <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600, fontFamily: "monospace" }}>
                                         {c.key_prefix}
                                     </p>
                                     <p style={{ margin: "2px 0 0", fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                                        {c.llamadas_hoy} llamadas hoy{c.nivel >= 3 ? ` · ${c.escrituras_hoy} escrituras` : ""} · último uso {formatearFecha(c.ultimo_uso_en)}
+                                        {c.llamadas_hoy} llamadas hoy{escritura ? ` · ${c.escrituras_hoy} escrituras` : ""} · último uso {formatearFecha(c.ultimo_uso_en)}
                                     </p>
                                 </div>
                                 <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
@@ -311,33 +371,35 @@ export function CardConectarMuse() {
                                 </div>
                             </div>
 
-                            {/* Selector de nivel de la clave existente */}
+                            {/* Toggles de rol de la clave existente */}
                             <div style={{ display: "flex", gap: 4, marginTop: 8, flexWrap: "wrap" }}>
-                                {([1, 2, 3] as const).map(n => (
-                                    <button
-                                        key={n}
-                                        type="button"
-                                        onClick={() => n !== c.nivel && (n > c.nivel
-                                            ? setModalSubida({ claveId: c.id, base: c.nivel as 1 | 2 | 3, destino: n })
-                                            : cambiarNivelDeClave(c.id, n))}
-                                        style={{
-                                            fontSize: "0.64rem", fontWeight: 800, cursor: "pointer",
-                                            padding: "3px 10px", borderRadius: 20,
-                                            border: c.nivel === n ? "none" : "1px solid var(--border-primary)",
-                                            background: c.nivel === n ? "var(--primary-mid)" : "var(--bg-card)",
-                                            color: c.nivel === n ? "white" : "var(--text-muted)",
-                                        }}
-                                    >
-                                        Nivel {n}
-                                    </button>
-                                ))}
+                                {ROLES_ORDEN.map(rol => {
+                                    const info = ROLES_CLAVE[rol]
+                                    const activo = activos.includes(rol)
+                                    return (
+                                        <button
+                                            key={rol}
+                                            type="button"
+                                            onClick={() => alternarRolDeClave(c, rol)}
+                                            style={{
+                                                fontSize: "0.64rem", fontWeight: 800, cursor: "pointer",
+                                                padding: "3px 10px", borderRadius: 20,
+                                                border: activo ? "none" : "1px solid var(--border-primary)",
+                                                background: activo ? "var(--primary-mid)" : "var(--bg-card)",
+                                                color: activo ? "white" : "var(--text-muted)",
+                                            }}
+                                        >
+                                            {info.nombre}
+                                        </button>
+                                    )
+                                })}
                             </div>
 
                             {/* Límites avanzados (colapsable) */}
                             {limitesAbiertos === c.id && (
                                 <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, background: "var(--bg-card)", display: "flex", flexDirection: "column", gap: 6 }}>
                                     <p style={{ margin: 0, fontSize: "0.66rem", fontWeight: 700, color: "var(--text-muted)" }}>
-                                        Límites por día de ESTA clave (vacío = default del nivel:
+                                        Límites por día de ESTA clave (vacío = default de sus roles:
                                         {` ${defaults.llamadas} llamadas / ${defaults.escrituras} escrituras`})
                                     </p>
                                     <form
@@ -391,33 +453,53 @@ export function CardConectarMuse() {
                 })}
             </div>
 
-            {/* ── Alta de clave: nivel + nombre ── */}
+            {/* ── Alta de clave: toggles de rol + nombre ── */}
             <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-                Conectar un agente — elige su nivel de permiso
+                Conectar un agente — activa los roles de su clave
             </span>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-                {([1, 2, 3] as const).map(n => {
-                    const info = NIVELES_CLAVE[n]
-                    const elegido = nivelSeleccionado === n
+                {ROLES_ORDEN.map(rol => {
+                    const info = ROLES_CLAVE[rol]
+                    const elegido = rolesNueva.includes(rol)
                     return (
                         <button
-                            key={n}
+                            key={rol}
                             type="button"
-                            onClick={() => (n > nivelSeleccionado
-                                ? setModalSubida({ claveId: null, base: nivelSeleccionado, destino: n })
-                                : setNivelSeleccionado(n))}
+                            onClick={() => alternarRolNueva(rol)}
                             style={{
                                 textAlign: "left", cursor: "pointer", padding: "10px 12px", borderRadius: 10,
                                 border: elegido ? "2px solid var(--primary-mid)" : "1px solid var(--border-primary)",
                                 background: elegido ? "var(--bg-card2)" : "var(--bg-card)",
+                                display: "flex", gap: 10, alignItems: "flex-start",
                             }}
                         >
-                            <p style={{ margin: 0, fontWeight: 800, fontSize: "0.8rem", color: elegido ? "var(--primary-dark)" : "var(--text-main)" }}>
-                                Nivel {n} · {info.nombre}
-                            </p>
-                            <p style={{ margin: "2px 0 0", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                                {info.descripcion}
-                            </p>
+                            <span style={{
+                                width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 2,
+                                border: elegido ? "none" : "2px solid var(--border-primary)",
+                                background: elegido ? "var(--primary-mid)" : "transparent",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                            }}>
+                                {elegido && <Icon name="Check" size={11} color="white" />}
+                            </span>
+                            <span style={{ minWidth: 0 }}>
+                                <span style={{
+                                    margin: 0, fontWeight: 800, fontSize: "0.8rem", display: "flex", gap: 6, alignItems: "center",
+                                    color: elegido ? "var(--primary-dark)" : "var(--text-main)",
+                                }}>
+                                    {info.nombre}
+                                    {info.escritura && (
+                                        <span style={{
+                                            fontSize: "0.56rem", fontWeight: 800, padding: "1px 6px", borderRadius: 20,
+                                            background: "var(--primary-alter)", color: "white", textTransform: "uppercase",
+                                        }}>
+                                            modifica datos
+                                        </span>
+                                    )}
+                                </span>
+                                <span style={{ margin: "2px 0 0", fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600, display: "block" }}>
+                                    {info.descripcion}
+                                </span>
+                            </span>
                         </button>
                     )
                 })}
@@ -431,49 +513,46 @@ export function CardConectarMuse() {
                     style={inputStyle}
                 />
             </div>
-            <button onClick={generar} disabled={ocupado} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Icon name="KeyRound" size={15} /> Generar clave
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <button onClick={generar} disabled={ocupado || rolesNueva.length === 0} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Icon name="KeyRound" size={15} /> Generar clave
+                </button>
+                {rolesNueva.length === 0 && (
+                    <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                        Activa al menos un rol: una clave sin roles no ve ninguna herramienta
+                    </span>
+                )}
+            </div>
 
-            {/* ── Modal: advertencia al subir a un nivel superior ──
-                Sirve para la clave NUEVA (claveId null) y para cambiar el nivel
-                de una EXISTENTE (el agente no se reconecta: el hash no cambia).
-                Si se salta de nivel, la lista ACUMULA los permisos intermedios. */}
-            {modalSubida !== null && (
+            {/* ── Modal: advertencia al activar un rol que MODIFICA datos ──
+                Sirve para la clave NUEVA (claveId null) y para cambiar los
+                roles de una EXISTENTE (el agente no se reconecta). */}
+            {modalRol !== null && (
                 <ModalConfirmacion
                     icon="ShieldAlert"
                     iconBg="#fff3e0"
                     iconColor="#e65100"
-                    titulo={`Nivel ${modalSubida.destino} · ${NIVELES_CLAVE[modalSubida.destino].nombre}`}
+                    titulo={`Rol ${ROLES_CLAVE[modalRol.rol].nombre}`}
                     mensaje={
-                        modalSubida.claveId
-                            ? `La clave "${claves.find(c => c.id === modalSubida.claveId)?.nombre ?? ""}" no cambia: el agente seguirá conectado con más permisos:`
-                            : "Con esta clave el agente IA además podrá:"
+                        modalRol.claveId
+                            ? `La clave "${claves.find(c => c.id === modalRol.claveId)?.nombre ?? ""}" no cambia (el agente sigue conectado), pero al activar este rol el agente podrá:`
+                            : "Al activar este rol el agente IA podrá:"
                     }
                     contenido={
                         <ul style={{ margin: 0, paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>
-                            {((modalSubida.base < 2 && modalSubida.destino >= 2)
-                                ? NIVELES_CLAVE[2].permisosNuevos : []
-                            ).concat(NIVELES_CLAVE[modalSubida.destino].permisosNuevos).map((p, i) => (
+                            {ROLES_CLAVE[modalRol.rol].permisos.map((p, i) => (
                                 <li key={i} style={{ fontSize: "0.78rem", color: "var(--text-main)", lineHeight: 1.4 }}>
                                     {p}
                                 </li>
                             ))}
                         </ul>
                     }
-                    aviso={NIVELES_CLAVE[modalSubida.destino].advertencia}
-                    btnConfirmar="Aceptar y dar estos permisos"
+                    aviso={ROLES_CLAVE[modalRol.rol].advertencia}
+                    btnConfirmar="Aceptar y activar el rol"
                     btnCancelar="Rechazar"
                     btnColor="#e65100"
-                    onCancelar={() => setModalSubida(null)}
-                    onConfirmar={() => {
-                        if (modalSubida.claveId) {
-                            cambiarNivelDeClave(modalSubida.claveId, modalSubida.destino)
-                        } else {
-                            setNivelSeleccionado(modalSubida.destino)
-                            setModalSubida(null)
-                        }
-                    }}
+                    onCancelar={() => setModalRol(null)}
+                    onConfirmar={confirmarModalRol}
                 />
             )}
 
