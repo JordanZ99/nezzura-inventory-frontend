@@ -19,6 +19,7 @@
 // ==============================================================================
 
 import { useEffect } from "react"
+import { createPortal } from "react-dom"
 import type { ReactNode } from "react"
 import Icon from "@/components/ui/Icon"
 
@@ -69,7 +70,12 @@ export default function ModalConfirmacion({
         }
     }, [onCancelar])
 
-    return (
+    // createPortal a document.body: el overlay y el card se centran en el
+    // VIEWPORT aunque algún ancestro tenga transform/animación (un transform
+    // convierte el position:fixed en relativo a ese ancestro — el modal salía
+    // dentro del card de Ajustes en vez de encima de todo). Solo se monta con
+    // el modal abierto (evento del cliente), así que document.body existe.
+    return createPortal(
         <div style={{
             position: "fixed", inset: 0, zIndex: 9999,
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -138,6 +144,7 @@ export default function ModalConfirmacion({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

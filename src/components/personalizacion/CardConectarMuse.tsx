@@ -217,11 +217,14 @@ export function CardConectarMuse() {
     }
 
     /** Activar/desactivar un rol de una clave EXISTENTE. El agente no se
-     *  reconecta: tools/list se ajusta en el próximo request. */
-    async function alternarRolDeClave(c: ClaveMcp, rol: string) {
+     *  reconecta: tools/list se ajusta en el próximo request. 'confirmado'
+     *  salta el modal de advertencia: lo manda confirmarModalRol cuando el
+     *  dueño YA aceptó (sin él, el Aceptar re-evaluaría la misma condición
+     *  del rol de escritura y reabriría el modal en bucle sin guardar). */
+    async function alternarRolDeClave(c: ClaveMcp, rol: string, confirmado = false) {
         const actuales = c.roles ?? [...ROLES_ORDEN]  // legacy pre-081 = todas
         const activo = actuales.includes(rol)
-        if (!activo && ROLES_CLAVE[rol]?.escritura) {
+        if (!activo && ROLES_CLAVE[rol]?.escritura && !confirmado) {
             setModalRol({ claveId: c.id, rol })
             return
         }
@@ -251,7 +254,7 @@ export function CardConectarMuse() {
             return
         }
         const c = claves.find(k => k.id === claveId)
-        if (c) await alternarRolDeClave(c, rol)
+        if (c) await alternarRolDeClave(c, rol, true)
     }
 
     async function guardarLimites(c: ClaveMcp, llamadas: HTMLInputElement, escrituras: HTMLInputElement) {
