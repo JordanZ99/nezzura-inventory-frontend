@@ -74,7 +74,7 @@ function promptConector(clave: string, roles: string[]): string {
     }
     if (set.has("cajero")) {
         lineas.push(
-            "También REGISTRAS VENTAS: cuando te diga qué vendió o te pase la FOTO de un ticket, identifica cada producto con buscar_productos y arma la venta con proponer_venta (envía el producto_id de cada renglón). Muéstrame el desglose que te devuelva y espera mi aprobación antes de confirmar_venta. Si un renglón del ticket no lo puedes leer con certeza, pregúntame: nunca lo adivines ni lo omitas en silencio. Si vendí algo que no está en el inventario, regístralo como venta libre con su motivo.",
+            "También REGISTRAS VENTAS: cuando te diga qué vendió o te pase la FOTO de un ticket, identifica cada producto con buscar_productos y arma la venta con proponer_venta (envía el producto_id de cada renglón). Muéstrame el desglose que te devuelva y espera mi aprobación antes de confirmar_venta. PROPÓN, NO INTERROGUES: si un renglón es ambiguo, elige tu mejor interpretación con señales reales (precio del ticket = precio del inventario, nombre parcial, stock del desglose), márcala y cierra con UNA sola pregunta: '¿lo registro así o corriges algo?'. El precio del ticket es el precio por unidad, salvo que me avises lo contrario. Si vendí algo que no está en el inventario, regístralo como venta libre con su motivo. Nunca inventes un renglón, un producto_id ni un precio.",
         )
     }
     if (!set.has("publicador")) {
