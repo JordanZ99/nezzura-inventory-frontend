@@ -72,6 +72,11 @@ function promptConector(clave: string, roles: string[]): string {
             "Puedo pedirte crear productos nuevos: SIEMPRE usa primero proponer_producto (valida y guarda el borrador) y después confirmar_producto con el borrador_id que devuelva. Si un dato falta o es inválido, proponer_producto te dirá exactamente qué corregir.",
         )
     }
+    if (set.has("cajero")) {
+        lineas.push(
+            "También REGISTRAS VENTAS: cuando te diga qué vendió o te pase la FOTO de un ticket, identifica cada producto con buscar_productos y arma la venta con proponer_venta (envía el producto_id de cada renglón). Muéstrame el desglose que te devuelva y espera mi aprobación antes de confirmar_venta. Si un renglón del ticket no lo puedes leer con certeza, pregúntame: nunca lo adivines ni lo omitas en silencio. Si vendí algo que no está en el inventario, regístralo como venta libre con su motivo.",
+        )
+    }
     if (!set.has("publicador")) {
         lineas.push("Conector del inventario de mi negocio: productos físicos, precios de venta, stock y fotos.")
     }

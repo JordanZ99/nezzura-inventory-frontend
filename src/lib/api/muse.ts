@@ -4,9 +4,9 @@
 // Cada negocio genera claves desde Ajustes → Negocio → "Conectar mi IA".
 // La clave se pega UNA vez en el agente (custom connector) y le da acceso a
 // los ROLES funcionales que el dueño activó (toggles): publicar en redes,
-// analizar el negocio, cuidar las fotos o crear/editar productos. El agente
-// ve la UNIÓN de las tools de sus roles — nada más. Nunca costos salvo el
-// permiso explícito 'ver costos'.
+// analizar el negocio, cuidar las fotos, crear/editar productos o registrar
+// ventas (Cajero). El agente ve la UNIÓN de las tools de sus roles — nada
+// más. Nunca costos salvo el permiso explícito 'ver costos'.
 // ==============================================================================
 
 import { request } from "./client"
@@ -101,10 +101,23 @@ export const ROLES_CLAVE: Record<string, RolClave> = {
         escritura: true,
         planPlus: true,
     },
+    cajero: {
+        nombre: "Cajero",
+        descripcion: "Para registrar lo que vendiste por chat, incluso leyendo la foto de un ticket: arma la venta con tu inventario real, te muestra el desglose y la registra solo si la apruebas.",
+        permisos: [
+            "Registrar ventas: descuenta stock y genera ticket con el mismo motor del POS",
+            "Leer la foto de un ticket y proponerte el desglose para que lo apruebes",
+            "Registrar ventas libres (lo que no está en el inventario) con su motivo",
+            "Cada venta queda en el Historial como hecha por el agente IA, y si el ticket es de otro día queda con esa fecha",
+        ],
+        advertencia: "Puede REGISTRAR VENTAS (descuenta stock y genera tickets) tras tu aprobación del desglose en el chat; nunca ve costos. Si registras muchos tickets al día, sube el límite de llamadas de la clave (cada venta usa 2 llamadas).",
+        escritura: true,
+        planPlus: false,
+    },
 }
 
 /** Orden de presentación de los toggles. */
-export const ROLES_ORDEN = ["publicador", "analista", "disenador", "inventario"] as const
+export const ROLES_ORDEN = ["publicador", "analista", "disenador", "inventario", "cajero"] as const
 export type RolId = (typeof ROLES_ORDEN)[number]
 
 /** Límites por defecto según el nivel DERIVADO de los roles (espejo de
