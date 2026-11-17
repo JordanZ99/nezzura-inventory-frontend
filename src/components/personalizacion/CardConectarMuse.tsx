@@ -15,11 +15,11 @@
 //   3. Cambiar roles o revocar afecta al agente al instante (sin reconexión)
 // ==============================================================================
 
-import { useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Icon from "@/components/ui/Icon"
 import ModalConfirmacion from "@/components/ui/ModalConfirmacion"
-import { api, BASE_URL, type ClaveMcp, ROLES_CLAVE, ROLES_ORDEN, DEFAULTS_LIMITES } from "@/lib/api"
+import { api, BASE_URL, type ClaveMcp, type PresetFoto, ROLES_CLAVE, ROLES_ORDEN, DEFAULTS_LIMITES } from "@/lib/api"
 import { useTenant } from "@/contexts/TenantContext"
 import { useToast } from "@/components/ui/Toast"
 
@@ -40,8 +40,10 @@ const botonIcono = { background: "none", border: "none", cursor: "pointer", padd
 /** Prompt que se pega en el chat del agente (Muse) para crear el custom
  *  connector. Lleva la clave embebida: solo se puede armar en el momento
  *  de crearla, porque después ya no se puede recuperar. El brief varía según
- *  los ROLES activos de la clave. */
-function promptConector(clave: string, roles: string[]): string {
+ *  los ROLES activos de la clave. `comandosFoto` son los comandos de foto
+ *  vigentes del negocio (database/mcp_estilos): se inyectan aquí para que el
+ *  agente conozca el comando desde el primer mensaje. */
+function promptConector(clave: string, roles: string[], comandosFoto: string[] = []): string {
     const set = new Set(roles)
     const lineas = [
         "Crea un custom connector para mi servidor MCP con estos datos:",
@@ -63,13 +65,16 @@ function promptConector(clave: string, roles: string[]): string {
         )
     }
     if (set.has("disenador")) {
+        const comandoTxt = comandosFoto.length ? `el comando ${comandosFoto.join(" o ")}` : "un comando de foto"
         lineas.push(
             "También cuido las fotos del catálogo: antes de generar o pegar una imagen, consulta config_catalogo para conocer la proporción (1:1 o 4:5) y el fondo del catálogo. Usa adjuntar_imagen para ponerla (el gestor la reduce de peso y la encaja), eliminar_imagen para quitar la que se ve mal y reordenar_imagenes para decidir cuál va primero.",
+            `Cuando te envíe una foto y escriba ${comandoTxt} —o pida quitar/limpiar el fondo, retocar la foto o ponerla en fondo de estudio—: llama estilos_foto, toma el prompt del preset y aplícalo a mi imagen SIN cambiar el producto; luego adjunta el resultado con adjuntar_imagen. Nunca inventes un prompt propio.`,
         )
     }
     if (set.has("inventario")) {
         lineas.push(
             "Puedo pedirte crear productos nuevos: SIEMPRE usa primero proponer_producto (valida y guarda el borrador) y después confirmar_producto con el borrador_id que devuelva. Si un dato falta o es inválido, proponer_producto te dirá exactamente qué corregir.",
+            "Si te envío una foto para un producto y escribo un comando de foto —o pido quitar el fondo o retocarla—: llama estilos_foto, usa el prompt del preset tal cual y adjunta el resultado con adjuntar_imagen.",
         )
     }
     if (set.has("cajero")) {
@@ -126,6 +131,203 @@ async function copiar(texto: string): Promise<boolean> {
     }
 }
 
+// ==============================================================================
+// Sección "Fotos por comando" (082): el dueño edita el comando y el prompt
+// que el agente aplica cuando escribe el comando en el chat (ej. /img) o
+// pide quitar/limpiar el fondo, retocar la foto o ponerla en fondo de
+// estudio. Se muestra dentro de los límites avanzados de una clave con rol
+// de foto (disenador/inventario). El almacenamiento es del NEGOCIO (por
+// tenant), no de la clave: se edita aquí por comodidad.
+// ==============================================================================
+
+function SeccionEstilosFoto({ mostrarMsg }: { mostrarMsg: (ok: boolean, msg: string) => void }) {
+    const queryClient = useQueryClient()
+    const [ocupado, setOcupado] = useState(false)
+    const [anadiendo, setAnadiendo] = useState(false)
+    // Borrador del prompt por preset (clave del preset → texto del textarea):
+    // controlado para que "restaurar recomendado" escriba en el campo.
+    const [borradores, setBorradores] = useState<Record<string, string>>({})
+
+    const estilosQuery = useQuery({
+        queryKey: ["muse-estilos"],
+        queryFn: api.getEstilosFoto,
+    })
+    const presets: PresetFoto[] = estilosQuery.data?.presets ?? []
+
+    // Inicializa los borradores con el prompt vigente de cada preset (sin
+    // pisar lo que el dueño ya está editando).
+    useEffect(() => {
+        if (!estilosQuery.data) return
+        setBorradores(prev => {
+            const next = { ...prev }
+            let faltaba = false
+            for (const p of presets) {
+                if (next[p.clave] === undefined) {
+                    next[p.clave] = p.prompt
+                    faltaba = true
+                }
+            }
+            return faltaba ? next : prev
+        })
+    }, [estilosQuery.data])
+
+    function invalidar() {
+        queryClient.invalidateQueries({ queryKey: ["muse-estilos"] })
+    }
+
+    async function guardar(p: PresetFoto, comando: HTMLInputElement) {
+        const prompt = (borradores[p.clave] ?? p.prompt).trim()
+        setOcupado(true)
+        try {
+            await api.guardarEstilo({ comando: comando.value.trim(), nombre: p.nombre, prompt })
+            mostrarMsg(true, `Preset "${p.nombre}" guardado`)
+            invalidar()
+        } catch (e: unknown) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error")
+        } finally {
+            setOcupado(false)
+        }
+    }
+
+    async function crear(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault()
+        const form = e.currentTarget
+        const comando = (form.elements.namedItem("nuevo-comando") as HTMLInputElement).value.trim()
+        const nombre = (form.elements.namedItem("nuevo-nombre") as HTMLInputElement).value.trim()
+        const prompt = (form.elements.namedItem("nuevo-prompt") as HTMLTextAreaElement).value.trim()
+        setOcupado(true)
+        try {
+            await api.crearEstilo({ comando, nombre, prompt })
+            mostrarMsg(true, "Comando añadido")
+            setAnadiendo(false)
+            invalidar()
+        } catch (e: unknown) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error")
+        } finally {
+            setOcupado(false)
+        }
+    }
+
+    async function eliminar(p: PresetFoto) {
+        setOcupado(true)
+        try {
+            await api.eliminarEstilo(p.clave)
+            mostrarMsg(
+                true,
+                p.es_default
+                    ? "Restaurado: el agente vuelve a usar el prompt recomendado con /img"
+                    : `Preset "${p.nombre}" eliminado`,
+            )
+            setBorradores(prev => {
+                const next = { ...prev }
+                delete next[p.clave]
+                return next
+            })
+            invalidar()
+        } catch (e: unknown) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error")
+        } finally {
+            setOcupado(false)
+        }
+    }
+
+    if (estilosQuery.isLoading) {
+        return <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--text-muted)" }}>Cargando comandos de foto…</p>
+    }
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+            <p style={{ margin: 0, fontSize: "0.66rem", fontWeight: 700, color: "var(--text-muted)" }}>
+                Fotos por comando: cuando le envías una foto y escribes el comando (o pides quitar el fondo /
+                retocarla), el agente aplica el prompt del preset y la adjunta. Es del negocio, no de esta clave.
+            </p>
+
+            {presets.map(p => (
+                <div key={p.clave} style={{ padding: "8px 10px", borderRadius: 8, background: "var(--bg-card2)", border: "1px solid var(--border-primary)", display: "flex", flexDirection: "column", gap: 6 }}>
+                    <form
+                        onSubmit={e => {
+                            e.preventDefault()
+                            guardar(p, e.currentTarget.elements.namedItem("est-comando") as HTMLInputElement)
+                        }}
+                        style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}
+                    >
+                        <input
+                            name="est-comando"
+                            defaultValue={p.comando}
+                            maxLength={20}
+                            title="Comando que escribes en el chat"
+                            style={{ ...inputStyle, width: 90, fontWeight: 700 }}
+                        />
+                        <span style={{ fontSize: "0.7rem", fontWeight: 800, color: "var(--text-main)", flex: 1 }}>
+                            {p.nombre}
+                            {p.es_default && p.editado && (
+                                <span style={{ fontSize: "0.56rem", fontWeight: 700, color: "var(--text-muted)", marginLeft: 6 }}>
+                                    (editado)
+                                </span>
+                            )}
+                        </span>
+                        <button type="submit" disabled={ocupado} className="btn-primary" style={{ padding: "5px 10px", fontSize: "0.68rem" }}>
+                            Guardar
+                        </button>
+                        <button type="button" disabled={ocupado} onClick={() => eliminar(p)} title={p.es_default ? "Restaurar el prompt recomendado" : "Eliminar preset"} style={botonIcono}>
+                            <Icon name={p.es_default ? "RotateCcw" : "Trash2"} size={14} color={p.es_default ? "var(--text-muted)" : "#b71c1c"} />
+                        </button>
+                    </form>
+                    <textarea
+                        value={borradores[p.clave] ?? p.prompt}
+                        onChange={e => setBorradores(prev => ({ ...prev, [p.clave]: e.target.value }))}
+                        rows={5}
+                        maxLength={2000}
+                        style={{ ...inputStyle, fontWeight: 500, resize: "vertical", lineHeight: 1.45 }}
+                    />
+                    {p.es_default && p.editado && p.prompt_recomendado && (
+                        <button
+                            type="button"
+                            disabled={ocupado}
+                            onClick={() => setBorradores(prev => ({ ...prev, [p.clave]: p.prompt_recomendado as string }))}
+                            style={{ alignSelf: "flex-start", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: "0.64rem", fontWeight: 700, color: "var(--primary-dark)" }}
+                        >
+                            Restaurar prompt recomendado
+                        </button>
+                    )}
+                </div>
+            ))}
+
+            {anadiendo ? (
+                <form onSubmit={crear} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 10px", borderRadius: 8, background: "var(--bg-card)", border: "1px dashed var(--border-primary)" }}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                        <input name="nuevo-comando" placeholder="/detalle" maxLength={20} style={{ ...inputStyle, width: 110, fontWeight: 700 }} />
+                        <input name="nuevo-nombre" placeholder="Nombre (ej. Detalle macro)" maxLength={40} style={{ ...inputStyle, flex: 1 }} />
+                    </div>
+                    <textarea
+                        name="nuevo-prompt"
+                        placeholder="Prompt que el agente aplicará a la imagen (preserva el producto, describe la luz, termina con lo que NO debe hacer)…"
+                        rows={5}
+                        maxLength={2000}
+                        style={{ ...inputStyle, fontWeight: 500, resize: "vertical", lineHeight: 1.45 }}
+                    />
+                    <div style={{ display: "flex", gap: 6 }}>
+                        <button type="submit" disabled={ocupado} className="btn-primary" style={{ padding: "5px 10px", fontSize: "0.68rem" }}>
+                            Añadir comando
+                        </button>
+                        <button type="button" disabled={ocupado} onClick={() => setAnadiendo(false)} className="btn-secondary" style={{ padding: "5px 10px", fontSize: "0.68rem" }}>
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            ) : (
+                <button
+                    type="button"
+                    onClick={() => setAnadiendo(true)}
+                    style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, background: "none", border: "1px dashed var(--border-primary)", borderRadius: 8, cursor: "pointer", padding: "6px 12px", fontSize: "0.7rem", fontWeight: 800, color: "var(--primary-dark)" }}
+                >
+                    <Icon name="Plus" size={14} /> Añadir otro comando
+                </button>
+            )}
+        </div>
+    )
+}
+
 export function CardConectarMuse() {
     const { tenant } = useTenant()
     const tenantId = tenant?.tenant_id
@@ -154,6 +356,18 @@ export function CardConectarMuse() {
         enabled: Boolean(tenantId),
     })
     const claves: ClaveMcp[] = clavesQuery.data?.claves ?? []
+
+    // Comandos de foto vigentes (082): entran al prompt del conector cuando
+    // la clave nueva tiene roles de foto (el agente los conoce desde el
+    // primer mensaje).
+    const estilosQuery = useQuery({
+        queryKey: ["muse-estilos"],
+        queryFn: api.getEstilosFoto,
+        enabled: Boolean(tenantId),
+    })
+    const comandosFoto = (estilosQuery.data?.presets ?? [])
+        .filter(p => p.activo)
+        .map(p => p.comando)
 
     function invalidar() {
         queryClient.invalidateQueries({ queryKey: ["muse-claves", tenantId ?? "sin-tenant"] })
@@ -328,7 +542,7 @@ export function CardConectarMuse() {
                     </p>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                         <pre style={{ flex: 1, margin: 0, fontSize: "0.66rem", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "monospace", background: "var(--bg-card)", padding: "8px 10px", borderRadius: 6, maxHeight: 170, overflow: "auto" }}>
-                            {promptConector(claveNueva, rolesNuevaCreada)}
+                            {promptConector(claveNueva, rolesNuevaCreada, comandosFoto)}
                         </pre>
                         <button onClick={() => copiarYavisar("prompt")} title="Copiar prompt completo" style={botonIcono}>
                             <Icon name={copiado === "prompt" ? "Check" : "Copy"} size={16} color="var(--primary-dark)" />
@@ -460,6 +674,15 @@ export function CardConectarMuse() {
                                             </span>
                                         </span>
                                     </label>
+
+                                    {/* Fotos por comando (082): solo claves con
+                                        rol de foto — estilos_foto no existe para
+                                        las demás. El preset vive en el negocio. */}
+                                    {activos.some(r => r === "disenador" || r === "inventario") && (
+                                        <div style={{ borderTop: "1px solid var(--border-primary)", paddingTop: 8, marginTop: 2 }}>
+                                            <SeccionEstilosFoto mostrarMsg={mostrarMsg} />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

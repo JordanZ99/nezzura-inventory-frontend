@@ -134,6 +134,23 @@ export const ROLES_CLAVE: Record<string, RolClave> = {
 export const ROLES_ORDEN = ["publicador", "analista", "disenador", "inventario", "cajero", "compras"] as const
 export type RolId = (typeof ROLES_ORDEN)[number]
 
+/** Preset de FOTO por comando (082): el agente aplica el `prompt` cuando el
+ *  dueño escribe el `comando` en el chat (ej. /img) o pida quitar el fondo. */
+export interface PresetFoto {
+    /** Identificador corto ('estudio' para el default del sistema) */
+    clave: string
+    comando: string
+    nombre: string
+    prompt: string
+    /** true = default del sistema (solo se puede editar, no crear duplicado) */
+    es_default: boolean
+    activo: boolean
+    /** true = el dueño ya editó el default (existe override en la BD) */
+    editado?: boolean
+    /** Prompt recomendado por el código (solo en el default, para restaurar) */
+    prompt_recomendado?: string
+}
+
 /** Límites por defecto según el nivel DERIVADO de los roles (espejo de
  *  database/mcp_claves.py): más roles = menos llamadas diarias. */
 export const DEFAULTS_LIMITES: Record<number, { llamadas: number; escrituras: number }> = {
@@ -170,4 +187,34 @@ export const museApi = {
      *  y la fila desaparece de la lista. El Historial no se toca. */
     eliminarClave: (id: number) =>
         request<{ ok: boolean }>(`/mcp-conexion/claves/${id}`, { method: "DELETE" }),
+
+    // ── Presets de FOTO por comando (082) ──
+    // El dueño edita el comando y el prompt que el agente aplica cuando
+    // escribe el comando (o pide quitar el fondo / retocar la foto).
+
+    /** Presets del tenant: el default 'estudio' (con override y prompt
+     *  recomendado) + los extras que el dueño añadió. */
+    getEstilosFoto: () =>
+        request<{ presets: PresetFoto[] }>("/mcp-conexion/estilos-foto"),
+
+    /** Edita el preset default 'estudio' (comando, nombre y prompt). */
+    guardarEstilo: (datos: { comando: string; nombre?: string; prompt: string }) =>
+        request<{ ok: boolean }>("/mcp-conexion/estilos-foto/estudio", {
+            method: "PUT",
+            body: JSON.stringify(datos),
+        }),
+
+    /** Añade OTRO comando de foto con su preset. */
+    crearEstilo: (datos: { comando: string; nombre: string; prompt: string }) =>
+        request<{ ok: boolean; clave: string }>("/mcp-conexion/estilos-foto", {
+            method: "POST",
+            body: JSON.stringify(datos),
+        }),
+
+    /** Elimina un preset extra (o el override del default: vuelve al prompt
+     *  recomendado del código). */
+    eliminarEstilo: (clave: string) =>
+        request<{ ok: boolean }>(`/mcp-conexion/estilos-foto/${encodeURIComponent(clave)}`, {
+            method: "DELETE",
+        }),
 }
