@@ -103,21 +103,35 @@ export const ROLES_CLAVE: Record<string, RolClave> = {
     },
     cajero: {
         nombre: "Cajero",
-        descripcion: "Para registrar lo que vendiste por chat, incluso leyendo la foto de un ticket: arma la venta con tu inventario real, te muestra el desglose y la registra solo si la apruebas.",
+        descripcion: "Para registrar lo que vendiste y lo que gastaste por chat, incluso leyendo la foto de un ticket: arma la venta con tu inventario real, te muestra el desglose y la registra solo si la apruebas. También registra gastos (renta, empaque, insumos…) con tu aprobación.",
         permisos: [
             "Registrar ventas: descuenta stock y genera ticket con el mismo motor del POS",
             "Leer la foto de un ticket y proponerte el desglose para que lo apruebes",
             "Registrar ventas libres (lo que no está en el inventario) con su motivo",
-            "Cada venta queda en el Historial como hecha por el agente IA, y si el ticket es de otro día queda con esa fecha",
+            "Registrar gastos: monto, categoría y descripción (el dueño aprueba el desglose)",
+            "Cada venta o gasto queda en el Historial como hecho por el agente IA, y si es de otro día queda con esa fecha",
         ],
-        advertencia: "Puede REGISTRAR VENTAS (descuenta stock y genera tickets) tras tu aprobación del desglose en el chat; nunca ve costos. Si registras muchos tickets al día, sube el límite de llamadas de la clave (cada venta usa 2 llamadas).",
+        advertencia: "Puede REGISTRAR VENTAS (descuenta stock y genera tickets) y GASTOS tras tu aprobación del desglose en el chat; nunca ve costos. Si registras muchos tickets al día, sube el límite de llamadas de la clave (cada venta o gasto usa 2 llamadas).",
+        escritura: true,
+        planPlus: false,
+    },
+    compras: {
+        nombre: "Compras",
+        descripcion: "Para restockear por chat: cuando le digas qué te llegó (ej. 'llegaron 10 Kuromi a $150'), busca el producto, arma la entrada con el costo real de la compra, te muestra cuánto subirá el stock y la aplica solo si la apruebas.",
+        permisos: [
+            "Agregar stock a productos existentes con el mismo motor de lotes del gestor",
+            "Registrar la entrada con el COSTO real de la compra (alimenta el inventario valorado)",
+            "Ver precios de venta y stock de los productos (para proponer la entrada)",
+            "Cada entrada queda en el Historial como hecha por el agente IA",
+        ],
+        advertencia: "Puede AGREGAR STOCK y mover tu inventario valorado (PEPS) tras tu aprobación del desglose en el chat; el costo que aprueba es el que queda en tus números. Nunca crea productos nuevos (para eso está el rol Inventario).",
         escritura: true,
         planPlus: false,
     },
 }
 
 /** Orden de presentación de los toggles. */
-export const ROLES_ORDEN = ["publicador", "analista", "disenador", "inventario", "cajero"] as const
+export const ROLES_ORDEN = ["publicador", "analista", "disenador", "inventario", "cajero", "compras"] as const
 export type RolId = (typeof ROLES_ORDEN)[number]
 
 /** Límites por defecto según el nivel DERIVADO de los roles (espejo de

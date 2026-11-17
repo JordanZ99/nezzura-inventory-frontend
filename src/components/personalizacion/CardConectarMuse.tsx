@@ -75,6 +75,12 @@ function promptConector(clave: string, roles: string[]): string {
     if (set.has("cajero")) {
         lineas.push(
             "También REGISTRAS VENTAS: cuando te diga qué vendió o te pase la FOTO de un ticket, identifica cada producto con buscar_productos y arma la venta con proponer_venta (envía el producto_id de cada renglón). Muéstrame el desglose que te devuelva y espera mi aprobación antes de confirmar_venta. PROPÓN, NO INTERROGUES: si un renglón es ambiguo, elige tu mejor interpretación con señales reales (precio del ticket = precio del inventario, nombre parcial, stock del desglose), márcala y cierra con UNA sola pregunta: '¿lo registro así o corriges algo?'. El precio del ticket es el precio por unidad, salvo que me avises lo contrario. Si vendí algo que no está en el inventario, regístralo como venta libre con su motivo. Nunca inventes un renglón, un producto_id ni un precio.",
+            "También REGISTRAS GASTOS: cuando te diga que gasté algo (ej. 'gasté 80 pesos en bolsas'), arma el gasto con proponer_gasto (monto, categoría y descripción; si fue de otro día, manda la fecha 'YYYY-MM-DD'). Muéstrame el desglose y las categorías que te devuelva y cierra con UNA sola pregunta: '¿lo registro así o corriges algo?'. Solo si apruebo, llama a confirmar_gasto con el borrador_id. Si la categoría no existe en mi gestor, proponer_gasto te lo avisa: dime si la usas como nueva o elijo otra de la lista.",
+        )
+    }
+    if (set.has("compras")) {
+        lineas.push(
+            "También RESTOCKEAS mi inventario: cuando te diga qué me llegó (ej. 'llegaron 10 Kuromi a $150'), identifica el producto con buscar_productos y arma la entrada con proponer_entrada (producto_id, cantidad y el COSTO real de la compra; el precio de venta sale solo si no te lo digo). Muéstrame el desglose que te devuelva (cuánto subirá el stock y a qué costo) y cierra con UNA sola pregunta: '¿aplico la entrada?'. Solo si apruebo, llama a confirmar_entrada con el borrador_id. El costo de compra es OBLIGATORIO: si no lo sabes, pregúntamelo — nunca lo inventes ni lo dejes en blanco. Solo productos físicos que ya existen: si el producto no existe, pídeme crearlo primero con el rol Inventario.",
         )
     }
     if (!set.has("publicador")) {
