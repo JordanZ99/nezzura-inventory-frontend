@@ -10,9 +10,11 @@
 // Flujo:
 //   1. Activar los roles del agente y generar la clave (se muestra UNA sola
 //      vez — el backend solo guarda su hash)
-//   2. Copiar el prompt e insertarlo en un chat del agente: crea el custom
-//      connector con la URL del /mcp y la clave
-//   3. Cambiar roles o revocar afecta al agente al instante (sin reconexión)
+//   2. "Conéctalo a tu agente…": un botón por cliente abre su app/página con
+//      lo necesario copiado (deep links oficiales donde existen); el prompt
+//      universal queda como respaldo para cualquier otro agente
+//   3. "Probar conexión" confirma qué ve el agente y si ya usó la clave;
+//      cambiar roles o regenerar no requiere rehacer el conector
 // ==============================================================================
 
 import { useEffect, useState, type FormEvent } from "react"
@@ -37,6 +39,100 @@ const inputStyle = {
 
 const botonIcono = { background: "none", border: "none", cursor: "pointer", padding: 4 } as const
 
+// ==============================================================================
+// CONEXIÓN POR CLIENTE ("Conéctalo a tu agente…")
+//
+// Cada cliente MCP tiene su propia forma de recibir un conector. Los botones
+// hacen lo máximo que permite cada uno HOY (investigado 2026):
+//
+//   Muse      → copia el prompt + abre muse.ai. Meta NO expone una API para
+//               registrar conectores: el custom connector se crea en el chat
+//               (vía oficial documentada). El deep link /connect/api-key que
+//               existe en su web registra credenciales REST, no el conector
+//               MCP, así que no se usa aquí: prometería algo que no hace.
+//   Claude    → deep link OFICIAL al modal de conector con nombre y URL ya
+//               rellenados; la clave queda en el portapapeles para el paso de
+//               autenticación.
+//   Cursor    → deep link OFICIAL de instalación; el config (base64) ya lleva
+//               la URL y el header X-API-Key, así que instala y autentica de
+//               una vez.
+//   ChatGPT   → abre Ajustes → Conectores (formulario manual, no hay deep
+//               link de instalación) y deja la clave copiada.
+//   OpenClaw  → auto-hospedado y sin deep link estándar: copia el prompt,
+//               que es el mismo camino que Muse.
+//
+// Los formatos pueden cambiar sin aviso (sobre todo Muse): cada URL vive en
+// ESTE bloque para actualizarla en un solo lugar.
+// ==============================================================================
+
+type ClienteId = "muse" | "claude" | "cursor" | "chatgpt" | "openclaw"
+
+const CLIENTES: { id: ClienteId; nombre: string; color: string; ayuda: string }[] = [
+    {
+        id: "muse",
+        nombre: "Muse",
+        color: "#8b5cf6",
+        ayuda: "Copia el prompt y abre Muse: se lo pegas en el chat y él crea el conector.",
+    },
+    {
+        id: "claude",
+        nombre: "Claude",
+        color: "#d97706",
+        ayuda: "Abre Claude con el conector ya rellenado; la clave queda copiada para cuando la pida.",
+    },
+    {
+        id: "cursor",
+        nombre: "Cursor",
+        color: "#111827",
+        ayuda: "Abre Cursor y le pide instalar el conector (la clave va incluida).",
+    },
+    {
+        id: "chatgpt",
+        nombre: "ChatGPT",
+        color: "#10a37f",
+        ayuda: "Abre Ajustes → Conectores; la clave queda copiada para el formulario.",
+    },
+    {
+        id: "openclaw",
+        nombre: "OpenClaw",
+        color: "#6b7280",
+        ayuda: "Copia el prompt para pegarlo en el chat de tu OpenClaw.",
+    },
+]
+
+/** Web de Muse: si Meta cambia el dominio, se actualiza SOLO aquí. */
+const MUSE_URL = "https://muse.ai"
+
+/** Qué pasó al pulsar cada botón (el toast lo confirma al dueño). */
+const AVISOS_CLIENTE: Record<ClienteId, string> = {
+    muse: "Prompt copiado. Pégalo en el chat de Muse y envíalo.",
+    claude: "Clave copiada. Claude te la pedirá al añadir el conector.",
+    cursor: "Abriendo Cursor… si no se abre, usa el prompt de abajo.",
+    chatgpt: "Clave copiada. En ChatGPT: Ajustes → Conectores → Añadir conector propio.",
+    openclaw: "Prompt copiado. Pégalo en el chat de tu OpenClaw.",
+}
+
+/** Nombre con el que el conector aparece dentro del agente. */
+function nombreConector(empresa?: string): string {
+    const base = (empresa || "Mi negocio").replace(/\s+/g, " ").trim()
+    return `Nezzura · ${base}`.slice(0, 48)
+}
+
+/** base64 de un JSON UTF-8 (el deep link de Cursor lo pide así). */
+function base64DeTexto(texto: string): string {
+    const bytes = new TextEncoder().encode(texto)
+    let binario = ""
+    bytes.forEach(b => { binario += String.fromCharCode(b) })
+    return btoa(binario)
+}
+
+const pasoStyle = {
+    fontSize: "0.7rem",
+    fontWeight: 600,
+    color: "var(--text-main)",
+    lineHeight: 1.4,
+} as const
+
 /** Prompt que se pega en el chat del agente (Muse) para crear el custom
  *  connector. Lleva la clave embebida: solo se puede armar en el momento
  *  de crearla, porque después ya no se puede recuperar. El brief varía según
@@ -46,11 +142,12 @@ const botonIcono = { background: "none", border: "none", cursor: "pointer", padd
 function promptConector(clave: string, roles: string[], comandosFoto: string[] = []): string {
     const set = new Set(roles)
     const lineas = [
-        "Crea un custom connector para mi servidor MCP con estos datos:",
+        "Conéctate a mi gestor de inventario (Nezzura) con este conector MCP.",
+        "Si tu cliente necesita crear el conector, estos son sus datos:",
         "",
-        `- URL: ${BASE_URL}/mcp`,
-        "- Transporte: streamable HTTP",
-        `- Autenticación: header "X-API-Key" con el valor: ${clave}`,
+        `- Dirección del servidor: ${BASE_URL}/mcp`,
+        "- Tipo: streamable HTTP",
+        `- Clave de acceso (header X-API-Key): ${clave}`,
         "",
     ]
     if (set.has("publicador")) {
@@ -349,6 +446,13 @@ export function CardConectarMuse() {
     const [claveNueva, setClaveNueva] = useState<string | null>(null)
     const [rolesNuevaCreada, setRolesNuevaCreada] = useState<string[]>([])
     const [copiado, setCopiado] = useState<"clave" | "prompt" | null>(null)
+    // Id de la clave recién creada/regenerada: permite "Probar conexión"
+    // dentro del propio panel de la clave nueva.
+    const [idNueva, setIdNueva] = useState<number | null>(null)
+    // Resultado de "Probar conexión" por clave (id → estado del botón).
+    const [pruebas, setPruebas] = useState<Record<number, { cargando: boolean; conectado?: boolean; texto?: string }>>({})
+    // Modal de confirmación para regenerar (la clave anterior deja de servir).
+    const [modalRegenerar, setModalRegenerar] = useState<ClaveMcp | null>(null)
 
     const clavesQuery = useQuery({
         queryKey: ["muse-claves", tenantId ?? "sin-tenant"],
@@ -391,6 +495,7 @@ export function CardConectarMuse() {
         try {
             const r = await api.crearClave(nombre || undefined, rolesNueva)
             setClaveNueva(r.clave)
+            setIdNueva(r.id ?? null)
             setRolesNuevaCreada(rolesNueva)
             setRolesNueva([])
             setNombre("")
@@ -401,6 +506,95 @@ export function CardConectarMuse() {
         } finally {
             setOcupado(false)
         }
+    }
+
+    /** "Probar conexión": valida la clave y cuenta qué ve el agente. No es un
+     *  ping al agente (imposible: el gestor ya no tiene la clave en claro),
+     *  pero `conectado` dice si el conector YA usó la clave alguna vez. */
+    async function probarConexion(id: number) {
+        setPruebas(p => ({ ...p, [id]: { cargando: true } }))
+        try {
+            const r = await api.probarConexion(id)
+            const roles = r.nombres_roles.join(" + ")
+            const texto = r.conectado
+                ? `✓ Conectado · el agente ve ${r.tools} herramientas (${roles})`
+                : `Clave lista · el agente verá ${r.tools} herramientas (${roles}). Aún no la ha usado: conecta el agente y vuelve a probar.`
+            setPruebas(p => ({ ...p, [id]: { cargando: false, conectado: r.conectado, texto } }))
+        } catch (e: unknown) {
+            setPruebas(p => ({
+                ...p,
+                [id]: { cargando: false, conectado: false, texto: e instanceof Error ? e.message : "Error al probar la conexión" },
+            }))
+        }
+    }
+
+    /** Regenera la clave conservando roles, límites y permiso de costos. La
+     *  anterior deja de funcionar al instante; la nueva se muestra en el panel
+     *  de arriba, lista para copiar y conectar. */
+    async function regenerar(c: ClaveMcp) {
+        setOcupado(true)
+        try {
+            const r = await api.regenerarClave(c.id)
+            setClaveNueva(r.clave)
+            setIdNueva(r.id ?? null)
+            setRolesNuevaCreada(c.roles ?? [...ROLES_ORDEN])
+            setModalRegenerar(null)
+            // La prueba de la clave vieja ya no aplica (esa fila desapareció).
+            setPruebas(p => {
+                const next = { ...p }
+                delete next[c.id]
+                if (r.id) delete next[r.id]
+                return next
+            })
+            invalidar()
+            mostrarMsg(true, "Clave regenerada: la anterior ya no funciona. Copia la nueva.")
+        } catch (e: unknown) {
+            mostrarMsg(false, e instanceof Error ? e.message : "Error")
+        } finally {
+            setOcupado(false)
+        }
+    }
+
+    /** Botón de un cliente: abre su app/página y copia lo que necesita (el
+     *  prompt en Muse/OpenClaw, la clave en Claude/ChatGPT; Cursor la lleva
+     *  embebida en el deep link). */
+    async function conectarCon(cliente: ClienteId) {
+        if (!claveNueva) return
+        const url = `${BASE_URL}/mcp`
+        const nombre = nombreConector(tenant?.empresa)
+        const prompt = promptConector(claveNueva, rolesNuevaCreada, comandosFoto)
+
+        let portapapeles = prompt
+        let destino: string | null = null
+
+        if (cliente === "muse") {
+            // Meta crea los custom connectors EN EL CHAT: se abre Muse con el
+            // prompt ya copiado. (Su deep link /connect/api-key registra
+            // credenciales REST, no el conector MCP — ver cabecera del bloque.)
+            destino = MUSE_URL
+        } else if (cliente === "claude") {
+            portapapeles = claveNueva
+            destino = "https://claude.ai/customize/connectors" +
+                `?modal=add-custom-connector&connectorName=${encodeURIComponent(nombre)}` +
+                `&connectorUrl=${encodeURIComponent(url)}`
+        } else if (cliente === "cursor") {
+            const config = base64DeTexto(JSON.stringify({ url, headers: { "X-API-Key": claveNueva } }))
+            destino = "cursor://anysphere.cursor-deeplink/mcp/install" +
+                `?name=${encodeURIComponent(nombre)}&config=${encodeURIComponent(config)}`
+        } else if (cliente === "chatgpt") {
+            portapapeles = claveNueva
+            destino = "https://chatgpt.com/#settings/Connectors"
+        }
+        // openclaw: auto-hospedado y sin deep link estándar → solo el prompt.
+
+        // window.open ANTES del await: si se abre tras una promesa, el
+        // navegador lo trata como popup y lo bloquea.
+        if (destino) window.open(destino, "_blank", "noopener,noreferrer")
+        const ok = await copiar(portapapeles)
+        mostrarMsg(
+            ok,
+            ok ? AVISOS_CLIENTE[cliente] : "No se pudo copiar: usa el prompt de abajo y su botón de copiar",
+        )
     }
 
     async function eliminar(c: ClaveMcp) {
@@ -500,7 +694,9 @@ export function CardConectarMuse() {
     }
 
     async function copiarYavisar(que: "clave" | "prompt") {
-        const texto = que === "clave" ? claveNueva : promptConector(claveNueva || "", rolesNuevaCreada)
+        const texto = que === "clave"
+            ? claveNueva
+            : promptConector(claveNueva || "", rolesNuevaCreada, comandosFoto)
         if (!texto) return
         const ok = await copiar(texto)
         if (ok) {
@@ -517,7 +713,8 @@ export function CardConectarMuse() {
                 <Icon name="Bot" size={20} color="var(--primary-dark)" /> Conectar mi IA
             </h2>
             <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 16px" }}>
-                Conecta un agente IA (como <strong>Muse</strong>) y elige QUÉ TRABAJO hace activando sus roles:
+                Conecta tu agente IA (<strong>Muse</strong>, Claude, Cursor, ChatGPT u OpenClaw) y elige QUÉ TRABAJO
+                hace activando sus roles:
                 publicar en redes, analizar el negocio, cuidar las fotos o crear productos. El agente solo ve las
                 herramientas de los roles activos. <strong>Nunca ve tus costos unitarios</strong> salvo el permiso
                 explícito 'ver costos'. Puedes crear una clave por agente/rol.
@@ -537,19 +734,83 @@ export function CardConectarMuse() {
                             <Icon name={copiado === "clave" ? "Check" : "Copy"} size={16} color="var(--primary-dark)" />
                         </button>
                     </div>
-                    <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 800, color: "var(--primary-dark)", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                        Pega esto en un chat de tu IA para conectarla
+
+                    {/* ── Conéctalo a tu agente… ── */}
+                    <p style={{ margin: "0 0 2px", fontSize: "0.92rem", fontWeight: 800, color: "var(--text-main)" }}>
+                        Conéctalo a tu agente…
                     </p>
-                    <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                        <pre style={{ flex: 1, margin: 0, fontSize: "0.66rem", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "monospace", background: "var(--bg-card)", padding: "8px 10px", borderRadius: 6, maxHeight: 170, overflow: "auto" }}>
-                            {promptConector(claveNueva, rolesNuevaCreada, comandosFoto)}
-                        </pre>
-                        <button onClick={() => copiarYavisar("prompt")} title="Copiar prompt completo" style={botonIcono}>
-                            <Icon name={copiado === "prompt" ? "Check" : "Copy"} size={16} color="var(--primary-dark)" />
-                        </button>
+                    <p style={{ margin: "0 0 8px", fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)" }}>
+                        Elige el tuyo: el botón copia lo necesario y lo abre. Si tu agente no está en la lista, usa el
+                        prompt de abajo.
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                        {CLIENTES.map(c => (
+                            <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => conectarCon(c.id)}
+                                title={c.ayuda}
+                                style={{
+                                    display: "flex", alignItems: "center", gap: 7,
+                                    padding: "7px 12px", borderRadius: 20, cursor: "pointer",
+                                    border: "1px solid var(--border-primary)",
+                                    background: "var(--bg-card)",
+                                    fontSize: "0.74rem", fontWeight: 800, color: "var(--text-main)",
+                                }}
+                            >
+                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: c.color, flexShrink: 0 }} />
+                                {c.nombre}
+                                <Icon name="ExternalLink" size={12} color="var(--text-muted)" />
+                            </button>
+                        ))}
                     </div>
-                    <p style={{ margin: "8px 0 0", fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 600 }}>
-                        Por seguridad la clave no se vuelve a mostrar. Si la pierdes, elimínala y genera otra.
+
+                    {/* Resultado de "Probar conexión" de la clave recién creada */}
+                    {idNueva !== null && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                            <button
+                                type="button"
+                                onClick={() => probarConexion(idNueva)}
+                                disabled={pruebas[idNueva]?.cargando}
+                                className="btn-secondary"
+                                style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", fontSize: "0.7rem" }}
+                            >
+                                <Icon name="Plug" size={13} />
+                                {pruebas[idNueva]?.cargando ? "Probando…" : "Probar conexión"}
+                            </button>
+                            {pruebas[idNueva]?.texto && (
+                                <span style={{
+                                    fontSize: "0.68rem", fontWeight: 700,
+                                    color: pruebas[idNueva]?.conectado ? "var(--primary-dark)" : "var(--text-muted)",
+                                }}>
+                                    {pruebas[idNueva].texto}
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── Respaldo universal: el prompt ── */}
+                    <div style={{ borderTop: "1px solid var(--border-primary)", paddingTop: 10 }}>
+                        <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 800, color: "var(--primary-dark)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            O copia y pega este prompt
+                        </p>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                            <pre style={{ flex: 1, margin: 0, fontSize: "0.66rem", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "monospace", background: "var(--bg-card)", padding: "8px 10px", borderRadius: 6, maxHeight: 170, overflow: "auto" }}>
+                                {promptConector(claveNueva, rolesNuevaCreada, comandosFoto)}
+                            </pre>
+                            <button onClick={() => copiarYavisar("prompt")} title="Copiar prompt completo" style={botonIcono}>
+                                <Icon name={copiado === "prompt" ? "Check" : "Copy"} size={16} color="var(--primary-dark)" />
+                            </button>
+                        </div>
+                        <ol style={{ margin: "10px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column", gap: 3 }}>
+                            <li style={pasoStyle}>Pega el prompt en el chat del agente y envíalo.</li>
+                            <li style={pasoStyle}>Acepta el conector cuando te lo pida: tu clave va incluida.</li>
+                            <li style={pasoStyle}>Vuelve aquí y toca “Probar conexión” para confirmar que ya te ve.</li>
+                        </ol>
+                    </div>
+                    <p style={{ margin: "10px 0 0", fontSize: "0.68rem", color: "var(--text-muted)", fontWeight: 600 }}>
+                        Esta clave es como una contraseña: no la compartas. Por seguridad no se vuelve a mostrar; si la
+                        pierdes, usa “Regenerar”.
                     </p>
                 </div>
             )}
@@ -593,10 +854,38 @@ export function CardConectarMuse() {
                                     >
                                         <Icon name="Settings2" size={15} color="var(--text-muted)" />
                                     </button>
+                                    <button
+                                        onClick={() => setModalRegenerar(c)}
+                                        title="Regenerar clave (la anterior deja de funcionar)"
+                                        style={botonIcono}
+                                    >
+                                        <Icon name="RefreshCw" size={15} color="var(--text-muted)" />
+                                    </button>
                                     <button onClick={() => setModalEliminar({ id: c.id, nombre: c.nombre })} title="Eliminar (desconecta a la IA)" style={botonIcono}>
                                         <Icon name="Trash2" size={15} color="#b71c1c" />
                                     </button>
                                 </div>
+                            </div>
+
+                            {/* "Probar conexión": qué herramientas ve el agente
+                                ahora mismo y si ya usó la clave alguna vez. */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                                <button
+                                    type="button"
+                                    onClick={() => probarConexion(c.id)}
+                                    disabled={pruebas[c.id]?.cargando}
+                                    style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: "0.68rem", fontWeight: 800, color: "var(--primary-dark)" }}
+                                >
+                                    {pruebas[c.id]?.cargando ? "Probando conexión…" : "Probar conexión"}
+                                </button>
+                                {pruebas[c.id]?.texto && (
+                                    <span style={{
+                                        fontSize: "0.68rem", fontWeight: 700,
+                                        color: pruebas[c.id]?.conectado ? "var(--primary-dark)" : "var(--text-muted)",
+                                    }}>
+                                        {pruebas[c.id].texto}
+                                    </span>
+                                )}
                             </div>
 
                             {/* Toggles de rol de la clave existente */}
@@ -790,6 +1079,22 @@ export function CardConectarMuse() {
                     btnColor="#e65100"
                     onCancelar={() => setModalRol(null)}
                     onConfirmar={confirmarModalRol}
+                />
+            )}
+
+            {/* ── Modal: regenerar la clave (la anterior deja de funcionar) ── */}
+            {modalRegenerar !== null && (
+                <ModalConfirmacion
+                    icon="RefreshCw"
+                    iconBg="#e8eef9"
+                    iconColor="var(--primary-dark)"
+                    titulo={`¿Regenerar la clave "${modalRegenerar.nombre}"?`}
+                    mensaje="Se crea una clave nueva con los mismos roles, límites y permisos, y la actual deja de funcionar al instante."
+                    aviso="Úsalo si perdiste la clave antes de conectarla o si quieres cortar el acceso: tendrás que volver a pegarla en el agente (el resto de la configuración se conserva)."
+                    btnConfirmar="Regenerar clave"
+                    btnColor="var(--primary-dark)"
+                    onCancelar={() => setModalRegenerar(null)}
+                    onConfirmar={() => regenerar(modalRegenerar)}
                 />
             )}
 

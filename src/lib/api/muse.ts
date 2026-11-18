@@ -151,6 +151,25 @@ export interface PresetFoto {
     prompt_recomendado?: string
 }
 
+/** Resultado de "Probar conexión" (POST /claves/{id}/probar): lo que el
+ *  agente ve AHORA MISMO. No es un ping al agente (el gestor solo guarda el
+ *  hash de la clave): `conectado` = la clave ya recibió al menos un request
+ *  real, o sea que el conector quedó bien instalado. */
+export interface PruebaConexion {
+    ok: boolean
+    activa: boolean
+    /** true = el agente ya usó la clave alguna vez */
+    conectado: boolean
+    /** Roles efectivos de la clave (ids: publicador, analista...) */
+    roles: string[]
+    /** Nombres legibles de esos roles, listos para mostrar */
+    nombres_roles: string[]
+    /** Cuántas herramientas ve el agente (unión de sus roles) */
+    tools: number
+    llamadas_hoy: number
+    ultimo_uso_en: string | null
+}
+
 /** Límites por defecto según el nivel DERIVADO de los roles (espejo de
  *  database/mcp_claves.py): más roles = menos llamadas diarias. */
 export const DEFAULTS_LIMITES: Record<number, { llamadas: number; escrituras: number }> = {
@@ -163,9 +182,10 @@ export const museApi = {
     getClaves: () => request<{ claves: ClaveMcp[] }>("/mcp-conexion/claves"),
 
     /** Devuelve la clave en claro UNA sola vez: el backend solo guarda su hash.
-     *  roles vacío u omitido = publicador (el backend lo normaliza). */
+     *  roles vacío u omitido = publicador (el backend lo normaliza). El id
+     *  sirve para ofrecer "Probar conexión" justo después de crearla. */
     crearClave: (nombre?: string, roles: string[] = []) =>
-        request<{ ok: boolean; clave: string }>("/mcp-conexion/claves", {
+        request<{ ok: boolean; clave: string; id?: number }>("/mcp-conexion/claves", {
             method: "POST",
             body: JSON.stringify({ nombre: nombre?.trim() || null, roles }),
         }),
@@ -187,6 +207,20 @@ export const museApi = {
      *  y la fila desaparece de la lista. El Historial no se toca. */
     eliminarClave: (id: number) =>
         request<{ ok: boolean }>(`/mcp-conexion/claves/${id}`, { method: "DELETE" }),
+
+    /** "Probar conexión": valida la clave y devuelve qué herramientas ve el
+     *  agente y si ya la usó alguna vez. No hace ping al agente: solo el
+     *  servidor MCP puede, y la clave en claro ya no existe aquí. */
+    probarConexion: (id: number) =>
+        request<PruebaConexion>(`/mcp-conexion/claves/${id}/probar`, { method: "POST" }),
+
+    /** Regenera la clave conservando roles, límites y permiso de costos. La
+     *  anterior deja de funcionar al instante; la nueva se muestra UNA vez. */
+    regenerarClave: (id: number) =>
+        request<{ ok: boolean; clave: string; id?: number }>(
+            `/mcp-conexion/claves/${id}/regenerar`,
+            { method: "POST" },
+        ),
 
     // ── Presets de FOTO por comando (082) ──
     // El dueño edita el comando y el prompt que el agente aplica cuando
