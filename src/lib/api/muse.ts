@@ -4,8 +4,9 @@
 // Cada negocio genera claves desde Ajustes → Negocio → "Conectar mi IA".
 // La clave se pega UNA vez en el agente (custom connector) y le da acceso a
 // los ROLES funcionales que el dueño activó (toggles): publicar en redes,
-// analizar el negocio, cuidar las fotos, crear/editar productos o registrar
-// ventas (Cajero). El agente ve la UNIÓN de las tools de sus roles — nada
+// analizar el negocio, cuidar las fotos, crear/editar productos (incluida la
+// receta de los compuestos) o registrar ventas (Cajero). El agente ve la
+// UNIÓN de las tools de sus roles — nada
 // más. Nunca costos salvo el permiso explícito 'ver costos'.
 // ==============================================================================
 
@@ -90,14 +91,16 @@ export const ROLES_CLAVE: Record<string, RolClave> = {
     },
     inventario: {
         nombre: "Inventario",
-        descripcion: "Para crear y mantener productos: propone borradores, tú los confirmas en el chat, y puede adjuntar fotos a lo que cree o edite.",
+        descripcion: "Para crear y mantener productos, incluidos los compuestos de un restaurante: propone borradores, tú los confirmas en el chat, cambia los ingredientes de una receta y puede adjuntar fotos a lo que cree o edite.",
         permisos: [
             "Proponer productos nuevos (borradores que se revisan antes de crear nada)",
             "Editar productos: descripción, precio, nombre, estado, códigos, categorías…",
+            "Ver la receta de un producto compuesto: ingredientes, cantidades y cuántas unidades alcanzan",
+            "Cambiar los ingredientes de un compuesto: agregar, cambiar cantidad o quitar (con tu confirmación)",
             "Adjuntar imágenes a los productos que crea o edita",
             "Cada cambio lo confirmas tú en el chat y queda en el Historial como hecho por el agente IA",
         ],
-        advertencia: "Puede CREAR y EDITAR productos (tras tu confirmación en el chat). Requiere plan Plus para la galería. Solo dáselo a un agente de tu máxima confianza.",
+        advertencia: "Puede CREAR y EDITAR productos y RECETAS de compuestos (tras tu confirmación en el chat). Requiere plan Plus para la galería. Solo dáselo a un agente de tu máxima confianza.",
         escritura: true,
         planPlus: true,
     },

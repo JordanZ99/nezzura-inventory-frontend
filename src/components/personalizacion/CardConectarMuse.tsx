@@ -3,8 +3,9 @@
 // Tarjeta "Conectar mi IA" (tab Mi Negocio): gestión de las claves API del
 // servidor MCP — el conector que permite a un agente IA (como Muse de Meta)
 // trabajar con el negocio según los ROLES que el dueño activa (toggles):
-// publicar en redes, analizar el negocio, cuidar las fotos o crear/editar
-// productos. El agente ve la UNIÓN de las tools de sus roles — nunca costos
+// publicar en redes, analizar el negocio, cuidar las fotos, crear/editar
+// productos o cambiar la receta de un producto compuesto. El agente ve la
+// UNIÓN de las tools de sus roles — nunca costos
 // salvo el permiso explícito 'ver costos'.
 //
 // Flujo:
@@ -152,8 +153,8 @@ function promptConector(clave: string, roles: string[], comandosFoto: string[] =
     ]
     if (set.has("publicador")) {
         lineas.push(
-            "Conector del inventario de mi negocio (productos físicos, precios de venta, descripciones, tamaños, stock y fotos; sin costos internos).",
-            "Cuando te pida publicar un producto en Marketplace o redes sociales, busca el producto y usa datos_para_publicar para obtener los datos en lugar de pedírmelos a mí.",
+            "Conector del inventario de mi negocio (productos, precios de venta, descripciones, tamaños, stock y fotos; sin costos internos).",
+            "Cuando te pida publicar un producto en Marketplace o redes sociales, busca el producto y usa datos_para_publicar para obtener los datos en lugar de pedírmelos a mí. Ojo: los productos compuestos (platillos de restaurante) no se publican en Marketplace porque su receta es interna.",
         )
     }
     if (set.has("analista")) {
@@ -171,6 +172,7 @@ function promptConector(clave: string, roles: string[], comandosFoto: string[] =
     if (set.has("inventario")) {
         lineas.push(
             "Puedo pedirte crear productos nuevos: SIEMPRE usa primero proponer_producto (valida y guarda el borrador) y después confirmar_producto con el borrador_id que devuelva. Si un dato falta o es inválido, proponer_producto te dirá exactamente qué corregir.",
+            "También manejo productos COMPUESTOS (los platillos de un restaurante): no tienen stock propio, se venden contra los ingredientes de su RECETA. Cuando te pida cambiar los ingredientes de uno (ej. 'a la hamburguesa ponle 2 quesos en vez de 1'), primero llama a ver_receta para ver los materiales con su receta_id y la cantidad por unidad, y después proponer_receta con los cambios ({accion:'agregar', material, cantidad}, {accion:'cambiar', receta_id, cantidad} o {accion:'quitar', receta_id}). Muéstrame el resumen y espera mi aprobación antes de confirmar_receta. Nunca inventes un receta_id: salen de ver_receta. Si te pido 'cuántas hamburguesas alcanzan', usa la disponibilidad_estimada de ver_receta.",
             "Si te envío una foto para un producto y escribo un comando de foto —o pido quitar el fondo o retocarla—: llama estilos_foto, usa el prompt del preset tal cual y adjunta el resultado con adjuntar_imagen.",
         )
     }
@@ -186,7 +188,7 @@ function promptConector(clave: string, roles: string[], comandosFoto: string[] =
         )
     }
     if (!set.has("publicador")) {
-        lineas.push("Conector del inventario de mi negocio: productos físicos, precios de venta, stock y fotos.")
+        lineas.push("Conector del inventario de mi negocio: productos (físicos y compuestos), precios de venta, stock, recetas y fotos.")
     }
     return lineas.join("\n")
 }
@@ -715,8 +717,8 @@ export function CardConectarMuse() {
             <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", margin: "0 0 16px" }}>
                 Conecta tu agente IA (<strong>Muse</strong>, Claude, Cursor, ChatGPT u OpenClaw) y elige QUÉ TRABAJO
                 hace activando sus roles:
-                publicar en redes, analizar el negocio, cuidar las fotos o crear productos. El agente solo ve las
-                herramientas de los roles activos. <strong>Nunca ve tus costos unitarios</strong> salvo el permiso
+                publicar en redes, analizar el negocio, cuidar las fotos o crear productos y recetas. El agente solo ve
+                las herramientas de los roles activos. <strong>Nunca ve tus costos unitarios</strong> salvo el permiso
                 explícito 'ver costos'. Puedes crear una clave por agente/rol.
             </p>
 
